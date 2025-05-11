@@ -56,9 +56,10 @@ export function DateRangePicker({
             initialFocus
             mode="range"
             defaultMonth={value?.from}
-            selected={value}
-            onSelect={onChange}
+            selected={value ?? undefined}
+            onSelect={val => onChange(val ?? null)}
             numberOfMonths={2}
+            required={false}
           />
         </PopoverContent>
       </Popover>
