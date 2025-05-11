@@ -146,10 +146,10 @@ export function AuthForm() {
               {...register('confirmPassword')}
               type="password"
               placeholder="Confirm Password"
-              className={errors.confirmPassword ? 'border-red-500' : ''}
+              className={('confirmPassword' in (errors as any)) && (errors as any).confirmPassword ? 'border-red-500' : ''}
             />
-            {errors.confirmPassword && (
-              <p className="text-red-500 text-sm mt-1">{errors.confirmPassword.message}</p>
+            {('confirmPassword' in (errors as any)) && (errors as any).confirmPassword && (
+              <p className="text-red-500 text-sm mt-1">{(errors as any).confirmPassword.message}</p>
             )}
           </div>
         )}
