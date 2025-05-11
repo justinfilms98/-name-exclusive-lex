@@ -21,9 +21,12 @@ export function CollectionsGrid() {
       addItem({
         id: video.id,
         title: video.title,
+        description: "To be updated",
+        thumbnailKey: video.thumbnail,
         price: parseFloat(video.price),
         type: 'per_watch',
         creator: { name: "To be updated", image: "" },
+        createdAt: new Date().toISOString(),
       })
     }
   }
