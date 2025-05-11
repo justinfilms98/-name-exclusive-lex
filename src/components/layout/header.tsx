@@ -18,34 +18,36 @@ export function Header() {
   }, [status, session, isCreator])
 
   return (
-    <header className="z-50 bg-white/80 backdrop-blur-sm border-b border-[#E4E4E4]">
-      <nav className="container mx-auto px-4 py-3">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between relative">
-          {/* Top Row: Logo and Hamburger */}
-          <div className="flex items-center justify-between w-full md:w-auto">
-            {/* Logo */}
-            <Link href="/" className="text-[#2E4A2E] text-3xl font-serif font-bold hover:text-[#4A7A4A] transition-colors">
-              Exclusive Lex
-            </Link>
-            {/* Hamburger */}
+    <header className="z-50 bg-transparent">
+      <nav className="container mx-auto px-4 py-2 flex flex-col items-center">
+        <div className="flex items-center justify-between w-full relative">
+          {/* Left: Hamburger (mobile) and Nav (desktop) */}
+          <div className="flex items-center">
+            {/* Hamburger (mobile only) */}
             <button
-              className="md:hidden text-[#2E4A2E] ml-2"
+              className="md:hidden text-[#2E4A2E] mr-2"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
             >
               {isMenuOpen ? <X size={28} /> : <Menu size={28} />}
             </button>
+            {/* Desktop Nav */}
+            <div className="hidden md:flex items-center space-x-8">
+              <Link href="/collections" className="text-[#2E4A2E] hover:text-[#4A7A4A] text-lg">Collections</Link>
+              <Link href="/vip" className="text-[#2E4A2E] hover:text-[#4A7A4A] text-lg">VIP</Link>
+              {isCreator && (
+                <Link href="/admin" className="text-[#2E4A2E] hover:text-[#4A7A4A] text-lg flex items-center cursor-pointer">
+                  <Settings className="h-5 w-5 mr-1" />Admin
+                </Link>
+              )}
+            </div>
           </div>
-          {/* Desktop Nav */}
-          <div className="hidden md:flex items-center space-x-8">
-            <Link href="/collections" className="text-[#2E4A2E] hover:text-[#4A7A4A] text-lg">Collections</Link>
-            <Link href="/vip" className="text-[#2E4A2E] hover:text-[#4A7A4A] text-lg">VIP</Link>
-            {isCreator && (
-              <Link href="/admin" className="text-[#2E4A2E] hover:text-[#4A7A4A] text-lg flex items-center cursor-pointer">
-                <Settings className="h-5 w-5 mr-1" />Admin
-              </Link>
-            )}
+          {/* Center: Logo */}
+          <div className="flex-1 flex justify-center">
+            <Link href="/" className="text-[#2E4A2E] text-3xl font-serif font-bold hover:text-[#4A7A4A] transition-colors">
+              Exclusive Lex
+            </Link>
           </div>
-          {/* Desktop Auth/Cart */}
+          {/* Right: Cart/Auth (desktop) */}
           <div className="hidden md:flex items-center space-x-4">
             <Link href="/cart">
               <Button variant="ghost" size="icon" className="text-[#2E4A2E] hover:text-[#4A7A4A]">

@@ -79,29 +79,44 @@ export function VideoShowcase() {
         </motion.div>
       </AnimatePresence>
 
-      <div className="relative z-10 h-screen flex flex-col items-center justify-center text-center px-4">
+      <div className="relative z-10 h-screen flex flex-col items-center justify-center text-center px-4 sm:px-6 md:px-8">
         <motion.div
           key={currentVideo}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -20 }}
           transition={{ duration: 0.5 }}
+          className="max-w-3xl mx-auto"
         >
-          <h1 className="font-serif font-bold text-4xl sm:text-6xl text-[#2E4A2E]">
+          <h1 className="font-serif font-bold text-3xl sm:text-4xl md:text-6xl text-white mb-2 sm:mb-4">
             {videos[currentVideo].title}
           </h1>
-          <p className="font-sans text-lg sm:text-2xl text-[#3C2F2F] mt-2">
+          <p className="font-sans text-base sm:text-lg md:text-2xl text-white/90 mt-2 sm:mt-3">
             {videos[currentVideo].subtitle}
           </p>
-          <Link href="/collections" className="inline-block mt-6">
+          <Link href="/collections" className="inline-block mt-4 sm:mt-6">
             <Button 
               size="lg" 
-              className="bg-[#F2E8D5] text-[#3C2F2F] hover:bg-[#E8D4C6] py-3 px-6 rounded-lg transition"
+              className="bg-[#F2E8D5] text-[#3C2F2F] hover:bg-[#E8D4C6] py-2 sm:py-3 px-4 sm:px-6 rounded-lg transition text-sm sm:text-base"
             >
               Browse Now
             </Button>
           </Link>
         </motion.div>
+
+        {/* Navigation Dots */}
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex space-x-2">
+          {videos.map((_, index) => (
+            <button
+              key={index}
+              onClick={() => setCurrentVideo(index)}
+              className={`w-2 h-2 rounded-full transition-colors ${
+                index === currentVideo ? 'bg-white' : 'bg-white/50'
+              }`}
+              aria-label={`Go to video ${index + 1}`}
+            />
+          ))}
+        </div>
       </div>
     </section>
   )
