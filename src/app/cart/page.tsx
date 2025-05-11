@@ -16,8 +16,8 @@ interface CartItem {
   id: string
   title: string
   price: number
-  type: 'monthly' | 'yearly' | 'per_watch'
-  user: {
+  type: 'per_watch'
+  creator: {
     name: string
   }
 }
@@ -88,8 +88,8 @@ export default function CartPage() {
                 <div key={item.id} className="p-6 flex items-center justify-between">
                   <div>
                     <h3 className="text-white font-medium">{item.title}</h3>
-                    <p className="text-gray-400 text-sm">by {item.user.name}</p>
-                    <p className="text-gray-300 mt-1">${item.price}{item.type === 'per_watch' ? ' per watch' : `/${item.type}`}</p>
+                    <p className="text-gray-400 text-sm">by {item.creator.name}</p>
+                    <p className="text-gray-300 mt-1">${item.price} per watch</p>
                   </div>
                   <Button
                     variant="ghost"
