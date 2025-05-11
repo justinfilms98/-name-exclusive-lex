@@ -49,9 +49,13 @@ export function PricingGrid() {
       for (let i = 0; i < quantity; i++) {
         addItem({
           id: bundle.id,
-          name: bundle.title,
+          title: bundle.title,
+          description: bundle.description,
+          thumbnailKey: bundle.thumbnail,
           price: bundle.price,
-          type: bundle.id.includes('yearly') ? 'yearly' : 'monthly'
+          type: bundle.id.includes('yearly') ? 'yearly' : 'monthly',
+          creator: { name: "To be updated", image: "" },
+          createdAt: new Date().toISOString(),
         })
       }
     }
