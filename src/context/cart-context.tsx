@@ -8,7 +8,7 @@ interface Video {
   description: string
   thumbnailKey: string
   price: number
-  type: 'monthly' | 'yearly'
+  type: 'monthly' | 'yearly' | 'per_watch'
   creator: {
     name: string
     image: string

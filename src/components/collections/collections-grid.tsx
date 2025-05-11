@@ -21,12 +21,9 @@ export function CollectionsGrid() {
       addItem({
         id: video.id,
         title: video.title,
-        description: "To be updated by creator", // Filler
-        thumbnailKey: video.thumbnail, // Filler, can be updated later
         price: parseFloat(video.price),
         type: 'per_watch',
-        user: { name: "To be updated" }, // Filler
-        createdAt: new Date().toISOString(), // Filler
+        creator: { name: "To be updated", image: "" },
       })
     }
   }
