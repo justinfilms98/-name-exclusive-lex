@@ -36,7 +36,12 @@ export default function WatchPage() {
         setIsLoading(true)
         setError(null)
 
-        const response = await fetch(`/api/videos/${params.videoId}`)
+        const videoId = (params as any)?.videoId;
+        if (!videoId) {
+          throw new Error('Missing videoId parameter');
+        }
+
+        const response = await fetch(`/api/videos/${videoId}`)
         if (!response.ok) {
           throw new Error('Failed to fetch video')
         }
@@ -52,7 +57,7 @@ export default function WatchPage() {
     }
 
     fetchVideo()
-  }, [params.videoId])
+  }, [(params as any)?.videoId])
 
   if (isLoading) {
     return (
