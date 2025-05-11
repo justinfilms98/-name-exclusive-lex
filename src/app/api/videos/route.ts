@@ -38,7 +38,7 @@ export async function GET() {
     // Get all videos
     const videos = await prisma.video.findMany({
       include: {
-        user: {
+        creator: {
           select: {
             name: true,
             image: true
