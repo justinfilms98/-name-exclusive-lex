@@ -44,7 +44,7 @@ export function CollectionsGrid() {
         Premium Collections
       </h1>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-        {videos.map((video) => (
+        {videos.map((video: any, index: number) => (
           <div key={video.id} className="bg-[#F2E8D5] rounded-lg overflow-hidden shadow-lg transition-transform hover:scale-105">
             <div className="relative aspect-[16/9] sm:aspect-[2/3] overflow-hidden bg-gray-200">
               <div className={cn(

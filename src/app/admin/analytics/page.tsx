@@ -303,9 +303,9 @@ export default function AnalyticsPage() {
                 <h4 className="text-sm font-medium text-gray-500 mb-2">Top Countries</h4>
                 <div className="space-y-2">
                   {analytics.viewerDemographics.countries
-                    .sort((a, b) => b.count - a.count)
+                    .sort((a: any, b: any) => b.count - a.count)
                     .slice(0, 5)
-                    .map((country) => (
+                    .map((country: any) => (
                       <div key={country.country} className="flex justify-between items-center">
                         <span>{country.country}</span>
                         <span className="font-medium">{country.count}</span>
@@ -359,7 +359,7 @@ export default function AnalyticsPage() {
                 </tr>
               </thead>
               <tbody>
-                {analytics.topVideos.map((video) => (
+                {analytics.topVideos.map((video: any) => (
                   <tr key={video.id} className="border-b">
                     <td className="py-2">{video.title}</td>
                     <td className="text-right py-2">{video.views}</td>

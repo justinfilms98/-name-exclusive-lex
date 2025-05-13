@@ -52,7 +52,7 @@ export async function GET() {
 
     // For each video, check if the user has purchased it
     const videosWithPurchaseStatus = await Promise.all(
-      videos.map(async (video) => {
+      videos.map(async (video: any) => {
         let hasAccess = false
         let expiresAt = null
 

@@ -163,7 +163,7 @@ export default function CollectionsPage() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-        {filteredVideos.map((video) => (
+        {filteredVideos.map((video: Video) => (
           <div
             key={video.id}
             className="aspect-[9/16] bg-transparent rounded-lg overflow-hidden relative group cursor-pointer border border-[#F2E8D5]/20 hover:border-[#4A7A4A]/50 transition-colors"

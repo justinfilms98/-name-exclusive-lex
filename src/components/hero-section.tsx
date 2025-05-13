@@ -70,7 +70,7 @@ export function HeroSection() {
       />
       
       <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex justify-center space-x-2 z-20">
-        {videos.map((_, index) => (
+        {videos.map((_: any, index: number) => (
           <button
             key={index}
             onClick={() => setCurrentIndex(index)}
