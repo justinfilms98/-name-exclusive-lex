@@ -85,4 +85,27 @@ model Purchase {
   expiresAt DateTime
   user      User     @relation(fields: [userId], references: [id])
   video     Video    @relation(fields: [videoId], references: [id])
+}
+
+model HeroVideo {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String
+  thumbnail   String   // URL to the thumbnail image
+  videoUrl    String   // URL to the video file
+  order       Int      // 1, 2, or 3 for the hero slot
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model CollectionVideo {
+  id          Int      @id @default(autoincrement())
+  collection  String   // Name or ID of the collection
+  title       String
+  description String
+  thumbnail   String   // URL to the thumbnail image
+  videoUrl    String   // URL to the video file
+  order       Int      // 1-20 for the slot in the collection
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 } 
