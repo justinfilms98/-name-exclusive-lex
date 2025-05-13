@@ -1,37 +1,33 @@
-'use client'
-
-import { useState, useEffect } from 'react'
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import prisma from '@/lib/prisma';
+import { redirect } from 'next/navigation';
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { useSession, signOut } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
+import { signOut } from 'next-auth/react'
 
-export default function AccountPage() {
-  const { data: session, status } = useSession()
-  const router = useRouter()
-  const [activeTab, setActiveTab] = useState('profile')
-
-  useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/login')
-    }
-  }, [status, router])
-
-  if (status === 'loading') {
-    return <div className="min-h-screen flex items-center justify-center">Loading...</div>
+export default async function AccountPage() {
+  const session = await getServerSession(authOptions);
+  if (!session || typeof session.user.email !== 'string') {
+    redirect('/login');
   }
-
+  const user = await prisma.user.findUnique({
+    where: { email: session.user.email },
+  });
+  if (user?.role === 'CREATOR') {
+    redirect('/admin');
+  }
   return (
     <div className="min-h-screen pt-20">
       <div className="container mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold text-white mb-8">My Account</h1>
-        <div className="mb-4 text-white">Signed in as: {session?.user?.email}</div>
+        <div className="mb-4 text-white">Signed in as: {user?.email}</div>
         <Button onClick={() => signOut({ callbackUrl: '/login' })} className="mb-8">Sign Out</Button>
         
-        <Tabs defaultValue="profile" className="w-full" onValueChange={setActiveTab}>
+        <Tabs defaultValue="profile" className="w-full">
           <TabsList className="grid w-full grid-cols-3 mb-8">
             <TabsTrigger value="profile">Profile</TabsTrigger>
             <TabsTrigger value="subscription">Subscription</TabsTrigger>
