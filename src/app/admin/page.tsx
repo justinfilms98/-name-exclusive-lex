@@ -9,6 +9,15 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import React, { useState } from 'react';
 
+type Video = {
+  id: string;
+  title: string;
+  description: string;
+  price: number;
+  type: string;
+  // add any other fields you use
+};
+
 export default async function AdminDashboard() {
   const session = await getServerSession(authOptions);
   if (!session || typeof session.user.email !== 'string') {
@@ -35,7 +44,7 @@ export default async function AdminDashboard() {
       <div className="mb-8">
         <h2 className="font-serif text-2xl mb-4">All Videos</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {videos.map((video) => (
+          {videos.map((video: Video) => (
             <div key={video.id} className="bg-white p-4 rounded shadow">
               <h3 className="font-bold text-lg">{video.title}</h3>
               <p>{video.description}</p>
