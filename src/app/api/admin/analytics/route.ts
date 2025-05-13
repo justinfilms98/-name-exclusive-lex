@@ -180,7 +180,7 @@ export async function GET(request: Request) {
         subscriptionRevenue: Math.floor(Math.random() * 1000),
         oneTimeRevenue: Math.floor(Math.random() * 500)
       })),
-      topVideos: topVideos.map(video => ({
+      topVideos: topVideos.map((video: any) => ({
         id: video.id,
         title: video.title,
         views: Math.floor(Math.random() * 1000), // Mock data for now
