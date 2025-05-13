@@ -170,11 +170,11 @@ export async function GET(request: Request) {
       totalPurchases,
       averageWatchTime: 45,
       completionRate: 75,
-      viewsByDay: purchasesByDay.map(day => ({
+      viewsByDay: purchasesByDay.map((day: any) => ({
         date: format(day.createdAt, 'yyyy-MM-dd'),
         views: day._count
       })),
-      revenueByDay: purchasesByDay.map(day => ({
+      revenueByDay: purchasesByDay.map((day: any) => ({
         date: format(day.createdAt, 'yyyy-MM-dd'),
         revenue: Math.floor(Math.random() * 1000),
         subscriptionRevenue: Math.floor(Math.random() * 1000),
