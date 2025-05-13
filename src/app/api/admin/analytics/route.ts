@@ -97,7 +97,7 @@ export async function GET(request: Request) {
       }
     })
 
-    const totalRevenue = purchases.reduce((sum, purchase) => sum + purchase.video.price, 0)
+    const totalRevenue = purchases.reduce((sum: number, purchase: any) => sum + purchase.video.price, 0)
     const totalPurchases = purchases.length
 
     // Get purchases by day
