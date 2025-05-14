@@ -1,3 +1,4 @@
+"use client";
 import { Metadata } from 'next';
 import { useRouter } from 'next/navigation';
 import { useCallback } from 'react';
