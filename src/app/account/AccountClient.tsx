@@ -48,6 +48,16 @@ export default function AccountClient() {
               <p className="text-gray-600">{session.user?.email}</p>
             </div>
           </div>
+          {/* Admin Dashboard Button for Creator */}
+          {session.user?.email === 'contact.exclusivelex@gmail.com' && (
+            <div className="pt-4">
+              <a href="/admin">
+                <button className="w-full bg-blue-700 text-white px-4 py-2 rounded hover:bg-blue-800 transition-colors font-semibold mb-4">
+                  Admin Dashboard
+                </button>
+              </a>
+            </div>
+          )}
           <div className="border-t pt-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Account Actions</h3>
             <div className="space-y-4">
