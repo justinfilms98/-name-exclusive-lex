@@ -1,15 +1,15 @@
 import './globals.css';
 import Header from './Header';
-import { SessionProvider } from 'next-auth/react';
+import SessionProviderWrapper from './SessionProviderWrapper';
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <body>
-        <SessionProvider>
+        <SessionProviderWrapper>
           <Header />
           {children}
-        </SessionProvider>
+        </SessionProviderWrapper>
       </body>
     </html>
   );
