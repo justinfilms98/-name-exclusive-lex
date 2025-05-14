@@ -9,12 +9,19 @@ export default function AdminDashboard() {
   const router = useRouter();
 
   useEffect(() => {
-    if (status !== 'loading' && (session?.user as any)?.role !== 'ADMIN') {
+    const isAdmin =
+      (session?.user as any)?.role === 'ADMIN' ||
+      session?.user?.email === 'contact.exclusivelex@gmail.com';
+    if (status !== 'loading' && !isAdmin) {
       router.replace('/');
     }
   }, [session, status, router]);
 
-  if (status === 'loading' || (session && (session.user as any)?.role !== 'ADMIN')) {
+  const isAdmin =
+    (session?.user as any)?.role === 'ADMIN' ||
+    session?.user?.email === 'contact.exclusivelex@gmail.com';
+
+  if (status === 'loading' || (session && !isAdmin)) {
     return null;
   }
 
