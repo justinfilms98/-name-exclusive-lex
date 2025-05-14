@@ -1,39 +1,57 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 // Mock cart item type - replace with your actual type
 type CartItem = {
-  id: string;
+  id: string | number;
   title: string;
-  price: number;
+  price?: number;
+  description?: string;
   thumbnail: string;
 };
 
 export default function CartPage() {
   const router = useRouter();
-  // Mock cart data - replace with actual cart state management
-  const [cartItems, setCartItems] = useState<CartItem[]>([
-    {
-      id: "1",
-      title: "Premium Collection Access",
-      price: 29.99,
-      thumbnail: "/placeholder.jpg",
-    },
-    {
-      id: "2",
-      title: "VIP Membership - Monthly",
-      price: 19.99,
-      thumbnail: "/placeholder.jpg",
-    },
-  ]);
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
 
-  const removeItem = (id: string) => {
-    setCartItems(items => items.filter(item => item.id !== id));
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('cart');
+      if (stored) {
+        setCartItems(JSON.parse(stored));
+        return;
+      }
+    }
+    // fallback mock data
+    setCartItems([
+      {
+        id: "1",
+        title: "Premium Collection Access",
+        price: 29.99,
+        thumbnail: "/placeholder.jpg",
+      },
+      {
+        id: "2",
+        title: "VIP Membership - Monthly",
+        price: 19.99,
+        thumbnail: "/placeholder.jpg",
+      },
+    ]);
+  }, []);
+
+  const removeItem = (id: string | number) => {
+    setCartItems(items => {
+      const updated = items.filter(item => item.id !== id);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('cart', JSON.stringify(updated));
+      }
+      return updated;
+    });
   };
 
-  const subtotal = cartItems.reduce((sum, item) => sum + item.price, 0);
+  const subtotal = cartItems.reduce((sum, item) => sum + (item.price || 0), 0);
   const tax = subtotal * 0.1; // 10% tax
   const total = subtotal + tax;
 
@@ -63,7 +81,7 @@ export default function CartPage() {
                 <div className="w-24 h-24 bg-gray-200 rounded"></div>
                 <div className="flex-1">
                   <h3 className="font-semibold text-gray-900">{item.title}</h3>
-                  <p className="text-green-900 font-medium">${item.price.toFixed(2)}</p>
+                  {item.price !== undefined && <p className="text-green-900 font-medium">${item.price.toFixed(2)}</p>}
                 </div>
                 <button
                   onClick={() => removeItem(item.id)}

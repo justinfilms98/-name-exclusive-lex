@@ -1,6 +1,22 @@
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 import Link from 'next/link';
 
 export default function AdminDashboard() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (status !== 'loading' && (session?.user as any)?.role !== 'ADMIN') {
+      router.replace('/');
+    }
+  }, [session, status, router]);
+
+  if (status === 'loading' || (session && (session.user as any)?.role !== 'ADMIN')) {
+    return null;
+  }
+
   return (
     <div className="min-h-screen bg-blue-50 p-8">
       <div className="max-w-4xl mx-auto">
