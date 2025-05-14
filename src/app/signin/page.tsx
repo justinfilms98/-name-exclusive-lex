@@ -1,7 +1,33 @@
 "use client";
-import { signIn } from "next-auth/react";
+import { signIn, useSession } from "next-auth/react";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 export default function SignInPage() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (status === "authenticated" && session?.user) {
+      if ((session.user as any).role === "ADMIN") {
+        router.replace("/admin");
+      } else {
+        router.replace("/account");
+      }
+    }
+  }, [session, status, router]);
+
+  if (status === "authenticated") {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-blue-50 px-4">
+        <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full flex flex-col items-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-900 mb-4"></div>
+          <p className="text-green-900 font-semibold">Redirecting...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-blue-50 px-4">
       <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full flex flex-col items-center">

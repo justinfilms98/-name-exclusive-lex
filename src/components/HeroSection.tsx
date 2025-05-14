@@ -37,7 +37,7 @@ export default function HeroSection() {
   }, [videos]);
 
   return (
-    <div className="relative flex flex-col items-center justify-center min-h-screen bg-blue-50 overflow-hidden">
+    <div className="relative flex flex-col items-center justify-center min-h-screen w-full overflow-hidden">
       {/* Video backgrounds */}
       {videos.map((video, idx) => (
         <video
@@ -47,14 +47,14 @@ export default function HeroSection() {
           loop
           muted
           playsInline
-          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${
+          className={`fixed top-0 left-0 w-screen h-screen object-cover transition-opacity duration-1000 ${
             idx === current ? "opacity-100 z-0" : "opacity-0 z-0"
           }`}
           style={{ pointerEvents: "none" }}
         />
       ))}
       {/* Overlay hero text */}
-      <div className="relative z-10 flex flex-col items-center justify-center min-h-screen bg-black/10">
+      <div className="relative z-10 flex flex-col items-center justify-center min-h-screen w-full bg-black/10">
         <h1 className="text-5xl md:text-6xl font-bold mb-4 text-green-900 text-center drop-shadow-lg">
           Experience Pure Intimacy
         </h1>
@@ -68,7 +68,7 @@ export default function HeroSection() {
         </a>
       </div>
       {/* Overlay for darkening video if needed */}
-      <div className="absolute inset-0 bg-black/30 z-0 pointer-events-none" />
+      <div className="fixed inset-0 bg-black/30 z-0 pointer-events-none" />
     </div>
   );
 } 
