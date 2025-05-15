@@ -56,8 +56,6 @@ interface UploadError {
 }
 
 interface HeroVideoFormData {
-  title: string;
-  description: string;
   thumbnail: string;
   videoUrl: string;
   order: number;
@@ -74,8 +72,6 @@ const formatWatchTime = (seconds: number): string => {
 
 export default function HeroVideoModal({ open, onClose, onSave, initialData, slotOrder }: HeroVideoModalProps) {
   const [formData, setFormData] = useState<HeroVideoFormData>({
-    title: initialData?.title || '',
-    description: initialData?.description || '',
     thumbnail: initialData?.thumbnail || '',
     videoUrl: initialData?.videoUrl || '',
     order: slotOrder,
@@ -95,8 +91,6 @@ export default function HeroVideoModal({ open, onClose, onSave, initialData, slo
   React.useEffect(() => {
     if (!open) {
       setFormData({
-        title: initialData?.title || '',
-        description: initialData?.description || '',
         thumbnail: initialData?.thumbnail || '',
         videoUrl: initialData?.videoUrl || '',
         order: slotOrder,
@@ -172,6 +166,8 @@ export default function HeroVideoModal({ open, onClose, onSave, initialData, slo
 
       await onSave({
         ...formData,
+        title: '',
+        description: '',
         status: 'draft',
         price: 0,
         ageRating: 'PG',
@@ -199,28 +195,6 @@ export default function HeroVideoModal({ open, onClose, onSave, initialData, slo
         
         {error && <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">{error}</div>}
         {success && <div className="mb-4 p-3 bg-green-100 text-green-700 rounded">Hero video saved successfully!</div>}
-        
-        <div className="mb-4">
-          <label className="block font-semibold mb-1">Title</label>
-          <input 
-            className="w-full border rounded px-3 py-2" 
-            value={formData.title} 
-            onChange={e => setFormData(prev => ({ ...prev, title: e.target.value }))} 
-            required 
-            disabled={isUploading || saving} 
-          />
-        </div>
-        
-        <div className="mb-4">
-          <label className="block font-semibold mb-1">Description</label>
-          <textarea 
-            className="w-full border rounded px-3 py-2" 
-            value={formData.description} 
-            onChange={e => setFormData(prev => ({ ...prev, description: e.target.value }))} 
-            required 
-            disabled={isUploading || saving} 
-          />
-        </div>
         
         <div className="mb-4">
           <label className="block font-semibold mb-1">Thumbnail</label>
