@@ -8,6 +8,8 @@ export default function AdminDashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
 
+  console.log('SESSION USER:', session?.user);
+
   useEffect(() => {
     const isAdmin =
       (session?.user as any)?.role?.toLowerCase() === 'admin' ||
