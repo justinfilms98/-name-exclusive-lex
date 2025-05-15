@@ -152,7 +152,7 @@ export default function CollectionVideosPage() {
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         onSave={handleSave}
-        initialData={editData}
+        initialData={editData || undefined}
         slotOrder={selectedSlot || 1}
       />
     </div>

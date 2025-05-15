@@ -12,19 +12,6 @@ interface CollectionVideo {
   thumbnailPath?: string;
   videoPath?: string;
   order: number;
-  category: string;
-  ageRating: 'G' | 'PG' | 'PG-13' | 'R';
-  tags: string[];
-  pricing: {
-    type: 'one_time' | 'subscription' | 'rental';
-    price: number;
-    currency: string;
-    duration?: number;
-    discount?: number;
-    promoCode?: string;
-    region?: string;
-    isActive?: boolean;
-  }[];
 }
 
 interface CollectionVideoModalProps {
@@ -45,15 +32,6 @@ export default function CollectionVideoModal({ open, onClose, onSave, initialDat
     thumbnailPath: initialData?.thumbnailPath,
     videoPath: initialData?.videoPath,
     order: slotOrder,
-    category: initialData?.category || 'general',
-    ageRating: initialData?.ageRating || 'PG',
-    tags: initialData?.tags || [],
-    pricing: initialData?.pricing || [{
-      type: 'one_time',
-      price: 0,
-      currency: 'USD',
-      isActive: true,
-    }],
   });
 
   const [uploadProgress, setUploadProgress] = useState<Record<UploadType, UploadProgress>>({
@@ -63,7 +41,6 @@ export default function CollectionVideoModal({ open, onClose, onSave, initialDat
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-  const [newTag, setNewTag] = useState('');
   const thumbnailInput = useRef<HTMLInputElement>(null);
   const videoInput = useRef<HTMLInputElement>(null);
 
@@ -78,19 +55,9 @@ export default function CollectionVideoModal({ open, onClose, onSave, initialDat
         thumbnailPath: initialData?.thumbnailPath,
         videoPath: initialData?.videoPath,
         order: slotOrder,
-        category: initialData?.category || 'general',
-        ageRating: initialData?.ageRating || 'PG',
-        tags: initialData?.tags || [],
-        pricing: initialData?.pricing || [{
-          type: 'one_time',
-          price: 0,
-          currency: 'USD',
-          isActive: true,
-        }],
       });
       setError(null);
       setSuccess(false);
-      setNewTag('');
     }
   }, [open, initialData, slotOrder]);
 
@@ -134,32 +101,6 @@ export default function CollectionVideoModal({ open, onClose, onSave, initialDat
         [type]: { progress: 0, status: 'error', error: err instanceof Error ? err.message : 'Upload failed' }
       }));
     }
-  }
-
-  function handleAddTag() {
-    if (newTag && !formData.tags.includes(newTag)) {
-      setFormData(prev => ({
-        ...prev,
-        tags: [...prev.tags, newTag]
-      }));
-      setNewTag('');
-    }
-  }
-
-  function handleRemoveTag(tag: string) {
-    setFormData(prev => ({
-      ...prev,
-      tags: prev.tags.filter(t => t !== tag)
-    }));
-  }
-
-  function handlePricingChange(index: number, field: keyof CollectionVideo['pricing'][0], value: any) {
-    setFormData(prev => ({
-      ...prev,
-      pricing: prev.pricing.map((price, i) => 
-        i === index ? { ...price, [field]: value } : price
-      )
-    }));
   }
 
   async function handleSubmit(e: React.FormEvent) {
