@@ -32,7 +32,7 @@ interface Notification {
   details?: string[];
 }
 
-type HeroVideoFormData = Omit<HeroVideo, 'id' | 'createdAt' | 'updatedAt'>;
+type HeroVideoFormData = Omit<HeroVideo, 'id' | 'createdAt' | 'updatedAt'> & { pricing: any[] };
 
 function PricingManagementModal({ open, onClose, video, onSave }: { open: boolean, onClose: () => void, video: HeroVideo | null, onSave: (pricing: any[]) => void }) {
   const [pricing, setPricing] = useState<any[]>(video?.pricing || []);
@@ -168,7 +168,7 @@ export default function HeroVideosPage() {
     try {
       const url = '/api/hero-videos';
       const method = editData ? 'PUT' : 'POST';
-      const body = editData ? { ...editData, ...data, pricing: data.pricing || [] } : { ...data, pricing: data.pricing || [] };
+      const body = editData ? { ...editData, ...data, pricing: data.pricing ?? [] } : { ...data, pricing: data.pricing ?? [] };
 
       const res = await fetch(url, {
         method,
@@ -451,8 +451,8 @@ export default function HeroVideosPage() {
       <HeroVideoModal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
-        onSave={handleSave}
-        initialData={editData ? { ...editData, pricing: editData.pricing || [] } : undefined}
+        onSave={data => handleSave({ ...data, pricing: data.pricing ?? [] })}
+        initialData={editData ? { ...editData, pricing: editData.pricing ?? [] } : undefined}
         slotOrder={selectedSlot || 1}
       />
 

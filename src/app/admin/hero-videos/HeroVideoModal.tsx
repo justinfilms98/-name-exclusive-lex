@@ -57,7 +57,7 @@ interface UploadProgress {
   video?: number;
 }
 
-type HeroVideoFormData = Omit<HeroVideo, 'id' | 'createdAt' | 'updatedAt'>;
+type HeroVideoFormData = Omit<HeroVideo, 'id' | 'createdAt' | 'updatedAt'> & { pricing: any[] };
 
 // Helper function to format watch time
 const formatWatchTime = (seconds: number): string => {
@@ -67,7 +67,7 @@ const formatWatchTime = (seconds: number): string => {
 };
 
 export default function HeroVideoModal({ open, onClose, onSave, initialData, slotOrder }: HeroVideoModalProps) {
-  const [formData, setFormData] = useState<HeroVideo>({
+  const [formData, setFormData] = useState<HeroVideoFormData>({
     title: initialData?.title || '',
     description: initialData?.description || '',
     thumbnail: initialData?.thumbnail || '',
@@ -79,12 +79,7 @@ export default function HeroVideoModal({ open, onClose, onSave, initialData, slo
     category: initialData?.category || 'entertainment',
     tags: initialData?.tags || [],
     rejectionReason: initialData?.rejectionReason || '',
-    pricing: initialData?.pricing || [{
-      type: 'one_time',
-      price: initialData?.price || 0,
-      currency: 'USD',
-      isActive: true
-    }]
+    pricing: initialData?.pricing ?? [],
   });
   const [uploading, setUploading] = useState<'thumbnail' | 'video' | null>(null);
   const [saving, setSaving] = useState(false);
@@ -109,12 +104,7 @@ export default function HeroVideoModal({ open, onClose, onSave, initialData, slo
         category: initialData?.category || 'entertainment',
         tags: initialData?.tags || [],
         rejectionReason: initialData?.rejectionReason || '',
-        pricing: initialData?.pricing || [{
-          type: 'one_time',
-          price: initialData?.price || 0,
-          currency: 'USD',
-          isActive: true
-        }]
+        pricing: initialData?.pricing ?? [],
       });
       setError(null);
       setSuccess(false);
