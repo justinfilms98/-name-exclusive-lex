@@ -34,7 +34,7 @@ export default function CollectionsClient() {
           const video = videos.find(v => v.id === slot);
           return (
             <div key={slot} className="bg-white rounded-lg shadow-md p-4 flex flex-col items-center">
-              <div className="aspect-video w-full bg-gray-200 rounded mb-4 flex items-center justify-center">
+              <div className="aspect-[9/16] w-full bg-gray-200 rounded mb-4 flex items-center justify-center overflow-hidden">
                 {video ? (
                   <img src={video.thumbnail} alt={video.title} className="object-cover w-full h-full rounded" />
                 ) : (

@@ -12,6 +12,24 @@ type CartItem = {
   thumbnail: string;
 };
 
+async function handleCheckout(cartItems: CartItem[], router: any) {
+  try {
+    const res = await fetch('/api/checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cartItems }),
+    });
+    const data = await res.json();
+    if (data.url) {
+      window.location.href = data.url;
+    } else {
+      alert(data.error || 'Checkout failed');
+    }
+  } catch (err) {
+    alert('Checkout failed');
+  }
+}
+
 export default function CartPage() {
   const router = useRouter();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
@@ -114,10 +132,7 @@ export default function CartPage() {
                 </div>
               </div>
               <button
-                onClick={() => {
-                  // Implement checkout logic
-                  alert("Proceeding to checkout...");
-                }}
+                onClick={() => handleCheckout(cartItems, router)}
                 className="w-full bg-green-900 text-white px-6 py-3 rounded font-semibold hover:bg-green-800 transition-colors"
               >
                 Proceed to Checkout
