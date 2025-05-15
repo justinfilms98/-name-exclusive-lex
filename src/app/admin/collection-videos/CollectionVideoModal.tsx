@@ -233,72 +233,6 @@ export default function CollectionVideoModal({ open, onClose, onSave, initialDat
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="mb-4">
-            <label className="block font-semibold mb-1">Category</label>
-            <input 
-              className="w-full border rounded px-3 py-2" 
-              value={formData.category} 
-              onChange={e => setFormData(prev => ({ ...prev, category: e.target.value }))} 
-              required 
-              disabled={isUploading || saving} 
-            />
-          </div>
-          
-          <div className="mb-4">
-            <label className="block font-semibold mb-1">Age Rating</label>
-            <select 
-              className="w-full border rounded px-3 py-2" 
-              value={formData.ageRating} 
-              onChange={e => setFormData(prev => ({ ...prev, ageRating: e.target.value as CollectionVideo['ageRating'] }))}
-              disabled={isUploading || saving}
-            >
-              <option value="G">G - General Audience</option>
-              <option value="PG">PG - Parental Guidance</option>
-              <option value="PG-13">PG-13 - Parental Guidance 13+</option>
-              <option value="R">R - Restricted</option>
-            </select>
-          </div>
-        </div>
-        
-        <div className="mb-4">
-          <label className="block font-semibold mb-1">Tags</label>
-          <div className="flex gap-2 mb-2">
-            <input
-              type="text"
-              className="flex-1 border rounded px-3 py-2"
-              value={newTag}
-              onChange={e => setNewTag(e.target.value)}
-              onKeyPress={e => e.key === 'Enter' && (e.preventDefault(), handleAddTag())}
-              placeholder="Add a tag..."
-              disabled={isUploading || saving}
-            />
-            <button 
-              type="button" 
-              onClick={handleAddTag} 
-              className="px-4 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
-              disabled={isUploading || saving}
-            >
-              Add
-            </button>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {formData.tags.map(tag => (
-              <span key={tag} className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm flex items-center gap-1">
-                {tag}
-                <button 
-                  type="button" 
-                  onClick={() => handleRemoveTag(tag)} 
-                  className="text-gray-500 hover:text-gray-700"
-                  disabled={isUploading || saving}
-                >
-                  ×
-                </button>
-              </span>
-            ))}
-          </div>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="mb-4">
             <label className="block font-semibold mb-1">Thumbnail</label>
             <input 
               type="file" 
@@ -358,54 +292,6 @@ export default function CollectionVideoModal({ open, onClose, onSave, initialDat
             {formData.videoUrl && (
               <video src={formData.videoUrl} controls className="w-32 h-20 rounded" />
             )}
-          </div>
-        </div>
-        
-        <div className="border-t pt-6 mb-4">
-          <h3 className="text-lg font-semibold mb-4">Pricing Options</h3>
-          <div className="space-y-4">
-            {formData.pricing.map((price, idx) => (
-              <div key={idx} className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 border rounded-lg">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Type</label>
-                  <select 
-                    value={price.type} 
-                    onChange={e => handlePricingChange(idx, 'type', e.target.value)} 
-                    className="w-full p-2 border rounded"
-                    disabled={isUploading || saving}
-                  >
-                    <option value="one_time">One-time Purchase</option>
-                    <option value="subscription">Subscription</option>
-                    <option value="rental">Rental</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Price</label>
-                  <input 
-                    type="number" 
-                    value={price.price} 
-                    onChange={e => handlePricingChange(idx, 'price', parseFloat(e.target.value))} 
-                    className="w-full p-2 border rounded" 
-                    min="0" 
-                    step="0.01"
-                    disabled={isUploading || saving}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Currency</label>
-                  <select 
-                    value={price.currency} 
-                    onChange={e => handlePricingChange(idx, 'currency', e.target.value)} 
-                    className="w-full p-2 border rounded"
-                    disabled={isUploading || saving}
-                  >
-                    <option value="USD">USD</option>
-                    <option value="EUR">EUR</option>
-                    <option value="GBP">GBP</option>
-                  </select>
-                </div>
-              </div>
-            ))}
           </div>
         </div>
         

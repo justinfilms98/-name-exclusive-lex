@@ -23,9 +23,9 @@ export default function CollectionsClient() {
   return (
     <main className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold text-green-900 mb-8">Collections</h1>
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
+      <div className="columns-1 sm:columns-2 md:columns-3 lg:columns-4 gap-6 space-y-6">
         {mockVideos.map((video) => (
-          <div key={video.id} className="bg-white rounded-lg shadow-md p-4 flex flex-col">
+          <div key={video.id} className="inline-block w-full mb-6 bg-white rounded-lg shadow-md p-4 flex flex-col break-inside-avoid">
             <div className="aspect-video bg-gray-200 rounded mb-4 flex items-center justify-center">
               <img src={video.thumbnail} alt={video.title} className="object-cover w-full h-full rounded" />
             </div>
