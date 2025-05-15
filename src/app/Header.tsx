@@ -7,7 +7,7 @@ export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const { data: session, status } = useSession();
   const isLoggedIn = !!session;
-  const isAdmin = (session?.user as any)?.role === 'ADMIN';
+  const isAdmin = (session?.user as any)?.role?.toLowerCase() === 'admin';
 
   return (
     <header className="w-full px-4 py-4 bg-transparent">

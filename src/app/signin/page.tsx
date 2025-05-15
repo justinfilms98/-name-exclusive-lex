@@ -9,7 +9,7 @@ export default function SignInPage() {
 
   useEffect(() => {
     if (status === "authenticated" && session?.user) {
-      if ((session.user as any).role === "ADMIN") {
+      if ((session.user as any).role?.toLowerCase() === "admin") {
         router.replace("/admin");
       } else {
         router.replace("/account");

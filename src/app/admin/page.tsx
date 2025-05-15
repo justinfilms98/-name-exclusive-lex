@@ -10,7 +10,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     const isAdmin =
-      (session?.user as any)?.role === 'ADMIN' ||
+      (session?.user as any)?.role?.toLowerCase() === 'admin' ||
       session?.user?.email === 'contact.exclusivelex@gmail.com';
     if (status !== 'loading' && !isAdmin) {
       router.replace('/');
@@ -18,7 +18,7 @@ export default function AdminDashboard() {
   }, [session, status, router]);
 
   const isAdmin =
-    (session?.user as any)?.role === 'ADMIN' ||
+    (session?.user as any)?.role?.toLowerCase() === 'admin' ||
     session?.user?.email === 'contact.exclusivelex@gmail.com';
 
   if (status === 'loading' || (session && !isAdmin)) {
