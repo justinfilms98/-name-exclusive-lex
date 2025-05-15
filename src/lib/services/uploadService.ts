@@ -91,13 +91,6 @@ export async function uploadFile(
       .upload(filename, file, {
         cacheControl: '3600',
         upsert: true,
-        onUploadProgress: (progress) => {
-          const percent = (progress.loaded / progress.total) * 100;
-          onProgress?.({
-            progress: percent,
-            status: 'uploading',
-          });
-        },
       });
 
     if (uploadError) throw uploadError;
