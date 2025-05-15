@@ -9,15 +9,33 @@ const heroVideoSchema = z.object({
   thumbnail: z.string().url("Invalid thumbnail URL"),
   videoUrl: z.string().url("Invalid video URL"),
   order: z.number().int().min(1).max(3),
+  price: z.number().min(0).default(0),
+  status: z.enum(['draft', 'pending', 'approved', 'rejected']).default('draft'),
+  ageRating: z.enum(['G', 'PG', 'PG-13', 'R']).default('PG'),
+  category: z.string().min(1, "Category is required"),
+  tags: z.array(z.string()).default([]),
+  rejectionReason: z.string().optional(),
 });
 
 const updateHeroVideoSchema = heroVideoSchema.extend({
   id: z.number().int().positive(),
 });
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
+    const { searchParams } = new URL(req.url);
+    const status = searchParams.get('status');
+    const category = searchParams.get('category');
+    const ageRating = searchParams.get('ageRating');
+
+    const where = {
+      ...(status && status !== 'all' ? { status } : {}),
+      ...(category && category !== 'all' ? { category } : {}),
+      ...(ageRating && ageRating !== 'all' ? { ageRating } : {}),
+    };
+
     const videos = await prisma.heroVideo.findMany({ 
+      where,
       orderBy: { order: 'asc' },
       select: {
         id: true,
@@ -26,6 +44,14 @@ export async function GET() {
         thumbnail: true,
         videoUrl: true,
         order: true,
+        price: true,
+        status: true,
+        ageRating: true,
+        category: true,
+        tags: true,
+        moderatedBy: true,
+        moderatedAt: true,
+        rejectionReason: true,
         createdAt: true,
         updatedAt: true,
       }
@@ -59,6 +85,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Set initial status to pending if not draft
+    if (validatedData.status !== 'draft') {
+      validatedData.status = 'pending';
+    }
+
     const video = await prisma.heroVideo.create({ 
       data: validatedData,
       select: {
@@ -68,6 +99,11 @@ export async function POST(req: NextRequest) {
         thumbnail: true,
         videoUrl: true,
         order: true,
+        price: true,
+        status: true,
+        ageRating: true,
+        category: true,
+        tags: true,
         createdAt: true,
         updatedAt: true,
       }
@@ -104,7 +140,7 @@ export async function PUT(req: NextRequest) {
       const existingVideo = await prisma.heroVideo.findFirst({
         where: { 
           order: updateData.order,
-          id: { not: id } // Exclude current video
+          id: { not: id }
         }
       });
       
@@ -114,6 +150,13 @@ export async function PUT(req: NextRequest) {
           { status: 400 }
         );
       }
+    }
+
+    // Handle status changes
+    if (updateData.status) {
+      updateData.moderatedAt = new Date();
+      // In a real app, you would get the moderator's ID from the session
+      updateData.moderatedBy = 'system'; 
     }
 
     const video = await prisma.heroVideo.update({ 
@@ -126,6 +169,14 @@ export async function PUT(req: NextRequest) {
         thumbnail: true,
         videoUrl: true,
         order: true,
+        price: true,
+        status: true,
+        ageRating: true,
+        category: true,
+        tags: true,
+        moderatedBy: true,
+        moderatedAt: true,
+        rejectionReason: true,
         createdAt: true,
         updatedAt: true,
       }
