@@ -88,37 +88,60 @@ export default function CollectionVideosPage() {
     }
   }
 
-  // For simplicity, just show the first 20 videos (could group by collection if needed)
-  const slots = Array.from({ length: 20 }, (_, i) => i + 1);
+  // Only show 8 slots for now, but leave room for more later
+  const slots = Array.from({ length: 8 }, (_, i) => i + 1);
 
   return (
-    <div className="max-w-6xl mx-auto py-8">
+    <div className="max-w-7xl mx-auto py-8">
       <h2 className="text-2xl font-bold mb-6">Manage Collection Videos</h2>
       {notification && (
         <div className={`mb-4 p-3 rounded text-center ${notification.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{notification.message}</div>
       )}
       {loading && <div className="mb-4 text-center">Loading...</div>}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+      <div className="columns-1 sm:columns-2 md:columns-3 lg:columns-4 gap-6 space-y-6">
         {slots.map((slot) => {
           const video = videos.find(v => v.order === slot);
           return (
-            <div key={slot} className="bg-white rounded-lg shadow p-4 flex flex-col items-center">
+            <div
+              key={slot}
+              className="inline-block w-full mb-6 rounded-[2rem] bg-white shadow-lg overflow-hidden transition-transform hover:scale-105 hover:shadow-2xl group relative"
+              style={{ breakInside: 'avoid' }}
+            >
               {video ? (
                 <>
-                  <img src={video.thumbnail} alt={video.title} className="w-32 h-20 object-cover rounded mb-2" />
-                  <div className="text-lg font-semibold mb-1">{video.title}</div>
-                  <div className="text-sm text-gray-500 mb-2">{video.description}</div>
-                  <div className="flex gap-2">
-                    <button className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700" onClick={() => handleOpen(slot, video)}>Edit / Upload</button>
-                    <button className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700" onClick={() => handleDelete(video)}>Delete</button>
+                  <img src={video.thumbnail} alt={video.title} className="w-full h-48 object-cover rounded-t-[2rem]" />
+                  <div className="p-4 flex flex-col gap-2">
+                    <div className="text-lg font-bold truncate">{video.title}</div>
+                    <div className="text-sm text-gray-500 line-clamp-2">{video.description}</div>
+                    <div className="flex gap-2 mt-2">
+                      <button
+                        className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-full transition-all duration-200 shadow hover:bg-blue-700 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                        onClick={() => handleOpen(slot, video)}
+                      >
+                        Edit / Upload
+                      </button>
+                      <button
+                        className="flex-1 px-4 py-2 bg-red-600 text-white rounded-full transition-all duration-200 shadow hover:bg-red-700 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-red-400"
+                        onClick={() => handleDelete(video)}
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </div>
                 </>
               ) : (
                 <>
-                  <div className="w-32 h-20 bg-gray-200 rounded mb-2 flex items-center justify-center">No Video</div>
-                  <div className="text-lg font-semibold mb-1">Video {slot}</div>
-                  <div className="text-sm text-gray-500 mb-2">No description</div>
-                  <button className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700" onClick={() => handleOpen(slot)}>Add Video</button>
+                  <div className="w-full h-48 bg-gray-200 flex items-center justify-center rounded-t-[2rem] text-gray-400 text-2xl">No Video</div>
+                  <div className="p-4 flex flex-col gap-2">
+                    <div className="text-lg font-bold">Video {slot}</div>
+                    <div className="text-sm text-gray-500">No description</div>
+                    <button
+                      className="mt-2 px-4 py-2 bg-green-600 text-white rounded-full transition-all duration-200 shadow hover:bg-green-700 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-green-400"
+                      onClick={() => handleOpen(slot)}
+                    >
+                      Add Video
+                    </button>
+                  </div>
                 </>
               )}
             </div>
