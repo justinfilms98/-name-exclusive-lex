@@ -154,9 +154,9 @@ export async function PUT(req: NextRequest) {
 
     // Handle status changes
     if (updateData.status) {
-      updateData.moderatedAt = new Date();
+      (updateData as any).moderatedAt = new Date();
       // In a real app, you would get the moderator's ID from the session
-      updateData.moderatedBy = 'system'; 
+      (updateData as any).moderatedBy = 'system';
     }
 
     const video = await prisma.heroVideo.update({ 
