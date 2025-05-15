@@ -55,7 +55,7 @@ export const authOptions: NextAuthOptions = {
         return {
           ...token,
           id: user.id,
-          role: user.role
+          role: (user as any).role
         };
       }
       return token;
