@@ -191,7 +191,6 @@ export default function HeroVideosPage() {
         type: 'success',
         message: `Video ${editData ? 'updated' : 'added'} successfully!`
       });
-      
       setModalOpen(false);
       await fetchVideos();
     } catch (err) {

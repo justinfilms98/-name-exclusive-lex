@@ -5,6 +5,8 @@ interface HeroVideo {
   id: number;
   videoUrl: string;
   order: number;
+  title?: string;
+  description?: string;
 }
 
 export default function HeroSection() {
@@ -53,13 +55,13 @@ export default function HeroSection() {
           style={{ pointerEvents: "none" }}
         />
       ))}
-      {/* Overlay hero text */}
+      {/* Overlay hero text, unique per video */}
       <div className="relative z-10 flex flex-col items-center justify-center w-full min-h-[60vh] bg-black/10">
         <h1 className="text-5xl md:text-6xl font-bold mb-4 text-green-900 text-center drop-shadow-lg">
-          Experience Pure Intimacy
+          {videos[current]?.title || 'Experience Pure Intimacy'}
         </h1>
         <p className="text-xl md:text-2xl text-green-800 mb-8 text-center drop-shadow">
-          Curated collection of authentic, passionate moments
+          {videos[current]?.description || 'Curated collection of authentic, passionate moments'}
         </p>
         <a href="/collections">
           <button className="bg-green-900 text-white px-6 py-2 rounded hover:bg-green-800 transition">
