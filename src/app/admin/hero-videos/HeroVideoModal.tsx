@@ -174,9 +174,11 @@ export default function HeroVideoModal({ open, onClose, onSave, initialData, slo
         category: 'general',
         tags: [],
       });
-      
       setSuccess(true);
-      setTimeout(onClose, 1500);
+      setTimeout(() => {
+        setSuccess(false);
+        onClose();
+      }, 1500);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save hero video');
     } finally {
