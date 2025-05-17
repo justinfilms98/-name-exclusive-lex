@@ -30,58 +30,73 @@ export default function VIPClient() {
 
   return (
     <main className="container mx-auto px-4 py-8">
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold text-green-900 mb-8">VIP Access</h1>
-        {/* VIP Content Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Featured VIP Content */}
-          <div className="col-span-full bg-gradient-to-r from-green-900 to-green-800 rounded-lg p-6 text-white">
-            <h2 className="text-2xl font-bold mb-4">Featured VIP Content</h2>
-            <p className="mb-4">Access exclusive videos and premium content available only to VIP members.</p>
-            <div className="aspect-video bg-black/20 rounded-lg mb-4"></div>
-            <button className="bg-white text-green-900 px-6 py-2 rounded font-semibold hover:bg-gray-100 transition-colors">
-              Watch Now
+      <div className="max-w-5xl mx-auto">
+        <h1 className="text-3xl font-bold text-green-900 mb-8 text-center">Subscription Tiers</h1>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {/* Silver Tier */}
+          <div className="bg-white rounded-lg shadow-md p-8 flex flex-col items-center">
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Silver</h2>
+            <div className="text-3xl font-bold text-green-900 mb-4">$60<span className="text-lg font-normal">/mo</span></div>
+            <ul className="mb-6 space-y-2 text-gray-700 text-left w-full">
+              <li>✓ Unlocks 3 new collections per month</li>
+            </ul>
+            <button
+              className="bg-green-900 text-white px-6 py-2 rounded font-semibold hover:bg-green-800 transition-colors w-full"
+              onClick={() => handleSubscribe('silver')}
+            >
+              Subscribe Now
             </button>
           </div>
-          {/* VIP Benefits */}
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h3 className="text-xl font-semibold text-green-900 mb-4">VIP Benefits</h3>
-            <ul className="space-y-3">
-              <li className="flex items-center">
-                <span className="text-green-900 mr-2">✓</span>
-                Exclusive video content
-              </li>
-              <li className="flex items-center">
-                <span className="text-green-900 mr-2">✓</span>
-                Early access to new releases
-              </li>
-              <li className="flex items-center">
-                <span className="text-green-900 mr-2">✓</span>
-                HD quality streaming
-              </li>
-              <li className="flex items-center">
-                <span className="text-green-900 mr-2">✓</span>
-                Ad-free experience
-              </li>
+          {/* Gold Tier */}
+          <div className="bg-white rounded-lg shadow-md p-8 flex flex-col items-center">
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Gold</h2>
+            <div className="text-3xl font-bold text-yellow-600 mb-4">$100<span className="text-lg font-normal">/mo</span></div>
+            <ul className="mb-6 space-y-2 text-gray-700 text-left w-full">
+              <li>✓ Unlocks 5 new collections per month</li>
+              <li>✓ WhatsApp chat</li>
             </ul>
+            <button
+              className="bg-yellow-600 text-white px-6 py-2 rounded font-semibold hover:bg-yellow-700 transition-colors w-full"
+              onClick={() => handleSubscribe('gold')}
+            >
+              Subscribe Now
+            </button>
           </div>
-          {/* Recent VIP Videos */}
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h3 className="text-xl font-semibold text-green-900 mb-4">Recent VIP Videos</h3>
-            <div className="space-y-4">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="flex gap-4">
-                  <div className="w-32 h-20 bg-gray-200 rounded"></div>
-                  <div>
-                    <h4 className="font-medium text-gray-900">VIP Video {i}</h4>
-                    <p className="text-sm text-gray-600">Added recently</p>
-                  </div>
-                </div>
-              ))}
-            </div>
+          {/* Platinum Tier */}
+          <div className="bg-white rounded-lg shadow-md p-8 flex flex-col items-center">
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Platinum</h2>
+            <div className="text-3xl font-bold text-purple-700 mb-4">$500<span className="text-lg font-normal">/mo</span></div>
+            <ul className="mb-6 space-y-2 text-gray-700 text-left w-full">
+              <li>✓ Unlocks 10 new collections per month</li>
+              <li>✓ WhatsApp chat</li>
+              <li>✓ Private request option</li>
+            </ul>
+            <button
+              className="bg-purple-700 text-white px-6 py-2 rounded font-semibold hover:bg-purple-800 transition-colors w-full"
+              onClick={() => handleSubscribe('platinum')}
+            >
+              Subscribe Now
+            </button>
           </div>
         </div>
       </div>
     </main>
   );
+
+  function handleSubscribe(tier: 'silver' | 'gold' | 'platinum') {
+    fetch('/api/checkout/vip', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tier }),
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.url) {
+          window.location.href = data.url;
+        } else {
+          alert('Failed to start subscription: ' + (data.error || 'Unknown error'));
+        }
+      })
+      .catch(err => alert('Failed to start subscription: ' + err.message));
+  }
 } 

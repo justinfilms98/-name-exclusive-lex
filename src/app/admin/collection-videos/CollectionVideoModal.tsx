@@ -136,6 +136,9 @@ export default function CollectionVideoModal({ open, onClose, onSave, initialDat
         
         {error && <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">{error}</div>}
         {success && <div className="mb-4 p-3 bg-green-100 text-green-700 rounded">Video saved successfully!</div>}
+        {hasError && (
+          <div className="mb-4 p-3 bg-red-200 text-red-800 rounded">A file upload failed. Please try again or check your Supabase storage settings.</div>
+        )}
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="mb-4">

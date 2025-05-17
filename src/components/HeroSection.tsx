@@ -37,7 +37,7 @@ export default function HeroSection() {
   }, [videos]);
 
   return (
-    <div className="relative flex flex-col items-center justify-center min-h-screen w-full overflow-hidden">
+    <div className="relative flex flex-col items-center justify-center w-full min-h-[80vh] overflow-hidden">
       {/* Video backgrounds */}
       {videos.map((video, idx) => (
         <video
@@ -54,7 +54,7 @@ export default function HeroSection() {
         />
       ))}
       {/* Overlay hero text */}
-      <div className="relative z-10 flex flex-col items-center justify-center min-h-screen w-full bg-black/10">
+      <div className="relative z-10 flex flex-col items-center justify-center w-full min-h-[60vh] bg-black/10">
         <h1 className="text-5xl md:text-6xl font-bold mb-4 text-green-900 text-center drop-shadow-lg">
           Experience Pure Intimacy
         </h1>
