@@ -65,6 +65,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const data = await req.json();
+    console.log('Received data in POST /api/collection-videos:', data);
     
     // Validate input
     const validatedData = collectionVideoSchema.parse(data);
