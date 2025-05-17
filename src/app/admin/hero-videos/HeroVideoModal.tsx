@@ -195,6 +195,9 @@ export default function HeroVideoModal({ open, onClose, onSave, initialData, slo
         
         {error && <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">{error}</div>}
         {success && <div className="mb-4 p-3 bg-green-100 text-green-700 rounded">Hero video saved successfully!</div>}
+        {hasError && (
+          <div className="mb-4 p-3 bg-red-200 text-red-800 rounded">A file upload failed. Please try again or check your Supabase storage settings.</div>
+        )}
         
         <div className="mb-4">
           <label className="block font-semibold mb-1">Thumbnail</label>
