@@ -63,7 +63,10 @@ async function validateFile(file: File, type: 'image' | 'video'): Promise<string
 // Helper to generate unique filename
 function generateUniqueFilename(originalName: string, type: UploadType, slotOrder: number): string {
   const timestamp = Date.now();
-  const extension = originalName.split('.').pop();
+  let extension = originalName.split('.').pop();
+  if (!extension || extension === originalName) {
+    extension = type === 'thumbnail' ? 'jpg' : 'mp4';
+  }
   return `${type}-${slotOrder}-${timestamp}.${extension}`;
 }
 
@@ -93,16 +96,23 @@ export async function uploadFile(
         upsert: true,
       });
 
-    if (uploadError) throw uploadError;
+    if (uploadError) {
+      console.error('Supabase upload error:', uploadError);
+      throw new Error(uploadError.message || 'Upload failed');
+    }
+    if (!data || !data.path) {
+      throw new Error('No data returned from Supabase upload');
+    }
 
     // Get public URL
-    const { data: { publicUrl } } = supabase.storage
-      .from(bucket)
-      .getPublicUrl(data.path);
+    const publicUrlResult = supabase.storage.from(bucket).getPublicUrl(data.path);
+    if (!publicUrlResult.data || !publicUrlResult.data.publicUrl) {
+      throw new Error('Failed to get public URL for uploaded file');
+    }
 
     // Return result
     return {
-      url: publicUrl,
+      url: publicUrlResult.data.publicUrl,
       path: data.path,
       metadata: {
         size: file.size,
