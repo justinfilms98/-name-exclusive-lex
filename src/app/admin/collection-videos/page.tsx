@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import CollectionVideoModal from './CollectionVideoModal';
 import { useSession, signIn } from 'next-auth/react';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 interface CollectionVideo {
   id: number;
@@ -18,7 +19,7 @@ interface CollectionVideo {
   pricing: any[];
 }
 
-export default function CollectionVideosPage() {
+export function CollectionVideosPage() {
   const { data: session, status } = useSession();
   const isLoggedIn = !!session;
 
@@ -215,5 +216,13 @@ export default function CollectionVideosPage() {
         slotOrder={selectedSlot || 1}
       />
     </div>
+  );
+}
+
+export default function PageWithBoundary() {
+  return (
+    <ErrorBoundary>
+      <CollectionVideosPage />
+    </ErrorBoundary>
   );
 } 
