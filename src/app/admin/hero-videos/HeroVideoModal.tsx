@@ -147,6 +147,11 @@ export default function HeroVideoModal({ open, onClose, onSave, initialData, slo
         [type === 'thumbnail' ? 'thumbnail' : 'videoUrl']: result.url,
         [type === 'thumbnail' ? 'thumbnailPath' : 'videoPath']: result.path,
       }));
+      // Mark upload as complete so UI unfreezes
+      setUploadProgress(prev => ({
+        ...prev,
+        [type]: { progress: 100, status: 'complete' }
+      }));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Upload failed');
       setUploadProgress(prev => ({
