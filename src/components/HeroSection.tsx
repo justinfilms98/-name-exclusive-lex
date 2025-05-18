@@ -70,11 +70,11 @@ export default function HeroSection() {
         />
       ))}
       {/* Overlay hero text, unique per video */}
-      <div className="relative z-10 flex flex-col items-center justify-center w-full min-h-[60vh] bg-black/10">
-        <h1 className="text-5xl md:text-6xl font-bold mb-4 text-green-900 text-center drop-shadow-lg">
+      <div className="relative z-10 flex flex-col items-center justify-center w-full">
+        <h1 className="text-5xl md:text-6xl font-bold mb-4 text-green-900 text-center [text-shadow:_0_2px_4px_rgba(0,0,0,0.3)]">
           {videos[current]?.title || 'Experience Pure Intimacy'}
         </h1>
-        <p className="text-xl md:text-2xl text-green-800 mb-8 text-center drop-shadow">
+        <p className="text-xl md:text-2xl text-green-800 mb-8 text-center [text-shadow:_0_1px_2px_rgba(0,0,0,0.2)]">
           {videos[current]?.description || 'Curated collection of authentic, passionate moments'}
         </p>
         {!isLoggedIn ? (
