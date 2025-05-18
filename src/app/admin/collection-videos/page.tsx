@@ -19,7 +19,7 @@ interface CollectionVideo {
 }
 
 export default function CollectionVideosPage() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const isLoggedIn = !!session;
 
   const [videos, setVideos] = useState<CollectionVideo[]>([]);
@@ -123,6 +123,9 @@ export default function CollectionVideosPage() {
   // Only show 8 slots for now, but leave room for more later
   const slots = Array.from({ length: 8 }, (_, i) => i + 1);
 
+  if (status === 'loading') {
+    return <div className="flex items-center justify-center min-h-[60vh] text-lg">Loading...</div>;
+  }
   if (!isLoggedIn) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh]">
