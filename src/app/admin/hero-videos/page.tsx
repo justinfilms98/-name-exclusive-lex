@@ -193,6 +193,9 @@ export default function HeroVideosPage() {
       });
       setModalOpen(false);
       await fetchVideos();
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('heroVideosUpdated'));
+      }
     } catch (err) {
       setNotification({
         type: 'error',

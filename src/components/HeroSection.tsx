@@ -15,15 +15,26 @@ export default function HeroSection() {
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    fetch("/api/hero-videos")
-      .then((res) => res.json())
-      .then((data) => {
-        setVideos(
-          data
-            .sort((a: HeroVideo, b: HeroVideo) => a.order - b.order)
-            .slice(0, 3)
-        );
-      });
+    function fetchVideos() {
+      fetch("/api/hero-videos")
+        .then((res) => res.json())
+        .then((data) => {
+          setVideos(
+            data
+              .sort((a: HeroVideo, b: HeroVideo) => a.order - b.order)
+              .slice(0, 3)
+          );
+        });
+    }
+    fetchVideos();
+    // Listen for custom event to refresh videos
+    function handleUpdate() {
+      fetchVideos();
+    }
+    window.addEventListener('heroVideosUpdated', handleUpdate);
+    return () => {
+      window.removeEventListener('heroVideosUpdated', handleUpdate);
+    };
   }, []);
 
   useEffect(() => {
