@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState, useRef } from "react";
+import { useSession, signIn } from "next-auth/react";
 
 interface HeroVideo {
   id: number;
@@ -13,6 +14,8 @@ export default function HeroSection() {
   const [videos, setVideos] = useState<HeroVideo[]>([]);
   const [current, setCurrent] = useState(0);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const { data: session } = useSession();
+  const isLoggedIn = !!session;
 
   useEffect(() => {
     function fetchVideos() {
@@ -74,11 +77,20 @@ export default function HeroSection() {
         <p className="text-xl md:text-2xl text-green-800 mb-8 text-center drop-shadow">
           {videos[current]?.description || 'Curated collection of authentic, passionate moments'}
         </p>
-        <a href="/collections">
-          <button className="bg-green-900 text-white px-6 py-2 rounded hover:bg-green-800 transition">
-            Explore Collections
+        {!isLoggedIn ? (
+          <button
+            className="bg-green-900 text-white px-6 py-2 rounded hover:bg-green-800 transition"
+            onClick={() => signIn()}
+          >
+            Login
           </button>
-        </a>
+        ) : (
+          <a href="/collections">
+            <button className="bg-green-900 text-white px-6 py-2 rounded hover:bg-green-800 transition">
+              Explore Collections
+            </button>
+          </a>
+        )}
       </div>
       {/* Overlay for darkening video if needed */}
       <div className="fixed inset-0 bg-black/30 z-0 pointer-events-none" />
