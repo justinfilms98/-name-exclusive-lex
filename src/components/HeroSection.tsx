@@ -93,7 +93,7 @@ export default function HeroSection() {
         )}
       </div>
       {/* Overlay for darkening video if needed */}
-      <div className="fixed inset-0 bg-black/30 z-0 pointer-events-none" />
+      {/* <div className="fixed inset-0 bg-black/30 z-0 pointer-events-none" /> */}
     </div>
   );
 } 
