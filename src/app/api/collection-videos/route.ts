@@ -35,6 +35,7 @@ const updateCollectionVideoSchema = collectionVideoSchema.extend({
 
 export async function GET(req: NextRequest) {
   try {
+    console.log('GET /api/collection-videos');
     const videos = await prisma.collectionVideo.findMany({
       orderBy: { order: 'asc' },
       select: {
@@ -54,9 +55,9 @@ export async function GET(req: NextRequest) {
     });
     return NextResponse.json(videos);
   } catch (err) {
-    console.error("Error in GET /api/collection-videos:", err);
+    console.error('Error in GET /api/collection-videos:', err);
     return NextResponse.json(
-      { error: "Failed to fetch collection videos" },
+      { error: 'Failed to fetch collection videos', details: String(err) },
       { status: 500 }
     );
   }
@@ -65,28 +66,45 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const data = await req.json();
-    console.log('Received data in POST /api/collection-videos:', data);
+    console.log('POST /api/collection-videos', data);
     
     // Validate input
     const validatedData = collectionVideoSchema.parse(data);
-    
+
+    // Only pick fields that exist in the Prisma model
+    const {
+      collection, title, description, thumbnail, videoUrl, thumbnailPath, videoPath, order
+    } = validatedData;
+    // Price is not in the Zod schema but is required by Prisma
+    const safePrice = typeof (validatedData as any).price === 'number' ? (validatedData as any).price : 0;
+
     // Check if slot is already taken in this collection
     const existingVideo = await prisma.collectionVideo.findFirst({
       where: {
-        collection: validatedData.collection,
-        order: validatedData.order,
+        collection,
+        order,
       }
     });
     
     if (existingVideo) {
       return NextResponse.json(
-        { error: `Slot ${validatedData.order} is already taken in collection ${validatedData.collection}` },
+        { error: `Slot ${order} is already taken in collection ${collection}` },
         { status: 400 }
       );
     }
 
     const video = await prisma.collectionVideo.create({ 
-      data: validatedData,
+      data: {
+        collection,
+        title,
+        description,
+        thumbnail,
+        videoUrl,
+        thumbnailPath,
+        videoPath,
+        order,
+        price: safePrice,
+      },
       select: {
         id: true,
         collection: true,
@@ -105,7 +123,7 @@ export async function POST(req: NextRequest) {
     
     return NextResponse.json(video);
   } catch (err) {
-    console.error("Error in POST /api/collection-videos:", err);
+    console.error('Error in POST /api/collection-videos:', err);
     
     if (err instanceof z.ZodError) {
       return NextResponse.json(
@@ -124,6 +142,7 @@ export async function POST(req: NextRequest) {
 export async function PUT(req: NextRequest) {
   try {
     const data = await req.json();
+    console.log('PUT /api/collection-videos', data);
     
     // Validate input
     const validatedData = updateCollectionVideoSchema.parse(data);
@@ -166,7 +185,7 @@ export async function PUT(req: NextRequest) {
     
     return NextResponse.json(video);
   } catch (err) {
-    console.error("Error in PUT /api/collection-videos:", err);
+    console.error('Error in PUT /api/collection-videos:', err);
     
     if (err instanceof z.ZodError) {
       return NextResponse.json(
@@ -184,6 +203,8 @@ export async function PUT(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
+    const data = await req.json();
+    console.log('DELETE /api/collection-videos', data);
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
     
@@ -208,7 +229,7 @@ export async function DELETE(req: NextRequest) {
     
     return NextResponse.json({ success: true });
   } catch (err) {
-    console.error("Error in DELETE /api/collection-videos:", err);
+    console.error('Error in DELETE /api/collection-videos:', err);
     return NextResponse.json(
       { error: "Failed to delete collection video" },
       { status: 500 }

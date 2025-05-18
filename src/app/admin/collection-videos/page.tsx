@@ -37,12 +37,18 @@ export default function CollectionVideosPage() {
         return res.json();
       })
       .then(data => setVideos(
-        data.map((v: any) => ({
-          ...v,
-          category: v.category || '',
-          ageRating: v.ageRating || 'PG',
-          tags: v.tags || [],
-          pricing: v.pricing || [{ type: 'one_time', price: 0, currency: 'USD', isActive: true }],
+        (Array.isArray(data) ? data : []).map((v: any) => ({
+          id: v.id ?? 0,
+          collection: v.collection ?? '',
+          title: v.title ?? '',
+          description: v.description ?? '',
+          thumbnail: v.thumbnail ?? '',
+          videoUrl: v.videoUrl ?? '',
+          order: v.order ?? 0,
+          category: v.category ?? '',
+          ageRating: v.ageRating ?? 'PG',
+          tags: v.tags ?? [],
+          pricing: v.pricing ?? [{ type: 'one_time', price: 0, currency: 'USD', isActive: true }],
         }))
       ))
       .catch(err => setNotification({ type: 'error', message: err.message }))
