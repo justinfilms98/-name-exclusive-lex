@@ -71,12 +71,14 @@ const formatWatchTime = (seconds: number): string => {
 };
 
 export default function HeroVideoModal({ open, onClose, onSave, initialData, slotOrder }: HeroVideoModalProps) {
-  const [formData, setFormData] = useState<HeroVideoFormData>({
+  const [formData, setFormData] = useState<HeroVideoFormData & { title: string; description: string }>({
     thumbnail: initialData?.thumbnail || '',
     videoUrl: initialData?.videoUrl || '',
     order: slotOrder,
     thumbnailPath: initialData?.thumbnailPath,
     videoPath: initialData?.videoPath,
+    title: initialData?.title || '',
+    description: initialData?.description || '',
   });
   const [uploadProgress, setUploadProgress] = useState<Record<UploadType, UploadProgress>>({
     thumbnail: { progress: 0, status: 'complete' },
@@ -96,6 +98,8 @@ export default function HeroVideoModal({ open, onClose, onSave, initialData, slo
         order: slotOrder,
         thumbnailPath: initialData?.thumbnailPath,
         videoPath: initialData?.videoPath,
+        title: initialData?.title || '',
+        description: initialData?.description || '',
       });
       setError(null);
       setSuccess(false);
@@ -163,11 +167,12 @@ export default function HeroVideoModal({ open, onClose, onSave, initialData, slo
       if (!formData.thumbnail || !formData.videoUrl) {
         throw new Error('Thumbnail and video are required');
       }
+      if (!formData.title.trim() || !formData.description.trim()) {
+        throw new Error('Title and description are required');
+      }
 
       await onSave({
         ...formData,
-        title: '',
-        description: '',
         status: 'draft',
         price: 0,
         ageRating: 'PG',
@@ -261,6 +266,28 @@ export default function HeroVideoModal({ open, onClose, onSave, initialData, slo
           {formData.videoUrl && (
             <video src={formData.videoUrl} controls className="w-32 h-20 rounded" />
           )}
+        </div>
+        
+        <div className="mb-4">
+          <label className="block font-semibold mb-1">Title</label>
+          <input
+            className="w-full border rounded px-3 py-2 mb-4"
+            value={formData.title}
+            onChange={e => setFormData(prev => ({ ...prev, title: e.target.value }))}
+            required
+            disabled={isUploading || saving}
+          />
+        </div>
+        
+        <div className="mb-4">
+          <label className="block font-semibold mb-1">Description</label>
+          <textarea
+            className="w-full border rounded px-3 py-2 mb-4"
+            value={formData.description}
+            onChange={e => setFormData(prev => ({ ...prev, description: e.target.value }))}
+            required
+            disabled={isUploading || saving}
+          />
         </div>
         
         <button 
