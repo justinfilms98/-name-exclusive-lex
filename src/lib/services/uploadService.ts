@@ -77,42 +77,41 @@ export async function uploadFile(
   slotOrder: number,
   onProgress?: (progress: UploadProgress) => void
 ): Promise<UploadResult> {
+  console.log('[uploadFile] Start', { file, type, slotOrder });
   // Validate file
   const validationError = await validateFile(file, type === 'thumbnail' ? 'image' : 'video');
   if (validationError) {
+    console.error('[uploadFile] Validation failed:', validationError);
     throw new Error(validationError);
   }
+  console.log('[uploadFile] Validation passed');
 
-  // Generate unique filename
   const filename = generateUniqueFilename(file.name, type, slotOrder);
   const bucket = type === 'thumbnail' ? 'thumbnails' : 'videos';
+  console.log('[uploadFile] Uploading to bucket', bucket, 'with filename', filename);
 
   try {
-    // Start upload with progress tracking
-    const { data, error: uploadError } = await supabase.storage
-      .from(bucket)
-      .upload(filename, file, {
-        cacheControl: '3600',
-        upsert: true,
-      });
-
-    if (uploadError) {
-      console.error('Supabase upload error:', uploadError);
-      throw new Error(uploadError.message || 'Upload failed');
+    const { data, error } = await supabase.storage.from(bucket).upload(filename, file, {
+      cacheControl: '3600',
+      upsert: true,
+    });
+    if (error) {
+      console.error('[uploadFile] Supabase upload error:', error);
+      throw error;
     }
     if (!data || !data.path) {
-      throw new Error('No data returned from Supabase upload');
+      console.error('[uploadFile] No data or path returned from upload', data);
+      throw new Error('No data/path from upload');
     }
-
-    // Get public URL
-    const publicUrlResult = supabase.storage.from(bucket).getPublicUrl(data.path);
-    if (!publicUrlResult.data || !publicUrlResult.data.publicUrl) {
-      throw new Error('Failed to get public URL for uploaded file');
+    console.log('[uploadFile] Upload successful', data);
+    const { publicUrl } = supabase.storage.from(bucket).getPublicUrl(data.path).data;
+    if (!publicUrl) {
+      console.error('[uploadFile] No publicUrl returned', data);
+      throw new Error('No publicUrl from upload');
     }
-
-    // Return result
+    console.log('[uploadFile] publicUrl:', publicUrl);
     return {
-      url: publicUrlResult.data.publicUrl,
+      url: publicUrl,
       path: data.path,
       metadata: {
         size: file.size,
@@ -121,11 +120,7 @@ export async function uploadFile(
       },
     };
   } catch (err) {
-    onProgress?.({
-      progress: 0,
-      status: 'error',
-      error: err instanceof Error ? err.message : 'Upload failed',
-    });
+    console.error('[uploadFile] Caught error:', err);
     throw err;
   }
 }
