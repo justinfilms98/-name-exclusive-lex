@@ -74,26 +74,44 @@ export async function POST(req: NextRequest) {
     
     // Validate input
     const validatedData = heroVideoSchema.parse(data);
-    
+
+    // Only pick fields that exist in the Prisma model
+    const {
+      title, description, thumbnail, videoUrl, order,
+      price, status, ageRating, category, tags
+    } = validatedData;
+
     // Check if slot is already taken
     const existingVideo = await prisma.heroVideo.findFirst({
-      where: { order: validatedData.order }
+      where: { order }
     });
-    
+
     if (existingVideo) {
       return NextResponse.json(
-        { error: `Slot ${validatedData.order} is already taken` },
+        { error: `Slot ${order} is already taken` },
         { status: 400 }
       );
     }
 
     // Set initial status to pending if not draft
-    if (validatedData.status !== 'draft') {
-      validatedData.status = 'pending';
+    let finalStatus = status;
+    if (finalStatus !== 'draft') {
+      finalStatus = 'pending';
     }
 
-    const video = await prisma.heroVideo.create({ 
-      data: validatedData,
+    const video = await prisma.heroVideo.create({
+      data: {
+        title,
+        description,
+        thumbnail,
+        videoUrl,
+        order,
+        price,
+        status: finalStatus,
+        ageRating,
+        category,
+        tags,
+      },
       select: {
         id: true,
         title: true,
