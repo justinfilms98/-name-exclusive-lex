@@ -32,7 +32,10 @@ export default function CollectionVideosPage() {
   function fetchVideos() {
     setLoading(true);
     fetch('/api/collection-videos')
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) throw new Error('Failed to fetch videos');
+        return res.json();
+      })
       .then(data => setVideos(
         data.map((v: any) => ({
           ...v,
@@ -42,6 +45,7 @@ export default function CollectionVideosPage() {
           pricing: v.pricing || [{ type: 'one_time', price: 0, currency: 'USD', isActive: true }],
         }))
       ))
+      .catch(err => setNotification({ type: 'error', message: err.message }))
       .finally(() => setLoading(false));
   }
 
