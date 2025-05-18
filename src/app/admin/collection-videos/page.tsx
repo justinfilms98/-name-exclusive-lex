@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import CollectionVideoModal from './CollectionVideoModal';
+import { useSession, signIn } from 'next-auth/react';
 
 interface CollectionVideo {
   id: number;
@@ -11,9 +12,16 @@ interface CollectionVideo {
   thumbnail: string;
   videoUrl: string;
   order: number;
+  category: string;
+  ageRating: 'G' | 'PG' | 'PG-13' | 'R';
+  tags: string[];
+  pricing: any[];
 }
 
 export default function CollectionVideosPage() {
+  const { data: session } = useSession();
+  const isLoggedIn = !!session;
+
   const [videos, setVideos] = useState<CollectionVideo[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<number | null>(null);
@@ -25,17 +33,41 @@ export default function CollectionVideosPage() {
     setLoading(true);
     fetch('/api/collection-videos')
       .then(res => res.json())
-      .then(setVideos)
+      .then(data => setVideos(
+        data.map((v: any) => ({
+          ...v,
+          category: v.category || '',
+          ageRating: v.ageRating || 'PG',
+          tags: v.tags || [],
+          pricing: v.pricing || [{ type: 'one_time', price: 0, currency: 'USD', isActive: true }],
+        }))
+      ))
       .finally(() => setLoading(false));
   }
 
   useEffect(() => {
-    fetchVideos();
-  }, []);
+    if (isLoggedIn) fetchVideos();
+  }, [isLoggedIn]);
 
-  function handleOpen(slot: number, video?: CollectionVideo) {
+  function handleOpen(slot: number, video?: Partial<CollectionVideo>) {
     setSelectedSlot(slot);
-    setEditData(video || null);
+    if (video) {
+      setEditData({
+        id: video.id ?? 0,
+        collection: video.collection ?? '',
+        title: video.title ?? '',
+        description: video.description ?? '',
+        thumbnail: video.thumbnail ?? '',
+        videoUrl: video.videoUrl ?? '',
+        order: video.order ?? slot,
+        category: (video as any).category ?? '',
+        ageRating: (video as any).ageRating ?? 'PG',
+        tags: (video as any).tags ?? [],
+        pricing: (video as any).pricing ?? [{ type: 'one_time', price: 0, currency: 'USD', isActive: true }],
+      });
+    } else {
+      setEditData(null);
+    }
     setModalOpen(true);
   }
 
@@ -90,6 +122,20 @@ export default function CollectionVideosPage() {
 
   // Only show 8 slots for now, but leave room for more later
   const slots = Array.from({ length: 8 }, (_, i) => i + 1);
+
+  if (!isLoggedIn) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh]">
+        <h2 className="text-2xl font-bold mb-6">Manage Collection Videos</h2>
+        <button
+          className="bg-green-900 text-white px-6 py-2 rounded hover:bg-green-800 transition"
+          onClick={() => signIn()}
+        >
+          Login
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto py-8">
