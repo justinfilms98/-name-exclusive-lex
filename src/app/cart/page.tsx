@@ -96,7 +96,7 @@ export default function CartPage() {
                 key={item.id}
                 className="flex items-center gap-4 bg-white rounded-lg shadow-md p-4"
               >
-                <div className="w-24 h-24 bg-gray-200 rounded"></div>
+                <img src={item.thumbnail} alt={item.title} className="w-24 h-24 object-cover rounded" />
                 <div className="flex-1">
                   <h3 className="font-semibold text-gray-900">{item.title}</h3>
                   {item.price !== undefined && <p className="text-green-900 font-medium">${item.price.toFixed(2)}</p>}
@@ -132,8 +132,15 @@ export default function CartPage() {
                 </div>
               </div>
               <button
-                onClick={() => handleCheckout(cartItems, router)}
+                onClick={() => {
+                  if (cartItems.some(item => !item.price || item.price <= 0)) {
+                    alert('One or more items have no price set. Please contact support.');
+                    return;
+                  }
+                  handleCheckout(cartItems, router);
+                }}
                 className="w-full bg-green-900 text-white px-6 py-3 rounded font-semibold hover:bg-green-800 transition-colors"
+                disabled={cartItems.some(item => !item.price || item.price <= 0)}
               >
                 Proceed to Checkout
               </button>

@@ -42,7 +42,14 @@ export default function CollectionsClient() {
 
   const handlePurchase = useCallback((video: CollectionVideo) => {
     if (typeof window !== 'undefined') {
-      localStorage.setItem('cart', JSON.stringify([video]));
+      const price = video.pricing && video.pricing[0] && typeof video.pricing[0].price === 'number' ? video.pricing[0].price : 0;
+      const cartItem = {
+        id: video.id,
+        title: video.title,
+        thumbnail: video.thumbnail,
+        price,
+      };
+      localStorage.setItem('cart', JSON.stringify([cartItem]));
       push('/cart');
     }
   }, [push]);

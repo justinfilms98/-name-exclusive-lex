@@ -81,18 +81,15 @@ function AdminCollectionVideosPage() {
 
   async function handleSave(data: any) {
     setLoading(true);
-    setModalOpen(false);
     try {
       let res, responseData;
       if (editData) {
-        // Update existing
         res = await fetch('/api/collection-videos', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ ...editData, ...data, id: editData.id }),
         });
       } else {
-        // Create new
         res = await fetch('/api/collection-videos', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -107,7 +104,8 @@ function AdminCollectionVideosPage() {
       console.log('Save response:', res.status, responseData);
       if (!res.ok) throw new Error(responseData.error || 'Failed to save video');
       setNotification({ type: 'success', message: 'Video saved successfully!' });
-      fetchVideos();
+      await fetchVideos();
+      setModalOpen(false);
     } catch (err: any) {
       setNotification({ type: 'error', message: err.message });
       console.error('Save error:', err);
