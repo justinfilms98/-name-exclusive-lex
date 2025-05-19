@@ -11,6 +11,9 @@ export async function POST(req: NextRequest) {
     if (!cartItems || !Array.isArray(cartItems) || cartItems.length === 0) {
       return NextResponse.json({ error: 'No items in cart' }, { status: 400 });
     }
+    if (cartItems.some((item: any) => !item.price || item.price <= 0)) {
+      return NextResponse.json({ error: 'All items must have a price greater than $0.' }, { status: 400 });
+    }
 
     const line_items = cartItems.map((item: any) => ({
       price_data: {
