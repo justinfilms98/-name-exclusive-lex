@@ -66,7 +66,7 @@ export default function HeroSection() {
           className={`fixed top-0 left-0 w-screen h-screen object-cover transition-opacity duration-1000 ${
             idx === current ? "opacity-100 z-0" : "opacity-0 z-0"
           }`}
-          style={{ pointerEvents: "none" }}
+          style={{ pointerEvents: "none", zIndex: 0 }}
         />
       ))}
       {/* Overlay hero text, unique per video */}

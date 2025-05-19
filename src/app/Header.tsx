@@ -1,60 +1,27 @@
 "use client";
 import Link from 'next/link';
-import { useState } from 'react';
 import { useSession, signIn, signOut } from 'next-auth/react';
 
 export default function Header() {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const { data: session, status } = useSession();
+  const { data: session } = useSession();
   const isLoggedIn = !!session;
   const isAdmin = (session?.user as any)?.role?.toLowerCase() === 'admin';
 
   return (
-    <header className="w-full bg-transparent">
-      <div className="flex flex-col items-center w-full">
-        <div className="w-full flex justify-center py-4">
-          <Link href="/" className="text-2xl font-bold text-green-900 text-center">Exclusive Lex</Link>
-        </div>
-        <div className="w-full flex flex-col md:flex-row items-center justify-center md:justify-between max-w-6xl mx-auto">
-          <nav className="flex items-center gap-6 justify-center w-full md:w-auto">
-            <Link href="/collections" className="text-green-900 font-semibold hover:underline">Collections</Link>
-            <Link href="/vip" className="text-green-900 font-semibold hover:underline">VIP</Link>
-            {isAdmin && <Link href="/admin" className="text-green-900 font-semibold hover:underline">Admin</Link>}
-          </nav>
-          <div className="flex items-center gap-4 justify-center mt-2 md:mt-0">
-            <Link href="/cart" className="text-green-900 hover:underline">🛒</Link>
-            {isLoggedIn ? (
-              <>
-                <Link href="/account">
-                  <button className="bg-green-900 text-white px-4 py-1 rounded">My Account</button>
-                </Link>
-                <button onClick={() => signOut()} className="bg-red-600 text-white px-4 py-1 rounded">Logout</button>
-              </>
-            ) : (
-              <button onClick={() => signIn()} className="bg-green-900 text-white px-4 py-1 rounded">Login</button>
-            )}
-          </div>
-        </div>
-      </div>
-      {/* Mobile nav menu */}
-      {menuOpen && (
-        <div className="md:hidden mt-4 flex flex-col gap-4 items-center bg-white rounded shadow p-4">
-          <Link href="/collections" className="text-green-900 font-semibold hover:underline w-full text-center" onClick={() => setMenuOpen(false)}>Collections</Link>
-          <Link href="/vip" className="text-green-900 font-semibold hover:underline w-full text-center" onClick={() => setMenuOpen(false)}>VIP</Link>
-          {isAdmin && <Link href="/admin" className="text-green-900 font-semibold hover:underline w-full text-center" onClick={() => setMenuOpen(false)}>Admin</Link>}
-          <Link href="/cart" className="text-green-900 hover:underline w-full text-center" onClick={() => setMenuOpen(false)}>🛒 Cart</Link>
-          {isLoggedIn ? (
-            <>
-              <Link href="/account" className="w-full text-center" onClick={() => setMenuOpen(false)}>
-                <button className="bg-green-900 text-white px-4 py-1 rounded w-full">My Account</button>
-              </Link>
-              <button onClick={() => { setMenuOpen(false); signOut(); }} className="bg-red-600 text-white px-4 py-1 rounded w-full">Logout</button>
-            </>
-          ) : (
-            <button onClick={() => { setMenuOpen(false); signIn(); }} className="bg-green-900 text-white px-4 py-1 rounded w-full">Login</button>
-          )}
-        </div>
-      )}
+    <header className="fixed top-0 left-0 w-full z-50 flex justify-center items-center bg-blue-100 bg-opacity-90 py-1 m-0 shadow-md" style={{backdropFilter: 'blur(6px)'}}>
+      <nav className="flex gap-4 items-center">
+        <Link href="/collections" className="text-green-900 font-semibold hover:underline px-2 py-1">Collections</Link>
+        <Link href="/vip" className="text-green-900 font-semibold hover:underline px-2 py-1">VIP</Link>
+        <Link href="/" className="text-green-900 font-bold text-xl hover:underline px-2 py-1">Exclusive Lex</Link>
+        <Link href="/cart" className="text-green-900 hover:underline px-2 py-1">🛒</Link>
+        {isLoggedIn ? (
+          <Link href="/account">
+            <button className="bg-green-900 text-white px-3 py-1 rounded text-sm">My Account</button>
+          </Link>
+        ) : (
+          <button onClick={() => signIn()} className="bg-green-900 text-white px-3 py-1 rounded text-sm">Login</button>
+        )}
+      </nav>
     </header>
   );
 } 
