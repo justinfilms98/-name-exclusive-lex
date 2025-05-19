@@ -146,7 +146,16 @@ export default function CollectionVideoModal({ open, onClose, onSave, initialDat
   function handlePricingChange(idx: number, field: keyof PricingOption, value: any) {
     setFormData(prev => ({
       ...prev,
-      pricing: prev.pricing.map((p, i) => i === idx ? { ...p, [field]: value } : p)
+      pricing: prev.pricing.map((p, i) => {
+        if (i !== idx) return p;
+        // For number fields, sanitize value
+        if (["price", "duration", "discount"].includes(field)) {
+          // If value is empty or not a valid number, set as '' for input
+          const sanitized = value === '' || isNaN(value) ? '' : value;
+          return { ...p, [field]: sanitized };
+        }
+        return { ...p, [field]: value };
+      })
     }));
   }
   function handleAddPricing() {
@@ -179,7 +188,14 @@ export default function CollectionVideoModal({ open, onClose, onSave, initialDat
       if (!formData.pricing.length) {
         throw new Error('At least one pricing option is required');
       }
-      await onSave({ ...formData });
+      // Sanitize pricing before save
+      const sanitizedPricing = formData.pricing.map(p => ({
+        ...p,
+        price: (typeof p.price === 'string' ? p.price === '' : isNaN(Number(p.price))) ? 0 : Number(p.price),
+        duration: (typeof p.duration === 'string' ? p.duration === '' : isNaN(Number(p.duration))) ? 0 : Number(p.duration),
+        discount: (typeof p.discount === 'string' ? p.discount === '' : isNaN(Number(p.discount))) ? 0 : Number(p.discount),
+      }));
+      await onSave({ ...formData, pricing: sanitizedPricing });
       setSuccess(true);
       setTimeout(onClose, 1500);
     } catch (err: any) {
@@ -406,10 +422,10 @@ export default function CollectionVideoModal({ open, onClose, onSave, initialDat
                   <input
                     type="number"
                     className="w-full border rounded px-2 py-1"
-                    value={pricing.price}
+                    value={typeof pricing.price === 'number' && !isNaN(pricing.price) ? pricing.price : ''}
                     min={0}
                     step={0.01}
-                    onChange={e => handlePricingChange(idx, 'price', parseFloat(e.target.value))}
+                    onChange={e => handlePricingChange(idx, 'price', e.target.value === '' ? '' : parseFloat(e.target.value))}
                     disabled={fieldsDisabled}
                   />
                 </div>
@@ -428,9 +444,9 @@ export default function CollectionVideoModal({ open, onClose, onSave, initialDat
                   <input
                     type="number"
                     className="w-full border rounded px-2 py-1"
-                    value={pricing.duration || ''}
+                    value={typeof pricing.duration === 'number' && !isNaN(pricing.duration) ? pricing.duration : ''}
                     min={0}
-                    onChange={e => handlePricingChange(idx, 'duration', e.target.value ? parseInt(e.target.value) : undefined)}
+                    onChange={e => handlePricingChange(idx, 'duration', e.target.value === '' ? '' : parseInt(e.target.value))}
                     disabled={fieldsDisabled}
                   />
                 </div>
@@ -439,10 +455,10 @@ export default function CollectionVideoModal({ open, onClose, onSave, initialDat
                   <input
                     type="number"
                     className="w-full border rounded px-2 py-1"
-                    value={pricing.discount || ''}
+                    value={typeof pricing.discount === 'number' && !isNaN(pricing.discount) ? pricing.discount : ''}
                     min={0}
                     max={100}
-                    onChange={e => handlePricingChange(idx, 'discount', e.target.value ? parseFloat(e.target.value) : undefined)}
+                    onChange={e => handlePricingChange(idx, 'discount', e.target.value === '' ? '' : parseFloat(e.target.value))}
                     disabled={fieldsDisabled}
                   />
                 </div>
