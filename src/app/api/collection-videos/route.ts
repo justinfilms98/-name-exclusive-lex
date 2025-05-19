@@ -143,11 +143,9 @@ export async function PUT(req: NextRequest) {
   try {
     const data = await req.json();
     console.log('PUT /api/collection-videos', data);
-    
     // Validate input
     const validatedData = updateCollectionVideoSchema.parse(data);
-    const { id, ...updateData } = validatedData;
-    
+    const { id, pricing, ...updateData } = validatedData; // Remove pricing before update
     // Check if slot is already taken by another video in this collection
     const existingVideo = await prisma.collectionVideo.findFirst({
       where: {
@@ -156,17 +154,15 @@ export async function PUT(req: NextRequest) {
         id: { not: id }, // Exclude current video
       }
     });
-    
     if (existingVideo) {
       return NextResponse.json(
         { error: `Slot ${updateData.order} is already taken in collection ${updateData.collection}` },
         { status: 400 }
       );
     }
-
     const video = await prisma.collectionVideo.update({
       where: { id },
-      data: updateData,
+      data: updateData, // pricing is not included
       select: {
         id: true,
         collection: true,
@@ -182,18 +178,15 @@ export async function PUT(req: NextRequest) {
         updatedAt: true,
       }
     });
-    
     return NextResponse.json(video);
   } catch (err) {
     console.error('Error in PUT /api/collection-videos:', err);
-    
     if (err instanceof z.ZodError) {
       return NextResponse.json(
         { error: "Validation failed", details: err.errors },
         { status: 400 }
       );
     }
-    
     return NextResponse.json(
       { error: "Failed to update collection video" },
       { status: 500 }
@@ -205,16 +198,13 @@ export async function DELETE(req: NextRequest) {
   try {
     const data = await req.json();
     console.log('DELETE /api/collection-videos', data);
-    const { searchParams } = new URL(req.url);
-    const id = searchParams.get('id');
-    
+    const id = data.id;
     if (!id) {
       return NextResponse.json(
         { error: "Video ID is required" },
         { status: 400 }
       );
     }
-
     const video = await prisma.collectionVideo.delete({
       where: { id: parseInt(id) },
       select: {
@@ -222,11 +212,7 @@ export async function DELETE(req: NextRequest) {
         videoPath: true,
       }
     });
-
     // TODO: Delete files from storage
-    // This would require importing the deleteFile function from uploadService
-    // and calling it for both thumbnail and video if paths exist
-    
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error('Error in DELETE /api/collection-videos:', err);
