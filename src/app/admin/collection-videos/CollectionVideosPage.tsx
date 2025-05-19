@@ -83,27 +83,34 @@ function AdminCollectionVideosPage() {
     setLoading(true);
     setModalOpen(false);
     try {
+      let res, responseData;
       if (editData) {
         // Update existing
-        const res = await fetch('/api/collection-videos', {
+        res = await fetch('/api/collection-videos', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ ...editData, ...data, id: editData.id }),
         });
-        if (!res.ok) throw new Error('Failed to update video');
       } else {
         // Create new
-        const res = await fetch('/api/collection-videos', {
+        res = await fetch('/api/collection-videos', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(data),
         });
-        if (!res.ok) throw new Error('Failed to add video');
       }
+      try {
+        responseData = await res.json();
+      } catch (e) {
+        responseData = { error: 'Invalid JSON response' };
+      }
+      console.log('Save response:', res.status, responseData);
+      if (!res.ok) throw new Error(responseData.error || 'Failed to save video');
       setNotification({ type: 'success', message: 'Video saved successfully!' });
       fetchVideos();
     } catch (err: any) {
       setNotification({ type: 'error', message: err.message });
+      console.error('Save error:', err);
     } finally {
       setLoading(false);
     }
@@ -113,16 +120,26 @@ function AdminCollectionVideosPage() {
     if (!window.confirm('Are you sure you want to delete this video?')) return;
     setLoading(true);
     try {
+      const payload = { id: video.id };
       const res = await fetch('/api/collection-videos', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: video.id }),
+        body: JSON.stringify(payload),
       });
-      if (!res.ok) throw new Error('Failed to delete video');
+      let responseData;
+      try {
+        responseData = await res.json();
+      } catch (e) {
+        responseData = { error: 'Invalid JSON response' };
+      }
+      console.log('Delete payload:', payload);
+      console.log('Delete response:', res.status, responseData);
+      if (!res.ok) throw new Error(responseData.error || 'Failed to delete video');
       setNotification({ type: 'success', message: 'Video deleted successfully!' });
       fetchVideos();
     } catch (err: any) {
       setNotification({ type: 'error', message: err.message });
+      console.error('Delete error:', err);
     } finally {
       setLoading(false);
     }
