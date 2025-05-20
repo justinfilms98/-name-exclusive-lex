@@ -1,10 +1,12 @@
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["multiSchema"]
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  schemas  = ["public", "auth"]
 }
 
 model User {
@@ -25,6 +27,7 @@ model User {
   // userVideos    Video[]   @relation("VideoUser")
 
   @@map("User")
+  @@schema("public")
 }
 
 model Account {
@@ -44,6 +47,7 @@ model Account {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
+  @@schema("public")
 }
 
 model Session {
@@ -52,6 +56,8 @@ model Session {
   userId       String
   expires      DateTime
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@schema("public")
 }
 
 model VerificationToken {
@@ -60,6 +66,7 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+  @@schema("public")
 }
 
 model Video {
@@ -76,6 +83,9 @@ model Video {
   creator     User       @relation(fields: [creatorId], references: [id])
   purchases   Purchase[]
   // user        User       @relation("VideoUser", fields: [creatorId], references: [id])
+
+  @@map("Video")
+  @@schema("public")
 }
 
 model Purchase {
@@ -86,6 +96,8 @@ model Purchase {
   expiresAt DateTime
   user      User     @relation(fields: [userId], references: [id])
   video     Video    @relation(fields: [videoId], references: [id])
+
+  @@schema("public")
 }
 
 model HeroVideo {
@@ -106,13 +118,14 @@ model HeroVideo {
   moderatedAt DateTime? // When the video was last moderated
   rejectionReason String? @db.Text // Reason for rejection if status is rejected
   analytics   VideoAnalytics[]
-  pricing     VideoPricing[]
+  pricing     VideoPricing[] @relation("HeroVideoPricing")
   moderator   User?    @relation("ModeratedVideos", fields: [moderatedBy], references: [id])
   moderationLogs ContentModerationLog[]
 
   @@index([status])
   @@index([category])
   @@index([ageRating])
+  @@schema("public")
 }
 
 model CollectionVideo {
@@ -126,8 +139,16 @@ model CollectionVideo {
   videoPath    String? // Path in storage for video
   price       Float    @default(0.00) // Price in USD
   order       Int      // 1-20 for the slot in the collection
+  category    String   @default("entertainment")
+  ageRating   String   @default("PG") // G, PG, PG-13, R
+  tags        String[] // Array of tags
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  pricing     VideoPricing[] @relation("CollectionVideoPricing")
+
+  @@index([category])
+  @@index([ageRating])
+  @@schema("public")
 }
 
 model VideoAnalytics {
@@ -149,16 +170,19 @@ model VideoAnalytics {
   @@index([videoId, date])
   @@index([country])
   @@index([device])
+  @@schema("public")
 }
 
 model VideoPricing {
   id          Int      @id @default(autoincrement())
-  videoId     Int
-  video       HeroVideo @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  videoId     Int?
+  video       CollectionVideo? @relation("CollectionVideoPricing", fields: [videoId], references: [id], onDelete: Cascade)
+  heroVideoId Int?
+  heroVideo   HeroVideo? @relation("HeroVideoPricing", fields: [heroVideoId], references: [id], onDelete: Cascade)
   type        String   // 'one_time', 'subscription', 'rental'
   price       Float
   currency    String   @default("USD")
-  duration    Int?     // For rental/subscription in days
+  duration    Int?     // For rental/subscription in minutes
   startDate   DateTime @default(now())
   endDate     DateTime?
   discount    Float?   // Percentage discount
@@ -167,8 +191,10 @@ model VideoPricing {
   isActive    Boolean  @default(true)
 
   @@index([videoId, type])
+  @@index([heroVideoId, type])
   @@index([isActive])
   @@index([promoCode])
+  @@schema("public")
 }
 
 model ContentModerationLog {
@@ -184,4 +210,5 @@ model ContentModerationLog {
   @@index([videoId])
   @@index([moderatorId])
   @@index([action])
+  @@schema("public")
 } 
