@@ -220,15 +220,13 @@ function AdminCollectionVideosPage() {
           );
         })}
       </div>
-      {selectedSlot !== null && (
-        <CollectionVideoModal
-          open={modalOpen}
-          onClose={() => setModalOpen(false)}
-          onSave={handleSave}
-          initialData={editData || undefined}
-          slotOrder={selectedSlot}
-        />
-      )}
+      <CollectionVideoModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        onSave={handleSave}
+        initialData={editData || undefined}
+        slotOrder={selectedSlot || 1}
+      />
     </div>
   );
 }
