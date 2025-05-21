@@ -224,7 +224,7 @@ function AdminCollectionVideosPage() {
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         onSave={handleSave}
-        initialData={editData || undefined}
+        initialData={editData ?? undefined}
         slotOrder={selectedSlot || 1}
       />
     </div>
