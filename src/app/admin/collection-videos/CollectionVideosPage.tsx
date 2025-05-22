@@ -1,234 +1,132 @@
-import React, { useEffect, useState } from 'react';
-import CollectionVideoModal from './CollectionVideoModal';
-import { useSession, signIn } from 'next-auth/react';
+import React, { useState, useEffect, ChangeEvent, FormEvent } from 'react';
 
+// Dummy data structure for now
 interface CollectionVideo {
-  id: number;
-  collection: string;
+  id: string;
   title: string;
   description: string;
+  price: number;
+  duration: number; // in minutes
   thumbnail: string;
   videoUrl: string;
-  order: number;
-  category: string;
-  ageRating: 'G' | 'PG' | 'PG-13' | 'R';
-  tags: string[];
-  pricing: any[];
 }
 
-function AdminCollectionVideosPage() {
-  const { data: session, status } = useSession();
-  const isLoggedIn = !!session;
-
+export default function CollectionVideosPage() {
   const [videos, setVideos] = useState<CollectionVideo[]>([]);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [selectedSlot, setSelectedSlot] = useState<number | null>(null);
-  const [editData, setEditData] = useState<CollectionVideo | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [showModal, setShowModal] = useState(false);
+  const [form, setForm] = useState({
+    title: '',
+    description: '',
+    price: 0,
+    duration: 0,
+    thumbnail: '',
+    videoUrl: '',
+  });
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+  const [videoFile, setVideoFile] = useState<File | null>(null);
 
-  function fetchVideos() {
-    setLoading(true);
-    fetch('/api/collection-videos')
-      .then(res => {
-        if (!res.ok) throw new Error('Failed to fetch videos');
-        return res.json();
-      })
-      .then(data => setVideos(
-        (Array.isArray(data) ? data : []).map((v: any) => ({
-          id: v.id ?? 0,
-          collection: v.collection ?? '',
-          title: v.title ?? '',
-          description: v.description ?? '',
-          thumbnail: v.thumbnail ?? '',
-          videoUrl: v.videoUrl ?? '',
-          order: v.order ?? 0,
-          category: v.category ?? '',
-          ageRating: v.ageRating ?? 'PG',
-          tags: v.tags ?? [],
-          pricing: v.pricing ?? [{ type: 'one_time', price: 0, currency: 'USD', isActive: true }],
-        }))
-      ))
-      .catch(err => setNotification({ type: 'error', message: err.message }))
-      .finally(() => setLoading(false));
-  }
-
+  // TODO: Fetch videos from your backend/API
   useEffect(() => {
-    if (isLoggedIn) fetchVideos();
-  }, [isLoggedIn]);
+    // fetch('/api/collection-videos').then(...)
+  }, []);
 
-  function handleOpen(slot: number, video?: Partial<CollectionVideo>) {
-    setSelectedSlot(slot);
-    if (video) {
-      setEditData({
-        id: video.id ?? 0,
-        collection: video.collection ?? '',
-        title: video.title ?? '',
-        description: video.description ?? '',
-        thumbnail: video.thumbnail ?? '',
-        videoUrl: video.videoUrl ?? '',
-        order: video.order ?? slot,
-        category: (video as any).category ?? '',
-        ageRating: (video as any).ageRating ?? 'PG',
-        tags: (video as any).tags ?? [],
-        pricing: (video as any).pricing ?? [{ type: 'one_time', price: 0, currency: 'USD', isActive: true }],
-      });
-    } else {
-      setEditData(null);
+  const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setForm(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleThumbnailChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      setThumbnailFile(files[0]);
+      setForm(prev => ({ ...prev, thumbnail: URL.createObjectURL(files[0]) }));
     }
-    setModalOpen(true);
-  }
+  };
 
-  async function handleSave(data: any) {
-    setLoading(true);
-    try {
-      let res, responseData;
-      if (editData) {
-        res = await fetch('/api/collection-videos', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...editData, ...data, id: editData.id }),
-        });
-      } else {
-        res = await fetch('/api/collection-videos', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data),
-        });
-      }
-      try {
-        responseData = await res.json();
-      } catch (e) {
-        responseData = { error: 'Invalid JSON response' };
-      }
-      console.log('Save response:', res.status, responseData);
-      if (!res.ok) throw new Error(responseData.error || 'Failed to save video');
-      setNotification({ type: 'success', message: 'Video saved successfully!' });
-      await fetchVideos();
-      setModalOpen(false);
-    } catch (err: any) {
-      setNotification({ type: 'error', message: err.message });
-      console.error('Save error:', err);
-    } finally {
-      setLoading(false);
+  const handleVideoChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      setVideoFile(files[0]);
+      setForm(prev => ({ ...prev, videoUrl: URL.createObjectURL(files[0]) }));
     }
-  }
+  };
 
-  async function handleDelete(video: CollectionVideo) {
-    if (!window.confirm('Are you sure you want to delete this video?')) return;
-    setLoading(true);
-    try {
-      const payload = { id: video.id };
-      const res = await fetch('/api/collection-videos', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      let responseData;
-      try {
-        responseData = await res.json();
-      } catch (e) {
-        responseData = { error: 'Invalid JSON response' };
-      }
-      console.log('Delete payload:', payload);
-      console.log('Delete response:', res.status, responseData);
-      if (!res.ok) throw new Error(responseData.error || 'Failed to delete video');
-      setNotification({ type: 'success', message: 'Video deleted successfully!' });
-      fetchVideos();
-    } catch (err: any) {
-      setNotification({ type: 'error', message: err.message });
-      console.error('Delete error:', err);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  // Only show 8 slots for now, but leave room for more later
-  const slots = Array.from({ length: 8 }, (_, i) => i + 1);
-
-  if (status === 'loading') {
-    return <div className="flex items-center justify-center min-h-[60vh] text-lg">Loading...</div>;
-  }
-  if (!isLoggedIn) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh]">
-        <h2 className="text-2xl font-bold mb-6">Manage Collection Videos</h2>
-        <button
-          className="bg-green-900 text-white px-6 py-2 rounded hover:bg-green-800 transition"
-          onClick={() => signIn()}
-        >
-          Login
-        </button>
-      </div>
-    );
-  }
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    // In a real app, upload files and get URLs, then save to DB
+    const newVideo: CollectionVideo = {
+      id: Math.random().toString(36).substr(2, 9),
+      title: form.title,
+      description: form.description,
+      price: Number(form.price),
+      duration: Number(form.duration),
+      thumbnail: form.thumbnail,
+      videoUrl: form.videoUrl,
+    };
+    setVideos(prev => [...prev, newVideo]);
+    setShowModal(false);
+    setForm({ title: '', description: '', price: 0, duration: 0, thumbnail: '', videoUrl: '' });
+    setThumbnailFile(null);
+    setVideoFile(null);
+  };
 
   return (
-    <div className="max-w-7xl mx-auto py-8">
-      <h2 className="text-2xl font-bold mb-6">Manage Collection Videos</h2>
-      {notification && (
-        <div className={`mb-4 p-3 rounded text-center ${notification.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{notification.message}</div>
-      )}
-      {loading && <div className="mb-4 text-center">Loading...</div>}
-      <div className="columns-1 sm:columns-2 md:columns-3 lg:columns-4 gap-6 space-y-6">
-        {slots.map((slot) => {
-          const video = videos.find(v => v.order === slot);
-          return (
-            <div
-              key={slot}
-              className="inline-block w-full mb-6 rounded-[2rem] bg-white shadow-lg overflow-hidden transition-transform hover:scale-105 hover:shadow-2xl group relative"
-              style={{ breakInside: 'avoid' }}
-            >
-              {video ? (
-                <>
-                  <img src={video.thumbnail} alt={video.title} className="w-full h-48 object-cover rounded-t-[2rem]" />
-                  <div className="p-4 flex flex-col gap-2">
-                    <div className="text-lg font-bold truncate">{video.title}</div>
-                    <div className="text-sm text-gray-500 line-clamp-2">{video.description}</div>
-                    <div className="flex gap-2 mt-2">
-                      <button
-                        className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-full transition-all duration-200 shadow hover:bg-blue-700 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                        onClick={() => handleOpen(slot, video)}
-                      >
-                        Edit / Upload
-                      </button>
-                      <button
-                        className="flex-1 px-4 py-2 bg-red-600 text-white rounded-full transition-all duration-200 shadow hover:bg-red-700 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-red-400"
-                        onClick={() => handleDelete(video)}
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="w-full h-48 bg-gray-200 flex items-center justify-center rounded-t-[2rem] text-gray-400 text-2xl">No Video</div>
-                  <div className="p-4 flex flex-col gap-2">
-                    <div className="text-lg font-bold">Video {slot}</div>
-                    <div className="text-sm text-gray-500">No description</div>
-                    <button
-                      className="mt-2 px-4 py-2 bg-green-600 text-white rounded-full transition-all duration-200 shadow hover:bg-green-700 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-green-400"
-                      onClick={() => handleOpen(slot)}
-                    >
-                      Add Video
-                    </button>
-                  </div>
-                </>
-              )}
+    <div>
+      <h2>Manage Collection Videos</h2>
+      <button onClick={() => setShowModal(true)}>Add Video</button>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 24, marginTop: 24 }}>
+        {videos.map((video: CollectionVideo) => (
+          <div key={video.id} style={{ border: '1px solid #ccc', padding: 16, width: 300 }}>
+            <img src={video.thumbnail} alt={video.title} style={{ width: '100%', height: 120, objectFit: 'cover' }} />
+            <h3>{video.title}</h3>
+            <p>{video.description}</p>
+            <p><b>Price:</b> ${video.price}</p>
+            <p><b>Duration:</b> {video.duration} min</p>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button>Edit</button>
+              <button>Delete</button>
+              <button>Pricing</button>
             </div>
-          );
-        })}
+          </div>
+        ))}
       </div>
-      <CollectionVideoModal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        onSave={handleSave}
-        initialData={editData ?? undefined}
-        slotOrder={selectedSlot || 1}
-      />
+      {showModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <form onSubmit={handleSubmit} style={{ background: '#fff', padding: 32, borderRadius: 8, minWidth: 320 }}>
+            <h3>Add Collection Video</h3>
+            <div>
+              <label>Title</label>
+              <input name="title" value={form.title} onChange={handleInputChange} required style={{ width: '100%' }} />
+            </div>
+            <div>
+              <label>Description</label>
+              <textarea name="description" value={form.description} onChange={handleInputChange} required style={{ width: '100%' }} />
+            </div>
+            <div>
+              <label>Price ($)</label>
+              <input name="price" type="number" value={form.price} onChange={handleInputChange} required min={0} style={{ width: '100%' }} />
+            </div>
+            <div>
+              <label>Duration (minutes)</label>
+              <input name="duration" type="number" value={form.duration} onChange={handleInputChange} required min={1} style={{ width: '100%' }} />
+            </div>
+            <div>
+              <label>Thumbnail</label>
+              <input type="file" accept="image/*" onChange={handleThumbnailChange} required />
+              {form.thumbnail && <img src={form.thumbnail} alt="thumbnail preview" style={{ width: 80, marginTop: 8 }} />}
+            </div>
+            <div>
+              <label>Video File</label>
+              <input type="file" accept="video/*" onChange={handleVideoChange} required />
+              {form.videoUrl && <video src={form.videoUrl} controls style={{ width: 120, marginTop: 8 }} />}
+            </div>
+            <div style={{ marginTop: 16, display: 'flex', gap: 8 }}>
+              <button type="submit">Save</button>
+              <button type="button" onClick={() => setShowModal(false)}>Cancel</button>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   );
-}
-
-export default AdminCollectionVideosPage; 
+} 
