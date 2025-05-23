@@ -13,7 +13,17 @@ interface CollectionVideo {
   video_url: string;
   created_at?: string;
   creator_id?: string;
+  collection?: string;
+  order?: number;
+  category?: string;
+  pricing?: { type: string; price: number; currency: string; isActive: boolean }[];
 }
+
+// Add these defaults/constants at the top
+const DEFAULT_CATEGORY = 'general';
+const DEFAULT_COLLECTION = 'main';
+const DEFAULT_PRICING = [{ type: 'one_time', price: 0, currency: 'USD', isActive: true }];
+const SLOTS = 8;
 
 export default function CollectionVideosPage() {
   const [videos, setVideos] = useState<CollectionVideo[]>([]);
@@ -26,6 +36,10 @@ export default function CollectionVideosPage() {
     duration: 0,
     thumbnail_url: '',
     video_url: '',
+    collection: DEFAULT_COLLECTION,
+    order: 0,
+    category: DEFAULT_CATEGORY,
+    pricing: DEFAULT_PRICING,
   });
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [videoFile, setVideoFile] = useState<File | null>(null);
@@ -52,7 +66,7 @@ export default function CollectionVideosPage() {
   }
 
   const resetForm = () => {
-    setForm({ title: '', description: '', price: 0, duration: 0, thumbnail_url: '', video_url: '' });
+    setForm({ title: '', description: '', price: 0, duration: 0, thumbnail_url: '', video_url: '', collection: DEFAULT_COLLECTION, order: 0, category: DEFAULT_CATEGORY, pricing: DEFAULT_PRICING });
     setThumbnailFile(null);
     setVideoFile(null);
     setEditId(null);
@@ -87,58 +101,45 @@ export default function CollectionVideosPage() {
       let thumbnailUrl = form.thumbnail_url;
       let videoUrl = form.video_url;
       if (thumbnailFile) {
-        // toast('Uploading thumbnail...', { type: 'info' });
         const upload = await uploadFile(thumbnailFile, 'thumbnail', Date.now());
         thumbnailUrl = upload.url;
       }
       if (videoFile) {
-        // toast('Uploading video...', { type: 'info' });
         const upload = await uploadFile(videoFile, 'video', Date.now());
         videoUrl = upload.url;
       }
+      const payload = {
+        ...form,
+        collection: form.collection || DEFAULT_COLLECTION,
+        order: form.order || slots.find(slot => !videos.find(v => v.order === slot)) || 1,
+        category: form.category || DEFAULT_CATEGORY,
+        pricing: form.pricing || [{ type: 'one_time', price: form.price, currency: 'USD', isActive: true }],
+        thumbnail_url: thumbnailUrl,
+        video_url: videoUrl,
+      };
       if (editId) {
-        // PUT to API
         const res = await fetch('/api/collection-videos', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            id: editId,
-            title: form.title,
-            description: form.description,
-            price: form.price,
-            duration: form.duration,
-            thumbnail_url: thumbnailUrl,
-            video_url: videoUrl,
-          }),
+          body: JSON.stringify({ id: editId, ...payload }),
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Failed to update video');
         setVideos(prev => prev.map(v => v.id === editId ? data : v));
-        // toast('Video updated!', { type: 'success' });
       } else {
-        // POST to API
         const res = await fetch('/api/collection-videos', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            title: form.title,
-            description: form.description,
-            price: form.price,
-            duration: form.duration,
-            thumbnail_url: thumbnailUrl,
-            video_url: videoUrl,
-          }),
+          body: JSON.stringify(payload),
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Failed to save video');
         setVideos(prev => [data, ...prev]);
-        // toast('Video added!', { type: 'success' });
       }
       setShowModal(false);
       resetForm();
     } catch (err: any) {
       setError(err.message || 'Failed to save video');
-      // toast(err.message || 'Failed to save video', { type: 'error' });
     } finally {
       setLoading(false);
     }
@@ -154,6 +155,10 @@ export default function CollectionVideosPage() {
         duration: video.duration,
         thumbnail_url: video.thumbnail_url,
         video_url: video.video_url,
+        collection: video.collection || DEFAULT_COLLECTION,
+        order: video.order || 1,
+        category: video.category || DEFAULT_CATEGORY,
+        pricing: video.pricing || DEFAULT_PRICING,
       });
       setEditId(id);
       setShowModal(true);
@@ -169,14 +174,15 @@ export default function CollectionVideosPage() {
       });
       if (!res.ok && res.status !== 204) throw new Error('Failed to delete video');
       setVideos(prev => prev.filter(v => v.id !== id));
-      // toast('Video deleted!', { type: 'success' });
     } catch (err: any) {
       setError(err.message || 'Failed to delete video');
-      // toast(err.message || 'Failed to delete video', { type: 'error' });
     } finally {
       setLoading(false);
     }
   };
+
+  // Replace the videos display with 8 slots
+  const slots = Array.from({ length: SLOTS }, (_, i) => i + 1);
 
   return (
     <div className="min-h-screen bg-brand-mist py-8 px-4">
@@ -184,20 +190,37 @@ export default function CollectionVideosPage() {
       <button className="bg-brand-tan text-white px-4 py-2 rounded hover:bg-brand-earth transition mb-6" onClick={() => { resetForm(); setShowModal(true); }}>Add Video</button>
       {loading && <p>Loading...</p>}
       {error && <p className="text-red-600">{error}</p>}
-      <div className="flex flex-wrap gap-6 mt-6">
-        {videos.map((video) => (
-          <div key={video.id} className="bg-brand-almond rounded-lg shadow p-4 w-72 flex flex-col items-center">
-            <img src={video.thumbnail_url} alt={video.title} className="w-full h-32 object-cover rounded mb-3" />
-            <h3 className="text-lg font-serif text-brand-pine mb-1">{video.title}</h3>
-            <p className="text-brand-earth text-sm mb-2">{video.description}</p>
-            <p className="text-brand-tan font-bold mb-2">${video.price}</p>
-            <p className="text-brand-sage text-xs mb-2">Duration: {video.duration} min</p>
-            <div className="flex gap-2 mt-auto">
-              <button className="bg-brand-tan text-white px-3 py-1 rounded hover:bg-brand-earth transition" onClick={() => handleEdit(video.id)}>Edit</button>
-              <button className="bg-brand-sage text-white px-3 py-1 rounded hover:bg-brand-earth transition" onClick={() => handleDelete(video.id)}>Delete</button>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mt-6">
+        {slots.map((slot) => {
+          const video = videos.find(v => v.order === slot);
+          return (
+            <div key={slot} className="bg-brand-almond rounded-lg shadow p-4 flex flex-col items-center min-h-[340px] transition-transform hover:scale-105 hover:shadow-xl">
+              {video ? (
+                <>
+                  <img src={video.thumbnail_url} alt={video.title} className="w-full h-32 object-cover rounded mb-3" />
+                  <h3 className="text-lg font-serif text-brand-pine mb-1 text-center truncate w-full">{video.title}</h3>
+                  <p className="text-brand-earth text-sm mb-2 text-center line-clamp-2">{video.description}</p>
+                  <p className="text-brand-tan font-bold mb-2">${video.price}</p>
+                  <p className="text-brand-sage text-xs mb-2">Duration: {video.duration} min</p>
+                  <div className="flex gap-2 mt-auto w-full">
+                    <button className="bg-brand-pine text-white px-3 py-1 rounded shadow hover:bg-brand-earth focus:outline-none focus:ring-2 focus:ring-brand-tan transition w-1/2" onClick={() => handleEdit(video.id)}>Edit</button>
+                    <button className="bg-brand-pine text-white px-3 py-1 rounded shadow hover:bg-brand-earth focus:outline-none focus:ring-2 focus:ring-brand-tan transition w-1/2" onClick={() => handleDelete(video.id)}>Delete</button>
+                  </div>
+                </>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full w-full">
+                  <div className="flex flex-col items-center justify-center flex-1">
+                    <div className="w-20 h-20 bg-brand-mist rounded-full flex items-center justify-center mb-2">
+                      <span className="text-3xl text-brand-sage">+</span>
+                    </div>
+                    <p className="text-brand-sage text-sm mb-2 text-center">No video in this slot</p>
+                  </div>
+                  <button className="bg-brand-pine text-white px-4 py-2 rounded shadow hover:bg-brand-earth focus:outline-none focus:ring-2 focus:ring-brand-tan transition w-full" onClick={() => { resetForm(); setShowModal(true); setForm(f => ({ ...f, order: slot })); }}>Add Video</button>
+                </div>
+              )}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
