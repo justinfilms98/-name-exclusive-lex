@@ -109,19 +109,27 @@ export default function CollectionVideosPage() {
         videoUrl = upload.url;
       }
       const payload = {
-        ...form,
         collection: form.collection || DEFAULT_COLLECTION,
-        order: form.order || slots.find(slot => !videos.find(v => v.order === slot)) || 1,
+        title: form.title,
+        description: form.description,
+        thumbnail: thumbnailUrl,
+        videoUrl: videoUrl,
+        order: Number(form.order) || slots.find(slot => !videos.find(v => v.order === slot)) || 1,
         category: form.category || DEFAULT_CATEGORY,
-        pricing: form.pricing || [{ type: 'one_time', price: form.price, currency: 'USD', isActive: true }],
-        thumbnail_url: thumbnailUrl,
-        video_url: videoUrl,
+        pricing: (form.pricing && Array.isArray(form.pricing) && form.pricing.length > 0)
+          ? form.pricing.map(p => ({
+              type: p.type || 'one_time',
+              price: Number(p.price) || 0,
+              currency: p.currency || 'USD',
+              isActive: typeof p.isActive === 'boolean' ? p.isActive : true
+            }))
+          : [{ type: 'one_time', price: Number(form.price) || 0, currency: 'USD', isActive: true }],
       };
       if (editId) {
         const res = await fetch('/api/collection-videos', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: editId, ...payload }),
+          body: JSON.stringify({ id: Number(editId), ...payload }),
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Failed to update video');
