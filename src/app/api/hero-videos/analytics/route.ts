@@ -129,19 +129,28 @@ export async function GET(req: Request) {
     const videoId = searchParams.get('videoId');
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
+    const days = searchParams.get('days');
 
     if (!videoId) {
       return NextResponse.json({ error: 'Missing videoId parameter' }, { status: 400 });
     }
 
+    let dateFilter = {};
+    if (days) {
+      const daysNum = parseInt(days, 10);
+      if (!isNaN(daysNum) && daysNum > 0) {
+        const now = new Date();
+        const start = new Date(now);
+        start.setDate(now.getDate() - daysNum);
+        dateFilter = { gte: start, lte: now };
+      }
+    } else if (startDate && endDate) {
+      dateFilter = { gte: new Date(startDate), lte: new Date(endDate) };
+    }
+
     const where = {
       videoId: parseInt(videoId),
-      ...(startDate && endDate ? {
-        date: {
-          gte: new Date(startDate),
-          lte: new Date(endDate)
-        }
-      } : {})
+      ...(Object.keys(dateFilter).length > 0 ? { date: dateFilter } : {})
     };
 
     const analytics = await prisma.videoAnalytics.findMany({
