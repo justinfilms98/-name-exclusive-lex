@@ -28,6 +28,7 @@ const collectionVideoSchema = z.object({
   tags: z.array(z.string()).default([]),
   pricing: z.array(pricingSchema).min(1, "At least one pricing option is required"),
   duration: z.number().optional(),
+  price: z.number().min(0),
 });
 
 const updateCollectionVideoSchema = collectionVideoSchema.extend({
