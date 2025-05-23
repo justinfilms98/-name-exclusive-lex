@@ -53,7 +53,12 @@ export async function GET(req: NextRequest) {
         updatedAt: true,
       },
     });
-    return NextResponse.json(videos);
+    // Always return a pricing array for each video
+    const videosWithPricing = videos.map(v => ({
+      ...v,
+      pricing: [{ type: 'one_time', price: v.price || 0, currency: 'USD', isActive: true }],
+    }));
+    return NextResponse.json(videosWithPricing);
   } catch (err) {
     console.error('Error in GET /api/collection-videos:', err);
     return NextResponse.json(
