@@ -51,6 +51,14 @@ module.exports = {
         },
         ring: '#C0B4AC',
         input: '#C0B4AC',
+        brand: {
+          almond: '#E3D4C2',
+          sage: '#8F907E',
+          earth: '#664D38',
+          mist: '#DADFDB',
+          pine: '#383B26',
+          tan: '#B89178',
+        },
       },
       fontFamily: {
         sans: ['DM Sans', 'sans-serif'],
