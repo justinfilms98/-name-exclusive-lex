@@ -124,6 +124,7 @@ export default function CollectionVideosPage() {
               isActive: typeof p.isActive === 'boolean' ? p.isActive : true
             }))
           : [{ type: 'one_time', price: Number(form.price) || 0, currency: 'USD', isActive: true }],
+        duration: Number(form.duration),
       };
       if (editId) {
         const res = await fetch('/api/collection-videos', {
