@@ -139,6 +139,7 @@ model CollectionVideo {
   videoPath    String? // Path in storage for video
   price       Float    @default(0.00) // Price in USD
   order       Int      // 1-20 for the slot in the collection
+  duration    Int?     // Duration in minutes
   category    String   @default("entertainment")
   ageRating   String   @default("PG") // G, PG, PG-13, R
   tags        String[] // Array of tags

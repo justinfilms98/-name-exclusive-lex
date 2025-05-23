@@ -14,6 +14,7 @@ interface CollectionVideo {
   ageRating?: string;
   tags?: string[];
   pricing?: any[];
+  duration?: number;
 }
 
 export default function CollectionsClient() {
@@ -66,23 +67,24 @@ export default function CollectionsClient() {
         {slots.map((slot) => {
           const video = videos.find(v => v.order === slot) || videos[slot - 1];
           return (
-            <div key={slot} className="bg-white rounded-lg shadow-md p-4 flex flex-col items-center">
-              <div className="aspect-[9/16] w-full bg-gray-200 rounded mb-4 flex items-center justify-center overflow-hidden">
+            <div key={slot} className="bg-brand-almond rounded-lg shadow p-4 flex flex-col items-center min-h-[340px] transition-transform hover:scale-105 hover:shadow-xl">
+              <div className="aspect-[9/16] w-full bg-brand-mist rounded mb-4 flex items-center justify-center overflow-hidden">
                 {video ? (
                   <img src={video.thumbnail} alt={video.title} className="object-cover w-full h-full rounded" />
                 ) : (
-                  <span className="text-gray-400">No Video</span>
+                  <span className="text-brand-sage">No Video</span>
                 )}
               </div>
-              <h2 className="text-lg font-semibold text-green-900 mb-2">{video ? video.title : `Video ${slot}`}</h2>
-              <p className="text-gray-600 mb-4">{video ? video.description : 'No description'}</p>
+              <h2 className="text-lg font-serif text-brand-pine mb-1 text-center truncate w-full">{video ? video.title : `Video ${slot}`}</h2>
+              <p className="text-brand-earth text-sm mb-2 text-center line-clamp-2">{video ? video.description : 'No description'}</p>
               {video && video.pricing && video.pricing[0]?.price !== undefined && (
-                <div className="mb-2 text-green-800 font-bold">
-                  ${video.pricing[0].price.toFixed(2)}
-                </div>
+                <p className="text-brand-tan font-bold mb-2">${video.pricing[0].price.toFixed(2)}</p>
+              )}
+              {video && video.duration !== undefined && (
+                <p className="text-brand-sage text-xs mb-2">Duration: {video.duration} min</p>
               )}
               <button
-                className="bg-green-900 text-white px-4 py-2 rounded hover:bg-green-800 mt-auto w-full"
+                className="bg-brand-pine text-white px-4 py-2 rounded shadow hover:bg-brand-earth focus:outline-none focus:ring-2 focus:ring-brand-tan transition mt-auto w-full"
                 onClick={() => video && handlePurchase(video)}
                 disabled={!video}
               >
