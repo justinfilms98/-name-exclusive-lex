@@ -125,6 +125,7 @@ export default function CollectionVideosPage() {
             }))
           : [{ type: 'one_time', price: Number(form.price) || 0, currency: 'USD', isActive: true }],
         duration: Number(form.duration),
+        price: Number(form.price),
       };
       if (editId) {
         const res = await fetch('/api/collection-videos', {
