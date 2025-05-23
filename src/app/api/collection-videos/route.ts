@@ -27,6 +27,7 @@ const collectionVideoSchema = z.object({
   ageRating: z.enum(['G', 'PG', 'PG-13', 'R']).default('PG'),
   tags: z.array(z.string()).default([]),
   pricing: z.array(pricingSchema).min(1, "At least one pricing option is required"),
+  duration: z.number().optional(),
 });
 
 const updateCollectionVideoSchema = collectionVideoSchema.extend({
@@ -49,6 +50,7 @@ export async function GET(req: NextRequest) {
         videoPath: true,
         order: true,
         price: true,
+        duration: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -78,7 +80,7 @@ export async function POST(req: NextRequest) {
 
     // Only pick fields that exist in the Prisma model
     const {
-      collection, title, description, thumbnail, videoUrl, thumbnailPath, videoPath, order
+      collection, title, description, thumbnail, videoUrl, thumbnailPath, videoPath, order, duration
     } = validatedData;
     // Price is not in the Zod schema but is required by Prisma
     const safePrice = typeof (validatedData as any).price === 'number' ? (validatedData as any).price : 0;
@@ -109,6 +111,7 @@ export async function POST(req: NextRequest) {
         videoPath,
         order,
         price: safePrice,
+        duration,
       },
       select: {
         id: true,
@@ -121,6 +124,7 @@ export async function POST(req: NextRequest) {
         videoPath: true,
         order: true,
         price: true,
+        duration: true,
         createdAt: true,
         updatedAt: true,
       }
@@ -167,7 +171,7 @@ export async function PUT(req: NextRequest) {
     }
     const video = await prisma.collectionVideo.update({
       where: { id },
-      data: updateData, // pricing is not included
+      data: { ...updateData },
       select: {
         id: true,
         collection: true,
@@ -179,6 +183,7 @@ export async function PUT(req: NextRequest) {
         videoPath: true,
         order: true,
         price: true,
+        duration: true,
         createdAt: true,
         updatedAt: true,
       }
