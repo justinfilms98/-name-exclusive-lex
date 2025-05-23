@@ -11,7 +11,7 @@ export const config = {
 };
 
 async function buffer(readable: any) {
-  const chunks = [];
+  const chunks: Buffer[] = [];
   for await (const chunk of readable) {
     chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
   }
@@ -36,9 +36,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object as Stripe.Checkout.Session;
     const email = session.customer_email;
-    const lineItems = (session.display_items || session.line_items || []);
-    // Fallback: get line items from session metadata if needed
-    // For each video, record a purchase
+    // Only use session.metadata.video_ids for fulfillment
     if (session.metadata && session.metadata.video_ids) {
       const videoIds = session.metadata.video_ids.split(',');
       for (const videoId of videoIds) {
