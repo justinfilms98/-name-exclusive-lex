@@ -1,3 +1,14 @@
 @tailwind base;
 @tailwind components;
-@tailwind utilities; 
+@tailwind utilities;
+
+@font-face {
+  font-family: 'Vogue';
+  src: url('/fonts/Vogue.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+body {
+  font-family: 'Vogue', serif;
+} 
