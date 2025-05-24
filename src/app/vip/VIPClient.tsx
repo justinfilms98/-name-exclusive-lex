@@ -17,7 +17,7 @@ export default function VIPClient() {
 
   if (status === "loading") {
     return (
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-8 pt-28">
         <div className="flex justify-center items-center min-h-[60vh]">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-brand-pine"></div>
         </div>
@@ -30,7 +30,7 @@ export default function VIPClient() {
   }
 
   return (
-    <main className="min-h-screen bg-brand-mist py-8 px-4">
+    <main className="min-h-screen bg-brand-mist py-8 px-4 pt-28">
       <div className="max-w-5xl mx-auto">
         <h1 className="text-3xl font-serif text-brand-pine mb-8 text-center">Subscription Tiers</h1>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
