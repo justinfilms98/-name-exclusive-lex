@@ -12,4 +12,45 @@
 body {
   font-family: 'Vogue', serif;
   letter-spacing: 0.06em;
+}
+
+@keyframes fade-slide {
+  0% {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.animate-fade-slide {
+  animation: fade-slide 0.3s cubic-bezier(0.4,0,0.2,1);
+}
+
+.button-animate {
+  transition: transform 0.15s cubic-bezier(0.4,0,0.2,1), box-shadow 0.15s;
+}
+.button-animate:hover, .button-animate:focus {
+  transform: scale(1.04);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.link-underline {
+  position: relative;
+  overflow: hidden;
+}
+.link-underline::after {
+  content: '';
+  position: absolute;
+  left: 0; bottom: 0;
+  width: 100%;
+  height: 2px;
+  background: #14532d;
+  transform: scaleX(0);
+  transition: transform 0.2s cubic-bezier(0.4,0,0.2,1);
+  transform-origin: left;
+}
+.link-underline:hover::after, .link-underline:focus::after {
+  transform: scaleX(1);
 } 
