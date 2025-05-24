@@ -59,7 +59,7 @@ export default function CollectionsClient() {
   const slots = Array.from({ length: 8 }, (_, i) => i + 1);
 
   return (
-    <main className="container mx-auto px-4 py-8">
+    <main className="container mx-auto px-4 py-8 pt-28">
       <h1 className="text-3xl font-bold text-green-900 mb-8">Collections</h1>
       {loading && <div className="text-center text-lg">Loading...</div>}
       {error && <div className="text-center text-red-600 mb-4">{error}</div>}
