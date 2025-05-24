@@ -1,10 +1,11 @@
-import type { NextApiRequest, NextApiResponse } from 'next';
+import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const { email } = req.query;
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const email = searchParams.get('email');
   if (!email) {
-    return res.status(400).json({ error: 'Missing email' });
+    return NextResponse.json({ error: 'Missing email' }, { status: 400 });
   }
 
   // Get the latest purchase for this user
@@ -17,7 +18,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     .single();
 
   if (!purchase) {
-    return res.status(404).json({ error: 'No purchase found' });
+    return NextResponse.json({ error: 'No purchase found' }, { status: 404 });
   }
 
   // Get video info
@@ -28,8 +29,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     .single();
 
   if (!video) {
-    return res.status(404).json({ error: 'Video not found' });
+    return NextResponse.json({ error: 'Video not found' }, { status: 404 });
   }
 
-  return res.status(200).json({ videoId: video.id, video });
+  return NextResponse.json({ videoId: video.id, video });
 } 
