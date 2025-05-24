@@ -17,7 +17,21 @@ const TIER_NAMES = {
   platinum: 'Platinum VIP',
 };
 
+// Helper function to check if VIP feature is enabled
+function isVIPFeatureEnabled() {
+  return process.env.ENABLE_VIP_FEATURE === "true";
+}
+
+// Helper function to return feature disabled response
+function getFeatureDisabledResponse() {
+  return NextResponse.json({ error: 'VIP feature is not available' }, { status: 404 });
+}
+
 export async function POST(req: NextRequest) {
+  if (!isVIPFeatureEnabled()) {
+    return getFeatureDisabledResponse();
+  }
+
   try {
     const { tier } = await req.json();
     if (!tier || !TIER_PRICES[tier as keyof typeof TIER_PRICES]) {
@@ -50,4 +64,11 @@ export async function POST(req: NextRequest) {
     console.error('Stripe VIP subscription error:', err);
     return NextResponse.json({ error: 'Stripe subscription failed' }, { status: 500 });
   }
+}
+
+export async function GET(req: NextRequest) {
+  if (!isVIPFeatureEnabled()) {
+    return getFeatureDisabledResponse();
+  }
+  return NextResponse.json({ error: 'Method not allowed' }, { status: 405 });
 } 
