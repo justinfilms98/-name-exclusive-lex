@@ -30,7 +30,7 @@ export default function Header() {
           </Link>
         </div>
         {/* Right: Cart and Account/Login */}
-        <div className="flex items-center gap-4 min-w-[120px] justify-end">
+        <div className="flex items-center gap-2">
           <Link href="/cart" className="text-green-900 hover:underline px-2 py-1 link-underline">🛒</Link>
           {isLoggedIn ? (
             <Link href="/account">
