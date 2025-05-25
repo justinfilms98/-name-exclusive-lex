@@ -74,7 +74,7 @@ export default function CartPage() {
   const total = subtotal + tax;
 
   return (
-    <main className="container mx-auto px-4 py-8 pt-28" style={{ background: '#7C745', minHeight: '100vh' }}>
+    <main className="w-full min-h-screen px-4 py-8 pt-28 bg-[#7C745]">
       <h1 className="text-3xl font-bold text-[#F2E0CF] mb-8 text-reveal">Shopping Cart</h1>
 
       {/* Checkout Progress */}
