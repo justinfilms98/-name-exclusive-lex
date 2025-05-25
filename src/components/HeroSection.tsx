@@ -53,7 +53,7 @@ export default function HeroSection() {
   }, [videos]);
 
   return (
-    <div className="relative flex flex-col items-center justify-center w-full min-h-[80vh] overflow-hidden">
+    <div className="relative flex flex-col items-center justify-end w-full min-h-[80vh] overflow-hidden pb-32">
       {/* Video backgrounds */}
       {videos.map((video, idx) => (
         <video
