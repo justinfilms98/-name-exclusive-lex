@@ -53,7 +53,7 @@ export default function HeroSection() {
   }, [videos]);
 
   return (
-    <div className="relative flex flex-col items-center justify-end w-full min-h-[80vh] overflow-hidden pb-32 parallax-container">
+    <div className="relative flex flex-col items-center justify-center w-full min-h-screen h-screen overflow-hidden parallax-container">
       {/* Video backgrounds */}
       {videos.map((video, idx) => (
         <video
@@ -70,36 +70,30 @@ export default function HeroSection() {
         />
       ))}
       {/* Overlay hero text, unique per video */}
-      <div className="relative z-10 flex flex-col items-center justify-center w-full">
-        <div className="premium-card bg-[#654C37]/30 px-12 py-8 rounded-lg backdrop-blur-sm border border-[#C9BBA8]/20">
+      <div className="relative z-10 flex flex-col items-center justify-center w-full h-full">
+        <div className="premium-card bg-[#654C37]/30 px-12 py-8 rounded-[3rem] backdrop-blur-sm border border-[#C9BBA8]/[0.12] shadow-lg max-w-2xl mx-auto">
           <h1 className="text-5xl md:text-6xl font-bold mb-4 text-[#F2E0CF] text-center [text-shadow:_0_2px_4px_rgba(0,0,0,0.3)] text-reveal">
             {videos[current]?.title || 'Experience Pure Intimacy'}
           </h1>
-          <p className="text-xl md:text-2xl text-[#F2E0CF] mb-8 text-center [text-shadow:_0_1px_2px_rgba(0,0,0,0.2)] text-reveal text-reveal-delay-1">
+          <p className="text-xl md:text-2xl text-[#F2E0CF] mb-0 text-center [text-shadow:_0_1px_2px_rgba(0,0,0,0.2)] text-reveal text-reveal-delay-1">
             {videos[current]?.description || 'Curated collection of authentic, passionate moments'}
           </p>
-          <div className="text-reveal text-reveal-delay-2">
-            {!isLoggedIn ? (
-              <button
-                className="bg-[#654C37] text-[#F2E0CF] px-8 py-3 rounded hover:bg-[#654C37]/90 transition-all duration-300 hover-lift focus-ring border border-[#C9BBA8]/20 shadow-lg"
-                onClick={() => signIn()}
-              >
-                Login
-              </button>
-            ) : (
-              <a href="/collections">
-                <button className="bg-[#654C37] text-[#F2E0CF] px-8 py-3 rounded hover:bg-[#654C37]/90 transition-all duration-300 hover-lift focus-ring border border-[#C9BBA8]/20 shadow-lg">
-                  Explore Collections
-                </button>
-              </a>
-            )}
-          </div>
         </div>
-      </div>
-      {/* Scroll indicator */}
-      <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 text-[#F2E0CF] text-reveal text-reveal-delay-3">
-        <div className="w-6 h-10 border-2 border-[#F2E0CF] rounded-full flex justify-center">
-          <div className="w-1 h-2 bg-[#F2E0CF] rounded-full mt-2 animate-bounce"></div>
+        <div className="mt-8 text-reveal text-reveal-delay-2">
+          {!isLoggedIn ? (
+            <button
+              className="bg-[#654C37] text-[#F2E0CF] px-8 py-3 rounded-full hover:bg-[#654C37]/90 transition-all duration-300 hover-lift focus-ring border border-[#C9BBA8]/[0.12] shadow-lg text-lg font-semibold"
+              onClick={() => signIn()}
+            >
+              Login
+            </button>
+          ) : (
+            <a href="/collections">
+              <button className="bg-[#654C37] text-[#F2E0CF] px-8 py-3 rounded-full hover:bg-[#654C37]/90 transition-all duration-300 hover-lift focus-ring border border-[#C9BBA8]/[0.12] shadow-lg text-lg font-semibold">
+                Explore Collections
+              </button>
+            </a>
+          )}
         </div>
       </div>
     </div>
