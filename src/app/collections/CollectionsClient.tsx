@@ -59,7 +59,7 @@ export default function CollectionsClient() {
   const slots = Array.from({ length: 8 }, (_, i) => i + 1);
 
   return (
-    <main className="container mx-auto px-4 py-8 pt-28 bg-[#7C745] min-h-screen">
+    <main className="container mx-auto px-4 py-8 pt-28" style={{ background: '#7C745', minHeight: '100vh' }}>
       <h1 className="text-3xl font-bold text-[#F2E0CF] mb-8 text-reveal">Collections</h1>
       {loading && (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
