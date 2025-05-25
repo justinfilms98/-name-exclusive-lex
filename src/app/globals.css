@@ -12,9 +12,9 @@
   --color-gold: #D4AF37;
 }
 
-html, body, #__next {
+html, body {
   min-height: 100vh !important;
-  background-color: #7C745 !important;
+  background-color: #7C7C45 !important;
 }
 
 @layer base {
