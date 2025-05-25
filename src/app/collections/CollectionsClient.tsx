@@ -75,7 +75,7 @@ export default function CollectionsClient() {
       )}
       {error && <div className="text-center text-red-600 mb-4">{error}</div>}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-        {slots.map((slot, index) => {
+        {slots.slice(0, 8).map((slot, index) => {
           const video = videos.find(v => v.order === slot) || videos[slot - 1];
           return (
             <div 
