@@ -71,26 +71,28 @@ export default function HeroSection() {
       ))}
       {/* Overlay hero text, unique per video */}
       <div className="relative z-10 flex flex-col items-center justify-center w-full">
-        <h1 className="text-5xl md:text-6xl font-bold mb-4 text-green-900 text-center [text-shadow:_0_2px_4px_rgba(0,0,0,0.3)]">
-          {videos[current]?.title || 'Experience Pure Intimacy'}
-        </h1>
-        <p className="text-xl md:text-2xl text-green-800 mb-8 text-center [text-shadow:_0_1px_2px_rgba(0,0,0,0.2)]">
-          {videos[current]?.description || 'Curated collection of authentic, passionate moments'}
-        </p>
-        {!isLoggedIn ? (
-          <button
-            className="bg-green-900 text-white px-6 py-2 rounded hover:bg-green-800 transition"
-            onClick={() => signIn()}
-          >
-            Login
-          </button>
-        ) : (
-          <a href="/collections">
-            <button className="bg-green-900 text-white px-6 py-2 rounded hover:bg-green-800 transition">
-              Explore Collections
+        <div className="bg-[#654C37]/30 px-8 py-6 rounded-lg backdrop-blur-sm">
+          <h1 className="text-5xl md:text-6xl font-bold mb-4 text-[#F2E0CF] text-center [text-shadow:_0_2px_4px_rgba(0,0,0,0.3)]">
+            {videos[current]?.title || 'Experience Pure Intimacy'}
+          </h1>
+          <p className="text-xl md:text-2xl text-[#F2E0CF] mb-8 text-center [text-shadow:_0_1px_2px_rgba(0,0,0,0.2)]">
+            {videos[current]?.description || 'Curated collection of authentic, passionate moments'}
+          </p>
+          {!isLoggedIn ? (
+            <button
+              className="bg-[#654C37] text-[#F2E0CF] px-6 py-2 rounded hover:bg-[#654C37]/90 transition"
+              onClick={() => signIn()}
+            >
+              Login
             </button>
-          </a>
-        )}
+          ) : (
+            <a href="/collections">
+              <button className="bg-[#654C37] text-[#F2E0CF] px-6 py-2 rounded hover:bg-[#654C37]/90 transition">
+                Explore Collections
+              </button>
+            </a>
+          )}
+        </div>
       </div>
       {/* Overlay for darkening video if needed */}
       {/* <div className="fixed inset-0 bg-black/30 z-0 pointer-events-none" /> */}

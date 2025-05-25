@@ -74,15 +74,15 @@ export default function CartPage() {
   const total = subtotal + tax;
 
   return (
-    <main className="container mx-auto px-4 py-8 pt-28">
-      <h1 className="text-3xl font-bold text-green-900 mb-8">Shopping Cart</h1>
+    <main className="container mx-auto px-4 py-8 pt-28 bg-[#7C745] min-h-screen">
+      <h1 className="text-3xl font-bold text-[#F2E0CF] mb-8">Shopping Cart</h1>
 
       {cartItems.length === 0 ? (
         <div className="text-center py-12">
-          <p className="text-gray-600 mb-4">Your cart is empty</p>
+          <p className="text-[#F2E0CF] mb-4">Your cart is empty</p>
           <button
             onClick={() => router.push("/collections")}
-            className="bg-green-900 text-white px-6 py-2 rounded hover:bg-green-800 transition-colors"
+            className="bg-[#654C37] text-[#F2E0CF] px-6 py-2 rounded hover:bg-[#654C37]/90 transition-colors"
           >
             Browse Collections
           </button>
@@ -94,16 +94,16 @@ export default function CartPage() {
             {cartItems.map((item) => (
               <div
                 key={item.id}
-                className="flex items-center gap-4 bg-white rounded-lg shadow-md p-4"
+                className="flex items-center gap-4 bg-[#654C37] rounded-lg shadow-md p-4"
               >
                 <img src={item.thumbnail} alt={item.title} className="w-24 h-24 object-cover rounded" />
                 <div className="flex-1">
-                  <h3 className="font-semibold text-gray-900">{item.title}</h3>
-                  {item.price !== undefined && <p className="text-green-900 font-medium">${item.price.toFixed(2)}</p>}
+                  <h3 className="font-semibold text-[#F2E0CF]">{item.title}</h3>
+                  {item.price !== undefined && <p className="text-[#F2E0CF] font-medium">${item.price.toFixed(2)}</p>}
                 </div>
                 <button
                   onClick={() => removeItem(item.id)}
-                  className="text-red-600 hover:text-red-800"
+                  className="text-red-300 hover:text-red-100"
                 >
                   Remove
                 </button>
@@ -112,39 +112,37 @@ export default function CartPage() {
           </div>
 
           {/* Order Summary */}
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Order Summary</h2>
-              <div className="space-y-2 mb-4">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Subtotal</span>
-                  <span>${subtotal.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Tax (10%)</span>
-                  <span>${tax.toFixed(2)}</span>
-                </div>
-                <div className="border-t pt-2 mt-2">
-                  <div className="flex justify-between font-semibold">
-                    <span>Total</span>
-                    <span>${total.toFixed(2)}</span>
-                  </div>
+          <div className="bg-[#654C37] rounded-lg shadow-md p-6">
+            <h2 className="text-xl font-semibold text-[#F2E0CF] mb-4">Order Summary</h2>
+            <div className="space-y-2 mb-4">
+              <div className="flex justify-between text-[#F2E0CF]">
+                <span>Subtotal</span>
+                <span>${subtotal.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-[#F2E0CF]">
+                <span>Tax (10%)</span>
+                <span>${tax.toFixed(2)}</span>
+              </div>
+              <div className="border-t border-[#F2E0CF]/20 pt-2 mt-2">
+                <div className="flex justify-between font-semibold text-[#F2E0CF]">
+                  <span>Total</span>
+                  <span>${total.toFixed(2)}</span>
                 </div>
               </div>
-              <button
-                onClick={() => {
-                  if (cartItems.some(item => !item.price || item.price <= 0)) {
-                    alert('One or more items have no price set. Please contact support.');
-                    return;
-                  }
-                  handleCheckout(cartItems, router);
-                }}
-                className="w-full bg-green-900 text-white px-6 py-3 rounded font-semibold hover:bg-green-800 transition-colors"
-                disabled={cartItems.some(item => !item.price || item.price <= 0)}
-              >
-                Proceed to Checkout
-              </button>
             </div>
+            <button
+              onClick={() => {
+                if (cartItems.some(item => !item.price || item.price <= 0)) {
+                  alert('One or more items have no price set. Please contact support.');
+                  return;
+                }
+                handleCheckout(cartItems, router);
+              }}
+              className="w-full bg-[#654C37] text-[#F2E0CF] px-6 py-3 rounded font-semibold hover:bg-[#654C37]/90 transition-colors border border-[#F2E0CF]/20"
+              disabled={cartItems.some(item => !item.price || item.price <= 0)}
+            >
+              Proceed to Checkout
+            </button>
           </div>
         </div>
       )}
