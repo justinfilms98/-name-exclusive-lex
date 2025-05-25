@@ -53,7 +53,7 @@ export default function HeroSection() {
   }, [videos]);
 
   return (
-    <div className="relative flex flex-col items-center justify-end w-full min-h-[80vh] overflow-hidden pb-32">
+    <div className="relative flex flex-col items-center justify-end w-full min-h-[80vh] overflow-hidden pb-32 parallax-container">
       {/* Video backgrounds */}
       {videos.map((video, idx) => (
         <video
@@ -63,7 +63,7 @@ export default function HeroSection() {
           loop
           muted
           playsInline
-          className={`fixed top-0 left-0 w-screen h-screen object-cover transition-opacity duration-1000 ${
+          className={`fixed top-0 left-0 w-screen h-screen object-cover transition-opacity duration-1000 parallax-bg ${
             idx === current ? "opacity-100 z-0" : "opacity-0 z-0"
           }`}
           style={{ pointerEvents: "none", zIndex: 0 }}
@@ -71,31 +71,37 @@ export default function HeroSection() {
       ))}
       {/* Overlay hero text, unique per video */}
       <div className="relative z-10 flex flex-col items-center justify-center w-full">
-        <div className="bg-[#654C37]/30 px-8 py-6 rounded-lg backdrop-blur-sm">
-          <h1 className="text-5xl md:text-6xl font-bold mb-4 text-[#F2E0CF] text-center [text-shadow:_0_2px_4px_rgba(0,0,0,0.3)]">
+        <div className="premium-card bg-[#654C37]/30 px-12 py-8 rounded-lg backdrop-blur-sm border border-[#C9BBA8]/20">
+          <h1 className="text-5xl md:text-6xl font-bold mb-4 text-[#F2E0CF] text-center [text-shadow:_0_2px_4px_rgba(0,0,0,0.3)] text-reveal">
             {videos[current]?.title || 'Experience Pure Intimacy'}
           </h1>
-          <p className="text-xl md:text-2xl text-[#F2E0CF] mb-8 text-center [text-shadow:_0_1px_2px_rgba(0,0,0,0.2)]">
+          <p className="text-xl md:text-2xl text-[#F2E0CF] mb-8 text-center [text-shadow:_0_1px_2px_rgba(0,0,0,0.2)] text-reveal text-reveal-delay-1">
             {videos[current]?.description || 'Curated collection of authentic, passionate moments'}
           </p>
-          {!isLoggedIn ? (
-            <button
-              className="bg-[#654C37] text-[#F2E0CF] px-6 py-2 rounded hover:bg-[#654C37]/90 transition"
-              onClick={() => signIn()}
-            >
-              Login
-            </button>
-          ) : (
-            <a href="/collections">
-              <button className="bg-[#654C37] text-[#F2E0CF] px-6 py-2 rounded hover:bg-[#654C37]/90 transition">
-                Explore Collections
+          <div className="text-reveal text-reveal-delay-2">
+            {!isLoggedIn ? (
+              <button
+                className="bg-[#654C37] text-[#F2E0CF] px-8 py-3 rounded hover:bg-[#654C37]/90 transition-all duration-300 hover-lift focus-ring border border-[#C9BBA8]/20 shadow-lg"
+                onClick={() => signIn()}
+              >
+                Login
               </button>
-            </a>
-          )}
+            ) : (
+              <a href="/collections">
+                <button className="bg-[#654C37] text-[#F2E0CF] px-8 py-3 rounded hover:bg-[#654C37]/90 transition-all duration-300 hover-lift focus-ring border border-[#C9BBA8]/20 shadow-lg">
+                  Explore Collections
+                </button>
+              </a>
+            )}
+          </div>
         </div>
       </div>
-      {/* Overlay for darkening video if needed */}
-      {/* <div className="fixed inset-0 bg-black/30 z-0 pointer-events-none" /> */}
+      {/* Scroll indicator */}
+      <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 text-[#F2E0CF] text-reveal text-reveal-delay-3">
+        <div className="w-6 h-10 border-2 border-[#F2E0CF] rounded-full flex justify-center">
+          <div className="w-1 h-2 bg-[#F2E0CF] rounded-full mt-2 animate-bounce"></div>
+        </div>
+      </div>
     </div>
   );
 } 
