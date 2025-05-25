@@ -12,9 +12,8 @@
   --color-gold: #D4AF37;
 }
 
-html, body {
-  min-height: 100vh;
-  width: 100vw;
+html, body, #__next {
+  min-height: 100vh !important;
   background-color: #7C745 !important;
 }
 
