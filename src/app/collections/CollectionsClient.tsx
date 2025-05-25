@@ -80,7 +80,7 @@ export default function CollectionsClient() {
           return (
             <div 
               key={slot} 
-              className="premium-card rounded-lg p-4 flex flex-col items-center min-h-[340px] text-reveal"
+              className="premium-card rounded-lg p-4 flex flex-col items-center h-[420px] text-reveal"
               style={{ animationDelay: `${index * 0.1}s` }}
             >
               <div className="aspect-[9/16] w-full rounded mb-4 flex items-center justify-center overflow-hidden group relative">
