@@ -71,15 +71,15 @@ export default function HeroSection() {
       ))}
       {/* Overlay hero text, unique per video */}
       <div className="relative z-10 flex flex-col items-center justify-center w-full h-full">
-        <div className="bg-[#654C37]/[0.04] px-12 py-8 rounded-[3rem] backdrop-blur-sm border border-[#C9BBA8]/[0.12] shadow-lg max-w-2xl mx-auto flex flex-col items-center">
-          <h1 className="text-5xl md:text-6xl font-bold mb-4 text-[#F2E0CF] text-center [text-shadow:_0_2px_4px_rgba(0,0,0,0.3)] text-reveal">
+        <div className="bg-[#654C37]/20 px-12 py-8 rounded-[3rem] backdrop-blur-sm border border-[#C9BBA8]/[0.12] shadow-lg max-w-2xl mx-auto flex flex-col items-center">
+          <h1 className="text-5xl md:text-6xl font-bold mb-4 text-[#F2E0CF] text-center [text-shadow:_0_2px_4px_rgba(0,0,0,0.3)]" style={{opacity: 1}}>
             {videos[current]?.title || 'Intimacy, Redefined'}
           </h1>
-          <p className="text-xl md:text-2xl text-[#F2E0CF] mb-0 text-center [text-shadow:_0_1px_2px_rgba(0,0,0,0.2)] text-reveal text-reveal-delay-1">
+          <p className="text-xl md:text-2xl text-[#F2E0CF] mb-0 text-center [text-shadow:_0_1px_2px_rgba(0,0,0,0.2)]" style={{opacity: 1}}>
             {videos[current]?.description || 'A private collection of sensual elegance'}
           </p>
         </div>
-        <div className="mt-8 text-reveal text-reveal-delay-2">
+        <div className="mt-8">
           {!isLoggedIn ? (
             <button
               className="bg-[#654C37] text-[#F2E0CF] px-8 py-3 rounded-full hover:bg-[#654C37]/90 transition-all duration-300 hover-lift focus-ring border border-[#C9BBA8]/[0.12] shadow-lg text-lg font-semibold"

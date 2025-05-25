@@ -102,11 +102,11 @@ export default function CartPage() {
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Cart Items */}
-          <div className="lg:col-span-2 space-y-4">
+          <div className="lg:col-span-2 space-y-4 h-full">
             {cartItems.map((item, index) => (
               <div
                 key={item.id}
-                className="premium-card flex items-center gap-4 p-4 text-reveal"
+                className="premium-card flex items-center gap-4 p-4 text-reveal h-full"
                 style={{ animationDelay: `${index * 0.1}s` }}
               >
                 <div className="relative w-24 h-24 overflow-hidden rounded group">
@@ -150,7 +150,7 @@ export default function CartPage() {
           </div>
 
           {/* Order Summary */}
-          <div className="premium-card p-6 text-reveal">
+          <div className="premium-card p-6 text-reveal h-full">
             <h2 className="text-xl font-semibold text-[#F2E0CF] mb-6">Order Summary</h2>
             <div className="space-y-4 mb-6">
               <div className="flex justify-between text-[#F2E0CF]">
