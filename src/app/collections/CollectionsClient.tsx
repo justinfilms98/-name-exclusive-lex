@@ -1,6 +1,6 @@
 "use client";
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, Suspense } from 'react';
 import { useCart } from '@/context/CartContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
@@ -121,218 +121,220 @@ export default function CollectionsClient() {
   }
 
   return (
-    <main className="min-h-screen bg-[#D4C7B4] pt-28 pb-12">
-      <div className="container mx-auto px-4">
-        <motion.h1
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, ease: "easeOut" }}
-          className="text-4xl font-serif text-[#654C37] mb-8 text-center"
-        >
-          Exclusive Collection
-        </motion.h1>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <AnimatePresence mode="popLayout">
-            {videos.map((video, index) => (
-              <motion.div
-                key={video.id}
-                ref={(el: HTMLDivElement | null) => {
-                  videoRefs.current[video.id] = el;
-                }}
-                layout
-                initial={{ opacity: 0, y: 30, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -20, scale: 0.95 }}
-                transition={{ 
-                  duration: 0.4,
-                  delay: index * 0.1,
-                  layout: { duration: 0.3 },
-                  ease: "easeOut"
-                }}
-                whileHover={{ y: -5, transition: { duration: 0.2 } }}
-                className="bg-white rounded-xl shadow-lg overflow-hidden transition-all duration-300 hover:shadow-xl"
-              >
-                <motion.div 
-                  className="relative aspect-video"
-                  whileHover={{ scale: 1.05 }}
-                  transition={{ duration: 0.3 }}
+    <Suspense fallback={<div>Loading...</div>}>
+      <main className="min-h-screen bg-[#D4C7B4] pt-28 pb-12">
+        <div className="container mx-auto px-4">
+          <motion.h1
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+            className="text-4xl font-serif text-[#654C37] mb-8 text-center"
+          >
+            Exclusive Collection
+          </motion.h1>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <AnimatePresence mode="popLayout">
+              {videos.map((video, index) => (
+                <motion.div
+                  key={video.id}
+                  ref={(el: HTMLDivElement | null) => {
+                    videoRefs.current[video.id] = el;
+                  }}
+                  layout
+                  initial={{ opacity: 0, y: 30, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -20, scale: 0.95 }}
+                  transition={{ 
+                    duration: 0.4,
+                    delay: index * 0.1,
+                    layout: { duration: 0.3 },
+                    ease: "easeOut"
+                  }}
+                  whileHover={{ y: -5, transition: { duration: 0.2 } }}
+                  className="bg-white rounded-xl shadow-lg overflow-hidden transition-all duration-300 hover:shadow-xl"
                 >
-                  <Image
-                    src={video.thumbnail}
-                    alt={video.title}
-                    fill
-                    className="object-cover transition-transform duration-500 group-hover:scale-110"
-                  />
-                  {video.duration && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.2 + index * 0.1 }}
-                      className="absolute bottom-2 right-2 bg-black/75 text-white px-2 py-1 rounded text-sm"
-                    >
-                      {video.duration} min
-                    </motion.div>
-                  )}
-                </motion.div>
-                
-                <motion.div 
-                  className="flex flex-col p-4 flex-1"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.3 + index * 0.1 }}
-                >
-                  <motion.h2 
-                    className="text-xl font-bold text-[#654C37] mb-2 text-left break-words"
-                    whileHover={{ x: 5 }}
-                    transition={{ duration: 0.2 }}
+                  <motion.div 
+                    className="relative aspect-video"
+                    whileHover={{ scale: 1.05 }}
+                    transition={{ duration: 0.3 }}
                   >
-                    {video.title}
-                  </motion.h2>
-                  {video.pricing && video.pricing[0]?.price !== undefined && (
-                    <motion.p 
-                      className="text-[#C9BBA8] font-bold mb-2 text-lg"
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.4 + index * 0.1 }}
-                    >
-                      ${video.pricing[0].price.toFixed(2)}
-                    </motion.p>
-                  )}
-                  <motion.p 
-                    className="text-[#654C37]/80 text-base mb-4 text-left whitespace-pre-line"
-                    style={{ minHeight: '60px' }}
+                    <Image
+                      src={video.thumbnail}
+                      alt={video.title}
+                      fill
+                      className="object-cover transition-transform duration-500 group-hover:scale-110"
+                    />
+                    {video.duration && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.2 + index * 0.1 }}
+                        className="absolute bottom-2 right-2 bg-black/75 text-white px-2 py-1 rounded text-sm"
+                      >
+                        {video.duration} min
+                      </motion.div>
+                    )}
+                  </motion.div>
+                  
+                  <motion.div 
+                    className="flex flex-col p-4 flex-1"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    transition={{ delay: 0.5 + index * 0.1 }}
+                    transition={{ delay: 0.3 + index * 0.1 }}
                   >
-                    {video.description}
-                  </motion.p>
-                  
-                  <motion.button
-                    whileHover={{ scale: 1.03, y: -2 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => handlePurchase(video)}
-                    disabled={isInCart(video.id)}
-                    className={`w-full py-3 px-4 rounded-xl font-semibold shadow-lg transition-all duration-300 mt-auto ${
-                      isInCart(video.id)
-                        ? 'bg-green-600 text-white cursor-not-allowed'
-                        : 'bg-[#D4C7B4] text-[#654C37] hover:bg-[#C9BBA8] hover:shadow-xl'
-                    }`}
-                  >
-                    {isInCart(video.id) ? (
-                      <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        className="flex items-center justify-center gap-2"
+                    <motion.h2 
+                      className="text-xl font-bold text-[#654C37] mb-2 text-left break-words"
+                      whileHover={{ x: 5 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      {video.title}
+                    </motion.h2>
+                    {video.pricing && video.pricing[0]?.price !== undefined && (
+                      <motion.p 
+                        className="text-[#C9BBA8] font-bold mb-2 text-lg"
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.4 + index * 0.1 }}
                       >
+                        ${video.pricing[0].price.toFixed(2)}
+                      </motion.p>
+                    )}
+                    <motion.p 
+                      className="text-[#654C37]/80 text-base mb-4 text-left whitespace-pre-line"
+                      style={{ minHeight: '60px' }}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.5 + index * 0.1 }}
+                    >
+                      {video.description}
+                    </motion.p>
+                    
+                    <motion.button
+                      whileHover={{ scale: 1.03, y: -2 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => handlePurchase(video)}
+                      disabled={isInCart(video.id)}
+                      className={`w-full py-3 px-4 rounded-xl font-semibold shadow-lg transition-all duration-300 mt-auto ${
+                        isInCart(video.id)
+                          ? 'bg-green-600 text-white cursor-not-allowed'
+                          : 'bg-[#D4C7B4] text-[#654C37] hover:bg-[#C9BBA8] hover:shadow-xl'
+                      }`}
+                    >
+                      {isInCart(video.id) ? (
                         <motion.div
-                          animate={{ rotate: 360 }}
-                          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                          className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
-                        />
-                        In Cart
-                      </motion.div>
-                    ) : 'Purchase to Unlock'}
-                  </motion.button>
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          className="flex items-center justify-center gap-2"
+                        >
+                          <motion.div
+                            animate={{ rotate: 360 }}
+                            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                            className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
+                          />
+                          In Cart
+                        </motion.div>
+                      ) : 'Purchase to Unlock'}
+                    </motion.button>
+                  </motion.div>
                 </motion.div>
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </div>
+              ))}
+            </AnimatePresence>
+          </div>
 
-        {/* Success Animation */}
-        <AnimatePresence>
-          {selectedVideo && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              className="fixed inset-0 flex items-center justify-center bg-black/50 z-50"
-            >
+          {/* Success Animation */}
+          <AnimatePresence>
+            {selectedVideo && (
               <motion.div
-                initial={{ scale: 0.8, y: 50, opacity: 0 }}
-                animate={{ scale: 1, y: 0, opacity: 1 }}
-                exit={{ scale: 0.8, y: 50, opacity: 0 }}
-                transition={{ 
-                  duration: 0.4,
-                  ease: "backOut"
-                }}
-                className="bg-white p-8 rounded-xl shadow-2xl text-center max-w-sm w-full mx-4"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3 }}
+                className="fixed inset-0 flex items-center justify-center bg-black/50 z-50"
               >
                 <motion.div
-                  initial={{ scale: 0, rotate: -180 }}
-                  animate={{ scale: 1, rotate: 0 }}
+                  initial={{ scale: 0.8, y: 50, opacity: 0 }}
+                  animate={{ scale: 1, y: 0, opacity: 1 }}
+                  exit={{ scale: 0.8, y: 50, opacity: 0 }}
                   transition={{ 
-                    duration: 0.6,
-                    ease: "backOut",
-                    delay: 0.1
+                    duration: 0.4,
+                    ease: "backOut"
                   }}
-                  className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6"
-                >
-                  <motion.svg
-                    initial={{ pathLength: 0 }}
-                    animate={{ pathLength: 1 }}
-                    transition={{ duration: 0.6, delay: 0.3 }}
-                    className="w-10 h-10 text-green-500"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <motion.path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M5 13l4 4L19 7"
-                    />
-                  </motion.svg>
-                </motion.div>
-                <motion.h3
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.4 }}
-                  className="text-2xl font-bold text-[#654C37] mb-3"
-                >
-                  Added to Cart!
-                </motion.h3>
-                <motion.p
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.5 }}
-                  className="text-[#654C37]/80"
-                >
-                  {selectedVideo.title}
-                </motion.p>
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.6 }}
-                  className="mt-6"
+                  className="bg-white p-8 rounded-xl shadow-2xl text-center max-w-sm w-full mx-4"
                 >
                   <motion.div
-                    animate={{ 
-                      scale: [1, 1.05, 1],
-                      rotate: [0, 5, -5, 0]
-                    }}
+                    initial={{ scale: 0, rotate: -180 }}
+                    animate={{ scale: 1, rotate: 0 }}
                     transition={{ 
-                      duration: 1,
-                      repeat: Infinity,
-                      repeatType: "reverse"
+                      duration: 0.6,
+                      ease: "backOut",
+                      delay: 0.1
                     }}
-                    className="w-8 h-8 mx-auto mb-4"
+                    className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6"
                   >
-                    <svg className="w-full h-full text-[#654C37]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                    </svg>
+                    <motion.svg
+                      initial={{ pathLength: 0 }}
+                      animate={{ pathLength: 1 }}
+                      transition={{ duration: 0.6, delay: 0.3 }}
+                      className="w-10 h-10 text-green-500"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <motion.path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M5 13l4 4L19 7"
+                      />
+                    </motion.svg>
                   </motion.div>
-                  <p className="text-[#654C37]/60 text-sm">Redirecting to cart...</p>
+                  <motion.h3
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.4 }}
+                    className="text-2xl font-bold text-[#654C37] mb-3"
+                  >
+                    Added to Cart!
+                  </motion.h3>
+                  <motion.p
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.5 }}
+                    className="text-[#654C37]/80"
+                  >
+                    {selectedVideo.title}
+                  </motion.p>
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.6 }}
+                    className="mt-6"
+                  >
+                    <motion.div
+                      animate={{ 
+                        scale: [1, 1.05, 1],
+                        rotate: [0, 5, -5, 0]
+                      }}
+                      transition={{ 
+                        duration: 1,
+                        repeat: Infinity,
+                        repeatType: "reverse"
+                      }}
+                      className="w-8 h-8 mx-auto mb-4"
+                    >
+                      <svg className="w-full h-full text-[#654C37]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                      </svg>
+                    </motion.div>
+                    <p className="text-[#654C37]/60 text-sm">Redirecting to cart...</p>
+                  </motion.div>
                 </motion.div>
               </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-    </main>
+            )}
+          </AnimatePresence>
+        </div>
+      </main>
+    </Suspense>
   );
 } 
