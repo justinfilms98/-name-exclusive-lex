@@ -15,12 +15,15 @@ interface SuggestedVideo {
   thumbnail: string;
   price: number;
   videoUrl: string;
+  duration?: number;
+  category?: string;
+  tags?: string[];
 }
 
 export default function CartPage() {
   const router = useRouter();
   const { data: session, status } = useSession();
-  const { items, removeItem, subtotal, tax, total, clearCart } = useCart();
+  const { items, removeItem, subtotal, tax, total, clearCart, addItem, isInCart } = useCart();
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [suggestedVideos, setSuggestedVideos] = useState<SuggestedVideo[]>([]);
@@ -93,6 +96,40 @@ export default function CartPage() {
     }
   };
 
+  const handleSuggestedVideoPurchase = async (video: SuggestedVideo) => {
+    if (!session) {
+      router.push('/api/auth/signin');
+      return;
+    }
+
+    try {
+      const cartItem = {
+        id: video.id,
+        title: video.title,
+        description: video.description,
+        thumbnail: video.thumbnail,
+        price: video.price,
+        videoUrl: video.videoUrl
+      };
+
+      addItem(cartItem);
+      // Refresh suggested videos after adding to cart
+      const response = await fetch('/api/collection-videos');
+      if (!response.ok) throw new Error('Failed to fetch suggested videos');
+      const videos: SuggestedVideo[] = await response.json();
+      
+      // Filter out videos that are now in cart
+      const cartIds = new Set([...items.map(item => item.id), video.id]);
+      const filteredVideos = videos
+        .filter(v => !cartIds.has(v.id))
+        .slice(0, 3);
+      
+      setSuggestedVideos(filteredVideos);
+    } catch (err) {
+      setError('Failed to add item to cart');
+    }
+  };
+
   if (status === 'loading') {
     return (
       <div className="min-h-screen bg-[#D4C7B4] flex items-center justify-center">
@@ -111,12 +148,14 @@ export default function CartPage() {
     <motion.main
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
+      transition={{ duration: 0.5 }}
       className="min-h-screen bg-[#D4C7B4] pt-28 pb-12"
     >
       <div className="container mx-auto px-4">
         <motion.h1
-          initial={{ y: -20 }}
-          animate={{ y: 0 }}
+          initial={{ y: -20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
           className="text-4xl font-bold text-[#654C37] mb-8"
         >
           Shopping Cart
@@ -124,8 +163,10 @@ export default function CartPage() {
 
         {error && (
           <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, y: -10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+            transition={{ duration: 0.3 }}
             className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6"
           >
             {error}
@@ -136,15 +177,16 @@ export default function CartPage() {
           {items.length === 0 ? (
             <motion.div
               key="empty-cart"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: -20 }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
               className="text-center py-12 bg-white rounded-lg shadow-lg max-w-md mx-auto"
             >
               <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ delay: 0.2 }}
+                initial={{ scale: 0, rotate: -180 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ duration: 0.6, ease: "backOut" }}
                 className="w-24 h-24 mx-auto mb-6 text-[#654C37]"
               >
                 <svg className="w-full h-full" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -183,9 +225,10 @@ export default function CartPage() {
           ) : (
             <motion.div
               key="cart-items"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.5 }}
               className="grid grid-cols-1 lg:grid-cols-3 gap-8"
             >
               {/* Cart Items */}
@@ -195,28 +238,36 @@ export default function CartPage() {
                     <motion.div
                       key={item.id}
                       layout
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: 20 }}
-                      transition={{ duration: 0.2, delay: index * 0.1 }}
-                      className="bg-white rounded-lg shadow-md p-6 flex items-center gap-6"
+                      initial={{ opacity: 0, x: -20, scale: 0.95 }}
+                      animate={{ opacity: 1, x: 0, scale: 1 }}
+                      exit={{ opacity: 0, x: 20, scale: 0.95 }}
+                      transition={{ 
+                        duration: 0.3,
+                        delay: index * 0.1,
+                        layout: { duration: 0.3 }
+                      }}
+                      className="bg-white rounded-lg shadow-md p-6 flex items-center gap-6 hover:shadow-lg transition-shadow"
                     >
-                      <div className="relative w-32 h-24 rounded-lg overflow-hidden">
+                      <motion.div 
+                        className="relative w-32 h-24 rounded-lg overflow-hidden"
+                        whileHover={{ scale: 1.05 }}
+                        transition={{ duration: 0.2 }}
+                      >
                         <Image
                           src={item.thumbnail}
                           alt={item.title}
                           fill
                           className="object-cover"
                         />
-                      </div>
+                      </motion.div>
                       <div className="flex-1">
                         <h3 className="text-lg font-semibold text-[#654C37] mb-2">{item.title}</h3>
                         <p className="text-[#654C37]/80 text-sm mb-2 line-clamp-2">{item.description}</p>
                         <p className="text-[#654C37] font-medium">${item.price.toFixed(2)}</p>
                       </div>
                       <motion.button
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
+                        whileHover={{ scale: 1.1, rotate: 5 }}
+                        whileTap={{ scale: 0.9, rotate: -5 }}
                         onClick={() => removeItem(item.id)}
                         className="text-red-500 hover:text-red-600 transition-colors p-2"
                         aria-label="Remove item"
@@ -232,39 +283,104 @@ export default function CartPage() {
                 {/* Suggested Videos */}
                 {suggestedVideos.length > 0 && (
                   <motion.div
-                    initial={{ opacity: 0, y: 20 }}
+                    initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.5 }}
+                    transition={{ duration: 0.6, delay: 0.3 }}
                     className="mt-12"
                   >
-                    <h2 className="text-2xl font-semibold text-[#654C37] mb-6">You might also like</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <motion.h2 
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.4, delay: 0.4 }}
+                      className="text-2xl font-semibold text-[#654C37] mb-6"
+                    >
+                      You might also like
+                    </motion.h2>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                       {suggestedVideos.map((video, index) => (
                         <motion.div
                           key={video.id}
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 0.6 + index * 0.1 }}
+                          initial={{ opacity: 0, y: 30, scale: 0.95 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          transition={{ 
+                            duration: 0.4,
+                            delay: 0.5 + index * 0.1,
+                            ease: "easeOut"
+                          }}
+                          whileHover={{ y: -5, transition: { duration: 0.2 } }}
+                          className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-all duration-300"
                         >
                           <Link
-                            href={`/collections/${video.id}`}
-                            className="group bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow block"
+                            href={`/collections#${video.id}`}
+                            className="block group"
                           >
-                            <div className="relative aspect-video">
+                            <motion.div 
+                              className="relative aspect-video"
+                              whileHover={{ scale: 1.05 }}
+                              transition={{ duration: 0.3 }}
+                            >
                               <Image
                                 src={video.thumbnail}
                                 alt={video.title}
                                 fill
-                                className="object-cover group-hover:scale-105 transition-transform duration-300"
+                                className="object-cover transition-transform duration-500 group-hover:scale-110"
                               />
-                            </div>
+                              {video.duration && (
+                                <motion.div 
+                                  initial={{ opacity: 0, y: 10 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  transition={{ delay: 0.6 + index * 0.1 }}
+                                  className="absolute bottom-2 right-2 bg-black/75 text-white px-2 py-1 rounded text-sm"
+                                >
+                                  {video.duration} min
+                                </motion.div>
+                              )}
+                            </motion.div>
                             <div className="p-4">
                               <h3 className="font-medium text-[#654C37] group-hover:text-[#654C37]/80 transition-colors">
                                 {video.title}
                               </h3>
-                              <p className="text-[#654C37]/60 text-sm mt-1">${video.price.toFixed(2)}</p>
+                              <p className="text-[#654C37]/60 text-sm mt-1 line-clamp-2">{video.description}</p>
+                              <div className="mt-2 flex items-center justify-between">
+                                <p className="text-[#C9BBA8] font-bold">${video.price.toFixed(2)}</p>
+                                {video.category && (
+                                  <span className="text-[#654C37]/60 text-sm">{video.category}</span>
+                                )}
+                              </div>
+                              {video.tags && video.tags.length > 0 && (
+                                <div className="mt-2 flex flex-wrap gap-1">
+                                  {video.tags.slice(0, 2).map((tag) => (
+                                    <span
+                                      key={tag}
+                                      className="bg-[#D4C7B4]/30 text-[#654C37] px-2 py-0.5 rounded-full text-xs"
+                                    >
+                                      {tag}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
                             </div>
                           </Link>
+                          <motion.div 
+                            className="px-4 pb-4"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ delay: 0.7 + index * 0.1 }}
+                          >
+                            <motion.button
+                              whileHover={{ scale: 1.03, y: -2 }}
+                              whileTap={{ scale: 0.98 }}
+                              onClick={() => handleSuggestedVideoPurchase(video)}
+                              disabled={isInCart(video.id)}
+                              className={`w-full py-2 px-4 rounded-lg font-semibold transition-all duration-300 ${
+                                isInCart(video.id)
+                                  ? 'bg-green-600 text-white cursor-not-allowed'
+                                  : 'bg-[#D4C7B4] text-[#654C37] hover:bg-[#C9BBA8]'
+                              }`}
+                            >
+                              {isInCart(video.id) ? 'In Cart' : 'Add to Cart'}
+                            </motion.button>
+                          </motion.div>
                         </motion.div>
                       ))}
                     </div>
@@ -274,12 +390,15 @@ export default function CartPage() {
 
               {/* Order Summary */}
               <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.3 }}
+                initial={{ opacity: 0, x: 30, scale: 0.95 }}
+                animate={{ opacity: 1, x: 0, scale: 1 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
                 className="lg:col-span-1"
               >
-                <div className="bg-white rounded-lg shadow-md p-6 sticky top-28">
+                <motion.div 
+                  className="bg-white rounded-lg shadow-md p-6 sticky top-28"
+                  whileHover={{ y: -5, transition: { duration: 0.2 } }}
+                >
                   <h2 className="text-2xl font-semibold text-[#654C37] mb-6">Order Summary</h2>
                   <div className="space-y-4">
                     <div className="flex justify-between text-[#654C37]">
@@ -298,24 +417,37 @@ export default function CartPage() {
                     </div>
                   </div>
                   <motion.button
-                    whileHover={{ scale: 1.02 }}
+                    whileHover={{ scale: 1.03, y: -2 }}
                     whileTap={{ scale: 0.98 }}
                     onClick={handleCheckout}
                     disabled={isCheckingOut || items.length === 0}
-                    className={`w-full mt-6 py-3 px-6 rounded-lg font-medium transition-colors ${
+                    className={`w-full mt-6 py-3 px-6 rounded-lg font-medium transition-all duration-300 ${
                       isCheckingOut || items.length === 0
                         ? 'bg-gray-300 cursor-not-allowed'
-                        : 'bg-[#654C37] text-white hover:bg-[#654C37]/90'
+                        : 'bg-[#654C37] text-white hover:bg-[#654C37]/90 hover:shadow-lg'
                     }`}
                   >
-                    {isCheckingOut ? 'Processing...' : session ? 'Proceed to Checkout' : 'Sign in to Checkout'}
+                    {isCheckingOut ? (
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="flex items-center justify-center gap-2"
+                      >
+                        <motion.div
+                          animate={{ rotate: 360 }}
+                          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                          className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
+                        />
+                        Processing...
+                      </motion.div>
+                    ) : session ? 'Proceed to Checkout' : 'Sign in to Checkout'}
                   </motion.button>
                   {!session && (
                     <p className="text-sm text-[#654C37]/60 mt-4 text-center">
                       Please sign in to complete your purchase
                     </p>
                   )}
-                </div>
+                </motion.div>
               </motion.div>
             </motion.div>
           )}
