@@ -17,6 +17,13 @@ interface CollectionVideo {
   duration?: number;
 }
 
+type CartItem = {
+  id: number;
+  title: string;
+  thumbnail: string;
+  price: number;
+};
+
 export default function CollectionsClient() {
   const [videos, setVideos] = useState<CollectionVideo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -44,18 +51,18 @@ export default function CollectionsClient() {
   const handlePurchase = useCallback((video: CollectionVideo) => {
     if (typeof window !== 'undefined') {
       const price = video.pricing && video.pricing[0] && typeof video.pricing[0].price === 'number' ? video.pricing[0].price : 0;
-      const cartItem = {
+      const cartItem: CartItem = {
         id: video.id,
         title: video.title,
         thumbnail: video.thumbnail,
         price,
       };
-      let cart = [];
+      let cart: CartItem[] = [];
       try {
         cart = JSON.parse(localStorage.getItem('cart') || '[]');
       } catch {}
       // Prevent duplicates
-      if (!cart.some((item: any) => item.id === cartItem.id)) {
+      if (!cart.some((item) => item.id === cartItem.id)) {
         cart.push(cartItem);
         localStorage.setItem('cart', JSON.stringify(cart));
       }
