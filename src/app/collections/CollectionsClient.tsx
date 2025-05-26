@@ -71,11 +71,8 @@ export default function CollectionsClient() {
     }
   }, [push]);
 
-  // Simulate up to 8 slots for layout
-  const slots = Array.from({ length: 8 }, (_, i) => i + 1);
-
   return (
-    <main className="container mx-auto px-4 py-8 pt-28" style={{ background: '#D4C7B4', minHeight: '100vh' }}>
+    <main className="w-full min-h-screen px-4 py-8 pt-28" style={{ background: '#D4C7B4' }}>
       <h1 className="text-3xl font-bold text-[#F2E0CF] mb-8 text-reveal">Collections</h1>
       {loading && (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
@@ -85,44 +82,37 @@ export default function CollectionsClient() {
         </div>
       )}
       {error && <div className="text-center text-red-600 mb-4">{error}</div>}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
-        {slots.slice(0, 8).map((slot, index) => {
-          const video = videos.find(v => v.order === slot) || videos[slot - 1];
-          return (
-            <div 
-              key={slot} 
-              className="premium-card rounded-2xl p-6 flex flex-col items-center h-[500px] text-reveal shadow-lg"
-              style={{ animationDelay: `${index * 0.1}s` }}
-            >
-              <div className="w-full aspect-[9/16] rounded-xl mb-4 flex items-center justify-center overflow-hidden bg-[#C9BBA8] relative">
-                {video ? (
-                  <img 
-                    src={video.thumbnail} 
-                    alt={video.title} 
-                    className="object-cover w-full h-full rounded-xl" 
-                  />
-                ) : (
-                  <span className="text-[#F2E0CF]">No Video</span>
-                )}
-              </div>
-              <h2 className="text-xl font-bold text-[#F2E0CF] mb-2 text-center truncate w-full">{video ? video.title : `Video ${slot}`}</h2>
-              <p className="text-[#F2E0CF]/80 text-base mb-2 text-center line-clamp-2">{video ? video.description : 'No description'}</p>
-              {video && video.pricing && video.pricing[0]?.price !== undefined && (
+      <div className="columns-1 sm:columns-2 md:columns-3 gap-6 [column-fill:_balance]">
+        {videos.map((video, index) => (
+          <div
+            key={video.id}
+            className="break-inside-avoid mb-6 bg-[#654C37] rounded-2xl shadow-lg flex flex-col overflow-hidden premium-card text-reveal"
+            style={{ animationDelay: `${index * 0.1}s` }}
+          >
+            <img
+              src={video.thumbnail}
+              alt={video.title}
+              className="w-full object-cover aspect-[9/16] max-h-[420px]"
+            />
+            <div className="flex flex-col p-6">
+              <h2 className="text-2xl font-bold text-[#F2E0CF] mb-2 text-left truncate w-full">{video.title}</h2>
+              {video.pricing && video.pricing[0]?.price !== undefined && (
                 <p className="text-[#C9BBA8] font-bold mb-2 text-lg">${video.pricing[0].price.toFixed(2)}</p>
               )}
-              {video && video.duration !== undefined && (
+              {video.duration !== undefined && (
                 <p className="text-[#F2E0CF]/60 text-xs mb-2">Duration: {video.duration} min</p>
               )}
+              <p className="text-[#F2E0CF]/80 text-base mb-4 text-left whitespace-pre-line line-clamp-6">{video.description}</p>
               <button
-                className="bg-[#654C37] text-[#F2E0CF] px-6 py-3 rounded-xl font-semibold shadow-lg hover:bg-[#654C37]/90 transition-all duration-300 mt-auto w-full"
-                onClick={() => video && handlePurchase(video)}
+                className="bg-[#D4C7B4] text-[#654C37] px-6 py-3 rounded-xl font-semibold shadow-lg hover:bg-[#C9BBA8] transition-all duration-300 mt-auto w-full button-animate"
+                onClick={() => handlePurchase(video)}
                 disabled={!video}
               >
                 {video ? 'Purchase to Unlock' : 'Unavailable'}
               </button>
             </div>
-          );
-        })}
+          </div>
+        ))}
       </div>
     </main>
   );
