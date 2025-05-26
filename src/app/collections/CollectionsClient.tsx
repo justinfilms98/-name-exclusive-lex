@@ -24,10 +24,29 @@ type CartItem = {
   price: number;
 };
 
+async function handleCheckout(cartItems: CartItem[], router: any) {
+  try {
+    const res = await fetch('/api/checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cartItems }),
+    });
+    const data = await res.json();
+    if (data.url) {
+      window.location.href = data.url;
+    } else {
+      alert(data.error || 'Checkout failed');
+    }
+  } catch (err) {
+    alert('Checkout failed');
+  }
+}
+
 export default function CollectionsClient() {
   const [videos, setVideos] = useState<CollectionVideo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [cart, setCart] = useState<CartItem[]>([]);
   const { push } = useRouter();
 
   useEffect(() => {
@@ -48,6 +67,24 @@ export default function CollectionsClient() {
     fetchVideos();
   }, []);
 
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('cart');
+      if (stored) {
+        setCart(JSON.parse(stored));
+      } else {
+        setCart([]);
+      }
+    }
+  }, []);
+
+  const updateCart = (newCart: CartItem[]) => {
+    setCart(newCart);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('cart', JSON.stringify(newCart));
+    }
+  };
+
   const handlePurchase = useCallback((video: CollectionVideo) => {
     if (typeof window !== 'undefined') {
       const price = video.pricing && video.pricing[0] && typeof video.pricing[0].price === 'number' ? video.pricing[0].price : 0;
@@ -57,64 +94,90 @@ export default function CollectionsClient() {
         thumbnail: video.thumbnail,
         price,
       };
-      let cart: CartItem[] = [];
-      try {
-        cart = JSON.parse(localStorage.getItem('cart') || '[]');
-      } catch {}
-      // Prevent duplicates
-      if (!cart.some((item) => item.id === cartItem.id)) {
-        cart.push(cartItem);
-        localStorage.setItem('cart', JSON.stringify(cart));
+      let newCart = [...cart];
+      if (!newCart.some((item) => item.id === cartItem.id)) {
+        newCart.push(cartItem);
+        updateCart(newCart);
       }
-      // Always go to cart after
       push('/cart');
     }
-  }, [push]);
+  }, [cart, push]);
+
+  const handleRemove = (videoId: number) => {
+    const newCart = cart.filter(item => item.id !== videoId);
+    updateCart(newCart);
+  };
+
+  const handleProceedToCheckout = () => {
+    handleCheckout(cart, push);
+  };
 
   return (
     <main className="w-full min-h-screen px-4 py-8 pt-28" style={{ background: '#D4C7B4' }}>
       <h1 className="text-3xl font-bold text-[#F2E0CF] mb-8 text-reveal">Collections</h1>
+      {cart.length > 0 && (
+        <div className="flex justify-end mb-6">
+          <button
+            className="bg-[#654C37] text-[#F2E0CF] px-8 py-3 rounded-xl font-semibold shadow-lg hover:bg-[#654C37]/90 transition-all duration-300 button-animate"
+            onClick={handleProceedToCheckout}
+          >
+            Proceed to Checkout
+          </button>
+        </div>
+      )}
       {loading && (
         <div className="flex flex-wrap gap-8 justify-center">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="rounded-2xl p-6 flex flex-col bg-[#654C37] shadow-lg animate-pulse w-[320px] h-[500px]"></div>
+            <div key={i} className="rounded-2xl p-6 flex flex-col bg-[#654C37] shadow-lg animate-pulse w-[300px] h-[500px]"></div>
           ))}
         </div>
       )}
       {error && <div className="text-center text-red-600 mb-4">{error}</div>}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
-        {videos.slice(0, 8).map((video, index) => (
-          <div
-            key={video.id}
-            className="bg-[#654C37] rounded-2xl shadow-lg flex flex-col overflow-hidden transition-transform duration-300 hover:-translate-y-1 hover:shadow-2xl text-reveal max-w-sm w-full mx-auto"
-            style={{ animationDelay: `${index * 0.1}s` }}
-          >
-            <div className="w-full aspect-[9/16] bg-[#C9BBA8] overflow-hidden">
-              <img
-                src={video.thumbnail}
-                alt={video.title}
-                className="w-full h-full object-cover"
-              />
+        {videos.slice(0, 8).map((video, index) => {
+          const inCart = cart.some(item => item.id === video.id);
+          return (
+            <div
+              key={video.id}
+              className="bg-[#654C37] rounded-2xl shadow-lg flex flex-col overflow-hidden transition-transform duration-300 hover:-translate-y-1 hover:shadow-2xl text-reveal max-w-sm w-full mx-auto"
+              style={{ animationDelay: `${index * 0.1}s` }}
+            >
+              <div className="w-full aspect-[9/16] bg-[#C9BBA8] overflow-hidden">
+                <img
+                  src={video.thumbnail}
+                  alt={video.title}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div className="flex flex-col p-4 flex-1">
+                <h2 className="text-xl font-bold text-[#F2E0CF] mb-2 text-left break-words">{video.title}</h2>
+                {video.pricing && video.pricing[0]?.price !== undefined && (
+                  <p className="text-[#C9BBA8] font-bold mb-2 text-lg">${video.pricing[0].price.toFixed(2)}</p>
+                )}
+                {video.duration !== undefined && (
+                  <p className="text-[#F2E0CF]/60 text-xs mb-2">Duration: {video.duration} min</p>
+                )}
+                <p className="text-[#F2E0CF]/80 text-base mb-4 text-left whitespace-pre-line" style={{ minHeight: '60px' }}>{video.description}</p>
+                {inCart ? (
+                  <button
+                    className="bg-red-300 text-[#654C37] px-4 py-2 rounded-xl font-semibold shadow-lg hover:bg-red-400 transition-all duration-300 mt-auto w-full button-animate"
+                    onClick={() => handleRemove(video.id)}
+                  >
+                    Remove
+                  </button>
+                ) : (
+                  <button
+                    className="bg-[#D4C7B4] text-[#654C37] px-4 py-2 rounded-xl font-semibold shadow-lg hover:bg-[#C9BBA8] transition-all duration-300 mt-auto w-full button-animate"
+                    onClick={() => handlePurchase(video)}
+                    disabled={!video}
+                  >
+                    {video ? 'Purchase to Unlock' : 'Unavailable'}
+                  </button>
+                )}
+              </div>
             </div>
-            <div className="flex flex-col p-4 flex-1">
-              <h2 className="text-xl font-bold text-[#F2E0CF] mb-2 text-left break-words">{video.title}</h2>
-              {video.pricing && video.pricing[0]?.price !== undefined && (
-                <p className="text-[#C9BBA8] font-bold mb-2 text-lg">${video.pricing[0].price.toFixed(2)}</p>
-              )}
-              {video.duration !== undefined && (
-                <p className="text-[#F2E0CF]/60 text-xs mb-2">Duration: {video.duration} min</p>
-              )}
-              <p className="text-[#F2E0CF]/80 text-base mb-4 text-left whitespace-pre-line" style={{ minHeight: '60px' }}>{video.description}</p>
-              <button
-                className="bg-[#D4C7B4] text-[#654C37] px-4 py-2 rounded-xl font-semibold shadow-lg hover:bg-[#C9BBA8] transition-all duration-300 mt-auto w-full button-animate"
-                onClick={() => handlePurchase(video)}
-                disabled={!video}
-              >
-                {video ? 'Purchase to Unlock' : 'Unavailable'}
-              </button>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </main>
   );
