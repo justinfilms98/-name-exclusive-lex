@@ -82,19 +82,21 @@ export default function CollectionsClient() {
         </div>
       )}
       {error && <div className="text-center text-red-600 mb-4">{error}</div>}
-      <div className="columns-1 sm:columns-2 md:columns-3 gap-6 [column-fill:_balance]">
-        {videos.map((video, index) => (
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
+        {videos.slice(0, 8).map((video, index) => (
           <div
             key={video.id}
-            className="break-inside-avoid mb-6 bg-[#654C37] rounded-2xl shadow-lg flex flex-col overflow-hidden transition-transform duration-300 hover:-translate-y-1 hover:shadow-2xl"
+            className="bg-[#654C37] rounded-2xl shadow-lg flex flex-col overflow-hidden transition-transform duration-300 hover:-translate-y-1 hover:shadow-2xl text-reveal"
             style={{ animationDelay: `${index * 0.1}s` }}
           >
-            <img
-              src={video.thumbnail}
-              alt={video.title}
-              className="w-full object-cover aspect-[9/16] max-h-[420px]"
-            />
-            <div className="flex flex-col p-6">
+            <div className="w-full aspect-[9/16] bg-[#C9BBA8] overflow-hidden">
+              <img
+                src={video.thumbnail}
+                alt={video.title}
+                className="w-full h-full object-cover"
+              />
+            </div>
+            <div className="flex flex-col p-6 flex-1">
               <h2 className="text-xl font-bold text-[#F2E0CF] mb-2 text-left break-words">{video.title}</h2>
               {video.pricing && video.pricing[0]?.price !== undefined && (
                 <p className="text-[#C9BBA8] font-bold mb-2 text-lg">${video.pricing[0].price.toFixed(2)}</p>
