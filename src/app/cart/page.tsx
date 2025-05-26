@@ -52,14 +52,20 @@ export default function CartPage() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [suggested, setSuggested] = useState<CollectionVideo[]>([]);
 
+  // Always sync cart state with localStorage on mount and when cart changes
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem('cart');
-      if (stored) {
-        setCartItems(JSON.parse(stored));
-      }
+      setCartItems(stored ? JSON.parse(stored) : []);
     }
   }, []);
+
+  // Sync cart state with localStorage after every change
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('cart', JSON.stringify(cartItems));
+    }
+  }, [cartItems]);
 
   useEffect(() => {
     async function fetchSuggestions() {
@@ -76,14 +82,11 @@ export default function CartPage() {
   }, [cartItems]);
 
   const removeItem = (id: string | number) => {
-    setCartItems(items => {
-      const updated = items.filter(item => Number(item.id) !== Number(id));
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('cart', JSON.stringify(updated));
-      }
-      // Force state update in case localStorage is out of sync
-      return [...updated];
-    });
+    const updated = cartItems.filter(item => Number(item.id) !== Number(id));
+    setCartItems(updated);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('cart', JSON.stringify(updated));
+    }
   };
 
   const subtotal = cartItems.reduce((sum, item) => sum + (item.price || 0), 0);
@@ -186,6 +189,7 @@ export default function CartPage() {
             </div>
             <button
               onClick={() => {
+                if (cartItems.length === 0) return;
                 if (cartItems.some(item => !item.price || item.price <= 0)) {
                   alert('One or more items have no price set. Please contact support.');
                   return;
@@ -193,7 +197,7 @@ export default function CartPage() {
                 handleCheckout(cartItems, router);
               }}
               className="w-full bg-[#654C37] text-[#F2E0CF] px-6 py-3 rounded font-semibold hover:bg-[#654C37]/90 transition-all duration-300 hover-lift focus-ring border border-[#C9BBA8]/20 shadow-lg"
-              disabled={cartItems.some(item => !item.price || item.price <= 0)}
+              disabled={cartItems.length === 0 || cartItems.some(item => !item.price || item.price <= 0)}
             >
               Proceed to Checkout
             </button>
