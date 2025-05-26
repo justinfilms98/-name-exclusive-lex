@@ -6,6 +6,17 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-04-30.basil',
 });
 
+type PurchaseDetails = {
+  videoId: string;
+  title: string;
+  description: string;
+  thumbnail: string;
+  duration: number;
+  purchasedAt: string;
+  expiresAt: string;
+  price: number;
+};
+
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const sessionId = searchParams.get('session_id');
@@ -64,7 +75,7 @@ export async function GET(req: NextRequest) {
     expiresAt.setDate(expiresAt.getDate() + 30);
 
     // Create purchase records for each video
-    const purchases = [];
+    const purchases: PurchaseDetails[] = [];
     for (const video of videos) {
       const { data: purchase, error: purchaseError } = await supabase
         .from('purchases')
