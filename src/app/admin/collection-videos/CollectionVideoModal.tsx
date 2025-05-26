@@ -117,8 +117,8 @@ export default function CollectionVideoModal({ open, onClose, onSave, initialDat
       // Update form data
       setFormData(prev => ({
         ...prev,
-        [type === 'thumbnail' ? 'thumbnail' : 'videoUrl']: result.url,
-        [type === 'thumbnail' ? 'thumbnailPath' : 'videoPath']: result.path,
+        thumbnail: result.url,
+        thumbnailPath: result.path,
       }));
       // Mark upload as complete so UI unfreezes
       setUploadProgress(prev => ({
