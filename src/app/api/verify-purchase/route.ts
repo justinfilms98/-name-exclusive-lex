@@ -22,6 +22,7 @@ export async function GET(req: NextRequest) {
   const sessionId = searchParams.get('session_id');
 
   if (!sessionId) {
+    console.error('Missing session_id in query');
     return NextResponse.json(
       { error: 'Missing session_id' },
       { status: 400 }
@@ -31,7 +32,9 @@ export async function GET(req: NextRequest) {
   try {
     // Verify the Stripe session
     const session = await stripe.checkout.sessions.retrieve(sessionId);
+    console.log('Stripe session:', JSON.stringify(session, null, 2));
     if (!session || session.payment_status !== 'paid') {
+      console.error('Invalid or unpaid session:', sessionId, session?.payment_status);
       return NextResponse.json(
         { error: 'Invalid or unpaid session' },
         { status: 400 }
@@ -40,7 +43,9 @@ export async function GET(req: NextRequest) {
 
     // Get the video IDs from the session metadata
     const videoIdsString = session.metadata?.video_ids;
+    console.log('Session metadata:', session.metadata);
     if (!videoIdsString) {
+      console.error('No video_ids in session metadata:', session.metadata);
       return NextResponse.json(
         { error: 'No video IDs in session' },
         { status: 400 }
@@ -50,7 +55,9 @@ export async function GET(req: NextRequest) {
 
     // Get the customer email
     const customerEmail = session.customer_email;
+    console.log('Customer email:', customerEmail);
     if (!customerEmail) {
+      console.error('No customer email in session:', sessionId);
       return NextResponse.json(
         { error: 'No customer email in session' },
         { status: 400 }
@@ -64,6 +71,7 @@ export async function GET(req: NextRequest) {
       .in('id', videoIds);
 
     if (videoError || !videos || videos.length === 0) {
+      console.error('Videos not found or error:', videoError, videos);
       return NextResponse.json(
         { error: 'Videos not found' },
         { status: 404 }
@@ -91,7 +99,6 @@ export async function GET(req: NextRequest) {
         .single();
       if (purchaseError) {
         console.error('Error creating purchase:', purchaseError);
-        // Continue to next video, but you may want to handle this differently
         continue;
       }
       purchases.push({
@@ -107,6 +114,7 @@ export async function GET(req: NextRequest) {
     }
 
     if (purchases.length === 0) {
+      console.error('Failed to create any purchase records for session:', sessionId);
       return NextResponse.json(
         { error: 'Failed to create purchase records' },
         { status: 500 }
