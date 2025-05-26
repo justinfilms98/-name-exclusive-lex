@@ -86,7 +86,7 @@ export default function CollectionsClient() {
         {videos.slice(0, 8).map((video, index) => (
           <div
             key={video.id}
-            className="bg-[#654C37] rounded-2xl shadow-lg flex flex-col overflow-hidden transition-transform duration-300 hover:-translate-y-1 hover:shadow-2xl text-reveal max-w-xs w-full mx-auto"
+            className="bg-[#654C37] rounded-2xl shadow-lg flex flex-col overflow-hidden transition-transform duration-300 hover:-translate-y-1 hover:shadow-2xl text-reveal max-w-sm w-full mx-auto"
             style={{ animationDelay: `${index * 0.1}s` }}
           >
             <div className="w-full aspect-[9/16] bg-[#C9BBA8] overflow-hidden">
