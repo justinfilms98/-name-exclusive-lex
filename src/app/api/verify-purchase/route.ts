@@ -20,7 +20,6 @@ export async function GET(req: NextRequest) {
   try {
     // Verify the Stripe session
     const session = await stripe.checkout.sessions.retrieve(sessionId);
-    
     if (!session || session.payment_status !== 'paid') {
       return NextResponse.json(
         { error: 'Invalid or unpaid session' },
@@ -28,14 +27,15 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Get the video ID from the session metadata
-    const videoId = session.metadata?.videoId;
-    if (!videoId) {
+    // Get the video IDs from the session metadata
+    const videoIdsString = session.metadata?.video_ids;
+    if (!videoIdsString) {
       return NextResponse.json(
-        { error: 'No video ID in session' },
+        { error: 'No video IDs in session' },
         { status: 400 }
       );
     }
+    const videoIds = videoIdsString.split(',').map((id: string) => id.trim()).filter(Boolean);
 
     // Get the customer email
     const customerEmail = session.customer_email;
@@ -46,16 +46,15 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Get video details
-    const { data: video, error: videoError } = await supabase
+    // Fetch video details for all video IDs
+    const { data: videos, error: videoError } = await supabase
       .from('collection_videos')
       .select('id, title, description, thumbnail, duration, video_url')
-      .eq('id', videoId)
-      .single();
+      .in('id', videoIds);
 
-    if (videoError || !video) {
+    if (videoError || !videos || videos.length === 0) {
       return NextResponse.json(
-        { error: 'Video not found' },
+        { error: 'Videos not found' },
         { status: 404 }
       );
     }
@@ -64,39 +63,47 @@ export async function GET(req: NextRequest) {
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 30);
 
-    // Create purchase record
-    const { data: purchase, error: purchaseError } = await supabase
-      .from('purchases')
-      .insert({
-        video_id: videoId,
-        user_email: customerEmail,
-        stripe_session_id: sessionId,
-        purchased_at: new Date().toISOString(),
-        expires_at: expiresAt.toISOString(),
-        amount_paid: session.amount_total ? session.amount_total / 100 : 0,
-      })
-      .select()
-      .single();
+    // Create purchase records for each video
+    const purchases = [];
+    for (const video of videos) {
+      const { data: purchase, error: purchaseError } = await supabase
+        .from('purchases')
+        .insert({
+          video_id: video.id,
+          user_email: customerEmail,
+          stripe_session_id: sessionId,
+          purchased_at: new Date().toISOString(),
+          expires_at: expiresAt.toISOString(),
+          amount_paid: session.amount_total ? session.amount_total / 100 : 0,
+        })
+        .select()
+        .single();
+      if (purchaseError) {
+        console.error('Error creating purchase:', purchaseError);
+        // Continue to next video, but you may want to handle this differently
+        continue;
+      }
+      purchases.push({
+        videoId: video.id,
+        title: video.title,
+        description: video.description,
+        thumbnail: video.thumbnail,
+        duration: video.duration,
+        purchasedAt: purchase.purchased_at,
+        expiresAt: purchase.expires_at,
+        price: purchase.amount_paid,
+      });
+    }
 
-    if (purchaseError) {
-      console.error('Error creating purchase:', purchaseError);
+    if (purchases.length === 0) {
       return NextResponse.json(
-        { error: 'Failed to create purchase record' },
+        { error: 'Failed to create purchase records' },
         { status: 500 }
       );
     }
 
-    // Return purchase details
-    return NextResponse.json({
-      videoId: video.id,
-      title: video.title,
-      description: video.description,
-      thumbnail: video.thumbnail,
-      duration: video.duration,
-      purchasedAt: purchase.purchased_at,
-      expiresAt: purchase.expires_at,
-      price: purchase.amount_paid,
-    });
+    // Return all purchased video details
+    return NextResponse.json({ purchases });
   } catch (error) {
     console.error('Error in verify-purchase route:', error);
     return NextResponse.json(
