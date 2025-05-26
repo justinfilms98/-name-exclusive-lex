@@ -43,6 +43,7 @@ export default function CollectionsClient() {
 
   const handlePurchase = useCallback((video: CollectionVideo) => {
     if (typeof window !== 'undefined') {
+      console.log('Purchase button clicked for:', video);
       const price = video.pricing && video.pricing[0] && typeof video.pricing[0].price === 'number' ? video.pricing[0].price : 0;
       const cartItem = {
         id: video.id,
@@ -83,7 +84,7 @@ export default function CollectionsClient() {
               className="premium-card rounded-lg p-4 flex flex-col items-center h-[420px] text-reveal"
               style={{ animationDelay: `${index * 0.1}s` }}
             >
-              <div className="aspect-[9/16] w-full rounded mb-4 flex items-center justify-center overflow-hidden group relative">
+              <div className="aspect-[16/9] w-full rounded mb-4 flex items-center justify-center overflow-hidden group relative">
                 {video ? (
                   <>
                     <img 
