@@ -43,7 +43,6 @@ export default function CollectionsClient() {
 
   const handlePurchase = useCallback((video: CollectionVideo) => {
     if (typeof window !== 'undefined') {
-      console.log('Purchase button clicked for:', video);
       const price = video.pricing && video.pricing[0] && typeof video.pricing[0].price === 'number' ? video.pricing[0].price : 0;
       const cartItem = {
         id: video.id,
@@ -51,7 +50,16 @@ export default function CollectionsClient() {
         thumbnail: video.thumbnail,
         price,
       };
-      localStorage.setItem('cart', JSON.stringify([cartItem]));
+      let cart = [];
+      try {
+        cart = JSON.parse(localStorage.getItem('cart') || '[]');
+      } catch {}
+      // Prevent duplicates
+      if (!cart.some((item: any) => item.id === cartItem.id)) {
+        cart.push(cartItem);
+        localStorage.setItem('cart', JSON.stringify(cart));
+      }
+      // Always go to cart after
       push('/cart');
     }
   }, [push]);
