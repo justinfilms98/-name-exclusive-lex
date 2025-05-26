@@ -4,6 +4,14 @@
 @tailwind components;
 @tailwind utilities;
 
+@font-face {
+  font-family: 'Vogue';
+  src: url('/fonts/Vogue.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   --color-earth: #654C37;
   --color-blanket: #F2E0CF;
@@ -22,12 +30,12 @@ html, body {
     scroll-behavior: smooth;
   }
   body {
-    font-family: 'Montserrat', sans-serif;
+    font-family: 'Vogue', Arial, Helvetica, sans-serif;
     @apply antialiased;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Playfair Display', serif;
+    font-family: 'Vogue', Arial, Helvetica, sans-serif;
     @apply tracking-wide;
   }
 }
