@@ -12,6 +12,22 @@ type CartItem = {
   thumbnail: string;
 };
 
+// Add type for suggested videos
+interface CollectionVideo {
+  id: number;
+  title: string;
+  description: string;
+  thumbnail: string;
+  videoUrl: string;
+  price?: number;
+  order: number;
+  category?: string;
+  ageRating?: string;
+  tags?: string[];
+  pricing?: any[];
+  duration?: number;
+}
+
 async function handleCheckout(cartItems: CartItem[], router: any) {
   console.log('Proceed to Checkout button clicked. Cart items:', cartItems);
   try {
@@ -34,31 +50,30 @@ async function handleCheckout(cartItems: CartItem[], router: any) {
 export default function CartPage() {
   const router = useRouter();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [suggested, setSuggested] = useState<CollectionVideo[]>([]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem('cart');
       if (stored) {
         setCartItems(JSON.parse(stored));
-        return;
       }
     }
-    // fallback mock data
-    setCartItems([
-      {
-        id: "1",
-        title: "Premium Collection Access",
-        price: 29.99,
-        thumbnail: "/placeholder.jpg",
-      },
-      {
-        id: "2",
-        title: "VIP Membership - Monthly",
-        price: 19.99,
-        thumbnail: "/placeholder.jpg",
-      },
-    ]);
   }, []);
+
+  useEffect(() => {
+    async function fetchSuggestions() {
+      const res = await fetch('/api/collection-videos');
+      if (!res.ok) return;
+      const allVideos: CollectionVideo[] = await res.json();
+      // Exclude videos already in cart
+      const cartIds = new Set(cartItems.map(item => Number(item.id)));
+      const filtered = allVideos.filter(v => !cartIds.has(v.id));
+      // Show the next two by order
+      setSuggested(filtered.slice(0, 2));
+    }
+    if (cartItems.length > 0) fetchSuggestions();
+  }, [cartItems]);
 
   const removeItem = (id: string | number) => {
     console.log('Remove button clicked for item id:', id);
@@ -137,14 +152,15 @@ export default function CartPage() {
             <div className="premium-card p-6 mt-8 text-reveal">
               <h3 className="text-xl font-semibold text-[#F2E0CF] mb-4">You might also like</h3>
               <div className="grid grid-cols-2 gap-4">
-                {[1, 2].map((i) => (
-                  <div key={i} className="group cursor-pointer">
+                {suggested.map((video) => (
+                  <div key={video.id} className="group cursor-pointer" onClick={() => router.push('/collections')}>
                     <div className="aspect-video rounded overflow-hidden mb-2">
-                      <div className="w-full h-full bg-[#654C37] animate-pulse"></div>
+                      <img src={video.thumbnail} alt={video.title} className="object-cover w-full h-full" />
                     </div>
-                    <p className="text-[#F2E0CF]/80 text-sm group-hover:text-[#F2E0CF] transition-colors">Premium Collection {i}</p>
+                    <p className="text-[#F2E0CF]/80 text-sm group-hover:text-[#F2E0CF] transition-colors">{video.title}</p>
                   </div>
                 ))}
+                {suggested.length === 0 && <p className="text-[#F2E0CF]/60 col-span-2">No suggestions</p>}
               </div>
             </div>
           </div>
