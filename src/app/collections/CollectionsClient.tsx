@@ -86,8 +86,8 @@ export default function CollectionsClient() {
         {videos.slice(0, 8).map((video, index) => (
           <div
             key={video.id}
-            className="bg-[#654C37] rounded-2xl shadow-lg flex flex-col overflow-hidden transition-transform duration-300 hover:-translate-y-1 hover:shadow-2xl text-reveal"
-            style={{ animationDelay: `${index * 0.1}s` }}
+            className="bg-[#654C37] rounded-2xl shadow-lg flex flex-col overflow-hidden transition-transform duration-300 hover:-translate-y-1 hover:shadow-2xl text-reveal scale-90"
+            style={{ animationDelay: `${index * 0.1}s`, maxWidth: '220px', margin: '0 auto' }}
           >
             <div className="w-full aspect-[9/16] bg-[#C9BBA8] overflow-hidden">
               <img
@@ -96,7 +96,7 @@ export default function CollectionsClient() {
                 className="w-full h-full object-cover"
               />
             </div>
-            <div className="flex flex-col p-6 flex-1">
+            <div className="flex flex-col p-4 flex-1">
               <h2 className="text-xl font-bold text-[#F2E0CF] mb-2 text-left break-words">{video.title}</h2>
               {video.pricing && video.pricing[0]?.price !== undefined && (
                 <p className="text-[#C9BBA8] font-bold mb-2 text-lg">${video.pricing[0].price.toFixed(2)}</p>
@@ -106,7 +106,7 @@ export default function CollectionsClient() {
               )}
               <p className="text-[#F2E0CF]/80 text-base mb-4 text-left whitespace-pre-line" style={{ minHeight: '60px' }}>{video.description}</p>
               <button
-                className="bg-[#D4C7B4] text-[#654C37] px-6 py-3 rounded-xl font-semibold shadow-lg hover:bg-[#C9BBA8] transition-all duration-300 mt-auto w-full button-animate"
+                className="bg-[#D4C7B4] text-[#654C37] px-4 py-2 rounded-xl font-semibold shadow-lg hover:bg-[#C9BBA8] transition-all duration-300 mt-auto w-full button-animate"
                 onClick={() => handlePurchase(video)}
                 disabled={!video}
               >
