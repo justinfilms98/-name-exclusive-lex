@@ -43,7 +43,7 @@ export default function WatchPage({ params }: { params: { videoId: string } }) {
   const [currentTime, setCurrentTime] = useState(0);
   const [volume, setVolume] = useState(1);
   const [showControls, setShowControls] = useState(true);
-  const controlsTimeout = useRef<NodeJS.Timeout>();
+  const controlsTimeout = useRef<NodeJS.Timeout | null>(null);
   const [isBuffering, setIsBuffering] = useState(false);
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
   const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
