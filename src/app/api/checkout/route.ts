@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
       line_items,
       mode: 'payment',
       customer_email: userEmail,
-      success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/success`,
+      success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/cart`,
       metadata: {
         video_ids: videoIds,
