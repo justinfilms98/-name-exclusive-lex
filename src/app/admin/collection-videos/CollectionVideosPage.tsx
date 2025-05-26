@@ -196,7 +196,7 @@ export default function CollectionVideosPage() {
 
   return (
     <div className="min-h-screen bg-brand-mist py-8 px-4">
-      <h2 className="text-3xl font-serif text-brand-pine mb-4">Manage Collection Videos</h2>
+      <h2 className="text-3xl font-serif text-brand-pine mb-8">Manage Collection Videos</h2>
       <button className="bg-brand-tan text-white px-4 py-2 rounded hover:bg-brand-earth transition mb-6" onClick={() => { resetForm(); setShowModal(true); }}>Add Video</button>
       {loading && <p>Loading...</p>}
       {error && <p className="text-red-600">{error}</p>}
