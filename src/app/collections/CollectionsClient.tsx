@@ -75,9 +75,9 @@ export default function CollectionsClient() {
     <main className="w-full min-h-screen px-4 py-8 pt-28" style={{ background: '#D4C7B4' }}>
       <h1 className="text-3xl font-bold text-[#F2E0CF] mb-8 text-reveal">Collections</h1>
       {loading && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
+        <div className="flex flex-wrap gap-8 justify-center">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="premium-card h-[500px] rounded-2xl p-6 flex flex-col"></div>
+            <div key={i} className="rounded-2xl p-6 flex flex-col bg-[#654C37] shadow-lg animate-pulse w-[320px] h-[500px]"></div>
           ))}
         </div>
       )}
@@ -86,7 +86,7 @@ export default function CollectionsClient() {
         {videos.map((video, index) => (
           <div
             key={video.id}
-            className="break-inside-avoid mb-6 bg-[#654C37] rounded-2xl shadow-lg flex flex-col overflow-hidden premium-card text-reveal"
+            className="break-inside-avoid mb-6 bg-[#654C37] rounded-2xl shadow-lg flex flex-col overflow-hidden transition-transform duration-300 hover:-translate-y-1 hover:shadow-2xl"
             style={{ animationDelay: `${index * 0.1}s` }}
           >
             <img
@@ -95,14 +95,14 @@ export default function CollectionsClient() {
               className="w-full object-cover aspect-[9/16] max-h-[420px]"
             />
             <div className="flex flex-col p-6">
-              <h2 className="text-2xl font-bold text-[#F2E0CF] mb-2 text-left truncate w-full">{video.title}</h2>
+              <h2 className="text-xl font-bold text-[#F2E0CF] mb-2 text-left break-words">{video.title}</h2>
               {video.pricing && video.pricing[0]?.price !== undefined && (
                 <p className="text-[#C9BBA8] font-bold mb-2 text-lg">${video.pricing[0].price.toFixed(2)}</p>
               )}
               {video.duration !== undefined && (
                 <p className="text-[#F2E0CF]/60 text-xs mb-2">Duration: {video.duration} min</p>
               )}
-              <p className="text-[#F2E0CF]/80 text-base mb-4 text-left whitespace-pre-line line-clamp-6">{video.description}</p>
+              <p className="text-[#F2E0CF]/80 text-base mb-4 text-left whitespace-pre-line" style={{ minHeight: '60px' }}>{video.description}</p>
               <button
                 className="bg-[#D4C7B4] text-[#654C37] px-6 py-3 rounded-xl font-semibold shadow-lg hover:bg-[#C9BBA8] transition-all duration-300 mt-auto w-full button-animate"
                 onClick={() => handlePurchase(video)}
