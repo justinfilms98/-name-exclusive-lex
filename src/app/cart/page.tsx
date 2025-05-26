@@ -76,13 +76,13 @@ export default function CartPage() {
   }, [cartItems]);
 
   const removeItem = (id: string | number) => {
-    console.log('Remove button clicked for item id:', id);
     setCartItems(items => {
-      const updated = items.filter(item => item.id !== id);
+      const updated = items.filter(item => Number(item.id) !== Number(id));
       if (typeof window !== 'undefined') {
         localStorage.setItem('cart', JSON.stringify(updated));
       }
-      return updated;
+      // Force state update in case localStorage is out of sync
+      return [...updated];
     });
   };
 
