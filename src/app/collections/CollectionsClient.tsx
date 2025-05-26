@@ -132,113 +132,137 @@ export default function CollectionsClient() {
           >
             Exclusive Collection
           </motion.h1>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* Enhanced Pinterest-style Masonry Grid */}
+          <div
+            className="columns-1 sm:columns-2 lg:columns-4 gap-8 [column-fill:_balance] [&>div]:mb-8"
+          >
             <AnimatePresence mode="popLayout">
-              {videos.map((video, index) => (
-                <motion.div
-                  key={video.id}
-                  ref={(el: HTMLDivElement | null) => {
-                    videoRefs.current[video.id] = el;
-                  }}
-                  layout
-                  initial={{ opacity: 0, y: 30, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -20, scale: 0.95 }}
-                  transition={{ 
-                    duration: 0.4,
-                    delay: index * 0.1,
-                    layout: { duration: 0.3 },
-                    ease: "easeOut"
-                  }}
-                  whileHover={{ y: -5, transition: { duration: 0.2 } }}
-                  className="bg-white rounded-xl shadow-lg overflow-hidden transition-all duration-300 hover:shadow-xl"
-                >
-                  <motion.div 
-                    className="relative aspect-video"
-                    whileHover={{ scale: 1.05 }}
-                    transition={{ duration: 0.3 }}
+              {videos.slice(0, 8).map((video, index) => {
+                // Staggered min-height for card content
+                const minHeights = ["min-h-[120px]", "min-h-[160px]", "min-h-[200px]", "min-h-[180px]"];
+                const minHeightClass = minHeights[index % minHeights.length];
+                return (
+                  <motion.div
+                    key={video.id}
+                    ref={(el: HTMLDivElement | null) => {
+                      videoRefs.current[video.id] = el;
+                    }}
+                    layout
+                    initial={{ opacity: 0, y: 30, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -20, scale: 0.95 }}
+                    transition={{ 
+                      duration: 0.4,
+                      delay: index * 0.1,
+                      layout: { duration: 0.3 },
+                      ease: "easeOut"
+                    }}
+                    whileHover={{ scale: 1.04, boxShadow: "0 8px 32px 0 rgba(101,76,55,0.18)" }}
+                    className="break-inside-avoid bg-white rounded-xl shadow-xl overflow-hidden transition-all duration-300 hover:shadow-2xl relative group"
                   >
-                    <Image
-                      src={video.thumbnail}
-                      alt={video.title}
-                      fill
-                      className="object-cover transition-transform duration-500 group-hover:scale-110"
-                    />
-                    {video.duration && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.2 + index * 0.1 }}
-                        className="absolute bottom-2 right-2 bg-black/75 text-white px-2 py-1 rounded text-sm"
-                      >
-                        {video.duration} min
-                      </motion.div>
-                    )}
-                  </motion.div>
-                  
-                  <motion.div 
-                    className="flex flex-col p-4 flex-1"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.3 + index * 0.1 }}
-                  >
-                    <motion.h2 
-                      className="text-xl font-bold text-[#654C37] mb-2 text-left break-words"
-                      whileHover={{ x: 5 }}
-                      transition={{ duration: 0.2 }}
+                    {/* 9:16 Aspect Ratio Thumbnail with Overlay */}
+                    <motion.div 
+                      className="relative w-full aspect-[9/16] bg-[#E9E4DF] overflow-hidden"
+                      whileHover={{ scale: 1.05 }}
+                      transition={{ duration: 0.3 }}
                     >
-                      {video.title}
-                    </motion.h2>
-                    {video.pricing && video.pricing[0]?.price !== undefined && (
-                      <motion.p 
-                        className="text-[#C9BBA8] font-bold mb-2 text-lg"
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.4 + index * 0.1 }}
+                      <Image
+                        src={video.thumbnail}
+                        alt={video.title}
+                        fill
+                        className="object-cover rounded-t-xl transition-transform duration-500 group-hover:scale-110"
+                      />
+                      {/* Overlay on hover */}
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        whileHover={{ opacity: 1 }}
+                        animate={{ opacity: 0 }}
+                        transition={{ duration: 0.3 }}
+                        className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent flex flex-col justify-end opacity-0 group-hover:opacity-100 p-4 transition-opacity"
                       >
-                        ${video.pricing[0].price.toFixed(2)}
-                      </motion.p>
-                    )}
-                    <motion.p 
-                      className="text-[#654C37]/80 text-base mb-4 text-left whitespace-pre-line"
-                      style={{ minHeight: '60px' }}
+                        <div>
+                          <h2 className="text-lg font-bold text-white mb-1 drop-shadow-lg">{video.title}</h2>
+                          {video.pricing && video.pricing[0]?.price !== undefined && (
+                            <p className="text-[#C9BBA8] font-bold text-base drop-shadow-lg">
+                              ${video.pricing[0].price.toFixed(2)}
+                            </p>
+                          )}
+                        </div>
+                      </motion.div>
+                      {video.duration && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.2 + index * 0.1 }}
+                          className="absolute bottom-2 right-2 bg-black/75 text-white px-2 py-1 rounded text-xs"
+                        >
+                          {video.duration} min
+                        </motion.div>
+                      )}
+                    </motion.div>
+                    {/* Card Content with Staggered Height */}
+                    <motion.div 
+                      className={`flex flex-col p-4 flex-1 ${minHeightClass}`}
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
-                      transition={{ delay: 0.5 + index * 0.1 }}
+                      transition={{ delay: 0.3 + index * 0.1 }}
                     >
-                      {video.description}
-                    </motion.p>
-                    
-                    <motion.button
-                      whileHover={{ scale: 1.03, y: -2 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => handlePurchase(video)}
-                      disabled={isInCart(video.id)}
-                      className={`w-full py-3 px-4 rounded-xl font-semibold shadow-lg transition-all duration-300 mt-auto ${
-                        isInCart(video.id)
-                          ? 'bg-green-600 text-white cursor-not-allowed'
-                          : 'bg-[#D4C7B4] text-[#654C37] hover:bg-[#C9BBA8] hover:shadow-xl'
-                      }`}
-                    >
-                      {isInCart(video.id) ? (
-                        <motion.div
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          className="flex items-center justify-center gap-2"
+                      <motion.h2 
+                        className="text-lg font-bold text-[#654C37] mb-2 text-left break-words"
+                        whileHover={{ x: 5 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        {video.title}
+                      </motion.h2>
+                      {video.pricing && video.pricing[0]?.price !== undefined && (
+                        <motion.p 
+                          className="text-[#C9BBA8] font-bold mb-2 text-base"
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.4 + index * 0.1 }}
                         >
+                          ${video.pricing[0].price.toFixed(2)}
+                        </motion.p>
+                      )}
+                      <motion.p 
+                        className="text-[#654C37]/80 text-sm mb-4 text-left whitespace-pre-line"
+                        style={{ minHeight: '40px' }}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.5 + index * 0.1 }}
+                      >
+                        {video.description}
+                      </motion.p>
+                      <motion.button
+                        whileHover={{ scale: 1.03, y: -2 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => handlePurchase(video)}
+                        disabled={isInCart(video.id)}
+                        className={`w-full py-2 px-4 rounded-xl font-semibold shadow-lg transition-all duration-300 mt-auto ${
+                          isInCart(video.id)
+                            ? 'bg-green-600 text-white cursor-not-allowed'
+                            : 'bg-[#D4C7B4] text-[#654C37] hover:bg-[#C9BBA8] hover:shadow-xl'
+                        }`}
+                      >
+                        {isInCart(video.id) ? (
                           <motion.div
-                            animate={{ rotate: 360 }}
-                            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                            className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
-                          />
-                          In Cart
-                        </motion.div>
-                      ) : 'Purchase to Unlock'}
-                    </motion.button>
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            className="flex items-center justify-center gap-2"
+                          >
+                            <motion.div
+                              animate={{ rotate: 360 }}
+                              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                              className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
+                            />
+                            In Cart
+                          </motion.div>
+                        ) : 'Purchase to Unlock'}
+                      </motion.button>
+                    </motion.div>
                   </motion.div>
-                </motion.div>
-              ))}
+                );
+              })}
             </AnimatePresence>
           </div>
 
