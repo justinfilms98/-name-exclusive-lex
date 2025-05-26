@@ -79,7 +79,7 @@ export default function CollectionsClient() {
               className="premium-card rounded-2xl p-6 flex flex-col items-center h-[500px] text-reveal shadow-lg"
               style={{ animationDelay: `${index * 0.1}s` }}
             >
-              <div className="w-full h-72 rounded-xl mb-4 flex items-center justify-center overflow-hidden bg-[#C9BBA8] relative">
+              <div className="w-full aspect-[9/16] rounded-xl mb-4 flex items-center justify-center overflow-hidden bg-[#C9BBA8] relative">
                 {video ? (
                   <img 
                     src={video.thumbnail} 
