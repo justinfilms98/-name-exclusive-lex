@@ -13,6 +13,7 @@ type CartItem = {
 };
 
 async function handleCheckout(cartItems: CartItem[], router: any) {
+  console.log('Proceed to Checkout button clicked. Cart items:', cartItems);
   try {
     const res = await fetch('/api/checkout', {
       method: 'POST',
@@ -60,6 +61,7 @@ export default function CartPage() {
   }, []);
 
   const removeItem = (id: string | number) => {
+    console.log('Remove button clicked for item id:', id);
     setCartItems(items => {
       const updated = items.filter(item => item.id !== id);
       if (typeof window !== 'undefined') {
