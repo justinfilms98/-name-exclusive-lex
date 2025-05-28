@@ -167,11 +167,12 @@ export default function CollectionsClient() {
                       whileHover={{ scale: 1.05 }}
                       transition={{ duration: 0.3 }}
                     >
-                      <Image
+                      <img
                         src={video.thumbnailPath || video.thumbnail}
                         alt={video.title}
-                        fill
-                        className="object-cover rounded-t-xl transition-transform duration-500 group-hover:scale-110"
+                        className="object-cover rounded-t-xl w-full h-full absolute top-0 left-0"
+                        style={{ objectFit: 'cover' }}
+                        onError={e => { e.currentTarget.onerror = null; e.currentTarget.src = '/fallback-thumbnail.png'; }}
                       />
                       {/* Overlay on hover */}
                       <motion.div
