@@ -19,6 +19,7 @@ interface CollectionVideo {
   tags?: string[];
   pricing?: any[];
   duration?: number;
+  thumbnailPath?: string;
 }
 
 export default function CollectionsClient() {
@@ -167,7 +168,7 @@ export default function CollectionsClient() {
                       transition={{ duration: 0.3 }}
                     >
                       <Image
-                        src={video.thumbnail}
+                        src={video.thumbnailPath || video.thumbnail}
                         alt={video.title}
                         fill
                         className="object-cover rounded-t-xl transition-transform duration-500 group-hover:scale-110"

@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
+
+const supabase = createClient(
+  process.env.SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-04-30.basil',
@@ -66,8 +71,8 @@ export async function GET(req: NextRequest) {
 
     // Fetch video details for all video IDs
     const { data: videos, error: videoError } = await supabase
-      .from('collection_videos')
-      .select('id, title, description, thumbnail, duration, video_url')
+      .from('CollectionVideo')
+      .select('id, title, description, thumbnail, duration, videoUrl, price')
       .in('id', videoIds);
 
     if (videoError || !videos || videos.length === 0) {
@@ -82,18 +87,31 @@ export async function GET(req: NextRequest) {
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 30);
 
+    // Get the userId from the User table using the customerEmail
+    const { data: user, error: userError } = await supabase
+      .from('User')
+      .select('id')
+      .eq('email', customerEmail)
+      .single();
+    if (userError || !user) {
+      console.error('User not found for email:', customerEmail, userError);
+      return NextResponse.json(
+        { error: 'User not found' },
+        { status: 404 }
+      );
+    }
+
     // Create purchase records for each video
     const purchases: PurchaseDetails[] = [];
     for (const video of videos) {
+      const { price = 0 } = video;
       const { data: purchase, error: purchaseError } = await supabase
-        .from('purchases')
+        .from('Purchase')
         .insert({
-          video_id: video.id,
-          user_email: customerEmail,
-          stripe_session_id: sessionId,
-          purchased_at: new Date().toISOString(),
-          expires_at: expiresAt.toISOString(),
-          amount_paid: session.amount_total ? session.amount_total / 100 : 0,
+          userId: user.id,
+          videoId: video.id,
+          createdAt: new Date().toISOString(),
+          expiresAt: expiresAt.toISOString(),
         })
         .select()
         .single();
@@ -107,9 +125,9 @@ export async function GET(req: NextRequest) {
         description: video.description,
         thumbnail: video.thumbnail,
         duration: video.duration,
-        purchasedAt: purchase.purchased_at,
-        expiresAt: purchase.expires_at,
-        price: purchase.amount_paid,
+        purchasedAt: purchase.createdAt,
+        expiresAt: purchase.expiresAt,
+        price,
       });
     }
 
