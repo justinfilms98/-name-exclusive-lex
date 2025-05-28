@@ -9,6 +9,10 @@ const nextConfig = {
         pathname: '**',
       },
     ],
+    domains: [
+      'qqafafeqqtozfnrpuszso.supabase.co',
+      // add other domains if needed
+    ],
   },
 };
 
