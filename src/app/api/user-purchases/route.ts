@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -8,29 +13,26 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Missing email' }, { status: 400 });
   }
 
-  // Get the latest purchase for this user
-  const { data: purchase } = await supabase
-    .from('purchases')
-    .select('video_id, purchased_at')
-    .eq('user_email', email)
-    .order('purchased_at', { ascending: false })
-    .limit(1)
+  // Get the userId from the User table
+  const { data: user, error: userError } = await supabase
+    .from('User')
+    .select('id')
+    .eq('email', email)
     .single();
-
-  if (!purchase) {
-    return NextResponse.json({ error: 'No purchase found' }, { status: 404 });
+  if (userError || !user) {
+    return NextResponse.json({ error: 'User not found' }, { status: 404 });
   }
 
-  // Get video info
-  const { data: video } = await supabase
-    .from('collection_videos')
-    .select('id, title, duration')
-    .eq('id', purchase.video_id)
-    .single();
+  // Get all purchases for this user, joining with CollectionVideo
+  const { data: purchases, error: purchaseError } = await supabase
+    .from('Purchase')
+    .select('id, videoId, createdAt, expiresAt, video:CollectionVideo(id, title, thumbnail, duration)')
+    .eq('userId', user.id)
+    .order('createdAt', { ascending: false });
 
-  if (!video) {
-    return NextResponse.json({ error: 'Video not found' }, { status: 404 });
+  if (purchaseError) {
+    return NextResponse.json({ error: 'Failed to fetch purchases' }, { status: 500 });
   }
 
-  return NextResponse.json({ videoId: video.id, video });
+  return NextResponse.json(purchases || []);
 } 

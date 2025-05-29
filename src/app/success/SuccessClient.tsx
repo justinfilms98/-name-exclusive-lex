@@ -116,86 +116,70 @@ export default function SuccessClient() {
           className="bg-white rounded-xl shadow-lg overflow-hidden"
         >
           {/* Success Header */}
-          <div className="bg-[#654C37] text-white p-8 text-center">
+          <div className="bg-[#654C37] text-white p-8 text-center relative">
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ delay: 0.2 }}
-              className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4"
+              className="w-20 h-20 bg-brand-almond rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg border-4 border-[#D4AF37]"
+              style={{ boxShadow: '0 0 32px 8px #D4AF37, 0 0 0 0 #fff' }}
             >
-              <svg className="w-10 h-10 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-            </motion.div>
-            <h1 className="text-3xl font-bold mb-2">Thank You for Your Purchase!</h1>
-            <p className="text-white/80">Your video is now ready to watch</p>
-          </div>
-
-          {/* Purchase Details */}
-          <div className="p-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div className="relative aspect-video rounded-lg overflow-hidden">
-                <Image
-                  src={purchaseDetails.thumbnail}
-                  alt={purchaseDetails.title}
-                  fill
-                  className="object-cover"
-                />
-              </div>
-              <div>
-                <h2 className="text-2xl font-bold text-[#654C37] mb-4">{purchaseDetails.title}</h2>
-                <p className="text-[#654C37]/80 mb-6">{purchaseDetails.description}</p>
-                
-                <div className="space-y-4">
-                  <div className="bg-[#D4C7B4]/30 p-4 rounded-lg">
-                    <p className="text-[#654C37] font-medium mb-1">Access Duration</p>
-                    <p className="text-[#654C37]/80">{duration} days</p>
-                  </div>
-                  
-                  <div className="bg-[#D4C7B4]/30 p-4 rounded-lg">
-                    <p className="text-[#654C37] font-medium mb-1">Expires On</p>
-                    <p className="text-[#654C37]/80">{expiresDate.toLocaleDateString()}</p>
-                  </div>
-                  
-                  <div className="bg-[#D4C7B4]/30 p-4 rounded-lg">
-                    <p className="text-[#654C37] font-medium mb-1">Video Duration</p>
-                    <p className="text-[#654C37]/80">{purchaseDetails.duration} minutes</p>
-                  </div>
-                </div>
-
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.4 }}
-                  className="mt-8"
-                >
-                  <Link
-                    href={`/watch/${purchaseDetails.videoId}`}
-                    className="block w-full bg-[#654C37] text-white text-center py-4 rounded-lg font-semibold hover:bg-[#654C37]/90 transition-colors"
-                  >
-                    Watch Now
-                  </Link>
-                </motion.div>
-              </div>
-            </div>
-          </div>
-
-          {/* Additional Actions */}
-          <div className="border-t border-[#654C37]/10 p-8">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Link
-                href="/collections"
-                className="text-center py-3 px-6 rounded-lg border-2 border-[#654C37] text-[#654C37] hover:bg-[#654C37] hover:text-white transition-colors"
+              <motion.svg
+                className="w-10 h-10 text-[#D4AF37]"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                initial={{ filter: 'blur(2px)', opacity: 0.7 }}
+                animate={{ filter: 'blur(0px)', opacity: 1 }}
+                transition={{ duration: 1, ease: 'easeOut' }}
               >
-                Browse More Videos
-              </Link>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </motion.svg>
+            </motion.div>
+            <h1 className="text-3xl font-bold mb-2 tracking-tight">You're In…</h1>
+            <p className="text-lg text-white/90 mb-2">We love your taste. Your private access is ready.</p>
+            <p className="text-white/70 italic">Let's make this our little secret.</p>
+          </div>
+          <div className="border-t border-[#654C37]/10 p-8 text-center">
+            <motion.p
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.7 }}
+              className="mb-6 text-[#654C37] text-lg font-medium"
+            >
+              Your video is waiting in your account.
+            </motion.p>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 1, type: 'spring', stiffness: 120 }}
+            >
               <Link
                 href="/account"
-                className="text-center py-3 px-6 rounded-lg border-2 border-[#654C37] text-[#654C37] hover:bg-[#654C37] hover:text-white transition-colors"
+                className="inline-block bg-gradient-to-r from-[#D4AF37] via-[#B89178] to-[#654C37] text-white px-8 py-4 rounded-full font-bold text-xl shadow-xl border-2 border-[#D4AF37] shimmer-btn hover:scale-105 transition-all duration-300 mt-4"
+                style={{ boxShadow: '0 2px 24px 0 #D4AF37' }}
               >
-                View My Purchases
+                Go to My Account & Watch Now
               </Link>
-            </div>
+              <style jsx>{`
+                .shimmer-btn {
+                  position: relative;
+                  overflow: hidden;
+                }
+                .shimmer-btn::before {
+                  content: '';
+                  position: absolute;
+                  top: 0; left: -75%;
+                  width: 50%; height: 100%;
+                  background: linear-gradient(120deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.5) 50%, rgba(255,255,255,0.15) 100%);
+                  animation: shimmer 2.5s infinite;
+                }
+                @keyframes shimmer {
+                  0% { left: -75%; }
+                  100% { left: 125%; }
+                }
+              `}</style>
+            </motion.div>
           </div>
         </motion.div>
       </div>
