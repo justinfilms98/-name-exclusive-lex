@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useRef, Suspense } from 'react';
 import { useCart } from '@/context/CartContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
-import { useSession } from 'next-auth/react';
+import supabase, { getUser } from '@/lib/auth';
 
 interface CollectionVideo {
   id: number;
@@ -29,7 +29,7 @@ export default function CollectionsClient() {
   const [selectedVideo, setSelectedVideo] = useState<CollectionVideo | null>(null);
   const { push } = useRouter();
   const { addItem, isInCart } = useCart();
-  const { data: session } = useSession();
+  const [user, setUser] = useState<any>(null);
   const searchParams = useSearchParams();
   const videoRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
 
@@ -49,6 +49,14 @@ export default function CollectionsClient() {
       }
     }
     fetchVideos();
+  }, []);
+
+  useEffect(() => {
+    async function fetchUser() {
+      const { data } = await getUser();
+      setUser(data?.user || null);
+    }
+    fetchUser();
   }, []);
 
   useEffect(() => {
@@ -74,9 +82,9 @@ export default function CollectionsClient() {
   }, [videos]);
 
   const handlePurchase = useCallback(async (video: CollectionVideo) => {
-    if (!session) {
+    if (!user) {
       // Redirect to sign in if not authenticated
-      push('/api/auth/signin');
+      window.location.href = '/login';
       return;
     }
 
@@ -100,7 +108,7 @@ export default function CollectionsClient() {
     } catch (err) {
       setError('Failed to add item to cart');
     }
-  }, [addItem, push, session]);
+  }, [addItem, push, user]);
 
   if (loading) {
     return (

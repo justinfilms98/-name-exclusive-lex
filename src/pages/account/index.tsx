@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { useSession, signIn } from 'next-auth/react';
+import supabase, { getUser, signIn } from '@/lib/auth';
 
 interface Purchase {
   id: string;
@@ -15,7 +15,7 @@ interface Purchase {
 }
 
 export default function AccountPage() {
-  const { data: session, status } = useSession();
+  const [user, setUser] = useState<any>(null);
   const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -23,14 +23,22 @@ export default function AccountPage() {
   const [sort, setSort] = useState<'newest' | 'oldest'>('newest');
 
   useEffect(() => {
-    if (session?.user?.email) fetchPurchases();
-  }, [session?.user?.email]);
+    async function fetchUser() {
+      const { data } = await getUser();
+      setUser(data?.user || null);
+    }
+    fetchUser();
+  }, []);
+
+  useEffect(() => {
+    if (user?.email) fetchPurchases();
+  }, [user?.email]);
 
   async function fetchPurchases() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/user-purchases?email=${encodeURIComponent(session?.user?.email || '')}`);
+      const res = await fetch(`/api/user-purchases?email=${encodeURIComponent(user?.email || '')}`);
       const data = await res.json();
       if (res.ok) setPurchases(data);
       else setError(data.error || 'Failed to fetch purchases');
@@ -56,13 +64,12 @@ export default function AccountPage() {
     return list;
   }, [purchases, filter, sort]);
 
-  if (status === 'loading') return <p>Loading...</p>;
-  if (!session) return <button className="bg-brand-tan text-white px-4 py-2 rounded hover:bg-brand-earth transition" onClick={() => signIn('google')}>Sign in to view your account</button>;
+  if (!user) return <button className="bg-brand-tan text-white px-4 py-2 rounded hover:bg-brand-earth transition" onClick={() => window.location.href = '/login'}>Sign in to view your account</button>;
 
   return (
     <div className="min-h-screen bg-brand-mist py-8 px-4">
       <h2 className="text-3xl font-serif text-brand-pine mb-4">My Account</h2>
-      <p className="mb-4">Logged in as <b>{session.user?.email}</b></p>
+      <p className="mb-4">Logged in as <b>{user?.email}</b></p>
       <div className="flex flex-wrap gap-4 mb-6">
         <select value={filter} onChange={e => setFilter(e.target.value as any)} className="px-3 py-2 rounded border border-brand-tan bg-white text-brand-earth">
           <option value="all">All</option>
@@ -110,7 +117,7 @@ export default function AccountPage() {
                   <button className="inline-block bg-brand-tan text-white px-4 py-2 rounded mt-2 hover:bg-brand-earth transition">Renew</button>
                 ) : (
                   <a
-                    href={`/watch/${purchase.video?.id}`}
+                    href={`/watch/${purchase.video?.id}?userId=${user?.id}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-block bg-brand-tan text-white px-4 py-2 rounded mt-2 hover:bg-brand-earth transition"

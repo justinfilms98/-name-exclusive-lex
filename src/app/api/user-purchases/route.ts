@@ -13,9 +13,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Missing email' }, { status: 400 });
   }
 
-  // Get the userId from the User table
+  // Get the userId from Supabase Auth users table
   const { data: user, error: userError } = await supabase
-    .from('User')
+    .from('auth.users')
     .select('id')
     .eq('email', email)
     .single();

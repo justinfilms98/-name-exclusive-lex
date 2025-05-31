@@ -87,9 +87,9 @@ export async function GET(req: NextRequest) {
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 30);
 
-    // Get the userId from the User table using the customerEmail
+    // Get the userId from Supabase Auth users table using the customerEmail
     const { data: user, error: userError } = await supabase
-      .from('User')
+      .from('auth.users')
       .select('id')
       .eq('email', customerEmail)
       .single();

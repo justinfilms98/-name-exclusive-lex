@@ -1,77 +1,24 @@
-import { NextAuthOptions } from 'next-auth';
-import { PrismaAdapter } from '@auth/prisma-adapter';
-import { prisma } from './prisma';
-import CredentialsProvider from 'next-auth/providers/credentials';
-import bcrypt from 'bcryptjs';
+import { createClient } from '@supabase/supabase-js';
 
-export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prisma),
-  providers: [
-    CredentialsProvider({
-      name: 'credentials',
-      credentials: {
-        email: { label: 'Email', type: 'email' },
-        password: { label: 'Password', type: 'password' }
-      },
-      async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          throw new Error('Invalid credentials');
-        }
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
-        const user = await prisma.user.findUnique({
-          where: {
-            email: credentials.email
-          }
-        });
+export function signIn(email: string, password: string) {
+  return supabase.auth.signInWithPassword({ email, password });
+}
 
-        if (!user || !user?.password) {
-          throw new Error('Invalid credentials');
-        }
+export function signUp(email: string, password: string) {
+  return supabase.auth.signUp({ email, password });
+}
 
-        const isCorrectPassword = await bcrypt.compare(
-          credentials.password,
-          user.password
-        );
+export function signOut() {
+  return supabase.auth.signOut();
+}
 
-        if (!isCorrectPassword) {
-          throw new Error('Invalid credentials');
-        }
+export function getUser() {
+  return supabase.auth.getUser();
+}
 
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          role: user.role
-        };
-      }
-    })
-  ],
-  session: {
-    strategy: 'jwt'
-  },
-  callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
-        return {
-          ...token,
-          id: user.id,
-          role: (user as any).role
-        };
-      }
-      return token;
-    },
-    async session({ session, token }) {
-      return {
-        ...session,
-        user: {
-          ...session.user,
-          id: token.id,
-          role: token.role
-        }
-      };
-    }
-  },
-  pages: {
-    signIn: '/login'
-  }
-}; 
+export default supabase; 

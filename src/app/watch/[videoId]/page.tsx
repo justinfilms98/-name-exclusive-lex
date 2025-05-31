@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -31,6 +31,11 @@ interface SuggestedVideo {
 export default function WatchPage({ params }: { params: { videoId: string } }) {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const userId = searchParams ? searchParams.get('userId') : null;
+  if (!userId) {
+    return <div className="min-h-screen flex items-center justify-center text-red-500">Missing user ID. Please access this page from your account.</div>;
+  }
   const videoRef = useRef<HTMLVideoElement>(null);
   const [videoDetails, setVideoDetails] = useState<VideoDetails | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
@@ -210,7 +215,7 @@ export default function WatchPage({ params }: { params: { videoId: string } }) {
   const fetchVideoAccess = async () => {
     try {
       // Fetch video details and access
-      const res = await fetch(`/api/secure-video?videoId=${params.videoId}&email=${session?.user?.email}`);
+      const res = await fetch(`/api/secure-video?videoId=${params.videoId}&userId=${userId}`);
       const data = await res.json();
       
       if (!res.ok) {

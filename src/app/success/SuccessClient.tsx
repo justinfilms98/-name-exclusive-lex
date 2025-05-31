@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
 import Link from 'next/link';
+import supabase, { getUser } from '@/lib/auth';
 
 interface PurchaseDetails {
   videoId: number;
@@ -19,36 +19,41 @@ interface PurchaseDetails {
 }
 
 export default function SuccessClient() {
-  const { data: session, status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [purchaseDetails, setPurchaseDetails] = useState<PurchaseDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/api/auth/signin');
+    async function fetchUser() {
+      const { data } = await getUser();
+      setUser(data?.user || null);
+    }
+    fetchUser();
+  }, []);
+
+  useEffect(() => {
+    if (!user) {
+      router.push('/login');
       return;
     }
-
     if (!searchParams) {
       setError('Invalid session');
       setLoading(false);
       return;
     }
-
     const sessionId = searchParams.get('session_id');
     if (!sessionId) {
       setError('Invalid session');
       setLoading(false);
       return;
     }
-
-    if (status === 'authenticated' && session?.user?.email) {
+    if (user?.email) {
       fetchPurchaseDetails(sessionId);
     }
-  }, [status, session, router, searchParams]);
+  }, [user, router, searchParams]);
 
   const fetchPurchaseDetails = async (sessionId: string) => {
     try {
