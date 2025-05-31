@@ -4,11 +4,11 @@ import { supabase } from '@/lib/supabase';
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const videoId = searchParams.get('videoId');
-  const email = searchParams.get('email');
+  const userId = searchParams.get('userId');
 
-  if (!videoId || !email) {
+  if (!videoId || !userId) {
     return NextResponse.json(
-      { error: 'Missing videoId or email' },
+      { error: 'Missing videoId or userId' },
       { status: 400 }
     );
   }
@@ -17,9 +17,9 @@ export async function GET(req: NextRequest) {
     // Check for valid purchase
     const { data: purchase, error: purchaseError } = await supabase
       .from('purchases')
-      .select('expires_at, video_id, user_email, purchased_at')
+      .select('expires_at, video_id, user_id, purchased_at')
       .eq('video_id', videoId)
-      .eq('user_email', email)
+      .eq('user_id', userId)
       .order('expires_at', { ascending: false })
       .limit(1)
       .single();

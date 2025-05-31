@@ -36,25 +36,31 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object as Stripe.Checkout.Session;
     const email = session.customer_email;
-    // Only use session.metadata.video_ids for fulfillment
     if (session.metadata && session.metadata.video_ids) {
       const videoIds = session.metadata.video_ids.split(',');
+      // Find the Supabase Auth user by email
+      const { data: user } = await supabase
+        .from('auth.users')
+        .select('id')
+        .eq('email', email)
+        .single();
+      if (!user) return res.status(404).json({ error: 'User not found' });
       for (const videoId of videoIds) {
         // Look up video duration
         const { data: video } = await supabase
-          .from('collection_videos')
+          .from('CollectionVideo')
           .select('duration')
           .eq('id', videoId)
           .single();
         if (!video) continue;
         const purchasedAt = new Date().toISOString();
-        const expiresAt = new Date(Date.now() + video.duration * 60 * 1000).toISOString();
-        await supabase.from('purchases').insert([
+        const expiresAt = new Date(Date.now() + (video.duration || 30) * 60 * 1000 + 90 * 1000).toISOString();
+        await supabase.from('Purchase').insert([
           {
-            user_email: email,
-            video_id: videoId,
-            purchased_at: purchasedAt,
-            expires_at: expiresAt,
+            userId: user.id,
+            videoId: videoId,
+            createdAt: purchasedAt,
+            expiresAt: expiresAt,
           },
         ]);
       }
