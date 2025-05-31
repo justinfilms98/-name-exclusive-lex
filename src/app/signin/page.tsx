@@ -1,21 +1,23 @@
 "use client";
 import { signIn, useSession } from "next-auth/react";
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 export default function SignInPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get("callbackUrl") || "/cart";
 
   useEffect(() => {
     if (status === "authenticated" && session?.user) {
       if ((session.user as any).role?.toLowerCase() === "admin") {
         router.replace("/admin");
       } else {
-        router.replace("/account");
+        router.replace(callbackUrl);
       }
     }
-  }, [session, status, router]);
+  }, [session, status, router, callbackUrl]);
 
   if (status === "authenticated") {
     return (
