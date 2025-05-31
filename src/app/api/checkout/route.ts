@@ -30,13 +30,17 @@ export async function POST(req: NextRequest) {
     const videoIds = cartItems.map((item: any) => item.id).join(',');
     console.log('Creating Stripe session with:', { userEmail, videoIds, cartItems });
 
+    const successUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/success?session_id={CHECKOUT_SESSION_ID}`;
+    const cancelUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/cart`;
+    console.log('Stripe Checkout URLs:', { successUrl, cancelUrl });
+
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items,
       mode: 'payment',
       customer_email: userEmail,
-      success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/cart`,
+      success_url: successUrl,
+      cancel_url: cancelUrl,
       metadata: {
         video_ids: videoIds,
       },
