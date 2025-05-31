@@ -254,10 +254,11 @@ export default function CartPage() {
                         transition={{ duration: 0.2 }}
                       >
                         <Image
-                          src={item.thumbnail}
+                          src={item.thumbnail?.startsWith('http') ? item.thumbnail : `/fallback-thumbnail.png`}
                           alt={item.title}
                           fill
                           className="object-cover"
+                          onError={(e) => { e.currentTarget.src = '/fallback-thumbnail.png'; }}
                         />
                       </motion.div>
                       <div className="flex-1">

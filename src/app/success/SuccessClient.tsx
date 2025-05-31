@@ -21,7 +21,7 @@ interface PurchaseDetails {
 export default function SuccessClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [purchaseDetails, setPurchaseDetails] = useState<PurchaseDetails | null>(null);
+  const [purchaseDetails, setPurchaseDetails] = useState<PurchaseDetails[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
@@ -60,13 +60,23 @@ export default function SuccessClient() {
       const res = await fetch(`/api/verify-purchase?session_id=${sessionId}`);
       if (!res.ok) throw new Error('Failed to verify purchase');
       const data = await res.json();
-      setPurchaseDetails(data);
+      setPurchaseDetails(data.purchases || []);
     } catch (err: any) {
       setError(err.message || 'Failed to load purchase details');
     } finally {
       setLoading(false);
     }
   };
+
+  // If only one video, optionally auto-redirect after 3s
+  useEffect(() => {
+    if (purchaseDetails && purchaseDetails.length === 1) {
+      const timer = setTimeout(() => {
+        router.push(`/collections/watch/${purchaseDetails[0].videoId}`);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [purchaseDetails, router]);
 
   if (loading) {
     return (
@@ -109,7 +119,7 @@ export default function SuccessClient() {
     );
   }
 
-  const expiresDate = new Date(purchaseDetails.expiresAt);
+  const expiresDate = new Date(purchaseDetails[0].expiresAt);
   const duration = Math.ceil((expiresDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
 
   return (
@@ -152,8 +162,32 @@ export default function SuccessClient() {
               transition={{ delay: 0.7 }}
               className="mb-6 text-[#654C37] text-lg font-medium"
             >
-              Your video is waiting in your account.
+              {purchaseDetails.length === 1
+                ? 'Redirecting you to your video...'
+                : 'Your videos are waiting in your account.'}
             </motion.p>
+            <div className="flex flex-col gap-6 items-center">
+              {purchaseDetails.map((purchase) => (
+                <div key={purchase.videoId} className="flex flex-col items-center gap-2">
+                  <div className="w-32 h-20 relative mb-2">
+                    <Image
+                      src={purchase.thumbnail?.startsWith('http') ? purchase.thumbnail : '/fallback-thumbnail.png'}
+                      alt={purchase.title}
+                      fill
+                      className="object-cover rounded-lg"
+                    />
+                  </div>
+                  <div className="font-semibold text-[#654C37]">{purchase.title}</div>
+                  <Link
+                    href={`/collections/watch/${purchase.videoId}`}
+                    className="inline-block bg-gradient-to-r from-[#D4AF37] via-[#B89178] to-[#654C37] text-white px-6 py-2 rounded-full font-bold shadow border-2 border-[#D4AF37] shimmer-btn hover:scale-105 transition-all duration-300"
+                    style={{ boxShadow: '0 2px 24px 0 #D4AF37' }}
+                  >
+                    Watch Now
+                  </Link>
+                </div>
+              ))}
+            </div>
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -161,29 +195,10 @@ export default function SuccessClient() {
             >
               <Link
                 href="/account"
-                className="inline-block bg-gradient-to-r from-[#D4AF37] via-[#B89178] to-[#654C37] text-white px-8 py-4 rounded-full font-bold text-xl shadow-xl border-2 border-[#D4AF37] shimmer-btn hover:scale-105 transition-all duration-300 mt-4"
-                style={{ boxShadow: '0 2px 24px 0 #D4AF37' }}
+                className="inline-block mt-8 bg-[#654C37] text-white px-8 py-3 rounded-lg font-bold text-lg shadow hover:bg-[#654C37]/90 transition-all duration-300"
               >
-                Go to My Account & Watch Now
+                Go to My Account
               </Link>
-              <style jsx>{`
-                .shimmer-btn {
-                  position: relative;
-                  overflow: hidden;
-                }
-                .shimmer-btn::before {
-                  content: '';
-                  position: absolute;
-                  top: 0; left: -75%;
-                  width: 50%; height: 100%;
-                  background: linear-gradient(120deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.5) 50%, rgba(255,255,255,0.15) 100%);
-                  animation: shimmer 2.5s infinite;
-                }
-                @keyframes shimmer {
-                  0% { left: -75%; }
-                  100% { left: 125%; }
-                }
-              `}</style>
             </motion.div>
           </div>
         </motion.div>
