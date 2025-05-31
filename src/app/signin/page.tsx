@@ -7,7 +7,7 @@ export default function SignInPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") || "/cart";
+  const callbackUrl = searchParams!.get("callbackUrl") || "/cart";
 
   useEffect(() => {
     if (status === "authenticated" && session?.user) {
