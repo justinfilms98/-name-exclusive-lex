@@ -83,10 +83,6 @@ export default function CollectionsClient() {
   }, [videos]);
 
   const handlePurchase = useCallback(async (video: CollectionVideo) => {
-    if (!user) {
-      window.location.href = '/signin';
-      return;
-    }
     const price = video.pricing?.[0]?.price ?? 0;
     const cartItem = {
       id: video.id,
@@ -96,10 +92,14 @@ export default function CollectionsClient() {
       price,
       videoUrl: video.videoUrl
     };
+    if (!isInCart(video.id)) {
+      addItem(cartItem);
+    }
+    if (!user) {
+      window.location.href = '/signin?callbackUrl=/cart';
+      return;
+    }
     try {
-      if (!isInCart(video.id)) {
-        addItem(cartItem);
-      }
       setSelectedVideo(video);
       setTimeout(() => {
         push('/cart');
