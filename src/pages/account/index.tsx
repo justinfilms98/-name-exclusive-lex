@@ -64,7 +64,7 @@ export default function AccountPage() {
     return list;
   }, [purchases, filter, sort]);
 
-  if (!user) return <button className="bg-brand-tan text-white px-4 py-2 rounded hover:bg-brand-earth transition" onClick={() => window.location.href = '/login'}>Sign in to view your account</button>;
+  if (!user) return <button className="bg-brand-tan text-white px-4 py-2 rounded hover:bg-brand-earth transition" onClick={() => window.location.href = '/signin'}>Sign in to view your account</button>;
 
   return (
     <div className="min-h-screen bg-brand-mist py-8 px-4">

@@ -36,7 +36,7 @@ export default function SuccessClient() {
 
   useEffect(() => {
     if (!user) {
-      router.push('/login');
+      router.push('/signin');
       return;
     }
     if (!searchParams) {
