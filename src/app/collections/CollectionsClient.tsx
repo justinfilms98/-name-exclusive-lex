@@ -82,7 +82,7 @@ export default function CollectionsClient() {
     }
   }, [videos]);
 
-  const handlePurchase = useCallback(async (video: CollectionVideo, buyNow = false) => {
+  const handlePurchase = useCallback(async (video: CollectionVideo) => {
     if (!user) {
       window.location.href = '/signin';
       return;
@@ -100,34 +100,14 @@ export default function CollectionsClient() {
       if (!isInCart(video.id)) {
         addItem(cartItem);
       }
-      if (buyNow) {
-        setIsCheckingOut(true);
-        // Expedited checkout: call API and redirect
-        const response = await fetch('/api/checkout', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ cartItems: [cartItem], userEmail: user.email })
-        });
-        const data = await response.json();
-        setIsCheckingOut(false);
-        if (data.url) {
-          clearCart();
-          window.location.href = data.url;
-        } else {
-          setError(data.error || 'Checkout failed');
-        }
-        return;
-      }
-      // Show success message or animation
       setSelectedVideo(video);
       setTimeout(() => {
         push('/cart');
       }, 1000);
     } catch (err) {
       setError('Failed to add item to cart');
-      setIsCheckingOut(false);
     }
-  }, [addItem, push, user, isInCart, clearCart]);
+  }, [addItem, push, user, isInCart]);
 
   if (loading) {
     return (
@@ -265,8 +245,8 @@ export default function CollectionsClient() {
                       <motion.button
                         whileHover={{ scale: 1.03, y: -2 }}
                         whileTap={{ scale: 0.98 }}
-                        onClick={() => handlePurchase(video, false)}
-                        disabled={isInCart(video.id) || isCheckingOut}
+                        onClick={() => handlePurchase(video)}
+                        disabled={isInCart(video.id)}
                         className={`w-full py-2 px-4 rounded-xl font-semibold shadow-lg transition-all duration-300 mt-auto mb-2 ${
                           isInCart(video.id)
                             ? 'bg-green-600 text-white cursor-not-allowed'
@@ -286,16 +266,7 @@ export default function CollectionsClient() {
                             />
                             In Cart
                           </motion.div>
-                        ) : 'Add to Cart'}
-                      </motion.button>
-                      <motion.button
-                        whileHover={{ scale: 1.03, y: -2 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={() => handlePurchase(video, true)}
-                        disabled={isCheckingOut}
-                        className={`w-full py-2 px-4 rounded-xl font-bold shadow-lg transition-all duration-300 mb-2 bg-gradient-to-r from-[#D4AF37] via-[#B89178] to-[#654C37] text-white hover:from-[#B89178] hover:to-[#654C37]/90 hover:shadow-xl ${isCheckingOut ? 'opacity-60 cursor-not-allowed' : ''}`}
-                      >
-                        {isCheckingOut ? 'Processing...' : 'Buy Now'}
+                        ) : 'Purchase to Unlock'}
                       </motion.button>
                     </motion.div>
                   </motion.div>
