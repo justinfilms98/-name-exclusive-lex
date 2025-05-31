@@ -35,24 +35,15 @@ export default function SuccessClient() {
   }, []);
 
   useEffect(() => {
-    if (!user) {
-      router.push('/signin');
-      return;
-    }
-    if (!searchParams) {
+    const sessionId = searchParams?.get('session_id');
+    console.log('user', user);
+    console.log('sessionId', sessionId);
+    if (!searchParams || !sessionId) {
       setError('Invalid session');
       setLoading(false);
       return;
     }
-    const sessionId = searchParams.get('session_id');
-    if (!sessionId) {
-      setError('Invalid session');
-      setLoading(false);
-      return;
-    }
-    if (user?.email) {
-      fetchPurchaseDetails(sessionId);
-    }
+    fetchPurchaseDetails(sessionId);
   }, [user, router, searchParams]);
 
   const fetchPurchaseDetails = async (sessionId: string) => {
