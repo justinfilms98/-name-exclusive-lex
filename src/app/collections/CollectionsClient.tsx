@@ -28,10 +28,11 @@ export default function CollectionsClient() {
   const [error, setError] = useState<string | null>(null);
   const [selectedVideo, setSelectedVideo] = useState<CollectionVideo | null>(null);
   const { push } = useRouter();
-  const { addItem, isInCart } = useCart();
+  const { addItem, isInCart, items, clearCart } = useCart();
   const [user, setUser] = useState<any>(null);
   const searchParams = useSearchParams();
   const videoRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
+  const [isCheckingOut, setIsCheckingOut] = useState(false);
 
   useEffect(() => {
     async function fetchVideos() {
@@ -81,13 +82,11 @@ export default function CollectionsClient() {
     }
   }, [videos]);
 
-  const handlePurchase = useCallback(async (video: CollectionVideo) => {
+  const handlePurchase = useCallback(async (video: CollectionVideo, buyNow = false) => {
     if (!user) {
-      // Redirect to sign in if not authenticated
-      window.location.href = '/login';
+      window.location.href = '/signin';
       return;
     }
-
     const price = video.pricing?.[0]?.price ?? 0;
     const cartItem = {
       id: video.id,
@@ -97,9 +96,28 @@ export default function CollectionsClient() {
       price,
       videoUrl: video.videoUrl
     };
-
     try {
-      addItem(cartItem);
+      if (!isInCart(video.id)) {
+        addItem(cartItem);
+      }
+      if (buyNow) {
+        setIsCheckingOut(true);
+        // Expedited checkout: call API and redirect
+        const response = await fetch('/api/checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ cartItems: [cartItem], userEmail: user.email })
+        });
+        const data = await response.json();
+        setIsCheckingOut(false);
+        if (data.url) {
+          clearCart();
+          window.location.href = data.url;
+        } else {
+          setError(data.error || 'Checkout failed');
+        }
+        return;
+      }
       // Show success message or animation
       setSelectedVideo(video);
       setTimeout(() => {
@@ -107,8 +125,9 @@ export default function CollectionsClient() {
       }, 1000);
     } catch (err) {
       setError('Failed to add item to cart');
+      setIsCheckingOut(false);
     }
-  }, [addItem, push, user]);
+  }, [addItem, push, user, isInCart, clearCart]);
 
   if (loading) {
     return (
@@ -246,9 +265,9 @@ export default function CollectionsClient() {
                       <motion.button
                         whileHover={{ scale: 1.03, y: -2 }}
                         whileTap={{ scale: 0.98 }}
-                        onClick={() => handlePurchase(video)}
-                        disabled={isInCart(video.id)}
-                        className={`w-full py-2 px-4 rounded-xl font-semibold shadow-lg transition-all duration-300 mt-auto ${
+                        onClick={() => handlePurchase(video, false)}
+                        disabled={isInCart(video.id) || isCheckingOut}
+                        className={`w-full py-2 px-4 rounded-xl font-semibold shadow-lg transition-all duration-300 mt-auto mb-2 ${
                           isInCart(video.id)
                             ? 'bg-green-600 text-white cursor-not-allowed'
                             : 'bg-[#D4C7B4] text-[#654C37] hover:bg-[#C9BBA8] hover:shadow-xl'
@@ -267,7 +286,16 @@ export default function CollectionsClient() {
                             />
                             In Cart
                           </motion.div>
-                        ) : 'Purchase to Unlock'}
+                        ) : 'Add to Cart'}
+                      </motion.button>
+                      <motion.button
+                        whileHover={{ scale: 1.03, y: -2 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => handlePurchase(video, true)}
+                        disabled={isCheckingOut}
+                        className={`w-full py-2 px-4 rounded-xl font-bold shadow-lg transition-all duration-300 mb-2 bg-gradient-to-r from-[#D4AF37] via-[#B89178] to-[#654C37] text-white hover:from-[#B89178] hover:to-[#654C37]/90 hover:shadow-xl ${isCheckingOut ? 'opacity-60 cursor-not-allowed' : ''}`}
+                      >
+                        {isCheckingOut ? 'Processing...' : 'Buy Now'}
                       </motion.button>
                     </motion.div>
                   </motion.div>
