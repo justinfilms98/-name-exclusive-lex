@@ -8,10 +8,11 @@ const nextConfig = {
         port: '',
         pathname: '**',
       },
+      // Add more remotePatterns if needed
     ],
     domains: [
-      'qqafafeqqtozfnrpuszso.supabase.co',
-      // add other domains if needed
+      'qqfafeqqtozfnrpusszo.supabase.co', // Correct Supabase project ref
+      'images.unsplash.com', // Keep Unsplash if used
     ],
   },
 };
