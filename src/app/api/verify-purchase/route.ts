@@ -11,6 +11,9 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-04-30.basil',
 });
 
+console.log('DEBUG SUPABASE_URL:', process.env.SUPABASE_URL?.slice(0, 6));
+console.log('DEBUG SUPABASE_SERVICE_ROLE_KEY:', process.env.SUPABASE_SERVICE_ROLE_KEY?.slice(0, 6));
+
 type PurchaseDetails = {
   videoId: string;
   title: string;
