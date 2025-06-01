@@ -87,14 +87,18 @@ export async function GET(req: NextRequest) {
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 30);
 
-    // Get the userId from Supabase Auth users table using the customerEmail
-    const { data: user, error: userError } = await supabase
-      .from('auth.users')
-      .select('id')
-      .eq('email', customerEmail)
-      .single();
-    if (userError || !user) {
-      console.error('User not found for email:', customerEmail, userError);
+    // FIX: Use Supabase Admin API to find user by email (filter in code)
+    const { data: users, error: adminUserError } = await supabase.auth.admin.listUsers();
+    if (adminUserError || !users || users.users.length === 0) {
+      console.error('User not found for email (admin API):', customerEmail, adminUserError);
+      return NextResponse.json(
+        { error: 'User not found' },
+        { status: 404 }
+      );
+    }
+    const user = users.users.find((u) => u.email === customerEmail);
+    if (!user) {
+      console.error('User not found for email (admin API):', customerEmail);
       return NextResponse.json(
         { error: 'User not found' },
         { status: 404 }
