@@ -10,19 +10,19 @@ datasource db {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String    @unique
-  emailVerified DateTime?
-  image         String?
-  password      String?
-  role          String    @default("user") // user, admin, moderator
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  accounts      Account[]
-  sessions      Session[]
-  videos        Video[]
-  purchases     Purchase[]
+  id              String      @id @default(cuid())
+  name            String?
+  email           String      @unique
+  emailVerified   DateTime?
+  image           String?
+  password        String?
+  role            String      @default("user") // user, admin, moderator
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  accounts        Account[]
+  sessions        Session[]
+  videos          Video[]
+  purchases       Purchase[]
   moderatedVideos HeroVideo[] @relation("ModeratedVideos")
   // userVideos    Video[]   @relation("VideoUser")
 
@@ -70,18 +70,17 @@ model VerificationToken {
 }
 
 model Video {
-  id          String     @id @default(cuid())
-  title       String
-  description String
-  price       Float
-  type        String     // 'monthly' or 'yearly'
-  videoKey    String
+  id           String   @id @default(cuid())
+  title        String
+  description  String
+  price        Float
+  type         String // 'monthly' or 'yearly'
+  videoKey     String
   thumbnailKey String
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-  creatorId   String
-  creator     User       @relation(fields: [creatorId], references: [id])
-  purchases   Purchase[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  creatorId    String
+  creator      User     @relation(fields: [creatorId], references: [id])
   // user        User       @relation("VideoUser", fields: [creatorId], references: [id])
 
   @@map("Video")
@@ -89,38 +88,38 @@ model Video {
 }
 
 model Purchase {
-  id        String   @id @default(cuid())
+  id        String          @id @default(cuid())
   userId    String
-  videoId   String
-  createdAt DateTime @default(now())
+  videoId   Int
+  createdAt DateTime        @default(now())
   expiresAt DateTime
-  user      User     @relation(fields: [userId], references: [id])
-  video     Video    @relation(fields: [videoId], references: [id])
+  user      User            @relation(fields: [userId], references: [id])
+  video     CollectionVideo @relation(fields: [videoId], references: [id])
 
   @@schema("public")
 }
 
 model HeroVideo {
-  id          Int      @id @default(autoincrement())
-  title       String
-  description String
-  thumbnail   String   // URL to the thumbnail image
-  videoUrl    String   // URL to the video file
-  order       Int      // 1, 2, or 3 for the hero slot
-  price       Float    @default(0.00) // Price in USD
-  status      String   @default("draft") // draft, pending, approved, rejected
-  ageRating   String   @default("PG") // G, PG, PG-13, R
-  category    String   @default("entertainment")
-  tags        String[] // Array of tags
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  moderatedBy String?  // ID of the moderator who last reviewed
-  moderatedAt DateTime? // When the video was last moderated
-  rejectionReason String? @db.Text // Reason for rejection if status is rejected
-  analytics   VideoAnalytics[]
-  pricing     VideoPricing[] @relation("HeroVideoPricing")
-  moderator   User?    @relation("ModeratedVideos", fields: [moderatedBy], references: [id])
-  moderationLogs ContentModerationLog[]
+  id              Int                    @id @default(autoincrement())
+  title           String
+  description     String
+  thumbnail       String // URL to the thumbnail image
+  videoUrl        String // URL to the video file
+  order           Int // 1, 2, or 3 for the hero slot
+  price           Float                  @default(0.00) // Price in USD
+  status          String                 @default("draft") // draft, pending, approved, rejected
+  ageRating       String                 @default("PG") // G, PG, PG-13, R
+  category        String                 @default("entertainment")
+  tags            String[] // Array of tags
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+  moderatedBy     String? // ID of the moderator who last reviewed
+  moderatedAt     DateTime? // When the video was last moderated
+  rejectionReason String?                @db.Text // Reason for rejection if status is rejected
+  analytics       VideoAnalytics[]
+  pricing         VideoPricing[]         @relation("HeroVideoPricing")
+  moderator       User?                  @relation("ModeratedVideos", fields: [moderatedBy], references: [id])
+  moderationLogs  ContentModerationLog[]
 
   @@index([status])
   @@index([category])
@@ -129,23 +128,24 @@ model HeroVideo {
 }
 
 model CollectionVideo {
-  id          Int      @id @default(autoincrement())
-  collection  String   // Name or ID of the collection
-  title       String
-  description String
-  thumbnail   String   // URL to the thumbnail image
-  videoUrl    String   // URL to the video file
+  id            Int            @id @default(autoincrement())
+  collection    String // Name or ID of the collection
+  title         String
+  description   String
+  thumbnail     String // URL to the thumbnail image
+  videoUrl      String // URL to the video file
   thumbnailPath String? // Path in storage for thumbnail
-  videoPath    String? // Path in storage for video
-  price       Float    @default(0.00) // Price in USD
-  order       Int      // 1-20 for the slot in the collection
-  duration    Int?     // Duration in minutes
-  category    String   @default("entertainment")
-  ageRating   String   @default("PG") // G, PG, PG-13, R
-  tags        String[] // Array of tags
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  pricing     VideoPricing[] @relation("CollectionVideoPricing")
+  videoPath     String? // Path in storage for video
+  price         Float          @default(0.00) // Price in USD
+  order         Int // 1-20 for the slot in the collection
+  duration      Int? // Duration in minutes
+  category      String         @default("entertainment")
+  ageRating     String         @default("PG") // G, PG, PG-13, R
+  tags          String[] // Array of tags
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  pricing       VideoPricing[] @relation("CollectionVideoPricing")
+  purchases     Purchase[]
 
   @@index([category])
   @@index([ageRating])
@@ -153,20 +153,20 @@ model CollectionVideo {
 }
 
 model VideoAnalytics {
-  id          Int      @id @default(autoincrement())
+  id          Int       @id @default(autoincrement())
   videoId     Int
   video       HeroVideo @relation(fields: [videoId], references: [id], onDelete: Cascade)
-  views       Int      @default(0)
-  uniqueViews Int      @default(0)
-  watchTime   Int      @default(0) // in seconds
-  likes       Int      @default(0)
-  shares      Int      @default(0)
-  comments    Int      @default(0)
-  revenue     Float    @default(0.00)
-  date        DateTime @default(now())
-  country     String?  // Country code for geo analytics
-  device      String?  // Device type (mobile, desktop, tablet)
-  referrer    String?  // Traffic source
+  views       Int       @default(0)
+  uniqueViews Int       @default(0)
+  watchTime   Int       @default(0) // in seconds
+  likes       Int       @default(0)
+  shares      Int       @default(0)
+  comments    Int       @default(0)
+  revenue     Float     @default(0.00)
+  date        DateTime  @default(now())
+  country     String? // Country code for geo analytics
+  device      String? // Device type (mobile, desktop, tablet)
+  referrer    String? // Traffic source
 
   @@index([videoId, date])
   @@index([country])
@@ -175,21 +175,21 @@ model VideoAnalytics {
 }
 
 model VideoPricing {
-  id          Int      @id @default(autoincrement())
+  id          Int              @id @default(autoincrement())
   videoId     Int?
   video       CollectionVideo? @relation("CollectionVideoPricing", fields: [videoId], references: [id], onDelete: Cascade)
   heroVideoId Int?
-  heroVideo   HeroVideo? @relation("HeroVideoPricing", fields: [heroVideoId], references: [id], onDelete: Cascade)
-  type        String   // 'one_time', 'subscription', 'rental'
+  heroVideo   HeroVideo?       @relation("HeroVideoPricing", fields: [heroVideoId], references: [id], onDelete: Cascade)
+  type        String // 'one_time', 'subscription', 'rental'
   price       Float
-  currency    String   @default("USD")
-  duration    Int?     // For rental/subscription in minutes
-  startDate   DateTime @default(now())
+  currency    String           @default("USD")
+  duration    Int? // For rental/subscription in minutes
+  startDate   DateTime         @default(now())
   endDate     DateTime?
-  discount    Float?   // Percentage discount
-  promoCode   String?  // Associated promo code
-  region      String?  // Region-specific pricing
-  isActive    Boolean  @default(true)
+  discount    Float? // Percentage discount
+  promoCode   String? // Associated promo code
+  region      String? // Region-specific pricing
+  isActive    Boolean          @default(true)
 
   @@index([videoId, type])
   @@index([heroVideoId, type])
@@ -199,17 +199,17 @@ model VideoPricing {
 }
 
 model ContentModerationLog {
-  id          Int      @id @default(autoincrement())
+  id          Int       @id @default(autoincrement())
   videoId     Int
   video       HeroVideo @relation(fields: [videoId], references: [id], onDelete: Cascade)
   moderatorId String
-  action      String   // 'approve', 'reject', 'flag', 'unflag'
-  reason      String?  @db.Text
-  notes       String?  @db.Text
-  createdAt   DateTime @default(now())
+  action      String // 'approve', 'reject', 'flag', 'unflag'
+  reason      String?   @db.Text
+  notes       String?   @db.Text
+  createdAt   DateTime  @default(now())
 
   @@index([videoId])
   @@index([moderatorId])
   @@index([action])
   @@schema("public")
-} 
+}
