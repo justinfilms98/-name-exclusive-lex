@@ -13,10 +13,12 @@ export async function GET() {
     console.log('SUPABASE_SERVICE_ROLE_KEY:', process.env.SUPABASE_SERVICE_ROLE_KEY?.slice(0, 6));
     const { data, error } = await supabase.from('CollectionVideo').select('*');
     if (error) {
-      return NextResponse.json({ error: String(error) }, { status: 500 });
+      console.error('Supabase error:', error);
+      return NextResponse.json({ error }, { status: 500 });
     }
     return NextResponse.json(data);
   } catch (error) {
+    console.error('Catch error:', error);
     return NextResponse.json({ error: String(error) }, { status: 500 });
   }
 } 
