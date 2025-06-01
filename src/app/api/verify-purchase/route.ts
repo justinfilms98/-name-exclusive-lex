@@ -113,7 +113,7 @@ export async function GET(req: NextRequest) {
         .from('Purchase')
         .insert({
           userId: user.id,
-          videoId: video.id,
+          videoId: String(video.id),
           createdAt: new Date().toISOString(),
           expiresAt: expiresAt.toISOString(),
         })
