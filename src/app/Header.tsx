@@ -15,44 +15,36 @@ export default function Header() {
   return (
     <header className="fixed top-0 left-0 w-full z-50 bg-white/90 backdrop-blur border-b border-[#654C37]/10 shadow-sm">
       <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-        {/* Mobile: Shopping Bag Icon if items in cart, else nothing */}
-        <div className="flex items-center md:hidden min-w-[40px]">
-          {totalItems > 0 && (
-            <Link href="/cart" className="relative p-2 text-[#654C37] hover:text-[#654C37]/80 transition-colors" aria-label="Cart">
-              <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="#654C37" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-              </svg>
-              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">{totalItems}</span>
-            </Link>
-          )}
-        </div>
-        {/* Centered Logo / Brand */}
-        <div className="flex-1 flex justify-center">
-          <Link href="/" className="flex items-center gap-2 mx-auto">
-            <span className="text-2xl font-bold font-serif" style={{ color: '#654C37' }}>
-              exclusive lex
-            </span>
-          </Link>
-        </div>
-        {/* Hamburger Menu for Mobile */}
-        <div className="md:hidden flex items-center">
-          <button
-            aria-label="Open menu"
-            className="p-2 rounded focus:outline-none focus:ring-2 focus:ring-[#654C37]"
-            onClick={() => setMenuOpen(!menuOpen)}
-          >
-            <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="#654C37" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          </button>
-        </div>
-        {/* Desktop: Navigation, Cart, Account/Login */}
-        <div className="hidden md:flex items-center gap-4">
-          <nav className="flex items-center gap-8">
+        {/* Left: Collections tab (desktop & mobile) */}
+        <div className="flex items-center gap-2 min-w-[120px]">
+          <nav className="hidden md:flex items-center">
             <Link href="/collections" className="text-lg font-semibold transition-colors hover:text-[#654C37]" style={{ color: '#654C37' }}>
               Collections
             </Link>
           </nav>
+          {/* Hamburger Menu for Mobile */}
+          <div className="md:hidden flex items-center">
+            <button
+              aria-label="Open menu"
+              className="p-2 rounded focus:outline-none focus:ring-2 focus:ring-[#654C37]"
+              onClick={() => setMenuOpen(!menuOpen)}
+            >
+              <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="#654C37" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+          </div>
+        </div>
+        {/* Centered Logo / Brand */}
+        <div className="flex-1 flex justify-center">
+          <Link href="/" className="flex items-center gap-2 mx-auto">
+            <span className="text-2xl font-bold font-serif uppercase tracking-widest" style={{ color: '#654C37', letterSpacing: '0.1em' }}>
+              EXCLUSIVE LEX
+            </span>
+          </Link>
+        </div>
+        {/* Right: Cart, Account/Login */}
+        <div className="hidden md:flex items-center gap-4">
           <CartPreview />
           <Link href="/cart" className="text-[#D4C7B4] hover:underline px-2 py-1 link-underline">🛒</Link>
           {isLoggedIn ? (
