@@ -18,14 +18,14 @@ const handler = NextAuth({
   callbacks: {
     async session({ session, token }) {
       if (session.user) {
-        session.user.id = token.sub!;
+        (session.user as any).id = token.sub!;
         // Add any additional user data you want to include in the session
         const dbUser = await prisma.user.findUnique({
           where: { id: token.sub },
           select: { role: true },
         });
         if (dbUser) {
-          session.user.role = dbUser.role;
+          (session.user as any).role = dbUser.role;
         }
       }
       return session;
