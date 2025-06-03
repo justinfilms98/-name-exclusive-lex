@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { notFound } from 'next/navigation';
+import dynamic from 'next/dynamic';
 
 interface PageProps {
   params: { videoId: string };
@@ -10,6 +11,8 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
+
+const VideoPlayer = dynamic(() => import('./VideoPlayer'), { ssr: false });
 
 export default async function WatchPage({ params, searchParams }: PageProps) {
   let debug = '';
@@ -79,23 +82,8 @@ export default async function WatchPage({ params, searchParams }: PageProps) {
     );
     const videoUrl = signedData.signedUrl;
 
-    // 4) Render video player (no debug, fullscreen)
-    return (
-      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#D4C7B4' }}>
-        <h1 className="text-3xl font-bold mb-6 text-center text-[#654C37]">{video.title}</h1>
-        <video
-          controls
-          style={{ width: '100vw', height: '80vh', objectFit: 'contain', background: 'black', userSelect: 'none', WebkitUserSelect: 'none', msUserSelect: 'none', MozUserSelect: 'none', pointerEvents: 'auto' }}
-          src={videoUrl}
-          className="rounded-lg shadow-lg select-none"
-          controlsList="nodownload noremoteplayback nofullscreen"
-          disablePictureInPicture
-          disableRemotePlayback
-          onContextMenu={e => e.preventDefault()}
-          onDragStart={e => e.preventDefault()}
-        />
-      </div>
-    );
+    // 4) Render video player (client component)
+    return <VideoPlayer src={videoUrl} title={video.title} />;
   } catch (err) {
     debug += `CATCH ERROR: ${err instanceof Error ? err.message : String(err)}\n`;
     return (
