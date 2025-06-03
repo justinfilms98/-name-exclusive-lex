@@ -14,7 +14,9 @@ const supabaseAdmin = createClient(
 export default async function WatchPage({ params, searchParams }: PageProps) {
   const videoId = params.videoId;
   const tokenValue = searchParams.token;
-  if (!tokenValue) return notFound();
+  let debug = '';
+  debug += `videoId: ${videoId} | tokenValue: ${tokenValue}\n`;
+  if (!tokenValue) return <pre>{debug} - No tokenValue</pre>;
 
   // 1) Validate token
   const { data: tokenRow, error: tokenError } = await supabaseAdmin
@@ -22,12 +24,14 @@ export default async function WatchPage({ params, searchParams }: PageProps) {
     .select('user_id, video_id, expires_at')
     .eq('token', tokenValue)
     .single();
-  if (tokenError || !tokenRow) return notFound();
+  debug += `tokenRow: ${JSON.stringify(tokenRow)} | tokenError: ${JSON.stringify(tokenError)}\n`;
+  if (tokenError || !tokenRow) return <pre>{debug} - Token not found or error</pre>;
   if (
     tokenRow.video_id.toString() !== videoId ||
     new Date(tokenRow.expires_at).getTime() < Date.now()
   ) {
-    return notFound();
+    debug += `tokenRow.video_id: ${tokenRow.video_id} | tokenRow.expires_at: ${tokenRow.expires_at}\n`;
+    return <pre>{debug} - Token video_id mismatch or expired</pre>;
   }
 
   // 2) Fetch video metadata
@@ -36,14 +40,16 @@ export default async function WatchPage({ params, searchParams }: PageProps) {
     .select('id, title, storagePath')
     .eq('id', Number(videoId))
     .single();
-  if (videoError || !video) return notFound();
+  debug += `video: ${JSON.stringify(video)} | videoError: ${JSON.stringify(videoError)}\n`;
+  if (videoError || !video) return <pre>{debug} - Video not found or error</pre>;
 
   // 3) Create signed URL
   const { data: signedData, error: signedError } = await supabaseAdmin
     .storage
     .from('videos') // replace with your actual bucket name if different
     .createSignedUrl(video.storagePath, 60 * 60);
-  if (signedError || !signedData?.signedUrl) return notFound();
+  debug += `signedData: ${JSON.stringify(signedData)} | signedError: ${JSON.stringify(signedError)}\n`;
+  if (signedError || !signedData?.signedUrl) return <pre>{debug} - Signed URL error</pre>;
   const videoUrl = signedData.signedUrl;
 
   // 4) Render video player
@@ -56,6 +62,7 @@ export default async function WatchPage({ params, searchParams }: PageProps) {
         src={videoUrl}
         className="rounded-lg shadow-lg"
       />
+      <pre className="mt-4 bg-gray-100 p-2 rounded text-xs">{debug}</pre>
     </div>
   );
 } 
