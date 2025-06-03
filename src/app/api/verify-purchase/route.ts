@@ -78,8 +78,8 @@ export async function GET(req: NextRequest) {
     const { data: existingTokenRow } = await supabaseAdmin
       .from('purchase_tokens')
       .select('*')
-      .eq('userId', userId)
-      .eq('videoId', Number(videoId))
+      .eq('user_id', userId)
+      .eq('video_id', Number(videoId))
       .order('expiresAt', { ascending: false })
       .limit(1)
       .single();
@@ -97,7 +97,7 @@ export async function GET(req: NextRequest) {
       await supabaseAdmin
         .from('purchase_tokens')
         .insert([
-          { token, userId, videoId: Number(videoId), expiresAt }
+          { token, user_id: userId, video_id: Number(videoId), expiresAt }
         ]);
     }
     // 8. Return success, videoId, token
