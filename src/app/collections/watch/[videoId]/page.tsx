@@ -53,7 +53,7 @@ export default async function WatchPage({ params, searchParams }: PageProps) {
     // 2) Fetch video metadata
     const { data: video, error: videoError } = await supabaseAdmin
       .from('CollectionVideo')
-      .select('id, title, storagePath')
+      .select('id, title, videoUrl')
       .eq('id', Number(videoId))
       .single();
     debug += `video: ${JSON.stringify(video)} | videoError: ${JSON.stringify(videoError)}\n`;
@@ -68,7 +68,7 @@ export default async function WatchPage({ params, searchParams }: PageProps) {
     const { data: signedData, error: signedError } = await supabaseAdmin
       .storage
       .from('videos') // replace with your actual bucket name if different
-      .createSignedUrl(video.storagePath, 60 * 60);
+      .createSignedUrl(video.videoUrl, 60 * 60);
     debug += `signedData: ${JSON.stringify(signedData)} | signedError: ${JSON.stringify(signedError)}\n`;
     if (signedError || !signedData?.signedUrl) return (
       <div style={{ background: 'white', color: 'black', padding: 20 }}>
