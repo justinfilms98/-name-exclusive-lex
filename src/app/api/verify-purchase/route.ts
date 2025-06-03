@@ -65,12 +65,14 @@ export async function GET(req: NextRequest) {
     // 7. Insert into purchase_tokens
     const { error: insertError } = await supabase
       .from('purchase_tokens')
-      .insert({
-        user_id: userId,
-        video_id: videoId,
-        token,
-        expires_at: expiresAt,
-      });
+      .insert([
+        {
+          user_id: userId,
+          video_id: videoId,
+          token,
+          expires_at: expiresAt,
+        }
+      ]);
     if (insertError) {
       return NextResponse.json({ success: false, error: insertError.message }, { status: 500 });
     }
