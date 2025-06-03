@@ -35,26 +35,34 @@ export async function GET(req: NextRequest) {
   try {
     // 1. Retrieve Stripe session
     const session = await stripe.checkout.sessions.retrieve(sessionId);
+    console.log('Stripe session:', session);
     if (!session || session.payment_status !== 'paid') {
-      return NextResponse.json({ success: false, error: 'Invalid or unpaid session' }, { status: 400 });
+      console.error('Invalid or unpaid session:', sessionId, session?.payment_status);
+      return NextResponse.json({ success: false, error: 'Payment not completed' }, { status: 400 });
     }
     // 2. Get video_id from metadata
+    console.log('Session metadata:', session.metadata);
     const videoId = session.metadata?.video_id;
     if (!videoId) {
+      console.error('No video_id in session metadata:', session.metadata);
       return NextResponse.json({ success: false, error: 'No video_id in session metadata' }, { status: 400 });
     }
     // 3. Get user_id (use customer_email for now)
+    console.log('Customer email:', session.customer_email);
     const userId = session.customer_email;
     if (!userId) {
+      console.error('No customer email in session:', sessionId);
       return NextResponse.json({ success: false, error: 'No customer email in session' }, { status: 400 });
     }
     // 4. Get video duration from your videos table
+    console.log('Video ID:', videoId);
     const { data: video, error: videoError } = await supabase
       .from('CollectionVideo')
       .select('duration')
       .eq('id', videoId)
       .single();
     if (videoError || !video) {
+      console.error('Video not found:', videoId, videoError);
       return NextResponse.json({ success: false, error: 'Video not found' }, { status: 404 });
     }
     const durationSeconds = video.duration || 1800; // fallback to 30 min if missing
