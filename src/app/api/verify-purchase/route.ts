@@ -55,7 +55,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'No customer email in session' }, { status: 400 });
     }
     // 4. Get video duration from your videos table
-    console.log('Video ID:', videoId);
+    console.log('Looking up video in CollectionVideo with id:', videoId, 'Type:', typeof videoId);
     const { data: video, error: videoError } = await supabase
       .from('CollectionVideo')
       .select('duration')
