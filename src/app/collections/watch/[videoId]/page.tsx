@@ -79,17 +79,16 @@ export default async function WatchPage({ params, searchParams }: PageProps) {
     );
     const videoUrl = signedData.signedUrl;
 
-    // 4) Render video player
+    // 4) Render video player (no debug, fullscreen)
     return (
-      <div className="max-w-2xl mx-auto p-8">
-        <h1 className="text-2xl font-semibold mb-4">{video.title}</h1>
+      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#D4C7B4' }}>
+        <h1 className="text-3xl font-bold mb-6 text-center text-[#654C37]">{video.title}</h1>
         <video
           controls
-          width="100%"
+          style={{ width: '100vw', height: '80vh', objectFit: 'contain', background: 'black' }}
           src={videoUrl}
           className="rounded-lg shadow-lg"
         />
-        <pre className="mt-4 bg-gray-100 p-2 rounded text-xs">{debug}</pre>
       </div>
     );
   } catch (err) {
