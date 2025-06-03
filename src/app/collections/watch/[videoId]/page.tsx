@@ -85,9 +85,14 @@ export default async function WatchPage({ params, searchParams }: PageProps) {
         <h1 className="text-3xl font-bold mb-6 text-center text-[#654C37]">{video.title}</h1>
         <video
           controls
-          style={{ width: '100vw', height: '80vh', objectFit: 'contain', background: 'black' }}
+          style={{ width: '100vw', height: '80vh', objectFit: 'contain', background: 'black', userSelect: 'none', WebkitUserSelect: 'none', msUserSelect: 'none', MozUserSelect: 'none', pointerEvents: 'auto' }}
           src={videoUrl}
-          className="rounded-lg shadow-lg"
+          className="rounded-lg shadow-lg select-none"
+          controlsList="nodownload noremoteplayback nofullscreen"
+          disablePictureInPicture
+          disableRemotePlayback
+          onContextMenu={e => e.preventDefault()}
+          onDragStart={e => e.preventDefault()}
         />
       </div>
     );
