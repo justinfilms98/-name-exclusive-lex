@@ -91,6 +91,13 @@ export default function AccountPage() {
       )}
       <ul className="space-y-4 mt-6">
         {filteredPurchases.map((purchase) => {
+          if (!purchase.expiresAt || !purchase.createdAt || !purchase.video) {
+            return (
+              <li key={purchase.id} className="bg-red-100 text-red-700 rounded p-4">
+                Incomplete purchase data. Please contact support.
+              </li>
+            );
+          }
           const expired = new Date() > new Date(purchase.expiresAt);
           // Calculate original access duration in days
           const durationDays = Math.round((new Date(purchase.expiresAt).getTime() - new Date(purchase.createdAt).getTime()) / (1000 * 60 * 60 * 24));

@@ -574,40 +574,46 @@ export default function WatchPage({ params }: { params: { videoId: string } }) {
               </motion.div>
             </div>
 
-            <div className="border-t border-[#654C37]/10 pt-4 mt-4">
-              <div className="grid grid-cols-2 gap-4 text-sm text-[#654C37]/60">
-                <div>
-                  <p className="font-medium">Duration</p>
-                  <p>{videoDetails.duration} minutes</p>
-                </div>
-                <div>
-                  <p className="font-medium">Purchased</p>
-                  <p>{new Date(videoDetails.purchasedAt).toLocaleDateString()}</p>
-                </div>
-                <div>
-                  <p className="font-medium">Expires</p>
-                  <p>{new Date(videoDetails.expiresAt).toLocaleDateString()}</p>
-                </div>
-                {videoDetails.category && (
+            {!videoDetails.expiresAt || !videoDetails.purchasedAt || !videoDetails.duration ? (
+              <div className="bg-red-100 text-red-700 rounded p-4 my-4">
+                Video access information is missing or incomplete. Please contact support.
+              </div>
+            ) : (
+              <div className="border-t border-[#654C37]/10 pt-4 mt-4">
+                <div className="grid grid-cols-2 gap-4 text-sm text-[#654C37]/60">
                   <div>
-                    <p className="font-medium">Category</p>
-                    <p>{videoDetails.category}</p>
+                    <p className="font-medium">Duration</p>
+                    <p>{videoDetails.duration} minutes</p>
+                  </div>
+                  <div>
+                    <p className="font-medium">Purchased</p>
+                    <p>{new Date(videoDetails.purchasedAt).toLocaleDateString()}</p>
+                  </div>
+                  <div>
+                    <p className="font-medium">Expires</p>
+                    <p>{new Date(videoDetails.expiresAt).toLocaleDateString()}</p>
+                  </div>
+                  {videoDetails.category && (
+                    <div>
+                      <p className="font-medium">Category</p>
+                      <p>{videoDetails.category}</p>
+                    </div>
+                  )}
+                </div>
+                {videoDetails.tags && videoDetails.tags.length > 0 && (
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {videoDetails.tags.map((tag) => (
+                      <span
+                        key={tag}
+                        className="bg-[#D4C7B4]/30 text-[#654C37] px-3 py-1 rounded-full text-sm"
+                      >
+                        {tag}
+                      </span>
+                    ))}
                   </div>
                 )}
               </div>
-              {videoDetails.tags && videoDetails.tags.length > 0 && (
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {videoDetails.tags.map((tag) => (
-                    <span
-                      key={tag}
-                      className="bg-[#D4C7B4]/30 text-[#654C37] px-3 py-1 rounded-full text-sm"
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
+            )}
           </div>
         </motion.div>
 
