@@ -38,7 +38,7 @@ export default async function WatchPage({ params, searchParams }: PageProps) {
       </div>
     );
     if (
-      tokenRow.video_id.toString() !== videoId ||
+      String(tokenRow.video_id) != String(videoId) ||
       new Date(tokenRow.expires_at).getTime() < Date.now()
     ) {
       debug += `tokenRow.video_id: ${tokenRow.video_id} | tokenRow.expires_at: ${tokenRow.expires_at}\n`;
