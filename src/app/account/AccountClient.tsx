@@ -1,6 +1,7 @@
 "use client";
 
-import { useSession, signIn, signOut } from "next-auth/react";
+import { useSession, signIn, signOut as nextAuthSignOut } from "next-auth/react";
+import { signOut as supabaseSignOut } from "@/lib/auth";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
@@ -62,7 +63,10 @@ export default function AccountClient() {
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Account Actions</h3>
             <div className="space-y-4">
               <button
-                onClick={() => signOut()}
+                onClick={async () => {
+                  await supabaseSignOut();
+                  nextAuthSignOut();
+                }}
                 className="w-full bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition-colors"
               >
                 Sign Out
