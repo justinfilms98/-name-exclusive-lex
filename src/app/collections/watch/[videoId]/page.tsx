@@ -17,8 +17,14 @@ export default async function WatchPage({ params, searchParams }) {
     .eq('token', tokenValue)
     .single();
 
-  if (!tokenRow || tokenRow.videoId !== Number(videoId) || Date.now() > new Date(tokenRow.expiresAt).getTime()) {
-    notFound();
+  if (!tokenRow) {
+    return <div style={{color: 'red', padding: 40}}>DEBUG: Token not found in DB for token: {tokenValue}</div>;
+  }
+  if (String(tokenRow.videoId) !== String(videoId)) {
+    return <div style={{color: 'red', padding: 40}}>DEBUG: videoId mismatch. tokenRow.videoId: {tokenRow.videoId}, URL videoId: {videoId}</div>;
+  }
+  if (Date.now() > new Date(tokenRow.expiresAt).getTime()) {
+    return <div style={{color: 'red', padding: 40}}>DEBUG: Token expired. expiresAt: {tokenRow.expiresAt}, now: {new Date().toISOString()}</div>;
   }
 
   // 2) Fetch video metadata:
@@ -29,13 +35,13 @@ export default async function WatchPage({ params, searchParams }) {
     .single();
 
   if (!video) {
-    notFound();
+    return <div style={{color: 'red', padding: 40}}>DEBUG: Video not found in CollectionVideo for id: {videoId}</div>;
   }
 
   // 3) Generate a signed URL to stream the file:
   const { data: signed } = await supabaseAdmin.storage.from('videos').createSignedUrl(video.videoPath, 3600);
   if (!signed?.signedUrl) {
-    notFound();
+    return <div style={{color: 'red', padding: 40}}>DEBUG: Failed to generate signed URL for videoPath: {video.videoPath}</div>;
   }
 
   return (
