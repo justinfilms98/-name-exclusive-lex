@@ -74,15 +74,32 @@ export async function GET(req: NextRequest) {
       .insert([
         { userId: userId, videoId: Number(videoId), purchasedAt: new Date().toISOString() }
       ]);
-    // 6. Generate a UUID token and expiry
-    const token = randomUUID();
-    const expiresAt = new Date(Date.now() + (video.duration || 30) * 60 * 1000).toISOString();
-    // 7. Insert into VideoTokens
-    await supabaseAdmin
+    // 6. Check for existing valid token for this user/video
+    const { data: existingTokenRow } = await supabaseAdmin
       .from('VideoTokens')
-      .insert([
-        { token, userId, videoId: Number(videoId), expiresAt }
-      ]);
+      .select('*')
+      .eq('userId', userId)
+      .eq('videoId', Number(videoId))
+      .order('expiresAt', { ascending: false })
+      .limit(1)
+      .single();
+
+    let token, expiresAt;
+    if (existingTokenRow && new Date(existingTokenRow.expiresAt).getTime() > Date.now()) {
+      // Reuse existing valid token
+      token = existingTokenRow.token;
+      expiresAt = existingTokenRow.expiresAt;
+    } else {
+      // 6. Generate a UUID token and expiry
+      token = randomUUID();
+      expiresAt = new Date(Date.now() + (video.duration || 30) * 60 * 1000).toISOString();
+      // 7. Insert into VideoTokens
+      await supabaseAdmin
+        .from('VideoTokens')
+        .insert([
+          { token, userId, videoId: Number(videoId), expiresAt }
+        ]);
+    }
     // 8. Return success, videoId, token
     return NextResponse.json({ success: true, videoId, token });
   } catch (error: any) {
