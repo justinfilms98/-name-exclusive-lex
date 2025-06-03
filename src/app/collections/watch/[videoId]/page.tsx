@@ -12,7 +12,7 @@ export default async function WatchPage({ params, searchParams }) {
 
   // 1) Validate token:
   const { data: tokenRow } = await supabaseAdmin
-    .from('VideoTokens')
+    .from('purchase_tokens')
     .select('*')
     .eq('token', tokenValue)
     .single();
@@ -20,8 +20,8 @@ export default async function WatchPage({ params, searchParams }) {
   if (!tokenRow) {
     return <div style={{color: 'red', padding: 40}}>DEBUG: Token not found in DB for token: {tokenValue}</div>;
   }
-  if (String(tokenRow.videoId) !== String(videoId)) {
-    return <div style={{color: 'red', padding: 40}}>DEBUG: videoId mismatch. tokenRow.videoId: {tokenRow.videoId}, URL videoId: {videoId}</div>;
+  if (String(tokenRow.video_id) !== String(videoId)) {
+    return <div style={{color: 'red', padding: 40}}>DEBUG: videoId mismatch. tokenRow.video_id: {tokenRow.video_id}, URL videoId: {videoId}</div>;
   }
   if (Date.now() > new Date(tokenRow.expiresAt).getTime()) {
     return <div style={{color: 'red', padding: 40}}>DEBUG: Token expired. expiresAt: {tokenRow.expiresAt}, now: {new Date().toISOString()}</div>;
