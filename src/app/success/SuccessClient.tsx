@@ -22,6 +22,7 @@ export default function SuccessClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [purchaseDetails, setPurchaseDetails] = useState<PurchaseDetails[] | null>(null);
+  const [verifyResult, setVerifyResult] = useState<{ success: boolean, videoId?: string, token?: string, error?: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
@@ -38,36 +39,17 @@ export default function SuccessClient() {
     const sessionId = searchParams?.get('session_id');
     console.log('user', user);
     console.log('sessionId', sessionId);
-    if (!searchParams || !sessionId) {
-      setError('Invalid session');
+    if (!sessionId) {
+      setVerifyResult({ success: false, error: 'Missing session_id' });
       setLoading(false);
       return;
     }
-    fetchPurchaseDetails(sessionId);
-  }, [user, router, searchParams]);
-
-  const fetchPurchaseDetails = async (sessionId: string) => {
-    try {
-      const res = await fetch(`/api/verify-purchase?session_id=${sessionId}`);
-      if (!res.ok) throw new Error('Failed to verify purchase');
-      const data = await res.json();
-      setPurchaseDetails(data.purchases || []);
-    } catch (err: any) {
-      setError(err.message || 'Failed to load purchase details');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // If only one video, optionally auto-redirect after 3s
-  useEffect(() => {
-    if (purchaseDetails && purchaseDetails.length === 1) {
-      const timer = setTimeout(() => {
-        router.push(`/collections/watch/${purchaseDetails[0].videoId}`);
-      }, 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [purchaseDetails, router]);
+    fetch(`/api/verify-purchase?session_id=${sessionId}`)
+      .then(res => res.json())
+      .then(data => setVerifyResult(data))
+      .catch(err => setVerifyResult({ success: false, error: err.message }))
+      .finally(() => setLoading(false));
+  }, [searchParams]);
 
   if (loading) {
     return (
@@ -84,7 +66,7 @@ export default function SuccessClient() {
     );
   }
 
-  if (error || !purchaseDetails) {
+  if (!verifyResult?.success) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#D4C7B4] px-4">
         <motion.div
@@ -98,7 +80,7 @@ export default function SuccessClient() {
             </svg>
           </div>
           <h2 className="text-2xl font-bold text-[#654C37] mb-2">Purchase Verification Failed</h2>
-          <p className="text-[#654C37]/80 mb-4">{error || 'Unable to load purchase details'}</p>
+          <p className="text-[#654C37]/80 mb-4">{verifyResult?.error || 'Unable to load purchase details'}</p>
           <button
             onClick={() => router.push('/collections')}
             className="bg-[#654C37] text-white px-6 py-2 rounded-lg hover:bg-[#654C37]/90 transition-colors"
@@ -110,7 +92,7 @@ export default function SuccessClient() {
     );
   }
 
-  if (!purchaseDetails[0]?.expiresAt) {
+  if (!purchaseDetails || !verifyResult.videoId || !verifyResult.token) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#D4C7B4] px-4">
         <motion.div
@@ -196,7 +178,7 @@ export default function SuccessClient() {
                   </div>
                   <div className="font-semibold text-[#654C37]">{purchase.title}</div>
                   <Link
-                    href={`/collections/watch/${purchase.videoId}`}
+                    href={`/collections/watch/${verifyResult.videoId}?token=${verifyResult.token}`}
                     className="inline-block bg-gradient-to-r from-[#D4AF37] via-[#B89178] to-[#654C37] text-white px-6 py-2 rounded-full font-bold shadow border-2 border-[#D4AF37] shimmer-btn hover:scale-105 transition-all duration-300"
                     style={{ boxShadow: '0 2px 24px 0 #D4AF37' }}
                   >
