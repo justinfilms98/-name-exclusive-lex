@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
 import Link from 'next/link';
-import supabase, { getUser } from '@/lib/auth';
+import { useSession } from 'next-auth/react';
 
 interface PurchaseDetails {
   videoId: number;
@@ -23,21 +23,11 @@ export default function SuccessClient() {
   const searchParams = useSearchParams();
   const [verifyResult, setVerifyResult] = useState<{ success: boolean, videoId?: string, token?: string, error?: string } | null>(null);
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<any>(null);
-  const [checkingUser, setCheckingUser] = useState(true);
+  const { data: session, status } = useSession();
 
   useEffect(() => {
-    async function fetchUser() {
-      const { data } = await getUser();
-      setUser(data?.user || null);
-      setCheckingUser(false);
-    }
-    fetchUser();
-  }, []);
-
-  useEffect(() => {
-    if (checkingUser) return;
-    if (!user) return;
+    if (status === 'loading') return;
+    if (status !== 'authenticated') return;
     const sessionId = searchParams?.get('session_id');
     if (!sessionId) {
       setVerifyResult({ success: false, error: 'Missing session_id' });
@@ -49,13 +39,13 @@ export default function SuccessClient() {
       .then(data => setVerifyResult(data))
       .catch(err => setVerifyResult({ success: false, error: err.message }))
       .finally(() => setLoading(false));
-  }, [searchParams, user, checkingUser]);
+  }, [searchParams, session, status]);
 
-  if (checkingUser || loading) {
+  if (status === 'loading' || loading) {
     return <div className="min-h-screen flex items-center justify-center bg-[#D4C7B4]">Loading...</div>;
   }
 
-  if (!user) {
+  if (status !== 'authenticated' || !session?.user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#D4C7B4] px-4">
         <div className="bg-white p-8 rounded-xl shadow-lg text-center max-w-md">
