@@ -8,7 +8,7 @@ const supabaseAdmin = createClient(
 
 export default async function WatchPage({ params, searchParams }) {
   const videoId = params.videoId;
-  const tokenValue = searchParams.get('token');
+  const tokenValue = searchParams.token;
 
   // 1) Validate token:
   const { data: tokenRow } = await supabaseAdmin
