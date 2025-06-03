@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
 import { randomUUID } from 'crypto';
 
-const supabase = createClient(
+const supabaseAdmin = createClient(
   process.env.SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
@@ -56,14 +56,23 @@ export async function GET(req: NextRequest) {
     }
     // 4. Get video duration from your videos table
     console.log('Looking up video in CollectionVideo with id:', videoId, 'Type:', typeof videoId);
-    const { data: video, error: videoError } = await supabase
+    const { data: video, error: videoError } = await supabaseAdmin
       .from('CollectionVideo')
-      .select('duration')
+      .select('*')
       .eq('id', videoId)
       .single();
-    if (videoError || !video) {
-      console.error('Video not found:', videoId, videoError);
-      return NextResponse.json({ success: false, error: 'Video not found' }, { status: 404 });
+    if (videoError) {
+      console.error('Supabase error:', videoError);
+      return new NextResponse(
+        JSON.stringify({ success: false, error: videoError.message }),
+        { status: 500 }
+      );
+    }
+    if (!video) {
+      return new NextResponse(
+        JSON.stringify({ success: false, error: 'Video not found' }),
+        { status: 404 }
+      );
     }
     const durationSeconds = video.duration || 1800; // fallback to 30 min if missing
     // 5. Generate a UUID token
@@ -71,7 +80,7 @@ export async function GET(req: NextRequest) {
     // 6. Calculate expiry
     const expiresAt = new Date(Date.now() + durationSeconds * 1000).toISOString();
     // 7. Insert into purchase_tokens
-    const { error: insertError } = await supabase
+    const { error: insertError } = await supabaseAdmin
       .from('purchase_tokens')
       .insert([
         {
@@ -84,8 +93,18 @@ export async function GET(req: NextRequest) {
     if (insertError) {
       return NextResponse.json({ success: false, error: insertError.message }, { status: 500 });
     }
-    // 8. Return token and videoId
-    return NextResponse.json({ success: true, token, videoId });
+    // 8. Return full purchase details for the frontend
+    const purchaseDetails = {
+      videoId: video.id,
+      title: video.title,
+      description: video.description,
+      thumbnail: video.thumbnail,
+      duration: video.duration,
+      purchasedAt: new Date().toISOString(), // You may want to fetch the actual purchase time if stored
+      expiresAt: expiresAt,
+      price: video.price ?? 0
+    };
+    return NextResponse.json({ success: true, purchases: [purchaseDetails] });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message || 'Internal server error' }, { status: 500 });
   }
