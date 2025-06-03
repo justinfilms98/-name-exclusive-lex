@@ -207,9 +207,18 @@ export async function PUT(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
-    const data = await req.json();
-    console.log('DELETE /api/collection-videos', data);
-    const id = data.id;
+    let id: string | null = null;
+    // Try to get id from query string first
+    const { searchParams } = new URL(req.url);
+    id = searchParams.get('id');
+    if (!id) {
+      // Fallback: try to get from body
+      try {
+        const data = await req.json();
+        id = data.id;
+      } catch {}
+    }
+    console.log('DELETE /api/collection-videos', { id });
     if (!id) {
       return NextResponse.json(
         { error: "Video ID is required" },
