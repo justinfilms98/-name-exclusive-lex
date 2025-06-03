@@ -63,48 +63,28 @@ export async function GET(req: NextRequest) {
       .single();
     if (videoError) {
       console.error('Supabase error:', videoError);
-      return new NextResponse(
-        JSON.stringify({ success: false, error: videoError.message }),
-        { status: 500 }
-      );
+      return NextResponse.json({ success: false, error: videoError.message }, { status: 500 });
     }
     if (!video) {
-      return new NextResponse(
-        JSON.stringify({ success: false, error: 'Video not found' }),
-        { status: 404 }
-      );
+      return NextResponse.json({ success: false, error: 'Video not found' }, { status: 404 });
     }
-    const durationSeconds = video.duration || 1800; // fallback to 30 min if missing
-    // 5. Generate a UUID token
-    const token = randomUUID();
-    // 6. Calculate expiry
-    const expiresAt = new Date(Date.now() + durationSeconds * 1000).toISOString();
-    // 7. Insert into purchase_tokens
-    const { error: insertError } = await supabaseAdmin
-      .from('purchase_tokens')
+    // 5. Insert into UsersVideos (grant access)
+    await supabaseAdmin
+      .from('UsersVideos')
       .insert([
-        {
-          user_id: userId,
-          video_id: videoId,
-          token,
-          expires_at: expiresAt,
-        }
+        { userId: userId, videoId: Number(videoId), purchasedAt: new Date().toISOString() }
       ]);
-    if (insertError) {
-      return NextResponse.json({ success: false, error: insertError.message }, { status: 500 });
-    }
-    // 8. Return full purchase details for the frontend
-    const purchaseDetails = {
-      videoId: video.id,
-      title: video.title,
-      description: video.description,
-      thumbnail: video.thumbnail,
-      duration: video.duration,
-      purchasedAt: new Date().toISOString(), // You may want to fetch the actual purchase time if stored
-      expiresAt: expiresAt,
-      price: video.price ?? 0
-    };
-    return NextResponse.json({ success: true, purchases: [purchaseDetails] });
+    // 6. Generate a UUID token and expiry
+    const token = randomUUID();
+    const expiresAt = new Date(Date.now() + (video.duration || 30) * 60 * 1000).toISOString();
+    // 7. Insert into VideoTokens
+    await supabaseAdmin
+      .from('VideoTokens')
+      .insert([
+        { token, userId, videoId: Number(videoId), expiresAt }
+      ]);
+    // 8. Return success, videoId, token
+    return NextResponse.json({ success: true, videoId, token });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message || 'Internal server error' }, { status: 500 });
   }
