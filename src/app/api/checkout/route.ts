@@ -28,7 +28,8 @@ export async function POST(req: NextRequest) {
 
     // Collect video IDs for metadata
     const videoIds = cartItems.map((item: any) => item.id).join(',');
-    console.log('Creating Stripe session with:', { userEmail, videoIds, cartItems });
+    const videoId = cartItems.length === 1 ? cartItems[0].id : undefined;
+    console.log('Creating Stripe session with:', { userEmail, videoIds, videoId, cartItems });
 
     const successUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/success?session_id={CHECKOUT_SESSION_ID}`;
     const cancelUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/cart`;
@@ -42,6 +43,7 @@ export async function POST(req: NextRequest) {
       success_url: successUrl,
       cancel_url: cancelUrl,
       metadata: {
+        video_id: videoId ? String(videoId) : '',
         video_ids: videoIds,
       },
     });
