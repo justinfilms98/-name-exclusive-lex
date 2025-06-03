@@ -80,7 +80,7 @@ export async function GET(req: NextRequest) {
       .select('*')
       .eq('user_id', userId)
       .eq('video_id', Number(videoId))
-      .order('expiresAt', { ascending: false })
+      .order('expires_at', { ascending: false })
       .limit(1)
       .single();
 
