@@ -76,7 +76,7 @@ export async function GET(req: NextRequest) {
       ]);
     // 6. Check for existing valid token for this user/video
     const { data: existingTokenRow } = await supabaseAdmin
-      .from('VideoTokens')
+      .from('purchase_tokens')
       .select('*')
       .eq('userId', userId)
       .eq('videoId', Number(videoId))
@@ -93,9 +93,9 @@ export async function GET(req: NextRequest) {
       // 6. Generate a UUID token and expiry
       token = randomUUID();
       expiresAt = new Date(Date.now() + (video.duration || 30) * 60 * 1000).toISOString();
-      // 7. Insert into VideoTokens
+      // 7. Insert into purchase_tokens
       await supabaseAdmin
-        .from('VideoTokens')
+        .from('purchase_tokens')
         .insert([
           { token, userId, videoId: Number(videoId), expiresAt }
         ]);
