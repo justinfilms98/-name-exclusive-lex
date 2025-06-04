@@ -55,11 +55,18 @@ export default function CollectionsPage() {
     setCheckoutLoading(true);
     setError(null);
     try {
+      // Only use videos with a valid id (from backend)
+      const validCart = cart.filter(v => v.id && !isNaN(Number(v.id)));
+      if (validCart.length === 0) {
+        setError('No valid videos in cart.');
+        setCheckoutLoading(false);
+        return;
+      }
       const res = await fetch('/api/checkout_sessions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          videoIds: cart.map(v => v.id),
+          videoIds: validCart.map(v => v.id),
           userEmail: session.user.email,
         }),
       });
