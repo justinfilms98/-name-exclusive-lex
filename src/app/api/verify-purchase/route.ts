@@ -52,7 +52,7 @@ export async function GET(req: NextRequest) {
     const { data: video, error: videoError } = await supabaseAdmin
       .from('CollectionVideo')
       .select('duration')
-      .eq('id', videoId)
+      .eq('id', Number(videoId))
       .single();
     if (videoError || !video) {
       return NextResponse.json({ success: false, error: 'Video not found' }, { status: 404 });
