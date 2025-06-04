@@ -15,6 +15,11 @@ const nextConfig = {
       'images.unsplash.com', // Keep Unsplash if used
     ],
   },
+  api: {
+    bodyParser: {
+      sizeLimit: '100mb',
+    },
+  },
 };
 
 module.exports = nextConfig; 

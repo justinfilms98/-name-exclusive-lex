@@ -75,7 +75,8 @@ export async function uploadFile(
   file: File,
   type: UploadType,
   slotOrder: number,
-  onProgress?: (progress: UploadProgress) => void
+  onProgress?: (progress: UploadProgress) => void,
+  supabaseClient = supabase // default to anon client for browser, override with supabaseAdmin for server
 ): Promise<UploadResult> {
   console.log('[uploadFile] Start', { file, type, slotOrder, fileSize: `${(file.size / (1024 * 1024)).toFixed(2)}MB` });
   // Validate file
@@ -93,7 +94,7 @@ export async function uploadFile(
   try {
     // For videos, use resumable upload
     if (type === 'video') {
-      const { data, error } = await supabase.storage
+      const { data, error } = await supabaseClient.storage
         .from(bucket)
         .upload(filename, file, {
           cacheControl: '3600',
@@ -131,7 +132,7 @@ export async function uploadFile(
       }
 
       console.log('[uploadFile] Upload successful', data);
-      const { publicUrl } = supabase.storage.from(bucket).getPublicUrl(data.path).data;
+      const { publicUrl } = supabaseClient.storage.from(bucket).getPublicUrl(data.path).data;
       if (!publicUrl) {
         console.error('[uploadFile] No publicUrl returned', data);
         throw new Error('No publicUrl from upload');
@@ -148,7 +149,7 @@ export async function uploadFile(
       };
     } else {
       // For thumbnails, use regular upload since they're small
-      const { data, error } = await supabase.storage.from(bucket).upload(filename, file, {
+      const { data, error } = await supabaseClient.storage.from(bucket).upload(filename, file, {
         cacheControl: '3600',
         upsert: true,
         contentType: file.type,
@@ -183,7 +184,7 @@ export async function uploadFile(
       }
 
       console.log('[uploadFile] Upload successful', data);
-      const { publicUrl } = supabase.storage.from(bucket).getPublicUrl(data.path).data;
+      const { publicUrl } = supabaseClient.storage.from(bucket).getPublicUrl(data.path).data;
       if (!publicUrl) {
         console.error('[uploadFile] No publicUrl returned', data);
         throw new Error('No publicUrl from upload');
