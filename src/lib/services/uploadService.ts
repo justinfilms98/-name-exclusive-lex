@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import { z } from 'zod';
+import { StorageError } from '@supabase/storage-js';
 
 // Validation schemas
 const fileValidationSchema = z.object({
@@ -31,7 +32,6 @@ export type UploadResult = {
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/quicktime'];
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
-const MAX_VIDEO_SIZE = 100 * 1024 * 1024; // 100MB
 
 // Helper to validate file
 async function validateFile(file: File, type: 'image' | 'video'): Promise<string | null> {
@@ -39,7 +39,7 @@ async function validateFile(file: File, type: 'image' | 'video'): Promise<string
     const validation = fileValidationSchema.parse({
       file,
       type,
-      maxSize: type === 'image' ? MAX_IMAGE_SIZE : MAX_VIDEO_SIZE,
+      maxSize: type === 'image' ? MAX_IMAGE_SIZE : Infinity, // No limit for videos
       allowedTypes: type === 'image' ? ALLOWED_IMAGE_TYPES : ALLOWED_VIDEO_TYPES,
     });
 
@@ -47,8 +47,8 @@ async function validateFile(file: File, type: 'image' | 'video'): Promise<string
       return `File type ${file.type} not allowed. Allowed types: ${validation.allowedTypes.join(', ')}`;
     }
 
-    if (file.size > validation.maxSize) {
-      return `File size must be less than ${validation.maxSize / (1024 * 1024)}MB`;
+    if (type === 'image' && file.size > validation.maxSize) {
+      return `Image size must be less than ${validation.maxSize / (1024 * 1024)}MB`;
     }
 
     return null;
@@ -91,34 +91,96 @@ export async function uploadFile(
   console.log('[uploadFile] Uploading to bucket', bucket, 'with filename', filename);
 
   try {
-    const { data, error } = await supabase.storage.from(bucket).upload(filename, file, {
-      cacheControl: '3600',
-      upsert: true,
-    });
-    if (error) {
-      console.error('[uploadFile] Supabase upload error:', error);
-      throw error;
+    // For videos, use resumable upload
+    if (type === 'video') {
+      const { data, error } = await supabase.storage
+        .from(bucket)
+        .upload(filename, file, {
+          cacheControl: '3600',
+          upsert: true,
+          duplex: 'half',
+          // Use the correct options for large file uploads
+          contentType: file.type,
+          // Report progress using the storage client's built-in progress tracking
+          onProgress: (progress) => {
+            if (onProgress) {
+              onProgress({
+                progress: (progress.loaded / progress.total) * 100,
+                status: 'uploading'
+              });
+            }
+          }
+        } as any); // Type assertion needed due to Supabase types not being fully up to date
+
+      if (error) {
+        console.error('[uploadFile] Supabase upload error:', error);
+        throw error;
+      }
+
+      if (!data || !data.path) {
+        console.error('[uploadFile] No data or path returned from upload', data);
+        throw new Error('No data/path from upload');
+      }
+
+      console.log('[uploadFile] Upload successful', data);
+      const { publicUrl } = supabase.storage.from(bucket).getPublicUrl(data.path).data;
+      if (!publicUrl) {
+        console.error('[uploadFile] No publicUrl returned', data);
+        throw new Error('No publicUrl from upload');
+      }
+
+      return {
+        url: publicUrl,
+        path: data.path,
+        metadata: {
+          size: file.size,
+          type: file.type,
+          lastModified: file.lastModified,
+        },
+      };
+    } else {
+      // For thumbnails, use regular upload since they're small
+      const { data, error } = await supabase.storage.from(bucket).upload(filename, file, {
+        cacheControl: '3600',
+        upsert: true,
+        contentType: file.type,
+        onProgress: (progress) => {
+          if (onProgress) {
+            onProgress({
+              progress: (progress.loaded / progress.total) * 100,
+              status: 'uploading'
+            });
+          }
+        }
+      } as any); // Type assertion needed due to Supabase types not being fully up to date
+
+      if (error) {
+        console.error('[uploadFile] Supabase upload error:', error);
+        throw error;
+      }
+
+      if (!data || !data.path) {
+        console.error('[uploadFile] No data or path returned from upload', data);
+        throw new Error('No data/path from upload');
+      }
+
+      console.log('[uploadFile] Upload successful', data);
+      const { publicUrl } = supabase.storage.from(bucket).getPublicUrl(data.path).data;
+      if (!publicUrl) {
+        console.error('[uploadFile] No publicUrl returned', data);
+        throw new Error('No publicUrl from upload');
+      }
+
+      return {
+        url: publicUrl,
+        path: data.path,
+        metadata: {
+          size: file.size,
+          type: file.type,
+          lastModified: file.lastModified,
+        },
+      };
     }
-    if (!data || !data.path) {
-      console.error('[uploadFile] No data or path returned from upload', data);
-      throw new Error('No data/path from upload');
-    }
-    console.log('[uploadFile] Upload successful', data);
-    const { publicUrl } = supabase.storage.from(bucket).getPublicUrl(data.path).data;
-    if (!publicUrl) {
-      console.error('[uploadFile] No publicUrl returned', data);
-      throw new Error('No publicUrl from upload');
-    }
-    console.log('[uploadFile] publicUrl:', publicUrl);
-    return {
-      url: publicUrl,
-      path: data.path,
-      metadata: {
-        size: file.size,
-        type: file.type,
-        lastModified: file.lastModified,
-      },
-    };
   } catch (err) {
     console.error('[uploadFile] Caught error:', err);
     throw err;
