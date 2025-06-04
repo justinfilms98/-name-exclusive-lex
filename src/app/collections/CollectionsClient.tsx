@@ -235,7 +235,7 @@ export default function CollectionsClient() {
                       )}
                       <motion.p 
                         className="text-[#654C37]/80 text-sm mb-4 text-left whitespace-pre-line" 
-                        style={{ minHeight: '40px', fontFamily: 'Caviar Dreams, Arial, sans-serif' }}
+                        style={{ minHeight: '40px', fontFamily: 'Caviar Dreams, Arial, sans-serif', fontWeight: 700 }}
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ delay: 0.5 + index * 0.1 }}
