@@ -138,6 +138,7 @@ model CollectionVideo {
   price         Float    @default(0.00)
   thumbnailPath String?
   videoPath     String?
+  duration      Int?
 
   @@schema("public")
 }
