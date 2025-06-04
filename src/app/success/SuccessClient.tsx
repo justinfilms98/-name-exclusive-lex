@@ -24,6 +24,7 @@ export default function SuccessClient() {
   const [verifyResult, setVerifyResult] = useState<{ success: boolean, videoId?: string, token?: string, error?: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const { data: session, status } = useSession();
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -34,12 +35,13 @@ export default function SuccessClient() {
       setLoading(false);
       return;
     }
+    setLoading(true);
     fetch(`/api/verify-purchase?session_id=${sessionId}`)
       .then(res => res.json())
       .then(data => setVerifyResult(data))
       .catch(err => setVerifyResult({ success: false, error: err.message }))
       .finally(() => setLoading(false));
-  }, [searchParams, session, status]);
+  }, [searchParams, session, status, retryCount]);
 
   if (status === 'loading' || loading) {
     return <div className="min-h-screen flex items-center justify-center bg-[#D4C7B4]">Loading...</div>;
@@ -67,7 +69,18 @@ export default function SuccessClient() {
       <div className="min-h-screen flex items-center justify-center bg-[#D4C7B4] px-4">
         <div className="bg-white p-8 rounded-xl shadow-lg text-center max-w-md">
           <h2 className="text-2xl font-bold text-[#654C37] mb-2">Purchase Verification Failed</h2>
-          <p className="text-[#654C37]/80 mb-4">{verifyResult?.error || 'Unable to load purchase details'}</p>
+          <p className="text-[#654C37]/80 mb-4">
+            {verifyResult?.error === 'Video not found'
+              ? 'We could not find your video. This may be due to a temporary server issue. Please try again in a few minutes.'
+              : verifyResult?.error || 'Unable to load purchase details'}
+          </p>
+          <button
+            onClick={() => setRetryCount(c => c + 1)}
+            className="bg-[#D4AF37] text-white px-6 py-2 rounded-lg hover:bg-[#B89178] transition-colors mb-2"
+            disabled={loading}
+          >
+            {loading ? 'Retrying...' : 'Retry Verification'}
+          </button>
           <button
             onClick={() => router.push('/collections')}
             className="bg-[#654C37] text-white px-6 py-2 rounded-lg hover:bg-[#654C37]/90 transition-colors"
