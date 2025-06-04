@@ -77,7 +77,7 @@ export async function uploadFile(
   slotOrder: number,
   onProgress?: (progress: UploadProgress) => void
 ): Promise<UploadResult> {
-  console.log('[uploadFile] Start', { file, type, slotOrder });
+  console.log('[uploadFile] Start', { file, type, slotOrder, fileSize: `${(file.size / (1024 * 1024)).toFixed(2)}MB` });
   // Validate file
   const validationError = await validateFile(file, type === 'thumbnail' ? 'image' : 'video');
   if (validationError) {
@@ -99,9 +99,7 @@ export async function uploadFile(
           cacheControl: '3600',
           upsert: true,
           duplex: 'half',
-          // Use the correct options for large file uploads
           contentType: file.type,
-          // Report progress using the storage client's built-in progress tracking
           onProgress: (progress) => {
             if (onProgress) {
               onProgress({
@@ -110,10 +108,20 @@ export async function uploadFile(
               });
             }
           }
-        } as any); // Type assertion needed due to Supabase types not being fully up to date
+        } as any);
 
       if (error) {
         console.error('[uploadFile] Supabase upload error:', error);
+        // Handle specific Supabase storage errors
+        if (error instanceof StorageError) {
+          if (error.message.includes('exceeds maximum')) {
+            throw new Error(`File size exceeds Supabase storage limit. Please upgrade to Supabase Pro for larger file uploads. Error: ${error.message}`);
+          }
+          if (error.message.includes('quota')) {
+            throw new Error(`Storage quota exceeded. Please upgrade to Supabase Pro for more storage. Error: ${error.message}`);
+          }
+          throw new Error(`Storage error: ${error.message}`);
+        }
         throw error;
       }
 
@@ -152,10 +160,20 @@ export async function uploadFile(
             });
           }
         }
-      } as any); // Type assertion needed due to Supabase types not being fully up to date
+      } as any);
 
       if (error) {
         console.error('[uploadFile] Supabase upload error:', error);
+        // Handle specific Supabase storage errors
+        if (error instanceof StorageError) {
+          if (error.message.includes('exceeds maximum')) {
+            throw new Error(`File size exceeds Supabase storage limit. Please upgrade to Supabase Pro for larger file uploads. Error: ${error.message}`);
+          }
+          if (error.message.includes('quota')) {
+            throw new Error(`Storage quota exceeded. Please upgrade to Supabase Pro for more storage. Error: ${error.message}`);
+          }
+          throw new Error(`Storage error: ${error.message}`);
+        }
         throw error;
       }
 
@@ -183,7 +201,14 @@ export async function uploadFile(
     }
   } catch (err) {
     console.error('[uploadFile] Caught error:', err);
-    throw err;
+    if (err instanceof Error) {
+      // Add more context to the error message
+      if (err.message.includes('exceeds maximum')) {
+        throw new Error(`File size (${(file.size / (1024 * 1024)).toFixed(2)}MB) exceeds Supabase storage limit. Please upgrade to Supabase Pro for larger file uploads.`);
+      }
+      throw err;
+    }
+    throw new Error('Upload failed: ' + String(err));
   }
 }
 
