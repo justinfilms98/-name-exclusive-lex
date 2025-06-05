@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/pages/api/auth/[...nextauth]';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 
-export async function GET(_request) {
+export async function GET() {
   // Check authentication
   const session = await getServerSession(authOptions);
   if (!session) {
