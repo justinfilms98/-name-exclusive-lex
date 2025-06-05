@@ -20,14 +20,25 @@ export default function HeroSection() {
   useEffect(() => {
     function fetchVideos() {
       fetch("/api/hero-videos")
-        .then((res) => res.json())
+        .then((res) => {
+          if (!res.ok) {
+            if (res.status === 401) {
+              window.location.href = '/login';
+              return null;
+            }
+            throw new Error(`HTTP ${res.status}`);
+          }
+          return res.json();
+        })
         .then((data) => {
+          if (!data) return;
           setVideos(
-            data
+            data.videos
               .sort((a: HeroVideo, b: HeroVideo) => a.order - b.order)
               .slice(0, 3)
           );
-        });
+        })
+        .catch(err => console.error('Fetch hero-videos error:', err));
     }
     fetchVideos();
     // Listen for custom event to refresh videos
