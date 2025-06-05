@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 export default function SuccessPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const session_id = searchParams.get("session_id");
+  const session_id = searchParams?.get("session_id");
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
