@@ -14,8 +14,7 @@ export default function HeroSection() {
   const [videos, setVideos] = useState<HeroVideo[]>([]);
   const [current, setCurrent] = useState(0);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const sessionHook = typeof useSession === 'function' ? useSession() : undefined;
-  const session = sessionHook?.data;
+  const { data: session } = useSession();
   const isLoggedIn = !!session;
 
   useEffect(() => {

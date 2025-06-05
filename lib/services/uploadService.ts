@@ -109,7 +109,13 @@ export async function uploadFile(
               });
             }
           }
-        } as any);
+        } as {
+          cacheControl: string;
+          upsert: boolean;
+          duplex?: string;
+          contentType: string;
+          onProgress?: (progress: { loaded: number; total: number }) => void;
+        });
 
       if (error) {
         console.error('[uploadFile] Supabase upload error:', error);
@@ -161,7 +167,12 @@ export async function uploadFile(
             });
           }
         }
-      } as any);
+      } as {
+        cacheControl: string;
+        upsert: boolean;
+        contentType: string;
+        onProgress?: (progress: { loaded: number; total: number }) => void;
+      });
 
       if (error) {
         console.error('[uploadFile] Supabase upload error:', error);
@@ -221,7 +232,7 @@ export async function deleteFile(path: string, type: UploadType): Promise<void> 
 }
 
 // Helper to generate thumbnail from video
-export async function generateThumbnail(videoUrl: string): Promise<string> {
+export async function generateThumbnail(): Promise<string> {
   // TODO: Implement video thumbnail generation
   // This would require a server-side implementation or a third-party service
   throw new Error('Thumbnail generation not implemented');
