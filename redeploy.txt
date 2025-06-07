@@ -1,1 +1,13 @@
 // trigger redeploy 
+
+Please check the following environment variables in your Vercel project settings:
+
+1.  `DATABASE_URL`: This should be your Supabase connection string, in the format: `postgresql://postgres:[YOUR-PASSWORD]@[YOUR-HOST]:5432/[YOUR-DB-NAME]`. Make sure the password and host are correct. The "role 'postgres' does not exist" error suggests the username might be wrong. Double-check this in your Supabase project settings.
+
+2.  `NEXT_PUBLIC_SUPABASE_URL`: This should be the public URL for your Supabase project, found in your Supabase dashboard (Settings > API).
+
+3.  `SUPABASE_SERVICE_ROLE_KEY`: This is your `service_role` secret key, also found in your Supabase dashboard (Settings > API). The "permission denied" errors strongly suggest this key is either incorrect or not properly configured in Vercel.
+
+After verifying and updating these variables, please redeploy your Vercel project. This should resolve the database connectivity issues.
+
+Also, I strongly recommend that you remove the `console.log` statement that is logging your `SUPABASE_SERVICE_ROLE_KEY`. It is a major security risk. 
