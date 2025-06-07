@@ -32,6 +32,7 @@ export type UploadResult = {
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/quicktime'];
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
+const MAX_VIDEO_SIZE = 2 * 1024 * 1024 * 1024; // 2GB
 
 // Helper to validate file
 async function validateFile(file: File, type: 'image' | 'video'): Promise<string | null> {
@@ -39,7 +40,7 @@ async function validateFile(file: File, type: 'image' | 'video'): Promise<string
     const validation = fileValidationSchema.parse({
       file,
       type,
-      maxSize: type === 'image' ? MAX_IMAGE_SIZE : Infinity, // No limit for videos
+      maxSize: type === 'image' ? MAX_IMAGE_SIZE : MAX_VIDEO_SIZE, // 2GB for videos
       allowedTypes: type === 'image' ? ALLOWED_IMAGE_TYPES : ALLOWED_VIDEO_TYPES,
     });
 
@@ -49,6 +50,9 @@ async function validateFile(file: File, type: 'image' | 'video'): Promise<string
 
     if (type === 'image' && file.size > validation.maxSize) {
       return `Image size must be less than ${validation.maxSize / (1024 * 1024)}MB`;
+    }
+    if (type === 'video' && file.size > validation.maxSize) {
+      return `Video size must be less than ${validation.maxSize / (1024 * 1024 * 1024)}GB`;
     }
 
     return null;
