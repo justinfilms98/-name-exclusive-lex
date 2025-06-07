@@ -46,7 +46,7 @@ export async function GET(req: NextRequest) {
       videoId: video_id,
       videoUrl: signedURLData.signedUrl
     });
-  } catch (err: any) {
+  } catch (err) {
     const errorMessage = err instanceof Error ? err.message : String(err);
     return NextResponse.json({ error: 'SERVER_ERROR', details: errorMessage }, { status: 500 });
   }
