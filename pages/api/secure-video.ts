@@ -1,17 +1,24 @@
-import { NextApiRequest, NextApiResponse } from 'next';
-import { supabase } from '@/lib/supabase';
+import type { NextApiRequest, NextApiResponse } from 'next';
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+
+export const config = {
+  api: { bodyParser: { sizeLimit: '100mb' } }
+};
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    res.setHeader('Allow', ['GET']);
+    return res.status(405).end(`Method ${req.method} Not Allowed`);
   }
 
   const { videoId, userId } = req.query;
-
   if (!videoId || !userId || typeof videoId !== 'string' || typeof userId !== 'string') {
-    return res.status(400).json({
-      error: 'Missing videoId or userId'
-    });
+    return res.status(400).json({ error: 'Missing videoId or userId' });
   }
 
   try {
@@ -26,17 +33,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .single();
 
     if (purchaseError || !purchase) {
-      return res.status(403).json({
-        error: 'No valid purchase found'
-      });
+      return res.status(403).json({ error: 'No valid purchase found' });
     }
 
     const now = new Date();
     const expires = new Date(purchase.expires_at);
     if (now > expires) {
-      return res.status(403).json({
-        error: 'Purchase expired'
-      });
+      return res.status(403).json({ error: 'Purchase expired' });
     }
 
     // Get video details
@@ -47,9 +50,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .single();
 
     if (videoError || !video) {
-      return res.status(404).json({
-        error: 'Video not found'
-      });
+      return res.status(404).json({ error: 'Video not found' });
     }
 
     // Generate signed URL for remaining time (in seconds)
@@ -57,9 +58,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const path = video.video_url.split('/').pop();
     
     if (!path) {
-      return res.status(500).json({
-        error: 'Invalid video URL'
-      });
+      return res.status(500).json({ error: 'Invalid video URL' });
     }
 
     const { data: signed, error: signedError } = await supabase.storage
@@ -67,9 +66,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .createSignedUrl(path, seconds);
 
     if (signedError || !signed?.signedUrl) {
-      return res.status(500).json({
-        error: 'Failed to generate signed URL'
-      });
+      return res.status(500).json({ error: 'Failed to generate signed URL' });
     }
 
     return res.status(200).json({
@@ -86,11 +83,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       },
       signedUrl: signed.signedUrl
     });
-  } catch (error) {
-    console.error('Error in secure-video route:', error);
-    return res.status(500).json({
-      error: 'Internal server error',
-      details: String(error)
-    });
+  } catch (error: any) {
+    console.error('Error in secure-video:', error);
+    return res.status(500).json({ error: error.message || 'Internal server error' });
   }
 } 

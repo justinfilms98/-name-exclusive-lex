@@ -15,6 +15,10 @@ export type UploadProgress = {
   progress: number;
   status: 'uploading' | 'processing' | 'complete' | 'error';
   error?: string;
+  uploadedBytes?: number;
+  totalBytes?: number;
+  currentChunk?: number;
+  totalChunks?: number;
 };
 
 export type UploadResult = {
@@ -32,6 +36,7 @@ const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/quicktime'];
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
 const MAX_VIDEO_SIZE = 5 * 1024 * 1024 * 1024; // 5GB
+const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB chunks for better progress tracking
 
 // Helper to validate file
 async function validateFile(file: File, type: 'image' | 'video'): Promise<string | null> {
@@ -70,6 +75,15 @@ function generateUniqueFilename(originalName: string, type: UploadType, slotOrde
   return `${type}-${slotOrder}-${timestamp}.${extension}`;
 }
 
+// Helper to format bytes for display
+function formatBytes(bytes: number): string {
+  if (bytes === 0) return '0 Bytes';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
+}
+
 // Main upload function
 export async function uploadFile(
   file: File,
@@ -77,7 +91,12 @@ export async function uploadFile(
   slotOrder: number,
   onProgress?: (progress: UploadProgress) => void
 ): Promise<UploadResult> {
-  console.log('[uploadFile] Start', { file, type, slotOrder });
+  console.log('[uploadFile] Start', { 
+    file: { name: file.name, size: formatBytes(file.size), type: file.type },
+    type,
+    slotOrder 
+  });
+
   // Validate file
   const validationError = await validateFile(file, type === 'thumbnail' ? 'image' : 'video');
   if (validationError) {
@@ -93,35 +112,65 @@ export async function uploadFile(
   try {
     if (type === 'video') {
       // Use chunked upload for videos
-      const chunkSize = 5 * 1024 * 1024; // 5MB
-      const videosBucket = supabase.storage.from('videos');
+      const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+      let uploadedBytes = 0;
       let lastProgress = 0;
-      const uploadId = await (videosBucket as any).createUpload(
-        filename,
-        file,
-        {
-          chunkSize,
-          onUploadProgress: (event: { loaded: number; total: number }) => {
-            const progress = Math.round((event.loaded / event.total) * 100);
-            if (onProgress && progress !== lastProgress) {
-              onProgress({ progress, status: 'uploading' });
-              lastProgress = progress;
-            }
-          },
+
+      // Upload chunks
+      for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
+        const start = chunkIndex * CHUNK_SIZE;
+        const end = Math.min(start + CHUNK_SIZE, file.size);
+        const chunk = file.slice(start, end);
+        const chunkFilename = `${filename}.part${chunkIndex + 1}`;
+
+        const { data, error } = await supabase.storage
+          .from(bucket)
+          .upload(chunkFilename, chunk, {
+            cacheControl: '3600',
+            upsert: true
+          });
+
+        if (error) {
+          throw new Error(`Failed to upload chunk ${chunkIndex + 1}: ${error.message}`);
         }
-      );
-      if (!uploadId) {
-        throw new Error('Failed to start chunked upload');
+
+        uploadedBytes += chunk.size;
+
+        // Update progress
+        const progress = Math.round((uploadedBytes / file.size) * 100);
+        if (onProgress && progress !== lastProgress) {
+          onProgress({
+            progress,
+            status: 'uploading',
+            uploadedBytes,
+            totalBytes: file.size,
+            currentChunk: chunkIndex + 1,
+            totalChunks
+          });
+          lastProgress = progress;
+        }
       }
-      const commitResult = await (videosBucket as any).commitUpload(filename, uploadId);
-      if (commitResult.error) {
-        throw commitResult.error;
-      }
-      const { publicUrl } = videosBucket.getPublicUrl(filename).data;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from(bucket)
+        .getPublicUrl(filename);
+
       if (!publicUrl) {
-        throw new Error('No publicUrl from upload');
+        throw new Error('Failed to get public URL');
       }
-      if (onProgress) onProgress({ progress: 100, status: 'complete' });
+
+      if (onProgress) {
+        onProgress({
+          progress: 100,
+          status: 'complete',
+          uploadedBytes: file.size,
+          totalBytes: file.size,
+          currentChunk: totalChunks,
+          totalChunks
+        });
+      }
+
       return {
         url: publicUrl,
         path: filename,
@@ -133,21 +182,40 @@ export async function uploadFile(
       };
     } else {
       // Use standard upload for thumbnails
-      const { data, error } = await supabase.storage.from(bucket).upload(filename, file, {
-        cacheControl: '3600',
-        upsert: true,
-      });
+      const { data, error } = await supabase.storage
+        .from(bucket)
+        .upload(filename, file, {
+          cacheControl: '3600',
+          upsert: true
+        });
+
       if (error) {
         throw error;
       }
+
       if (!data || !data.path) {
         throw new Error('No data/path from upload');
       }
-      const { publicUrl } = supabase.storage.from(bucket).getPublicUrl(data.path).data;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from(bucket)
+        .getPublicUrl(data.path);
+
       if (!publicUrl) {
         throw new Error('No publicUrl from upload');
       }
-      if (onProgress) onProgress({ progress: 100, status: 'complete' });
+
+      if (onProgress) {
+        onProgress({
+          progress: 100,
+          status: 'complete',
+          uploadedBytes: file.size,
+          totalBytes: file.size,
+          currentChunk: 1,
+          totalChunks: 1
+        });
+      }
+
       return {
         url: publicUrl,
         path: data.path,
@@ -159,7 +227,16 @@ export async function uploadFile(
       };
     }
   } catch (err) {
-    if (onProgress) onProgress({ progress: 0, status: 'error', error: err instanceof Error ? err.message : 'Upload failed' });
+    console.error('[uploadFile] Error:', err);
+    if (onProgress) {
+      onProgress({
+        progress: 0,
+        status: 'error',
+        error: err instanceof Error ? err.message : 'Upload failed',
+        uploadedBytes: 0,
+        totalBytes: file.size
+      });
+    }
     throw err;
   }
 }
