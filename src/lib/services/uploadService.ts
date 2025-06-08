@@ -91,36 +91,75 @@ export async function uploadFile(
   console.log('[uploadFile] Uploading to bucket', bucket, 'with filename', filename);
 
   try {
-    const { data, error } = await supabase.storage.from(bucket).upload(filename, file, {
-      cacheControl: '3600',
-      upsert: true,
-    });
-    if (error) {
-      console.error('[uploadFile] Supabase upload error:', error);
-      throw error;
+    if (type === 'video') {
+      // Use chunked upload for videos
+      const chunkSize = 5 * 1024 * 1024; // 5MB
+      const videosBucket = supabase.storage.from('videos');
+      let lastProgress = 0;
+      const uploadId = await (videosBucket as any).createUpload(
+        filename,
+        file,
+        {
+          chunkSize,
+          onUploadProgress: (event: { loaded: number; total: number }) => {
+            const progress = Math.round((event.loaded / event.total) * 100);
+            if (onProgress && progress !== lastProgress) {
+              onProgress({ progress, status: 'uploading' });
+              lastProgress = progress;
+            }
+          },
+        }
+      );
+      if (!uploadId) {
+        throw new Error('Failed to start chunked upload');
+      }
+      const commitResult = await (videosBucket as any).commitUpload(filename, uploadId);
+      if (commitResult.error) {
+        throw commitResult.error;
+      }
+      const { publicUrl } = videosBucket.getPublicUrl(filename).data;
+      if (!publicUrl) {
+        throw new Error('No publicUrl from upload');
+      }
+      if (onProgress) onProgress({ progress: 100, status: 'complete' });
+      return {
+        url: publicUrl,
+        path: filename,
+        metadata: {
+          size: file.size,
+          type: file.type,
+          lastModified: file.lastModified,
+        },
+      };
+    } else {
+      // Use standard upload for thumbnails
+      const { data, error } = await supabase.storage.from(bucket).upload(filename, file, {
+        cacheControl: '3600',
+        upsert: true,
+      });
+      if (error) {
+        throw error;
+      }
+      if (!data || !data.path) {
+        throw new Error('No data/path from upload');
+      }
+      const { publicUrl } = supabase.storage.from(bucket).getPublicUrl(data.path).data;
+      if (!publicUrl) {
+        throw new Error('No publicUrl from upload');
+      }
+      if (onProgress) onProgress({ progress: 100, status: 'complete' });
+      return {
+        url: publicUrl,
+        path: data.path,
+        metadata: {
+          size: file.size,
+          type: file.type,
+          lastModified: file.lastModified,
+        },
+      };
     }
-    if (!data || !data.path) {
-      console.error('[uploadFile] No data or path returned from upload', data);
-      throw new Error('No data/path from upload');
-    }
-    console.log('[uploadFile] Upload successful', data);
-    const { publicUrl } = supabase.storage.from(bucket).getPublicUrl(data.path).data;
-    if (!publicUrl) {
-      console.error('[uploadFile] No publicUrl returned', data);
-      throw new Error('No publicUrl from upload');
-    }
-    console.log('[uploadFile] publicUrl:', publicUrl);
-    return {
-      url: publicUrl,
-      path: data.path,
-      metadata: {
-        size: file.size,
-        type: file.type,
-        lastModified: file.lastModified,
-      },
-    };
   } catch (err) {
-    console.error('[uploadFile] Caught error:', err);
+    if (onProgress) onProgress({ progress: 0, status: 'error', error: err instanceof Error ? err.message : 'Upload failed' });
     throw err;
   }
 }
