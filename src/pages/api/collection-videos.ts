@@ -124,9 +124,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   if (req.method === 'DELETE') {
     const { id } = req.query;
-    if (!id || typeof id !== 'string') return res.status(400).json({ error: 'Missing id' });
+    if (!id || typeof id !== 'string' || isNaN(Number(id))) {
+      return res.status(400).json({ error: 'Missing or invalid id' });
+    }
     try {
-      await prisma.collectionVideo.delete({ where: { id } });
+      await prisma.collectionVideo.delete({ where: { id: Number(id) } });
       return res.status(204).end();
     } catch (error) {
       return res.status(500).json({ error: error instanceof Error ? error.message : String(error) });
