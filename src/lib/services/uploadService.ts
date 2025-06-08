@@ -31,7 +31,7 @@ export type UploadResult = {
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/quicktime'];
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
-const MAX_VIDEO_SIZE = 100 * 1024 * 1024; // 100MB
+const MAX_VIDEO_SIZE = 5 * 1024 * 1024 * 1024; // 5GB
 
 // Helper to validate file
 async function validateFile(file: File, type: 'image' | 'video'): Promise<string | null> {
