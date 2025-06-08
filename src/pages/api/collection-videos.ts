@@ -42,18 +42,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   if (req.method === 'POST') {
     try {
-      const data = req.body;
-      console.log('POST /api/collection-videos', data);
-      
-      // Validate input
-      const validatedData = collectionVideoSchema.parse(data);
-
-      // Only pick fields that exist in the Prisma model
-      const {
-        collection, title, description, thumbnail, videoUrl, thumbnailPath, videoPath, order, duration
-      } = validatedData;
-      // Price is not in the Zod schema but is required by Prisma
-      const safePrice = typeof (validatedData as any).price === 'number' ? (validatedData as any).price : 0;
+      const parsed = collectionVideoSchema.parse(req.body);
+      console.log('POST /api/collection-videos', parsed);
+      const { collection, title, description, thumbnail, videoUrl, thumbnailPath, videoPath, order, duration, price } = parsed;
 
       // Check if slot is already taken in this collection
       const existingVideo = await prisma.collectionVideo.findFirst({
@@ -79,7 +70,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           thumbnailPath,
           videoPath,
           order,
-          price: safePrice,
+          price,
           duration,
         },
         select: {
@@ -120,24 +111,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (req.method === 'PUT') {
     const { id, ...fields } = req.body;
     if (!id) return res.status(400).json({ error: 'Missing id' });
-    const { data, error } = await prisma
-      .from('collection_videos')
-      .update(fields)
-      .eq('id', id)
-      .select();
-    if (error) return res.status(500).json({ error: error.message });
-    return res.status(200).json(data[0]);
+    try {
+      const updated = await prisma.collectionVideo.update({
+        where: { id },
+        data: fields,
+      });
+      return res.status(200).json(updated);
+    } catch (error) {
+      return res.status(500).json({ error: error instanceof Error ? error.message : String(error) });
+    }
   }
 
   if (req.method === 'DELETE') {
     const { id } = req.query;
     if (!id || typeof id !== 'string') return res.status(400).json({ error: 'Missing id' });
-    const { error } = await prisma
-      .from('collection_videos')
-      .delete()
-      .eq('id', id);
-    if (error) return res.status(500).json({ error: error.message });
-    return res.status(204).end();
+    try {
+      await prisma.collectionVideo.delete({ where: { id } });
+      return res.status(204).end();
+    } catch (error) {
+      return res.status(500).json({ error: error instanceof Error ? error.message : String(error) });
+    }
   }
 
   res.setHeader('Allow', ['GET', 'POST', 'PUT', 'DELETE']);

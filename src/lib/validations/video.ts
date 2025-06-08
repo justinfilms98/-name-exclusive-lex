@@ -2,14 +2,14 @@ import { z } from 'zod';
 
 export const collectionVideoSchema = z.object({
   title: z.string().min(1),
-  description: z.string().optional(),
+  description: z.string().min(1),
   price: z.number().nonnegative(),
   duration: z.number().int().positive(),
-  thumbnailPath: z.string().optional(),
-  videoPath: z.string().optional(),
+  thumbnailPath: z.string().min(1),
+  videoPath: z.string().min(1),
   collection: z.string().min(1),
-  thumbnail: z.string().optional(),
-  videoUrl: z.string().optional(),
-  order: z.number().int().nonnegative().optional(),
+  thumbnail: z.string().min(1),
+  videoUrl: z.string().min(1),
+  order: z.number().int().nonnegative(),
   // Add any other fields your API expects
 }); 
