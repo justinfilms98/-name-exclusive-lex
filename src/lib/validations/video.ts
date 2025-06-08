@@ -12,4 +12,19 @@ export const collectionVideoSchema = z.object({
   videoUrl: z.string().min(1),
   order: z.number().int().nonnegative(),
   // Add any other fields your API expects
+});
+
+export const heroVideoSchema = z.object({
+  title: z.string().min(1),
+  description: z.string().min(1),
+  price: z.number().nonnegative(),
+  duration: z.number().int().positive(),
+  thumbnail: z.string().min(1),
+  videoUrl: z.string().min(1),
+  order: z.number().int().nonnegative(),
+  status: z.string().min(1),
+  ageRating: z.string().min(1),
+  category: z.string().min(1),
+  tags: z.array(z.string()).optional(),
+  // Add any other fields your API expects
 }); 
