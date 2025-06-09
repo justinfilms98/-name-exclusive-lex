@@ -131,18 +131,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   if (req.method === 'DELETE') {
     const { id } = req.query;
-    if (!id || typeof id !== 'string' || isNaN(Number(id))) {
+    const videoId = Array.isArray(id) ? id[0] : id;
+    if (!videoId || isNaN(Number(videoId))) {
       return res.status(400).json({ error: 'Missing or invalid id' });
     }
     try {
       // Find the video to get file paths
-      const video = await prisma.collectionVideo.findUnique({ where: { id: Number(id) } });
+      const video = await prisma.collectionVideo.findUnique({ where: { id: Number(videoId) } });
       if (!video) return res.status(404).json({ error: 'Video not found' });
       // Delete files from storage
       if (video.videoPath) await deleteFile(video.videoPath, 'video');
       if (video.thumbnailPath) await deleteFile(video.thumbnailPath, 'thumbnail');
       // Delete from DB
-      await prisma.collectionVideo.delete({ where: { id: Number(id) } });
+      await prisma.collectionVideo.delete({ where: { id: Number(videoId) } });
       return res.status(204).end();
     } catch (error) {
       return res.status(500).json({ error: error instanceof Error ? error.message : String(error) });

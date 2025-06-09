@@ -175,11 +175,11 @@ export default function CollectionVideosPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: string | number) => {
+    console.log('Deleting video with id:', id, typeof id);
     setLoading(true);
     setError(null);
     try {
-      // Use query string for DELETE to match API expectations
       const res = await fetch(`/api/collection-videos?id=${id}`, {
         method: 'DELETE',
       });
@@ -215,7 +215,7 @@ export default function CollectionVideosPage() {
                   <p className="text-brand-sage text-xs mb-2">Duration: {video.duration} min</p>
                   <div className="flex gap-2 mt-auto w-full">
                     <button className="bg-brand-pine text-white px-3 py-1 rounded shadow hover:bg-brand-earth focus:outline-none focus:ring-2 focus:ring-brand-tan transition w-1/2" onClick={() => handleEdit(video.id)}>Edit</button>
-                    <button className="bg-brand-pine text-white px-3 py-1 rounded shadow hover:bg-brand-earth focus:outline-none focus:ring-2 focus:ring-brand-tan transition w-1/2" onClick={() => handleDelete(video.id)}>Delete</button>
+                    <button className="bg-brand-pine text-white px-3 py-1 rounded shadow hover:bg-brand-earth focus:outline-none focus:ring-2 focus:ring-brand-tan transition w-1/2" onClick={() => handleDelete(String(video.id))}>Delete</button>
                   </div>
                 </>
               ) : (
