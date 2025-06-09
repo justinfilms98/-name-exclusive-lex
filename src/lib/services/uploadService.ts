@@ -140,11 +140,8 @@ export async function uploadFile(
         },
       };
     }
-    // Use TUS for files > 100MB
-    const {
-      data: { session },
-      error: sessErr
-    } = await supabase.auth.getSession();
+    // Pre-check for Supabase Auth session before TUS upload
+    const { data: { session }, error: sessErr } = await supabase.auth.getSession();
     if (sessErr || !session?.access_token) {
       throw new Error('No Supabase access token—please log in and try again');
     }

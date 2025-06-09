@@ -179,6 +179,7 @@ export default function CollectionVideosPage() {
     setLoading(true);
     setError(null);
     try {
+      // Use query string for DELETE to match API expectations
       const res = await fetch(`/api/collection-videos?id=${id}`, {
         method: 'DELETE',
       });
