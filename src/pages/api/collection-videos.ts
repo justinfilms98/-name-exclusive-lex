@@ -136,22 +136,31 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   if (req.method === 'DELETE') {
-    // 1. pull id from the query string
-    const rawId = req.query.id;
-    const id = Array.isArray(rawId) ? rawId[0] : rawId;
+    // 1) Try req.query first
+    let id: string | null = null;
+    if (req.query.id) {
+      const raw = req.query.id;
+      id = Array.isArray(raw) ? raw[0] : raw;
+    }
+    // 2) Fallback: parse directly from req.url
+    if (!id) {
+      const url = req.url || '';
+      id = new URLSearchParams(url.split('?')[1] || '').get('id');
+    }
 
     console.log('DELETE /api/collection-videos id:', id);
 
-    // 2. validate
-    if (!id || isNaN(+id)) {
+    // validate
+    if (!id || isNaN(Number(id))) {
       return res.status(400).json({ error: 'Missing or invalid id' });
     }
 
-    // 3. perform deletion in your DB/storage
+    // perform delete
+    const deleteId = Number(id);
     const { data, error } = await supabase
       .from('collection_videos')
       .delete()
-      .eq('id', +id);
+      .eq('id', deleteId);
 
     if (error) {
       console.error('Supabase delete error:', error);
