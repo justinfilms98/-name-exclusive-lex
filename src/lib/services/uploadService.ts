@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import { z } from 'zod';
+import tus from 'tus-js-client';
 
 // Validation schemas
 const fileValidationSchema = z.object({
@@ -109,135 +110,112 @@ export async function uploadFile(
   const bucket = type === 'thumbnail' ? 'thumbnails' : 'videos';
   console.log('[uploadFile] Uploading to bucket', bucket, 'with filename', filename);
 
-  try {
-    if (type === 'video') {
-      // Use chunked upload for videos
-      const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
-      let uploadedBytes = 0;
-      let lastProgress = 0;
+  if (type === 'video') {
+    // Use Supabase Resumable Uploads (TUS)
+    const projectUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+    const endpoint = `${projectUrl}/storage/v1/upload/resumable`;
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) throw new Error('No Supabase access token');
 
-      // Upload chunks
-      for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
-        const start = chunkIndex * CHUNK_SIZE;
-        const end = Math.min(start + CHUNK_SIZE, file.size);
-        const chunk = file.slice(start, end);
-        const chunkFilename = `${filename}.part${chunkIndex + 1}`;
-
-        const { data, error } = await supabase.storage
-          .from(bucket)
-          .upload(chunkFilename, chunk, {
-            cacheControl: '3600',
-            upsert: true
-          });
-
-        if (error) {
-          throw new Error(`Failed to upload chunk ${chunkIndex + 1}: ${error.message}`);
-        }
-
-        uploadedBytes += chunk.size;
-
-        // Update progress
-        const progress = Math.round((uploadedBytes / file.size) * 100);
-        if (onProgress && progress !== lastProgress) {
-          onProgress({
-            progress,
-            status: 'uploading',
-            uploadedBytes,
-            totalBytes: file.size,
-            currentChunk: chunkIndex + 1,
-            totalChunks
-          });
-          lastProgress = progress;
-        }
-      }
-
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from(bucket)
-        .getPublicUrl(filename);
-
-      if (!publicUrl) {
-        throw new Error('Failed to get public URL');
-      }
-
-      if (onProgress) {
-        onProgress({
-          progress: 100,
-          status: 'complete',
-          uploadedBytes: file.size,
-          totalBytes: file.size,
-          currentChunk: totalChunks,
-          totalChunks
-        });
-      }
-
-      return {
-        url: publicUrl,
-        path: filename,
-        metadata: {
-          size: file.size,
-          type: file.type,
-          lastModified: file.lastModified,
+    return new Promise<UploadResult>((resolve, reject) => {
+      const upload = new tus.Upload(file, {
+        endpoint,
+        retryDelays: [0, 3000, 5000, 10000, 20000],
+        headers: {
+          authorization: `Bearer ${session.access_token}`,
+          'x-upsert': 'true',
         },
-      };
-    } else {
-      // Use standard upload for thumbnails
-      const { data, error } = await supabase.storage
-        .from(bucket)
-        .upload(filename, file, {
+        uploadDataDuringCreation: true,
+        removeFingerprintOnSuccess: true,
+        metadata: {
+          bucketName: bucket,
+          objectName: filename,
+          contentType: file.type,
           cacheControl: '3600',
-          upsert: true
-        });
-
-      if (error) {
-        throw error;
-      }
-
-      if (!data || !data.path) {
-        throw new Error('No data/path from upload');
-      }
-
-      const { data: { publicUrl } } = supabase.storage
-        .from(bucket)
-        .getPublicUrl(data.path);
-
-      if (!publicUrl) {
-        throw new Error('No publicUrl from upload');
-      }
-
-      if (onProgress) {
-        onProgress({
-          progress: 100,
-          status: 'complete',
-          uploadedBytes: file.size,
-          totalBytes: file.size,
-          currentChunk: 1,
-          totalChunks: 1
-        });
-      }
-
-      return {
-        url: publicUrl,
-        path: data.path,
-        metadata: {
-          size: file.size,
-          type: file.type,
-          lastModified: file.lastModified,
         },
-      };
+        chunkSize: 6 * 1024 * 1024, // 6MB as required by Supabase
+        onError: function (error) {
+          console.error('[uploadFile] TUS error:', error);
+          if (onProgress) onProgress({ progress: 0, status: 'error', error: error.message });
+          reject(error);
+        },
+        onProgress: function (bytesUploaded, bytesTotal) {
+          const progress = Math.round((bytesUploaded / bytesTotal) * 100);
+          if (onProgress) onProgress({ progress, status: 'uploading', uploadedBytes: bytesUploaded, totalBytes: bytesTotal });
+        },
+        onSuccess: function () {
+          // Get public URL
+          const { data: { publicUrl } } = supabase.storage.from(bucket).getPublicUrl(filename);
+          if (!publicUrl) {
+            const err = new Error('Failed to get public URL');
+            if (onProgress) onProgress({ progress: 0, status: 'error', error: err.message });
+            reject(err);
+            return;
+          }
+          if (onProgress) onProgress({ progress: 100, status: 'complete', uploadedBytes: file.size, totalBytes: file.size });
+          resolve({
+            url: publicUrl,
+            path: filename,
+            metadata: {
+              size: file.size,
+              type: file.type,
+              lastModified: file.lastModified,
+            },
+          });
+        },
+      });
+      upload.findPreviousUploads().then(function (previousUploads) {
+        if (previousUploads.length) {
+          upload.resumeFromPreviousUpload(previousUploads[0]);
+        }
+        upload.start();
+      });
+    });
+  } else {
+    // Use standard upload for thumbnails
+    const { data, error } = await supabase.storage
+      .from(bucket)
+      .upload(filename, file, {
+        cacheControl: '3600',
+        upsert: true
+      });
+
+    if (error) {
+      throw error;
     }
-  } catch (err) {
-    console.error('[uploadFile] Error:', err);
+
+    if (!data || !data.path) {
+      throw new Error('No data/path from upload');
+    }
+
+    const { data: { publicUrl } } = supabase.storage
+      .from(bucket)
+      .getPublicUrl(data.path);
+
+    if (!publicUrl) {
+      throw new Error('No publicUrl from upload');
+    }
+
     if (onProgress) {
       onProgress({
-        progress: 0,
-        status: 'error',
-        error: err instanceof Error ? err.message : 'Upload failed',
-        uploadedBytes: 0,
-        totalBytes: file.size
+        progress: 100,
+        status: 'complete',
+        uploadedBytes: file.size,
+        totalBytes: file.size,
+        currentChunk: 1,
+        totalChunks: 1
       });
     }
-    throw err;
+
+    return {
+      url: publicUrl,
+      path: data.path,
+      metadata: {
+        size: file.size,
+        type: file.type,
+        lastModified: file.lastModified,
+      },
+    };
   }
 }
 
