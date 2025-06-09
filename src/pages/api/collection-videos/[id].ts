@@ -12,6 +12,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const videoId = Array.isArray(id) ? id[0] : (id ?? '');
   const parsedId = parseInt(videoId, 10);
 
+  if (method === 'GET') {
+    return res.status(200).json({ ok: true, id: parsedId });
+  }
+
   if (method === 'DELETE') {
     if (isNaN(parsedId)) {
       return res.status(400).json({ error: 'Invalid or missing video ID' });
@@ -32,6 +36,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(200).json({ success: true });
   }
 
-  res.setHeader('Allow', ['DELETE']);
+  res.setHeader('Allow', ['GET', 'DELETE']);
   return res.status(405).end(`Method ${method} Not Allowed`);
 } 

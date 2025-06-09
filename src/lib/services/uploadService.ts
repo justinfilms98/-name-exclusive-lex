@@ -140,10 +140,13 @@ export async function uploadFile(
         },
       };
     }
-    // Pre-check for Supabase Auth session before TUS upload
-    const { data: { session }, error: sessErr } = await supabase.auth.getSession();
-    if (sessErr || !session?.access_token) {
-      throw new Error('No Supabase access token—please log in and try again');
+    // Guard: Ensure Supabase access token is present before TUS upload
+    if (typeof window !== 'undefined') {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        console.error('No Supabase access token – user must be logged in');
+        throw new Error('No Supabase access token');
+      }
     }
     const projectUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
     const endpoint = `${projectUrl}/storage/v1/object/resumable?bucket=${bucket}&object=${path}`;
