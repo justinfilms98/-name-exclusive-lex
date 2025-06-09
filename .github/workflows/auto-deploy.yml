@@ -1,0 +1,33 @@
+name: CI & Auto Deploy to Vercel
+
+on:
+  push:
+    branches:
+      - fix/supabase-chunked-uploads
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Verify routes + Clean caches
+        run: npm run predeploy
+
+      - name: Build Next.js
+        run: npm run build
+
+      - name: Deploy to Vercel
+        run: npx vercel --prod --confirm
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }} 
