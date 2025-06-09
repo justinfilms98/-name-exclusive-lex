@@ -108,20 +108,48 @@ export async function uploadFile(
 
   const filename = generateUniqueFilename(file.name, type, slotOrder);
   const bucket = type === 'thumbnail' ? 'thumbnails' : 'videos';
-  console.log('[uploadFile] Uploading to bucket', bucket, 'with filename', filename);
+  const path = filename;
 
   if (type === 'video') {
-    // Use Supabase Resumable Uploads (TUS)
+    // Use anon key direct upload for files <= 100MB
+    if (file.size <= 100 * 1024 * 1024) {
+      const { data, error } = await supabase
+        .storage
+        .from(bucket)
+        .upload(path, file, { upsert: true });
+      if (error) throw error;
+      const { data: { publicUrl } } = supabase.storage.from(bucket).getPublicUrl(path);
+      if (!publicUrl) throw new Error('No publicUrl from upload');
+      if (onProgress) {
+        onProgress({
+          progress: 100,
+          status: 'complete',
+          uploadedBytes: file.size,
+          totalBytes: file.size,
+          currentChunk: 1,
+          totalChunks: 1
+        });
+      }
+      return {
+        url: publicUrl,
+        path,
+        metadata: {
+          size: file.size,
+          type: file.type,
+          lastModified: file.lastModified,
+        },
+      };
+    }
+    // Use TUS for files > 100MB
     const {
       data: { session },
-      error
+      error: sessErr
     } = await supabase.auth.getSession();
-    if (error || !session?.access_token) {
+    if (sessErr || !session?.access_token) {
       throw new Error('No Supabase access token—please log in and try again');
     }
     const projectUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-    const endpoint = `${projectUrl}/storage/v1/object/resumable?bucket=${bucket}&object=${filename}`;
-
+    const endpoint = `${projectUrl}/storage/v1/object/resumable?bucket=${bucket}&object=${path}`;
     return new Promise<UploadResult>((resolve, reject) => {
       const upload = new tus.Upload(file, {
         endpoint,
@@ -133,13 +161,12 @@ export async function uploadFile(
         removeFingerprintOnSuccess: true,
         metadata: {
           bucketName: bucket,
-          objectName: filename,
+          objectName: path,
           contentType: file.type,
           cacheControl: '3600',
         },
-        chunkSize: 6 * 1024 * 1024, // 6MB as required by Supabase
+        chunkSize: 5 * 1024 * 1024, // 5MB chunks
         onError: function (error) {
-          console.error('[uploadFile] TUS error:', error);
           if (onProgress) onProgress({ progress: 0, status: 'error', error: error.message });
           reject(error);
         },
@@ -148,8 +175,7 @@ export async function uploadFile(
           if (onProgress) onProgress({ progress, status: 'uploading', uploadedBytes: bytesUploaded, totalBytes: bytesTotal });
         },
         onSuccess: function () {
-          // Get public URL
-          const { data: { publicUrl } } = supabase.storage.from(bucket).getPublicUrl(filename);
+          const { data: { publicUrl } } = supabase.storage.from(bucket).getPublicUrl(path);
           if (!publicUrl) {
             const err = new Error('Failed to get public URL');
             if (onProgress) onProgress({ progress: 0, status: 'error', error: err.message });
@@ -159,7 +185,7 @@ export async function uploadFile(
           if (onProgress) onProgress({ progress: 100, status: 'complete', uploadedBytes: file.size, totalBytes: file.size });
           resolve({
             url: publicUrl,
-            path: filename,
+            path,
             metadata: {
               size: file.size,
               type: file.type,
@@ -183,23 +209,18 @@ export async function uploadFile(
         cacheControl: '3600',
         upsert: true
       });
-
     if (error) {
       throw error;
     }
-
     if (!data || !data.path) {
       throw new Error('No data/path from upload');
     }
-
     const { data: { publicUrl } } = supabase.storage
       .from(bucket)
       .getPublicUrl(data.path);
-
     if (!publicUrl) {
       throw new Error('No publicUrl from upload');
     }
-
     if (onProgress) {
       onProgress({
         progress: 100,
@@ -210,7 +231,6 @@ export async function uploadFile(
         totalChunks: 1
       });
     }
-
     return {
       url: publicUrl,
       path: data.path,
