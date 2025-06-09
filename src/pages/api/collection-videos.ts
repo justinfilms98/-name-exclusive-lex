@@ -4,12 +4,6 @@ import { collectionVideoSchema } from '@/lib/validations/video';
 import { z } from 'zod';
 import { deleteFile } from '@/lib/services/uploadService';
 
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
-
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method === 'GET') {
     try {
