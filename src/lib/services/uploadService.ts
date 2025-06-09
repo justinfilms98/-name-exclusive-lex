@@ -1,6 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import { z } from 'zod';
-import tus from 'tus-js-client';
+import { Upload } from 'tus-js-client';
 
 // Validation schemas
 const fileValidationSchema = z.object({
@@ -141,17 +141,22 @@ export async function uploadFile(
       };
     }
     // Guard: Ensure Supabase access token is present before TUS upload
+    let session: any = undefined;
     if (typeof window !== 'undefined') {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data } = await supabase.auth.getSession();
+      session = data.session;
       if (!session?.access_token) {
         console.error('No Supabase access token – user must be logged in');
         throw new Error('No Supabase access token');
       }
     }
+    if (!session?.access_token) {
+      throw new Error('No Supabase access token');
+    }
     const projectUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
     const endpoint = `${projectUrl}/storage/v1/object/resumable?bucket=${bucket}&object=${path}`;
     return new Promise<UploadResult>((resolve, reject) => {
-      const upload = new tus.Upload(file, {
+      const upload = new Upload(file, {
         endpoint,
         retryDelays: [0, 3000, 5000, 10000, 20000],
         headers: {
