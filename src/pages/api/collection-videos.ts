@@ -3,6 +3,12 @@ import { prisma } from '@/lib/prisma';
 import { collectionVideoSchema } from '@/lib/validations/video';
 import { z } from 'zod';
 
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method === 'GET') {
     try {
@@ -103,7 +109,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       
       return res.status(500).json({
         error: 'Failed to create collection video',
-        details: String(err)
+        details: err instanceof Error ? err.stack || err.message : String(err)
       });
     }
   }
