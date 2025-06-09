@@ -5,6 +5,8 @@ import { z } from 'zod';
 import { deleteFile } from '@/lib/services/uploadService';
 import { supabase } from '@/lib/supabase';
 
+const TABLE_NAME = 'collection_videos';
+
 export const config = {
   api: {
     bodyParser: {
@@ -17,6 +19,8 @@ export const config = {
 // If you need raw upload handling, use bodyParser: false only in a dedicated upload route.
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  console.log('API route hit:', req.method, req.url);
+
   if (req.method === 'GET') {
     try {
       console.log('GET /api/collection-videos');
@@ -148,7 +152,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       id = new URLSearchParams(url.split('?')[1] || '').get('id');
     }
 
-    console.log('DELETE /api/collection-videos id:', id);
+    console.log('DELETE branch reached, id:', id);
 
     // validate
     if (!id || isNaN(Number(id))) {
@@ -158,7 +162,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // perform delete
     const deleteId = Number(id);
     const { data, error } = await supabase
-      .from('collection_videos')
+      .from(TABLE_NAME)
       .delete()
       .eq('id', deleteId);
 
