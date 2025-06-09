@@ -4,6 +4,9 @@ import { collectionVideoSchema } from '@/lib/validations/video';
 import { z } from 'zod';
 import { deleteFile } from '@/lib/services/uploadService';
 
+// Note: bodyParser: false was intentionally removed to restore DELETE query parsing for id (?id=...) requests.
+// If you need raw upload handling, use bodyParser: false only in a dedicated upload route.
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method === 'GET') {
     try {
