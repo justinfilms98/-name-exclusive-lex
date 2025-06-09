@@ -112,18 +112,22 @@ export async function uploadFile(
 
   if (type === 'video') {
     // Use Supabase Resumable Uploads (TUS)
+    const {
+      data: { session },
+      error
+    } = await supabase.auth.getSession();
+    if (error || !session?.access_token) {
+      throw new Error('No Supabase access token—please log in and try again');
+    }
     const projectUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-    const endpoint = `${projectUrl}/storage/v1/upload/resumable`;
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.access_token) throw new Error('No Supabase access token');
+    const endpoint = `${projectUrl}/storage/v1/object/resumable?bucket=${bucket}&object=${filename}`;
 
     return new Promise<UploadResult>((resolve, reject) => {
       const upload = new tus.Upload(file, {
         endpoint,
         retryDelays: [0, 3000, 5000, 10000, 20000],
         headers: {
-          authorization: `Bearer ${session.access_token}`,
-          'x-upsert': 'true',
+          Authorization: `Bearer ${session.access_token}`,
         },
         uploadDataDuringCreation: true,
         removeFingerprintOnSuccess: true,
