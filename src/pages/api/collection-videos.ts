@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { collectionVideoSchema } from '@/lib/validations/video';
 import { z } from 'zod';
 import { deleteFile } from '@/lib/services/uploadService';
+import { supabase } from '@/lib/supabase';
 
 export const config = {
   api: {
@@ -135,24 +136,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   if (req.method === 'DELETE') {
+    // 1. pull id from the query string
     const rawId = req.query.id;
     const id = Array.isArray(rawId) ? rawId[0] : rawId;
+
+    console.log('DELETE /api/collection-videos id:', id);
+
+    // 2. validate
     if (!id || isNaN(+id)) {
       return res.status(400).json({ error: 'Missing or invalid id' });
     }
-    try {
-      // Find the video to get file paths
-      const video = await prisma.collectionVideo.findUnique({ where: { id: Number(id) } });
-      if (!video) return res.status(404).json({ error: 'Video not found' });
-      // Delete files from storage
-      if (video.videoPath) await deleteFile(video.videoPath, 'video');
-      if (video.thumbnailPath) await deleteFile(video.thumbnailPath, 'thumbnail');
-      // Delete from DB
-      await prisma.collectionVideo.delete({ where: { id: Number(id) } });
-      return res.status(204).end();
-    } catch (error) {
-      return res.status(500).json({ error: error instanceof Error ? error.message : String(error) });
+
+    // 3. perform deletion in your DB/storage
+    const { data, error } = await supabase
+      .from('collection_videos')
+      .delete()
+      .eq('id', +id);
+
+    if (error) {
+      console.error('Supabase delete error:', error);
+      return res.status(500).json({ error: error.message });
     }
+
+    return res.status(200).json({ success: true, deleted: data });
   }
 
   res.setHeader('Allow', ['GET', 'POST', 'PUT', 'DELETE']);
