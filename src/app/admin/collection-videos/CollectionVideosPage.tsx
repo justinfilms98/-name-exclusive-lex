@@ -180,7 +180,7 @@ export default function CollectionVideosPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/collection-videos?id=${id}`, {
+      const res = await fetch(`/api/collection-videos/${id}`, {
         method: 'DELETE',
       });
       if (!res.ok && res.status !== 204) throw new Error('Failed to delete video');
