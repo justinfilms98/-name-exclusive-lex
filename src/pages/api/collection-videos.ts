@@ -2,6 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { prisma } from '@/lib/prisma';
 import { collectionVideoSchema } from '@/lib/validations/video';
 import { z } from 'zod';
+import { deleteFile } from '@/lib/services/uploadService';
 
 export const config = {
   api: {
@@ -134,6 +135,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: 'Missing or invalid id' });
     }
     try {
+      // Find the video to get file paths
+      const video = await prisma.collectionVideo.findUnique({ where: { id: Number(id) } });
+      if (!video) return res.status(404).json({ error: 'Video not found' });
+      // Delete files from storage
+      if (video.videoPath) await deleteFile(video.videoPath, 'video');
+      if (video.thumbnailPath) await deleteFile(video.thumbnailPath, 'thumbnail');
+      // Delete from DB
       await prisma.collectionVideo.delete({ where: { id: Number(id) } });
       return res.status(204).end();
     } catch (error) {
