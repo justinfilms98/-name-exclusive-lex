@@ -11,11 +11,11 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-export default async function WatchPage({ params, searchParams }: PageProps) {
+export default async function WatchPage({ params, searchParams }: { params: { videoId: string }, searchParams?: { token?: string } }) {
   let debug = '';
   try {
     const videoId = params.videoId;
-    const tokenValue = searchParams.token;
+    const tokenValue = searchParams?.token;
     debug += `videoId: ${videoId} | tokenValue: ${tokenValue}\n`;
     if (!tokenValue) return (
       <div style={{ background: 'white', color: 'black', padding: 20 }}>
