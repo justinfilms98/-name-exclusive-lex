@@ -1,11 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { notFound } from 'next/navigation';
 
-interface PageProps {
-  params: { videoId: string };
-  searchParams: { token?: string };
-}
-
 const supabaseAdmin = createClient(
   process.env.SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
