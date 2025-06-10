@@ -28,7 +28,8 @@ interface SuggestedVideo {
   price: number;
 }
 
-export default function WatchPage({ params }: { params: { videoId: string } }) {
+export default function Page(props: any) {
+  const { params } = props;
   const user = useUser();
   const router = useRouter();
   const searchParams = useSearchParams();
