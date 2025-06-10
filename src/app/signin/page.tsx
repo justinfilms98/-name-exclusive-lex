@@ -21,7 +21,7 @@ export default function SignInPage() {
     setLoading(true);
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/account` }
+      options: { redirectTo: window.location.origin + '/account' }
     });
     if (error) {
       console.error('OAuth error:', error);
