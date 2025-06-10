@@ -1,29 +1,23 @@
 "use client";
-import { useSession } from 'next-auth/react';
+import { useUser } from '@supabase/auth-helpers-react';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import Link from 'next/link';
 
 export default function AdminDashboard() {
-  const { data: session, status } = useSession();
+  const user = useUser();
   const router = useRouter();
 
-  console.log('SESSION USER:', session?.user);
-
   useEffect(() => {
-    const isAdmin =
-      (session?.user as any)?.role?.toLowerCase() === 'admin' ||
-      session?.user?.email === 'contact.exclusivelex@gmail.com';
-    if (status !== 'loading' && !isAdmin) {
+    const isAdmin = user?.user_metadata?.role?.toLowerCase() === 'admin' || user?.email === 'contact.exclusivelex@gmail.com';
+    if (!isAdmin) {
       router.replace('/');
     }
-  }, [session, status, router]);
+  }, [user, router]);
 
-  const isAdmin =
-    (session?.user as any)?.role?.toLowerCase() === 'admin' ||
-    session?.user?.email === 'contact.exclusivelex@gmail.com';
+  const isAdmin = user?.user_metadata?.role?.toLowerCase() === 'admin' || user?.email === 'contact.exclusivelex@gmail.com';
 
-  if (status === 'loading' || (session && !isAdmin)) {
+  if (!user || !isAdmin) {
     return null;
   }
 

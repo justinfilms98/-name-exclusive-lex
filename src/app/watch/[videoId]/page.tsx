@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { useSession } from 'next-auth/react';
+import { useUser } from '@supabase/auth-helpers-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
@@ -29,7 +29,7 @@ interface SuggestedVideo {
 }
 
 export default function WatchPage({ params }: { params: { videoId: string } }) {
-  const { data: session, status } = useSession();
+  const user = useUser();
   const router = useRouter();
   const searchParams = useSearchParams();
   const userId = searchParams ? searchParams.get('userId') : null;
@@ -58,16 +58,15 @@ export default function WatchPage({ params }: { params: { videoId: string } }) {
   const [tooltipTime, setTooltipTime] = useState('');
 
   useEffect(() => {
-    if (status === 'unauthenticated') {
+    if (!user) {
       router.push('/api/auth/signin');
       return;
     }
-
-    if (status === 'authenticated' && session?.user?.email) {
+    if (user?.email) {
       fetchVideoAccess();
       fetchSuggestedVideos();
     }
-  }, [status, session, router]);
+  }, [user, router]);
 
   useEffect(() => {
     if (videoDetails?.expiresAt) {

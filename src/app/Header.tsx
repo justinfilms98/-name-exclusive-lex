@@ -1,14 +1,12 @@
 "use client";
 import Link from 'next/link';
-import { useSession, signIn, signOut } from 'next-auth/react';
 import { useState } from 'react';
 import { CartPreview } from "@/components/CartPreview";
 import { useCart } from '@/context/CartContext';
 
 export default function Header() {
-  const { data: session } = useSession();
-  const isLoggedIn = !!session;
-  const isAdmin = (session?.user as any)?.role?.toLowerCase() === 'admin';
+  const isLoggedIn = false;
+  const isAdmin = false;
   const [menuOpen, setMenuOpen] = useState(false);
   const { totalItems } = useCart();
 
@@ -50,7 +48,7 @@ export default function Header() {
               <button className="bg-[#D4C7B4] text-[#654C37] px-3 py-1 rounded text-sm button-animate">My Account</button>
             </Link>
           ) : (
-            <button onClick={() => signIn()} className="bg-[#D4C7B4] text-[#654C37] px-3 py-1 rounded text-sm button-animate">Login</button>
+            <button className="bg-[#D4C7B4] text-[#654C37] px-3 py-1 rounded text-sm button-animate">Login</button>
           )}
         </div>
         {/* Mobile dropdown menu */}
@@ -65,7 +63,7 @@ export default function Header() {
                 <button className="w-full bg-[#D4C7B4] text-[#654C37] px-3 py-2 rounded text-sm button-animate">My Account</button>
               </Link>
             ) : (
-              <button onClick={() => { setMenuOpen(false); signIn(); }} className="w-full bg-[#D4C7B4] text-[#654C37] px-3 py-2 rounded text-sm m-2 button-animate">Login</button>
+              <button className="w-full bg-[#D4C7B4] text-[#654C37] px-3 py-2 rounded text-sm m-2 button-animate">Login</button>
             )}
           </div>
         )}

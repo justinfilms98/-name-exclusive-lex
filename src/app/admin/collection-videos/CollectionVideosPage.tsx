@@ -206,8 +206,16 @@ export default function CollectionVideosPage() {
   // Replace the videos display with 8 slots
   const slots = Array.from({ length: SLOTS }, (_, i) => i + 1);
 
+  // Debug button to print Supabase session
+  const handleDebugSession = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    console.log('Supabase session:', session);
+    alert(session ? 'Session found! Check console.' : 'No session found.');
+  };
+
   return (
     <div className="min-h-screen bg-brand-mist py-8 px-4">
+      <button onClick={handleDebugSession} className="bg-yellow-400 text-black px-2 py-1 rounded mb-2">Debug Supabase Session</button>
       <h2 className="text-3xl font-serif text-brand-pine mb-8">Manage Collection Videos</h2>
       <button className="bg-brand-tan text-white px-4 py-2 rounded hover:bg-brand-earth transition mb-6" onClick={() => { resetForm(); setShowModal(true); }}>Add Video</button>
       {loading && <p>Loading...</p>}

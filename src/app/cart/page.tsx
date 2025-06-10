@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -22,7 +21,6 @@ interface SuggestedVideo {
 
 export default function CartPage() {
   const router = useRouter();
-  const { data: session, status } = useSession();
   const { items, removeItem, subtotal, tax, total, clearCart, addItem, isInCart } = useCart();
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -54,11 +52,6 @@ export default function CartPage() {
   }, [items]);
 
   const handleCheckout = async () => {
-    if (!session) {
-      router.push('/api/auth/signin');
-      return;
-    }
-
     if (items.length === 0) {
       setError('Your cart is empty');
       return;
@@ -73,7 +66,6 @@ export default function CartPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           cartItems: items,
-          userEmail: session.user?.email
         }),
       });
 
@@ -97,11 +89,6 @@ export default function CartPage() {
   };
 
   const handleSuggestedVideoPurchase = async (video: SuggestedVideo) => {
-    if (!session) {
-      router.push('/api/auth/signin');
-      return;
-    }
-
     try {
       const cartItem = {
         id: video.id,
@@ -130,7 +117,7 @@ export default function CartPage() {
     }
   };
 
-  if (status === 'loading') {
+  if (items.length === 0) {
     return (
       <div className="min-h-screen bg-[#D4C7B4] flex items-center justify-center">
         <motion.div
@@ -441,13 +428,8 @@ export default function CartPage() {
                         />
                         Processing...
                       </motion.div>
-                    ) : session ? 'Proceed to Checkout' : 'Sign in to Checkout'}
+                    ) : 'Proceed to Checkout'}
                   </motion.button>
-                  {!session && (
-                    <p className="text-sm text-[#654C37]/60 mt-4 text-center">
-                      Please sign in to complete your purchase
-                    </p>
-                  )}
                 </motion.div>
               </motion.div>
             </motion.div>

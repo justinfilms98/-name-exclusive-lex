@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState, useRef } from "react";
-import { useSession, signIn } from "next-auth/react";
+import { useUser } from '@supabase/auth-helpers-react';
 
 interface HeroVideo {
   id: number;
@@ -14,8 +14,8 @@ export default function HeroSection() {
   const [videos, setVideos] = useState<HeroVideo[]>([]);
   const [current, setCurrent] = useState(0);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const { data: session } = useSession();
-  const isLoggedIn = !!session;
+  const user = useUser();
+  const isLoggedIn = !!user;
 
   useEffect(() => {
     function fetchVideos() {
@@ -83,7 +83,7 @@ export default function HeroSection() {
           {!isLoggedIn ? (
             <button
               className="bg-[#654C37] text-[#F2E0CF] px-8 py-3 rounded-full hover:bg-[#654C37]/90 transition-all duration-300 hover-lift focus-ring border border-[#C9BBA8]/[0.12] shadow-lg text-lg font-semibold"
-              onClick={() => signIn()}
+              onClick={() => window.location.href = '/signin'}
             >
               Login
             </button>

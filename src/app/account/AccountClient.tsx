@@ -1,21 +1,21 @@
 "use client";
 
-import { useSession, signIn, signOut as nextAuthSignOut } from "next-auth/react";
+import { useUser } from '@supabase/auth-helpers-react';
 import { signOut as supabaseSignOut } from "@/lib/auth";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 export default function AccountClient() {
-  const { data: session, status } = useSession();
+  const user = useUser();
   const router = useRouter();
 
   useEffect(() => {
-    if (status === "unauthenticated") {
+    if (!user) {
       router.push("/");
     }
-  }, [status, router]);
+  }, [user, router]);
 
-  if (status === "loading") {
+  if (!user) {
     return (
       <main className="container mx-auto px-4 py-8">
         <div className="flex justify-center items-center min-h-[60vh]">
@@ -25,35 +25,31 @@ export default function AccountClient() {
     );
   }
 
-  if (!session) {
-    return null; // Will redirect due to useEffect
-  }
-
   return (
     <main className="container mx-auto px-4 py-8 pt-28">
       <div className="max-w-2xl mx-auto bg-white rounded-lg shadow-md p-6">
         <h1 className="text-3xl font-bold text-green-900 mb-6">My Account</h1>
         <div className="space-y-6">
           <div className="flex items-center space-x-4">
-            {session.user?.image && (
+            {user?.user_metadata?.avatar_url && (
               <img
-                src={session.user.image}
+                src={user.user_metadata.avatar_url}
                 alt="Profile"
                 className="w-20 h-20 rounded-full"
               />
             )}
             <div>
               <h2 className="text-xl font-semibold text-gray-900">
-                {session.user?.name || "User"}
+                {user?.user_metadata?.user_name || "User"}
               </h2>
-              <p className="text-gray-600">{session.user?.email}</p>
+              <p className="text-gray-600">{user?.email}</p>
             </div>
           </div>
           {/* Admin Dashboard Button for Creator */}
-          {session.user?.email === 'contact.exclusivelex@gmail.com' && (
+          {user?.email === 'contact.exclusivelex@gmail.com' && (
             <div className="pt-4">
               <a href="/admin">
-                <button className="w-full bg-blue-700 text-white px-4 py-2 rounded hover:bg-blue-800 transition-colors font-semibold mb-4">
+                <button className="bg-green-900 text-white px-4 py-2 rounded hover:bg-green-800 transition-colors">
                   Admin Dashboard
                 </button>
               </a>
@@ -65,7 +61,6 @@ export default function AccountClient() {
               <button
                 onClick={async () => {
                   await supabaseSignOut();
-                  nextAuthSignOut();
                 }}
                 className="w-full bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition-colors"
               >

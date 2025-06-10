@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useSession, signIn } from 'next-auth/react';
+import { useUser } from '@supabase/auth-helpers-react';
 
 interface CollectionVideo {
   id: string;
@@ -12,7 +12,7 @@ interface CollectionVideo {
 }
 
 export default function CollectionsPage() {
-  const { data: session, status } = useSession();
+  const user = useUser();
   const [videos, setVideos] = useState<CollectionVideo[]>([]);
   const [cart, setCart] = useState<CollectionVideo[]>([]);
   const [loading, setLoading] = useState(false);
@@ -48,7 +48,7 @@ export default function CollectionsPage() {
   }
 
   async function handleCheckout() {
-    if (!session?.user?.email) {
+    if (!user?.email) {
       setError('You must be logged in to checkout.');
       return;
     }
@@ -60,7 +60,7 @@ export default function CollectionsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           videoIds: cart.map(v => v.id),
-          userEmail: session.user.email,
+          userEmail: user.email,
         }),
       });
       const data = await res.json();
@@ -74,17 +74,13 @@ export default function CollectionsPage() {
     }
   }
 
-  if (status === 'loading') return <p>Loading...</p>;
-
   return (
     <div className="min-h-screen bg-brand-mist py-8 px-4">
       <h2 className="text-3xl font-serif text-brand-pine mb-4">Collections</h2>
       {loading && <p>Loading...</p>}
       {error && <p className="text-red-600">{error}</p>}
-      {session ? (
-        <p className="mb-4">Logged in as <b>{session.user?.email}</b></p>
-      ) : (
-        <button className="bg-brand-tan text-white px-4 py-2 rounded hover:bg-brand-earth transition" onClick={() => signIn('google')}>Sign in with Google</button>
+      {user && (
+        <p className="mb-4">Logged in as <b>{user.email}</b></p>
       )}
       <div className="flex flex-wrap gap-6 mt-6">
         {videos.map((video) => (
@@ -108,16 +104,16 @@ export default function CollectionsPage() {
             <span>{item.title} - ${item.price}</span>
           </div>
         ))}
-        {cart.length > 0 && session && (
+        {cart.length > 0 && user && (
           <div className="mt-4">
             <button className="bg-brand-tan text-white px-4 py-2 rounded hover:bg-brand-earth transition" onClick={handleCheckout} disabled={checkoutLoading}>
               {checkoutLoading ? 'Redirecting...' : 'Checkout'}
             </button>
           </div>
         )}
-        {cart.length > 0 && !session && (
+        {cart.length > 0 && !user && (
           <div className="mt-4">
-            <button className="bg-brand-tan text-white px-4 py-2 rounded hover:bg-brand-earth transition" onClick={() => signIn('google')}>Sign in to Checkout</button>
+            <button className="bg-brand-tan text-white px-4 py-2 rounded hover:bg-brand-earth transition" onClick={() => window.location.href = '/signin'}>Sign in to Checkout</button>
           </div>
         )}
       </div>

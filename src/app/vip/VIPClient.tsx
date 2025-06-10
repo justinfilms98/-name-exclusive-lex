@@ -1,21 +1,21 @@
 "use client";
 
-import { useSession } from "next-auth/react";
+import { useUser } from '@supabase/auth-helpers-react';
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 // import { toast } from '@/components/Toast'; // Placeholder for toast notifications
 
 export default function VIPClient() {
-  const { data: session, status } = useSession();
+  const user = useUser();
   const router = useRouter();
 
   useEffect(() => {
-    if (status === "unauthenticated") {
+    if (!user) {
       router.push("/");
     }
-  }, [status, router]);
+  }, [user, router]);
 
-  if (status === "loading") {
+  if (!user) {
     return (
       <main className="container mx-auto px-4 py-8 pt-28">
         <div className="flex justify-center items-center min-h-[60vh]">
@@ -23,10 +23,6 @@ export default function VIPClient() {
         </div>
       </main>
     );
-  }
-
-  if (!session) {
-    return null; // Will redirect due to useEffect
   }
 
   return (
