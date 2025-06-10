@@ -1,14 +1,8 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getServerSession } from 'next-auth';
 
 export async function POST(req: Request) {
   try {
-    const session = await getServerSession();
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
     const { videoId, event, data } = await req.json();
 
     if (!videoId || !event) {
@@ -119,11 +113,6 @@ export async function POST(req: Request) {
 
 export async function GET(req: Request) {
   try {
-    const session = await getServerSession();
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
     const { searchParams } = new URL(req.url);
     const videoId = searchParams.get('videoId');
     const startDate = searchParams.get('startDate');
