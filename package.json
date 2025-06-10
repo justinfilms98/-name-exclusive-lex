@@ -28,6 +28,8 @@
     "@radix-ui/react-tabs": "^1.1.9",
     "@stripe/react-stripe-js": "^2.6.2",
     "@stripe/stripe-js": "^3.5.0",
+    "@supabase/auth-helpers-nextjs": "^0.10.0",
+    "@supabase/auth-helpers-react": "^0.5.0",
     "@supabase/supabase-js": "^2.50.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/hls.js": "^0.13.3",
@@ -75,10 +77,10 @@
     "msw": "^2.8.2",
     "postcss": "^8.4.31",
     "prisma": "^6.8.2",
+    "rimraf": "^5.0.0",
     "tailwindcss": "^3.3.0",
     "typescript": "^5.8.3",
     "web-streams-polyfill": "^4.1.0",
-    "whatwg-fetch": "^3.6.20",
-    "rimraf": "^5.0.0"
+    "whatwg-fetch": "^3.6.20"
   }
 }

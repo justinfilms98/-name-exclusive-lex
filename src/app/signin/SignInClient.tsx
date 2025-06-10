@@ -1,34 +1,14 @@
 "use client";
-import { signIn, useSession } from "next-auth/react";
-import { useEffect } from "react";
+import { useSupabaseClient } from '@supabase/auth-helpers-react';
 import { useRouter, useSearchParams } from "next/navigation";
 
 export default function SignInClient() {
-  const { data: session, status } = useSession();
+  const supabase = useSupabaseClient();
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams!.get("callbackUrl") || "/cart";
 
-  useEffect(() => {
-    if (status === "authenticated" && session?.user) {
-      if ((session.user as any).role?.toLowerCase() === "admin") {
-        router.replace("/admin");
-      } else {
-        router.replace(callbackUrl);
-      }
-    }
-  }, [session, status, router, callbackUrl]);
-
-  if (status === "authenticated") {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-blue-50 px-4">
-        <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full flex flex-col items-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-900 mb-4"></div>
-          <p className="text-green-900 font-semibold">Redirecting...</p>
-        </div>
-      </div>
-    );
-  }
+  // After login, Supabase will redirect you back after OAuth
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-blue-50 px-4">
@@ -36,7 +16,10 @@ export default function SignInClient() {
         <h1 className="text-3xl font-bold text-green-900 mb-2 text-center">Sign in to Exclusive Lex</h1>
         <p className="text-green-800 mb-8 text-center">Access exclusive content and manage your account</p>
         <button
-          onClick={() => signIn("google")}
+          onClick={async () => {
+            const { error } = await supabase.auth.signInWithOAuth({ provider: 'google' });
+            if (error) console.error('Login error:', error);
+          }}
           className="flex items-center gap-3 bg-green-900 text-white px-6 py-3 rounded-lg font-semibold text-lg shadow hover:bg-green-800 transition mb-4 w-full justify-center"
         >
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
