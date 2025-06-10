@@ -15,7 +15,18 @@ export default function SignInPage() {
   };
 
   return (
-    <button onClick={handleGoogle}>
+    <button
+      style={{
+        padding: '12px 24px',
+        fontSize: 18,
+        background: '#654C37',
+        color: '#fff',
+        borderRadius: 8,
+        border: 'none',
+        cursor: 'pointer'
+      }}
+      onClick={handleGoogle}
+    >
       Sign in with Google
     </button>
   );
