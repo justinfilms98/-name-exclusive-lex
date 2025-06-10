@@ -22,7 +22,7 @@ export default function AccountPage() {
   const [filter, setFilter] = useState<'all' | 'active' | 'expired'>('all');
   const [sort, setSort] = useState<'newest' | 'oldest'>('newest');
 
-  const { user: supabaseUser } = useUser();
+  const supabaseUser = useUser();
 
   useEffect(() => {
     async function fetchUser() {
