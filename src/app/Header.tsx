@@ -48,7 +48,12 @@ export default function Header() {
               <button className="bg-[#D4C7B4] text-[#654C37] px-3 py-1 rounded text-sm button-animate">My Account</button>
             </Link>
           ) : (
-            <button className="bg-[#D4C7B4] text-[#654C37] px-3 py-1 rounded text-sm button-animate">Login</button>
+            <button
+              onClick={() => window.location.href = '/signin'}
+              className="bg-[#D4C7B4] text-[#654C37] px-3 py-1 rounded text-sm button-animate"
+            >
+              Login
+            </button>
           )}
         </div>
         {/* Mobile dropdown menu */}
