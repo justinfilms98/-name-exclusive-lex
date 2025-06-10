@@ -1,17 +1,18 @@
 import './globals.css';
 import Header from './Header';
-import SessionProviderWrapper from './SessionProviderWrapper';
+import { SessionContextProvider } from '@supabase/auth-helpers-react';
+import { supabase } from '@/lib/supabase';
 import { CartProvider } from "@/context/CartContext";
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({ children, pageProps }: { children: React.ReactNode, pageProps: any }) {
   return (
     <html lang="en">
       <body>
         <CartProvider>
-          <SessionProviderWrapper>
+          <SessionContextProvider supabaseClient={supabase} initialSession={pageProps?.initialSession}>
             <Header />
             {children}
-          </SessionProviderWrapper>
+          </SessionContextProvider>
         </CartProvider>
       </body>
     </html>
