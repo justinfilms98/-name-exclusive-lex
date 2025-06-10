@@ -2,40 +2,42 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  console.log('API [id] route hit:', req.method, req.url);
-  const {
-    query: { id },
-    method,
-  } = req;
+  const videoId = req.query.id;
 
-  // Normalize to a single string, then int
-  const videoId = Array.isArray(id) ? id[0] : (id ?? '');
-  const parsedId = parseInt(videoId, 10);
-
-  if (method === 'GET') {
-    return res.status(200).json({ ok: true, id: parsedId });
+  if (req.method === 'GET') {
+    // Temporary: confirm route works
+    return res.status(200).json({ message: 'Route OK', id: videoId });
   }
 
-  if (method === 'DELETE') {
-    if (isNaN(parsedId)) {
-      return res.status(400).json({ error: 'Invalid or missing video ID' });
+  if (req.method === 'DELETE') {
+    // Admin check: require Authorization header with Bearer token
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      return res.status(401).json({ error: 'Not authenticated' });
     }
-
-    console.log('DELETE branch reached, deleting video id=', parsedId);
-
-    const { error } = await supabaseAdmin
+    const token = authHeader.replace('Bearer ', '');
+    // Get user from token
+    const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
+    if (error || !user) {
+      return res.status(401).json({ error: 'Invalid user token' });
+    }
+    // Check admin by email (set ADMIN_EMAIL in env)
+    const isAdmin = user.email && user.email === process.env.ADMIN_EMAIL;
+    if (!isAdmin) {
+      return res.status(403).json({ error: 'Forbidden: Admins only' });
+    }
+    // Perform deletion
+    const { error: deleteError } = await supabaseAdmin
       .from('CollectionVideo')
       .delete()
-      .eq('id', parsedId);
-
-    if (error) {
-      console.error('Supabase delete error:', error);
-      return res.status(500).json({ error: error.message });
+      .eq('id', videoId);
+    if (deleteError) {
+      console.error('Delete error:', deleteError);
+      return res.status(500).json({ error: deleteError.message });
     }
-
-    return res.status(200).json({ success: true });
+    return res.status(204).end(); // No Content (success)
   }
 
   res.setHeader('Allow', ['GET', 'DELETE']);
-  return res.status(405).end(`Method ${method} Not Allowed`);
+  return res.status(405).end(`Method ${req.method} Not Allowed`);
 } 

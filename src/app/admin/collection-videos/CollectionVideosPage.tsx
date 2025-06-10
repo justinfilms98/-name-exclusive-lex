@@ -1,5 +1,6 @@
 import React, { useState, useEffect, ChangeEvent, FormEvent } from 'react';
 import { uploadFile } from '@/lib/services/uploadService';
+import { supabase } from '@/lib/supabase';
 // import { toast } from '@/components/Toast'; // Placeholder for toast notifications
 
 // Dummy data structure for now
@@ -180,8 +181,18 @@ export default function CollectionVideosPage() {
     setLoading(true);
     setError(null);
     try {
+      // Get Supabase session for access token
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        alert('You must be logged in as admin to delete videos.');
+        throw new Error('No Supabase access token');
+      }
       const res = await fetch(`/api/collection-videos/${id}`, {
         method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
       });
       if (!res.ok && res.status !== 204) throw new Error('Failed to delete video');
       setVideos(prev => prev.filter(v => v.id !== id));

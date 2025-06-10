@@ -146,8 +146,8 @@ export async function uploadFile(
       const { data } = await supabase.auth.getSession();
       session = data.session;
       if (!session?.access_token) {
-        console.error('No Supabase access token – user must be logged in');
-        throw new Error('No Supabase access token');
+        alert('Your session has expired or you are not logged in. Please log in to upload files.');
+        throw new Error('No Supabase access token found');
       }
     }
     if (!session?.access_token) {
@@ -170,7 +170,7 @@ export async function uploadFile(
           contentType: file.type,
           cacheControl: '3600',
         },
-        chunkSize: 5 * 1024 * 1024, // 5MB chunks
+        chunkSize: 6 * 1024 * 1024, // 6MB chunks as required by Supabase
         onError: function (error) {
           if (onProgress) onProgress({ progress: 0, status: 'error', error: error.message });
           reject(error);
