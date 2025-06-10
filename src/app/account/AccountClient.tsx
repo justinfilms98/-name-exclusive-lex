@@ -1,13 +1,13 @@
 "use client";
 
-import { useUser } from '@supabase/auth-helpers-react';
-import { signOut as supabaseSignOut } from "@/lib/auth";
+import { useUser, useSupabaseClient } from '@supabase/auth-helpers-react';
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 export default function AccountClient() {
   const user = useUser();
   const router = useRouter();
+  const supabase = useSupabaseClient();
 
   useEffect(() => {
     if (!user) {
@@ -60,7 +60,7 @@ export default function AccountClient() {
             <div className="space-y-4">
               <button
                 onClick={async () => {
-                  await supabaseSignOut();
+                  await supabase.auth.signOut();
                 }}
                 className="w-full bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition-colors"
               >

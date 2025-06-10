@@ -4,7 +4,6 @@ import { useEffect, useState, useCallback, useRef, Suspense } from 'react';
 import { useCart } from '@/context/CartContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
-import supabase, { getUser } from '@/lib/auth';
 
 interface CollectionVideo {
   id: number;
@@ -50,14 +49,6 @@ export default function CollectionsClient() {
       }
     }
     fetchVideos();
-  }, []);
-
-  useEffect(() => {
-    async function fetchUser() {
-      const { data } = await getUser();
-      setUser(data?.user || null);
-    }
-    fetchUser();
   }, []);
 
   useEffect(() => {

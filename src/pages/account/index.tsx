@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import supabase, { getUser, signIn } from '@/lib/auth';
+import { useUser } from '@supabase/auth-helpers-react';
 
 interface Purchase {
   id: string;
@@ -22,13 +22,14 @@ export default function AccountPage() {
   const [filter, setFilter] = useState<'all' | 'active' | 'expired'>('all');
   const [sort, setSort] = useState<'newest' | 'oldest'>('newest');
 
+  const { user: supabaseUser } = useUser();
+
   useEffect(() => {
     async function fetchUser() {
-      const { data } = await getUser();
-      setUser(data?.user || null);
+      setUser(supabaseUser || null);
     }
     fetchUser();
-  }, []);
+  }, [supabaseUser]);
 
   useEffect(() => {
     if (user?.email) fetchPurchases();
