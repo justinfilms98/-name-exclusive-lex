@@ -9,16 +9,20 @@ export default function AdminDashboard() {
   const router = useRouter();
 
   useEffect(() => {
+    if (user === null) return; // wait for user to load
     const isAdmin = user?.user_metadata?.role?.toLowerCase() === 'admin' || user?.email === 'contact.exclusivelex@gmail.com';
     if (!isAdmin) {
-      router.replace('/');
+      router.replace('/signin');
     }
   }, [user, router]);
 
   const isAdmin = user?.user_metadata?.role?.toLowerCase() === 'admin' || user?.email === 'contact.exclusivelex@gmail.com';
 
-  if (!user || !isAdmin) {
+  if (!user) {
     return null;
+  }
+  if (!isAdmin) {
+    return <div className="min-h-screen flex items-center justify-center text-xl">Not authorized.</div>;
   }
 
   return (
