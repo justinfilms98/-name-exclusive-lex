@@ -5,10 +5,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const { id } = req.query;
   if (req.method === 'DELETE') {
     try {
-      await prisma.collectionVideo.delete({ where: { id: Number(id) } });
+      await prisma.heroVideo.delete({ where: { id: Number(id) } });
       return res.status(204).end();
     } catch (error) {
-      console.error('Delete collection video failed:', error);
+      console.error('Delete hero video failed:', error);
       return res.status(500).json({ error: 'Failed to delete video' });
     }
   }
