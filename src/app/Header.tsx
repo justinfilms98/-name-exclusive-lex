@@ -3,9 +3,11 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { CartPreview } from "@/components/CartPreview";
 import { useCart } from '@/context/CartContext';
+import { useUser } from '@supabase/auth-helpers-react';
 
 export default function Header() {
-  const isLoggedIn = false;
+  const user = useUser();
+  const isLoggedIn = !!user;
   const isAdmin = false;
   const [menuOpen, setMenuOpen] = useState(false);
   const { totalItems } = useCart();
@@ -45,7 +47,7 @@ export default function Header() {
           <Link href="/cart" className="text-[#D4C7B4] hover:underline px-2 py-1 link-underline">🛒</Link>
           {isLoggedIn ? (
             <Link href="/account">
-              <button className="bg-[#D4C7B4] text-[#654C37] px-3 py-1 rounded text-sm button-animate">My Account</button>
+              <button className="bg-[#D4C7B4] text-[#654C37] px-3 py-1 rounded text-sm button-animate">Account</button>
             </Link>
           ) : (
             <button
@@ -65,10 +67,10 @@ export default function Header() {
             </Link>
             {isLoggedIn ? (
               <Link href="/account" className="px-4 py-3" onClick={() => setMenuOpen(false)}>
-                <button className="w-full bg-[#D4C7B4] text-[#654C37] px-3 py-2 rounded text-sm button-animate">My Account</button>
+                <button className="w-full bg-[#D4C7B4] text-[#654C37] px-3 py-2 rounded text-sm button-animate">Account</button>
               </Link>
             ) : (
-              <button className="w-full bg-[#D4C7B4] text-[#654C37] px-3 py-2 rounded text-sm m-2 button-animate">Login</button>
+              <button className="w-full bg-[#D4C7B4] text-[#654C37] px-3 py-2 rounded text-sm m-2 button-animate" onClick={() => { setMenuOpen(false); window.location.href = '/signin'; }}>Login</button>
             )}
           </div>
         )}

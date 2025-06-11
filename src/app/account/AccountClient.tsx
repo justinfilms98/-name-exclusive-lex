@@ -15,6 +15,8 @@ export default function AccountClient() {
     }
   }, [user, router]);
 
+  const isAdmin = user?.user_metadata?.role?.toLowerCase() === 'admin' || user?.email === 'contact.exclusivelex@gmail.com';
+
   if (!user) {
     return (
       <main className="container mx-auto px-4 py-8">
@@ -45,8 +47,7 @@ export default function AccountClient() {
               <p className="text-gray-600">{user?.email}</p>
             </div>
           </div>
-          {/* Admin Dashboard Button for Creator */}
-          {user?.email === 'contact.exclusivelex@gmail.com' && (
+          {isAdmin && (
             <div className="pt-4">
               <a href="/admin">
                 <button className="bg-green-900 text-white px-4 py-2 rounded hover:bg-green-800 transition-colors">
