@@ -3,23 +3,23 @@ import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 
 // Validation schemas
-const heroVideoSchema = z.object({
+const collectionVideoSchema = z.object({
+  collection: z.string().min(1, "Collection is required"),
   title: z.string().min(1, "Title is required").max(100, "Title too long"),
   description: z.string().min(1, "Description is required").max(500, "Description too long"),
   thumbnail: z.string().url("Invalid thumbnail URL"),
   videoUrl: z.string().url("Invalid video URL"),
   thumbnailPath: z.string().optional(),
   videoPath: z.string().optional(),
-  order: z.number().int().min(1).max(3),
   price: z.number().min(0).default(0),
-  status: z.enum(['draft', 'pending', 'approved', 'rejected']).default('draft'),
-  ageRating: z.enum(['G', 'PG', 'PG-13', 'R']).default('PG'),
+  order: z.number().int().min(1).max(20),
+  duration: z.number().int().min(1).optional(),
   category: z.string().min(1, "Category is required"),
+  ageRating: z.enum(['G', 'PG', 'PG-13', 'R']).default('PG'),
   tags: z.array(z.string()).default([]),
-  rejectionReason: z.string().optional(),
 });
 
-const updateHeroVideoSchema = heroVideoSchema.extend({
+const updateCollectionVideoSchema = collectionVideoSchema.extend({
   id: z.number().int().positive(),
 });
 
@@ -37,43 +37,44 @@ export async function OPTIONS() {
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const status = searchParams.get('status');
+    const collection = searchParams.get('collection');
     const category = searchParams.get('category');
     const ageRating = searchParams.get('ageRating');
 
     const where = {
-      ...(status && status !== 'all' ? { status } : {}),
+      ...(collection && collection !== 'all' ? { collection } : {}),
       ...(category && category !== 'all' ? { category } : {}),
       ...(ageRating && ageRating !== 'all' ? { ageRating } : {}),
     };
 
-    const videos = await prisma.heroVideo.findMany({ 
+    const videos = await prisma.collectionVideo.findMany({ 
       where,
       orderBy: { order: 'asc' },
       select: {
         id: true,
+        collection: true,
         title: true,
         description: true,
         thumbnail: true,
         videoUrl: true,
-        order: true,
+        thumbnailPath: true,
+        videoPath: true,
         price: true,
-        status: true,
-        ageRating: true,
+        order: true,
+        duration: true,
         category: true,
+        ageRating: true,
         tags: true,
-        moderatedBy: true,
-        moderatedAt: true,
-        rejectionReason: true,
         createdAt: true,
         updatedAt: true,
       }
     });
+    
     return NextResponse.json(videos, { headers: corsHeaders });
   } catch (err) {
-    console.error("Error in GET /api/hero-videos:", err);
+    console.error("Error in GET /api/collection-videos:", err);
     return NextResponse.json(
-      { error: "Failed to fetch hero videos" },
+      { error: "Failed to fetch collection videos" },
       { status: 500, headers: corsHeaders }
     );
   }
@@ -84,56 +85,39 @@ export async function POST(req: NextRequest) {
     const data = await req.json();
     
     // Validate input
-    const validatedData = heroVideoSchema.parse(data);
+    const validatedData = collectionVideoSchema.parse(data);
 
-    // Only pick fields that exist in the Prisma model
-    const {
-      title, description, thumbnail, videoUrl, order,
-      price, status, ageRating, category, tags
-    } = validatedData;
-
-    // Check if slot is already taken
-    const existingVideo = await prisma.heroVideo.findFirst({
-      where: { order }
+    // Check if order is already taken in this collection
+    const existingVideo = await prisma.collectionVideo.findFirst({
+      where: { 
+        collection: validatedData.collection,
+        order: validatedData.order 
+      }
     });
 
     if (existingVideo) {
       return NextResponse.json(
-        { error: `Slot ${order} is already taken` },
+        { error: `Order ${validatedData.order} is already taken in collection "${validatedData.collection}"` },
         { status: 400, headers: corsHeaders }
       );
     }
 
-    // Set initial status to pending if not draft
-    let finalStatus = status;
-    if (finalStatus !== 'draft') {
-      finalStatus = 'pending';
-    }
-
-    const video = await prisma.heroVideo.create({
-      data: {
-        title,
-        description,
-        thumbnail,
-        videoUrl,
-        order,
-        price,
-        status: finalStatus,
-        ageRating,
-        category,
-        tags,
-      },
+    const video = await prisma.collectionVideo.create({
+      data: validatedData,
       select: {
         id: true,
+        collection: true,
         title: true,
         description: true,
         thumbnail: true,
         videoUrl: true,
-        order: true,
+        thumbnailPath: true,
+        videoPath: true,
         price: true,
-        status: true,
-        ageRating: true,
+        order: true,
+        duration: true,
         category: true,
+        ageRating: true,
         tags: true,
         createdAt: true,
         updatedAt: true,
@@ -142,7 +126,7 @@ export async function POST(req: NextRequest) {
     
     return NextResponse.json(video, { status: 201, headers: corsHeaders });
   } catch (err) {
-    console.error("Error in POST /api/hero-videos:", err);
+    console.error("Error in POST /api/collection-videos:", err);
     
     if (err instanceof z.ZodError) {
       return NextResponse.json(
@@ -152,7 +136,7 @@ export async function POST(req: NextRequest) {
     }
     
     return NextResponse.json(
-      { error: "Failed to create hero video" },
+      { error: "Failed to create collection video" },
       { status: 500, headers: corsHeaders }
     );
   }
@@ -163,13 +147,14 @@ export async function PUT(req: NextRequest) {
     const data = await req.json();
     
     // Validate input
-    const validatedData = updateHeroVideoSchema.parse(data);
+    const validatedData = updateCollectionVideoSchema.parse(data);
     const { id, ...updateData } = validatedData;
     
-    // Check if updating order would conflict with another video
+    // Check if updating order would conflict with another video in the same collection
     if (updateData.order) {
-      const existingVideo = await prisma.heroVideo.findFirst({
+      const existingVideo = await prisma.collectionVideo.findFirst({
         where: { 
+          collection: updateData.collection,
           order: updateData.order,
           id: { not: id }
         }
@@ -177,37 +162,30 @@ export async function PUT(req: NextRequest) {
       
       if (existingVideo) {
         return NextResponse.json(
-          { error: `Slot ${updateData.order} is already taken` },
+          { error: `Order ${updateData.order} is already taken in collection "${updateData.collection}"` },
           { status: 400, headers: corsHeaders }
         );
       }
     }
 
-    // Handle status changes
-    if (updateData.status) {
-      (updateData as any).moderatedAt = new Date();
-      // In a real app, you would get the moderator's ID from the session
-      (updateData as any).moderatedBy = 'system';
-    }
-
-    const video = await prisma.heroVideo.update({ 
+    const video = await prisma.collectionVideo.update({ 
       where: { id },
       data: updateData,
       select: {
         id: true,
+        collection: true,
         title: true,
         description: true,
         thumbnail: true,
         videoUrl: true,
-        order: true,
+        thumbnailPath: true,
+        videoPath: true,
         price: true,
-        status: true,
-        ageRating: true,
+        order: true,
+        duration: true,
         category: true,
+        ageRating: true,
         tags: true,
-        moderatedBy: true,
-        moderatedAt: true,
-        rejectionReason: true,
         createdAt: true,
         updatedAt: true,
       }
@@ -215,7 +193,7 @@ export async function PUT(req: NextRequest) {
     
     return NextResponse.json(video, { headers: corsHeaders });
   } catch (err: unknown) {
-    console.error("Error in PUT /api/hero-videos:", err);
+    console.error("Error in PUT /api/collection-videos:", err);
     
     if (err instanceof z.ZodError) {
       return NextResponse.json(
@@ -226,13 +204,13 @@ export async function PUT(req: NextRequest) {
     
     if (err && typeof err === 'object' && 'code' in err && err.code === 'P2025') {
       return NextResponse.json(
-        { error: "Hero video not found" },
+        { error: "Collection video not found" },
         { status: 404, headers: corsHeaders }
       );
     }
     
     return NextResponse.json(
-      { error: "Failed to update hero video" },
+      { error: "Failed to update collection video" },
       { status: 500, headers: corsHeaders }
     );
   }
@@ -249,24 +227,24 @@ export async function DELETE(req: NextRequest) {
       );
     }
 
-    await prisma.heroVideo.delete({ 
+    await prisma.collectionVideo.delete({ 
       where: { id },
-      select: { id: true } // Only return the ID to confirm deletion
+      select: { id: true }
     });
     
     return NextResponse.json({ success: true }, { headers: corsHeaders });
   } catch (err: unknown) {
-    console.error("Error in DELETE /api/hero-videos:", err);
+    console.error("Error in DELETE /api/collection-videos:", err);
     
     if (err && typeof err === 'object' && 'code' in err && err.code === 'P2025') {
       return NextResponse.json(
-        { error: "Hero video not found" },
+        { error: "Collection video not found" },
         { status: 404, headers: corsHeaders }
       );
     }
     
     return NextResponse.json(
-      { error: "Failed to delete hero video" },
+      { error: "Failed to delete collection video" },
       { status: 500, headers: corsHeaders }
     );
   }

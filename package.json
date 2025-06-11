@@ -12,7 +12,12 @@
     "test:watch": "jest --watch",
     "verify-routes": "node scripts/checkDynamicRoutes.js",
     "clean-cache": "rimraf .next .vercel",
-    "predeploy": "npm run verify-routes && npm run clean-cache"
+    "predeploy": "npm run verify-routes && npm run clean-cache",
+    "setup-env": "node scripts/setup-env.js",
+    "seed-data": "node scripts/seed-data.js",
+    "db:push": "prisma db push",
+    "db:generate": "prisma generate",
+    "db:studio": "prisma studio"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.9.1",
@@ -33,6 +38,7 @@
     "@types/bcryptjs": "^2.4.6",
     "@types/hls.js": "^0.13.3",
     "@types/next-auth": "^3.13.0",
+    "@types/uuid": "^10.0.0",
     "bcryptjs": "^3.0.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -52,6 +58,7 @@
     "tailwind-merge": "^3.2.0",
     "tailwindcss-animate": "^1.0.7",
     "tus-js-client": "^4.3.1",
+    "uuid": "^11.1.0",
     "zod": "^3.22.4"
   },
   "devDependencies": {

@@ -8,7 +8,7 @@ export function Providers({
   initialSession,
 }: {
   children: React.ReactNode;
-  initialSession: any;
+  initialSession?: any;
 }) {
   return (
     <SessionContextProvider

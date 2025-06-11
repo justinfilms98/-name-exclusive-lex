@@ -1,16 +1,29 @@
 "use client";
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { CartPreview } from "@/components/CartPreview";
 import { useCart } from '@/context/CartContext';
 import { useUser } from '@supabase/auth-helpers-react';
 
 export default function Header() {
   const user = useUser();
-  const isLoggedIn = !!user;
-  const isAdmin = false;
+  const [isAdmin, setIsAdmin] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const { totalItems } = useCart();
+
+  // Check if user is admin
+  useEffect(() => {
+    if (user) {
+      const userRole = user.user_metadata?.role?.toLowerCase();
+      const userEmail = user.email?.toLowerCase();
+      const isAdminUser = userRole === 'admin' || userEmail === 'contact.exclusivelex@gmail.com';
+      setIsAdmin(isAdminUser);
+    } else {
+      setIsAdmin(false);
+    }
+  }, [user]);
+
+  const isLoggedIn = !!user;
 
   return (
     <header className="fixed top-0 left-0 w-full z-50 bg-white/90 backdrop-blur border-b border-[#654C37]/10 shadow-sm">
@@ -46,16 +59,22 @@ export default function Header() {
           <CartPreview />
           <Link href="/cart" className="text-[#D4C7B4] hover:underline px-2 py-1 link-underline">🛒</Link>
           {isLoggedIn ? (
-            <Link href="/account">
-              <button className="bg-[#D4C7B4] text-[#654C37] px-3 py-1 rounded text-sm button-animate">Account</button>
-            </Link>
+            <div className="flex items-center gap-2">
+              <Link href="/account">
+                <button className="bg-[#D4C7B4] text-[#654C37] px-3 py-1 rounded text-sm button-animate">Account</button>
+              </Link>
+              {isAdmin && (
+                <Link href="/admin">
+                  <button className="bg-[#654C37] text-white px-3 py-1 rounded text-sm button-animate">Admin</button>
+                </Link>
+              )}
+            </div>
           ) : (
-            <button
-              onClick={() => window.location.href = '/signin'}
-              className="bg-[#D4C7B4] text-[#654C37] px-3 py-1 rounded text-sm button-animate"
-            >
-              Login
-            </button>
+            <Link href="/signin">
+              <button className="bg-[#D4C7B4] text-[#654C37] px-3 py-1 rounded text-sm button-animate">
+                Login
+              </button>
+            </Link>
           )}
         </div>
         {/* Mobile dropdown menu */}
@@ -66,11 +85,20 @@ export default function Header() {
               <span role="img" aria-label="cart">🛒</span> Cart
             </Link>
             {isLoggedIn ? (
-              <Link href="/account" className="px-4 py-3" onClick={() => setMenuOpen(false)}>
-                <button className="w-full bg-[#D4C7B4] text-[#654C37] px-3 py-2 rounded text-sm button-animate">Account</button>
-              </Link>
+              <div className="flex flex-col">
+                <Link href="/account" className="px-4 py-3 border-b border-gray-200" onClick={() => setMenuOpen(false)}>
+                  <button className="w-full bg-[#D4C7B4] text-[#654C37] px-3 py-2 rounded text-sm button-animate">Account</button>
+                </Link>
+                {isAdmin && (
+                  <Link href="/admin" className="px-4 py-3" onClick={() => setMenuOpen(false)}>
+                    <button className="w-full bg-[#654C37] text-white px-3 py-2 rounded text-sm button-animate">Admin</button>
+                  </Link>
+                )}
+              </div>
             ) : (
-              <button className="w-full bg-[#D4C7B4] text-[#654C37] px-3 py-2 rounded text-sm m-2 button-animate" onClick={() => { setMenuOpen(false); window.location.href = '/signin'; }}>Login</button>
+              <Link href="/signin" className="px-4 py-3" onClick={() => setMenuOpen(false)}>
+                <button className="w-full bg-[#D4C7B4] text-[#654C37] px-3 py-2 rounded text-sm button-animate">Login</button>
+              </Link>
             )}
           </div>
         )}

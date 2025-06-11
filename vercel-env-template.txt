@@ -1,0 +1,26 @@
+# Vercel Environment Variables
+# Copy these to your Vercel project settings
+
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL
+NEXT_PUBLIC_SUPABASE_ANON_KEY
+SUPABASE_SERVICE_ROLE_KEY
+
+# Stripe
+STRIPE_SECRET_KEY
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+
+# Database
+DATABASE_URL
+
+# Application
+NEXT_PUBLIC_BASE_URL
+NEXT_PUBLIC_SITE_URL
+
+# Optional: Google OAuth
+GOOGLE_CLIENT_ID
+GOOGLE_CLIENT_SECRET
+
+# Optional: NextAuth
+NEXTAUTH_URL
+NEXTAUTH_SECRET

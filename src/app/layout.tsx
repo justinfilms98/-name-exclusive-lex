@@ -3,12 +3,12 @@ import Header from './Header';
 import { Providers } from './Providers';
 import { CartProvider } from "@/context/CartContext";
 
-export default function RootLayout({ children, pageProps }: { children: React.ReactNode, pageProps: { initialSession?: any } }) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <body>
         <CartProvider>
-          <Providers initialSession={pageProps?.initialSession}>
+          <Providers>
             <Header />
             {children}
           </Providers>
