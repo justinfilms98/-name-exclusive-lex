@@ -38,14 +38,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   if (req.method === 'DELETE') {
-    const { id } = req.query;
-    if (!id || typeof id !== 'string') return res.status(400).json({ error: 'Missing id' });
-    const { error } = await supabase
-      .from('collection_videos')
-      .delete()
-      .eq('id', id);
-    if (error) return res.status(500).json({ error: error.message });
-    return res.status(204).end();
+    try {
+      const { id } = req.query as { id?: string };
+      if (!id) {
+        return res.status(400).json({ error: 'Missing video id' });
+      }
+      const { data, error } = await supabase
+        .from('collection_videos')
+        .delete()
+        .eq('id', id);
+      if (error) return res.status(500).json({ error: error.message });
+      return res.status(200).json({ success: true, deleted: data });
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message });
+    }
   }
 
   res.setHeader('Allow', ['GET', 'POST', 'PUT', 'DELETE']);
