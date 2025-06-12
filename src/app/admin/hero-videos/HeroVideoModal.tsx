@@ -18,6 +18,7 @@ interface HeroVideo {
   ageRating: 'G' | 'PG' | 'PG-13' | 'R';
   category: string;
   tags: string[];
+  moderated: boolean;
   moderatedBy?: string;
   moderatedAt?: Date;
   rejectionReason?: string;
@@ -183,6 +184,7 @@ export default function HeroVideoModal({ open, onClose, onSave, initialData, slo
         ageRating: 'PG',
         category: 'general',
         tags: [],
+        moderated: false,
       });
       setSuccess(true);
       setTimeout(() => {

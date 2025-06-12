@@ -1,14 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import { z } from 'zod';
 
 const mediaItemSchema = z.object({
   mediaType: z.enum(['video', 'photo']),
+  filePath: z.string(), // Path in Supabase storage
+  thumbnailPath: z.string().optional(),
   description: z.string().optional(),
   price: z.number().min(0).default(0),
   duration: z.number().optional(),
 });
+
+// Configure bodyParser for small JSON payloads only
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: '1mb'
+    }
+  }
+};
 
 export async function GET(
   req: NextRequest,
@@ -61,67 +71,22 @@ export async function POST(
       return NextResponse.json({ error: 'Collection not found' }, { status: 404 });
     }
 
-    const formData = await req.formData();
-    const file = formData.get('file') as File;
-    const thumbnail = formData.get('thumbnail') as File;
-    const mediaType = formData.get('mediaType') as string;
-    const description = formData.get('description') as string;
-    const price = parseFloat(formData.get('price') as string) || 0;
-    const duration = formData.get('duration') ? parseInt(formData.get('duration') as string) : undefined;
-
-    if (!file) {
-      return NextResponse.json({ error: 'File is required' }, { status: 400 });
-    }
-
-    // Validate media type
-    if (!['video', 'photo'].includes(mediaType)) {
-      return NextResponse.json({ error: 'Invalid media type' }, { status: 400 });
-    }
-
-    // Generate unique file paths
-    const fileExtension = file.name.split('.').pop();
-    const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExtension}`;
-    const filePath = `media/${id}/${fileName}`;
-
-    let thumbnailPath: string | undefined;
-    if (thumbnail) {
-      const thumbnailExtension = thumbnail.name.split('.').pop();
-      const thumbnailName = `thumb-${Date.now()}-${Math.random().toString(36).substring(7)}.${thumbnailExtension}`;
-      thumbnailPath = `media/${id}/${thumbnailName}`;
-    }
-
-    // Upload file to Supabase Storage
-    const { data: fileData, error: fileError } = await supabaseAdmin.storage
-      .from('media')
-      .upload(filePath, file);
-
-    if (fileError) {
-      console.error('File upload error:', fileError);
-      return NextResponse.json({ error: 'Failed to upload file' }, { status: 500 });
-    }
-
-    // Upload thumbnail if provided
-    if (thumbnail && thumbnailPath) {
-      const { error: thumbnailError } = await supabaseAdmin.storage
-        .from('media')
-        .upload(thumbnailPath, thumbnail);
-
-      if (thumbnailError) {
-        console.error('Thumbnail upload error:', thumbnailError);
-        // Continue without thumbnail if upload fails
-      }
-    }
+    // Parse JSON data instead of FormData
+    const data = await req.json();
+    
+    // Validate input
+    const validatedData = mediaItemSchema.parse(data);
 
     // Create media item in database
     const mediaItem = await prisma.mediaItem.create({
       data: {
         collectionId: id,
-        mediaType,
-        filePath,
-        thumbnailPath,
-        description,
-        price,
-        duration,
+        mediaType: validatedData.mediaType,
+        filePath: validatedData.filePath,
+        thumbnailPath: validatedData.thumbnailPath,
+        description: validatedData.description,
+        price: validatedData.price,
+        duration: validatedData.duration,
       },
       include: {
         collection: {
@@ -133,6 +98,14 @@ export async function POST(
     return NextResponse.json({ success: true, data: mediaItem });
   } catch (error) {
     console.error('Error creating media item:', error);
+    
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: 'Validation failed', details: error.errors },
+        { status: 400 }
+      );
+    }
+    
     return NextResponse.json(
       { error: 'Failed to create media item' },
       { status: 500 }

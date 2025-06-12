@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useToast } from '@/components/Toast';
 import { MediaItemCard } from '@/components/MediaItemCard';
+import { uploadCollectionMedia, deleteCollectionMedia, type UploadProgress, type UploadResult } from '@/lib/services/collectionUploadService';
 
 interface MediaItem {
   id: string;
@@ -28,6 +29,7 @@ export default function CollectionMediaPage() {
   const [loading, setLoading] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<UploadProgress>({ progress: 0, status: 'complete' });
   const { addToast } = useToast();
 
   // Form state for upload
@@ -96,24 +98,42 @@ export default function CollectionMediaPage() {
     }
 
     setUploading(true);
+    setUploadProgress({ progress: 0, status: 'uploading' });
+    
     try {
-      const formData = new FormData();
-      formData.append('file', selectedFile);
-      formData.append('mediaType', uploadForm.mediaType);
-      formData.append('description', uploadForm.description);
-      formData.append('price', uploadForm.price.toString());
-      
-      if (uploadForm.duration) {
-        formData.append('duration', uploadForm.duration);
-      }
-      
+      // Step 1: Upload main file to Supabase storage
+      const fileResult = await uploadCollectionMedia(
+        selectedFile,
+        uploadForm.mediaType,
+        selectedCollection,
+        (progress) => setUploadProgress(progress)
+      );
+
+      // Step 2: Upload thumbnail if provided
+      let thumbnailResult: UploadResult | null = null;
       if (selectedThumbnail) {
-        formData.append('thumbnail', selectedThumbnail);
+        thumbnailResult = await uploadCollectionMedia(
+          selectedThumbnail,
+          'photo',
+          selectedCollection,
+          (progress) => setUploadProgress({ ...progress, progress: 50 + progress.progress * 0.5 })
+        );
       }
 
+      // Step 3: Create database record with metadata only
       const response = await fetch(`/api/collections/${selectedCollection}/items`, {
         method: 'POST',
-        body: formData,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          mediaType: uploadForm.mediaType,
+          filePath: fileResult.path,
+          thumbnailPath: thumbnailResult?.path,
+          description: uploadForm.description,
+          price: uploadForm.price,
+          duration: uploadForm.duration ? parseInt(uploadForm.duration) : undefined,
+        }),
       });
 
       const data = await response.json();
@@ -123,11 +143,22 @@ export default function CollectionMediaPage() {
         setMediaItems(prev => [data.data, ...prev]);
         setShowUploadModal(false);
         resetUploadForm();
+        setUploadProgress({ progress: 100, status: 'complete' });
       } else {
-        addToast(`❌ Failed to upload: ${data.error}`, 'error');
+        addToast(`❌ Failed to create record: ${data.error}`, 'error');
+        // Clean up uploaded files if database record creation failed
+        try {
+          await deleteCollectionMedia(fileResult.path);
+          if (thumbnailResult) {
+            await deleteCollectionMedia(thumbnailResult.path);
+          }
+        } catch (cleanupError) {
+          console.error('Failed to cleanup uploaded files:', cleanupError);
+        }
       }
     } catch (error) {
-      addToast('❌ Failed to upload: Network error', 'error');
+      addToast(`❌ Failed to upload: ${error instanceof Error ? error.message : 'Network error'}`, 'error');
+      setUploadProgress({ progress: 0, status: 'error', error: error instanceof Error ? error.message : 'Upload failed' });
     } finally {
       setUploading(false);
     }
@@ -304,6 +335,31 @@ export default function CollectionMediaPage() {
                       className="w-full border border-brand-sage rounded px-3 py-2"
                       min="1"
                     />
+                  </div>
+                )}
+
+                {/* Upload Progress */}
+                {uploading && (
+                  <div className="pt-4">
+                    <div className="mb-2 flex justify-between text-sm">
+                      <span className="text-brand-pine">
+                        {uploadProgress.status === 'uploading' ? 'Uploading...' : 
+                         uploadProgress.status === 'complete' ? 'Complete!' : 
+                         uploadProgress.status === 'error' ? 'Error' : 'Processing...'}
+                      </span>
+                      <span className="text-brand-sage">{Math.round(uploadProgress.progress)}%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div 
+                        className={`h-2 rounded-full transition-all duration-300 ${
+                          uploadProgress.status === 'error' ? 'bg-red-500' : 'bg-brand-tan'
+                        }`}
+                        style={{ width: `${uploadProgress.progress}%` }}
+                      />
+                    </div>
+                    {uploadProgress.error && (
+                      <p className="text-red-500 text-sm mt-1">{uploadProgress.error}</p>
+                    )}
                   </div>
                 )}
 

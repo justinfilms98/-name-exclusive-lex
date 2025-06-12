@@ -2,6 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 
+// Configure bodyParser for large uploads
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: '100mb'
+    }
+  }
+};
+
 // Validation schemas
 const heroVideoSchema = z.object({
   title: z.string().min(1, "Title is required").max(100, "Title too long"),
@@ -51,6 +60,7 @@ export async function GET(req: NextRequest) {
         ageRating: true,
         category: true,
         tags: true,
+        moderated: true,
         moderatedBy: true,
         moderatedAt: true,
         rejectionReason: true,
@@ -111,6 +121,7 @@ export async function POST(req: NextRequest) {
         ageRating,
         category,
         tags,
+        moderated: false,
       },
       select: {
         id: true,
@@ -124,6 +135,7 @@ export async function POST(req: NextRequest) {
         ageRating: true,
         category: true,
         tags: true,
+        moderated: true,
         createdAt: true,
         updatedAt: true,
       }
@@ -194,6 +206,7 @@ export async function PUT(req: NextRequest) {
         ageRating: true,
         category: true,
         tags: true,
+        moderated: true,
         moderatedBy: true,
         moderatedAt: true,
         rejectionReason: true,
