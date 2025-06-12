@@ -1,11 +1,14 @@
 "use client";
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import AdminCollectionVideosPage from './CollectionVideosPage';
+import { ToastProvider } from '@/components/Toast';
+import CollectionMediaPage from './CollectionMediaPage';
 
 export default function PageWithBoundary() {
   return (
     <ErrorBoundary>
-      <AdminCollectionVideosPage />
+      <ToastProvider>
+        <CollectionMediaPage />
+      </ToastProvider>
     </ErrorBoundary>
   );
 } 
