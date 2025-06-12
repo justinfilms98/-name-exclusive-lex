@@ -16,6 +16,7 @@ interface HeroVideo {
   ageRating: 'G' | 'PG' | 'PG-13' | 'R';
   category: string;
   tags: string[];
+  moderated: boolean;
   createdAt: string;
   updatedAt: string;
   pricing: any[];

@@ -130,10 +130,6 @@ export async function GET(req: Request) {
     const endDate = searchParams.get('endDate');
     const days = searchParams.get('days');
 
-    if (!videoId) {
-      return NextResponse.json({ error: 'Missing videoId parameter' }, { status: 400 });
-    }
-
     let dateFilter = {};
     if (days) {
       const daysNum = parseInt(days, 10);
@@ -148,7 +144,7 @@ export async function GET(req: Request) {
     }
 
     const where = {
-      videoId: parseInt(videoId),
+      ...(videoId ? { videoId: parseInt(videoId) } : {}),
       ...(Object.keys(dateFilter).length > 0 ? { date: dateFilter } : {})
     };
 
@@ -156,6 +152,15 @@ export async function GET(req: Request) {
       where,
       orderBy: {
         date: 'desc'
+      },
+      include: {
+        video: {
+          select: {
+            id: true,
+            title: true,
+            thumbnail: true
+          }
+        }
       }
     });
 

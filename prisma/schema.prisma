@@ -112,6 +112,7 @@ model HeroVideo {
   ageRating       String                 @default("PG") // G, PG, PG-13, R
   category        String                 @default("entertainment")
   tags            String[] // Array of tags
+  moderated       Boolean                @default(false) // Whether the video has been moderated
   createdAt       DateTime               @default(now())
   updatedAt       DateTime               @updatedAt
   moderatedBy     String? // ID of the moderator who last reviewed
