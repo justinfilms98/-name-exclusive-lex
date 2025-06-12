@@ -11,15 +11,6 @@ const mediaItemSchema = z.object({
   duration: z.number().optional(),
 });
 
-// Configure bodyParser for small JSON payloads only
-export const config = {
-  api: {
-    bodyParser: {
-      sizeLimit: '1mb'
-    }
-  }
-};
-
 export async function GET(
   req: NextRequest,
   { params }: { params: { id: string } }
