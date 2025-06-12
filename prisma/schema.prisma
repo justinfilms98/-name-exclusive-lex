@@ -23,6 +23,7 @@ model User {
   sessions        Session[]
   videos          Video[]
   purchases       Purchase[]
+  mediaPurchases  MediaPurchase[]
   moderatedVideos HeroVideo[] @relation("ModeratedVideos")
   // userVideos    Video[]   @relation("VideoUser")
 
@@ -124,6 +125,48 @@ model HeroVideo {
   @@index([status])
   @@index([category])
   @@index([ageRating])
+  @@schema("public")
+}
+
+// New Collections table
+model Collection {
+  id        String      @id @default(cuid())
+  name      String
+  createdAt DateTime    @default(now())
+  mediaItems MediaItem[]
+
+  @@schema("public")
+}
+
+// New MediaItems table
+model MediaItem {
+  id            String   @id @default(cuid())
+  collectionId  String
+  collection    Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  mediaType     String   // 'video' or 'photo'
+  filePath      String
+  thumbnailPath String?
+  description   String?
+  price         Float    @default(0.00)
+  duration      Int?     // Duration in seconds for videos
+  createdAt     DateTime @default(now())
+  purchases     MediaPurchase[]
+
+  @@index([collectionId])
+  @@index([mediaType])
+  @@schema("public")
+}
+
+// New MediaPurchase table for media items
+model MediaPurchase {
+  id         String    @id @default(cuid())
+  userId     String
+  mediaItemId String
+  mediaItem  MediaItem @relation(fields: [mediaItemId], references: [id], onDelete: Cascade)
+  createdAt  DateTime  @default(now())
+  expiresAt  DateTime?
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@schema("public")
 }
 
