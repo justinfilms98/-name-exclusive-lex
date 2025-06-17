@@ -70,7 +70,16 @@ function generateUniqueFilename(originalName: string, type: UploadType, slotOrde
   return `${type}-${slotOrder}-${timestamp}.${extension}`;
 }
 
-// Main upload function
+// Get authenticated user session
+async function getAuthenticatedUser() {
+  const { data: { user }, error } = await supabase.auth.getUser();
+  if (error || !user) {
+    throw new Error('User not authenticated');
+  }
+  return user;
+}
+
+// Main upload function with authentication and fallback
 export async function uploadFile(
   file: File,
   type: UploadType,
@@ -78,6 +87,7 @@ export async function uploadFile(
   onProgress?: (progress: UploadProgress) => void
 ): Promise<UploadResult> {
   console.log('[uploadFile] Start', { file, type, slotOrder });
+  
   // Validate file
   const validationError = await validateFile(file, type === 'thumbnail' ? 'image' : 'video');
   if (validationError) {
@@ -91,27 +101,39 @@ export async function uploadFile(
   console.log('[uploadFile] Uploading to bucket', bucket, 'with filename', filename);
 
   try {
+    // First, try to get authenticated user
+    const user = await getAuthenticatedUser();
+    console.log('[uploadFile] Authenticated user:', user.id);
+
+    // Try direct upload with authentication
     const { data, error } = await supabase.storage.from(bucket).upload(filename, file, {
       cacheControl: '3600',
       upsert: true,
     });
+
     if (error) {
-      console.error('[uploadFile] Supabase upload error:', error);
-      throw error;
+      console.error('[uploadFile] Direct upload failed, trying signed URL fallback:', error);
+      
+      // Fallback to signed upload URL
+      return await uploadWithSignedUrl(file, bucket, filename, onProgress);
     }
+
     if (!data || !data.path) {
       console.error('[uploadFile] No data or path returned from upload', data);
       throw new Error('No data/path from upload');
     }
-    console.log('[uploadFile] Upload successful', data);
-    const { publicUrl } = supabase.storage.from(bucket).getPublicUrl(data.path).data;
-    if (!publicUrl) {
+
+    console.log('[uploadFile] Direct upload successful', data);
+    const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(data.path);
+    
+    if (!urlData.publicUrl) {
       console.error('[uploadFile] No publicUrl returned', data);
       throw new Error('No publicUrl from upload');
     }
-    console.log('[uploadFile] publicUrl:', publicUrl);
+
+    console.log('[uploadFile] publicUrl:', urlData.publicUrl);
     return {
-      url: publicUrl,
+      url: urlData.publicUrl,
       path: data.path,
       metadata: {
         size: file.size,
@@ -121,6 +143,66 @@ export async function uploadFile(
     };
   } catch (err) {
     console.error('[uploadFile] Caught error:', err);
+    throw err;
+  }
+}
+
+// Fallback upload using signed URL
+async function uploadWithSignedUrl(
+  file: File,
+  bucket: string,
+  filename: string,
+  onProgress?: (progress: UploadProgress) => void
+): Promise<UploadResult> {
+  console.log('[uploadWithSignedUrl] Starting signed URL upload');
+  
+  try {
+    // Get signed upload URL
+    const { data: signedUrlData, error: signedUrlError } = await supabase.storage
+      .from(bucket)
+      .createSignedUploadUrl(filename);
+
+    if (signedUrlError || !signedUrlData?.signedUrl) {
+      console.error('[uploadWithSignedUrl] Failed to get signed URL:', signedUrlError);
+      throw new Error('Failed to get signed upload URL');
+    }
+
+    console.log('[uploadWithSignedUrl] Got signed URL, uploading file');
+
+    // Upload file using signed URL
+    const uploadResponse = await fetch(signedUrlData.signedUrl, {
+      method: 'PUT',
+      body: file,
+      headers: {
+        'Content-Type': file.type,
+      },
+    });
+
+    if (!uploadResponse.ok) {
+      console.error('[uploadWithSignedUrl] Upload failed:', uploadResponse.status, uploadResponse.statusText);
+      throw new Error(`Upload failed: ${uploadResponse.status} ${uploadResponse.statusText}`);
+    }
+
+    console.log('[uploadWithSignedUrl] Upload successful');
+
+    // Get public URL
+    const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(filename);
+    
+    if (!urlData.publicUrl) {
+      throw new Error('No publicUrl after upload');
+    }
+
+    return {
+      url: urlData.publicUrl,
+      path: filename,
+      metadata: {
+        size: file.size,
+        type: file.type,
+        lastModified: file.lastModified,
+      },
+    };
+  } catch (err) {
+    console.error('[uploadWithSignedUrl] Error:', err);
     throw err;
   }
 }

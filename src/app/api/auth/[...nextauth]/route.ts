@@ -15,6 +15,18 @@ const handler = NextAuth({
   session: {
     strategy: "jwt",
   },
+  cookies: {
+    sessionToken: {
+      name: `__Secure-next-auth.session-token`,
+      options: {
+        domain: '.exclusivelex.com',
+        path: '/',
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: true,
+      },
+    },
+  },
   callbacks: {
     async session({ session, token }) {
       if (session.user) {

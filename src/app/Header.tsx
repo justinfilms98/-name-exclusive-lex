@@ -1,16 +1,59 @@
 "use client";
 import Link from 'next/link';
-import { useSession, signIn, signOut } from 'next-auth/react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { CartPreview } from "@/components/CartPreview";
 import { useCart } from '@/context/CartContext';
+import { supabase } from '@/lib/supabase';
+import { useRouter } from 'next/navigation';
 
 export default function Header() {
-  const { data: session } = useSession();
-  const isLoggedIn = !!session;
-  const isAdmin = (session?.user as any)?.role?.toLowerCase() === 'admin';
+  const router = useRouter();
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const isLoggedIn = !!user;
+  const isAdmin = user?.user_metadata?.role?.toLowerCase() === 'admin';
   const [menuOpen, setMenuOpen] = useState(false);
   const { totalItems } = useCart();
+
+  useEffect(() => {
+    // Get initial session
+    const getSession = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+      setLoading(false);
+    };
+
+    getSession();
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        setUser(session?.user ?? null);
+        setLoading(false);
+      }
+    );
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    router.push('/');
+  };
+
+  const handleSignIn = () => {
+    router.push('/signin');
+  };
+
+  if (loading) {
+    return (
+      <header className="fixed top-0 left-0 w-full z-50 bg-white/90 backdrop-blur border-b border-[#654C37]/10 shadow-sm">
+        <div className="container mx-auto px-4 py-3 flex items-center justify-center">
+          <div className="animate-pulse text-[#654C37]">Loading...</div>
+        </div>
+      </header>
+    );
+  }
 
   return (
     <header className="fixed top-0 left-0 w-full z-50 bg-white/90 backdrop-blur border-b border-[#654C37]/10 shadow-sm">
@@ -46,11 +89,14 @@ export default function Header() {
           <CartPreview />
           <Link href="/cart" className="text-[#D4C7B4] hover:underline px-2 py-1 link-underline">🛒</Link>
           {isLoggedIn ? (
-            <Link href="/account">
-              <button className="bg-[#D4C7B4] text-[#654C37] px-3 py-1 rounded text-sm button-animate">My Account</button>
-            </Link>
+            <div className="flex items-center gap-2">
+              <Link href="/account">
+                <button className="bg-[#D4C7B4] text-[#654C37] px-3 py-1 rounded text-sm button-animate">My Account</button>
+              </Link>
+              <button onClick={handleSignOut} className="bg-[#654C37] text-white px-3 py-1 rounded text-sm button-animate">Logout</button>
+            </div>
           ) : (
-            <button onClick={() => signIn()} className="bg-[#D4C7B4] text-[#654C37] px-3 py-1 rounded text-sm button-animate">Login</button>
+            <button onClick={handleSignIn} className="bg-[#D4C7B4] text-[#654C37] px-3 py-1 rounded text-sm button-animate">Login</button>
           )}
         </div>
         {/* Mobile dropdown menu */}
@@ -61,11 +107,14 @@ export default function Header() {
               <span role="img" aria-label="cart">🛒</span> Cart
             </Link>
             {isLoggedIn ? (
-              <Link href="/account" className="px-4 py-3" onClick={() => setMenuOpen(false)}>
-                <button className="w-full bg-[#D4C7B4] text-[#654C37] px-3 py-2 rounded text-sm button-animate">My Account</button>
-              </Link>
+              <div className="px-4 py-3 space-y-2">
+                <Link href="/account" className="block" onClick={() => setMenuOpen(false)}>
+                  <button className="w-full bg-[#D4C7B4] text-[#654C37] px-3 py-2 rounded text-sm button-animate">My Account</button>
+                </Link>
+                <button onClick={() => { setMenuOpen(false); handleSignOut(); }} className="w-full bg-[#654C37] text-white px-3 py-2 rounded text-sm button-animate">Logout</button>
+              </div>
             ) : (
-              <button onClick={() => { setMenuOpen(false); signIn(); }} className="w-full bg-[#D4C7B4] text-[#654C37] px-3 py-2 rounded text-sm m-2 button-animate">Login</button>
+              <button onClick={() => { setMenuOpen(false); handleSignIn(); }} className="w-full bg-[#D4C7B4] text-[#654C37] px-3 py-2 rounded text-sm m-2 button-animate">Login</button>
             )}
           </div>
         )}
