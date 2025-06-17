@@ -1,84 +1,104 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
-import { randomUUID } from 'crypto';
-
-const supabaseAdmin = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import { supabase } from '@/lib/supabase';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-04-30.basil',
 });
 
-console.log('DEBUG SUPABASE_URL:', process.env.SUPABASE_URL?.slice(0, 6));
-console.log('DEBUG SUPABASE_SERVICE_ROLE_KEY:', process.env.SUPABASE_SERVICE_ROLE_KEY?.slice(0, 6));
-
-type PurchaseDetails = {
-  videoId: string;
-  title: string;
-  description: string;
-  thumbnail: string;
-  duration: number;
-  purchasedAt: string;
-  expiresAt: string;
-  price: number;
-};
-
-export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
-  const sessionId = searchParams.get('session_id');
-  if (!sessionId) {
-    return NextResponse.json({ success: false, error: 'Missing session_id' }, { status: 400 });
-  }
+export async function POST(req: NextRequest) {
   try {
-    // 1. Retrieve Stripe session
+    const { sessionId } = await req.json();
+    
+    if (!sessionId) {
+      return NextResponse.json({ error: 'Session ID is required' }, { status: 400 });
+    }
+
+    // Retrieve the checkout session from Stripe
     const session = await stripe.checkout.sessions.retrieve(sessionId);
+    
     if (!session || session.payment_status !== 'paid') {
-      return NextResponse.json({ success: false, error: 'Payment not completed' }, { status: 400 });
+      return NextResponse.json({ 
+        success: false, 
+        message: 'Payment not completed or session not found' 
+      }, { status: 400 });
     }
-    // 2. Get video_id from metadata
-    const videoId = session.metadata?.video_id;
-    if (!videoId) {
-      return NextResponse.json({ success: false, error: 'No video_id in session metadata' }, { status: 400 });
+
+    // Extract metadata
+    const { user_id, video_ids } = session.metadata || {};
+    
+    if (!user_id || !video_ids) {
+      return NextResponse.json({ 
+        success: false, 
+        message: 'Invalid session metadata' 
+      }, { status: 400 });
     }
-    // 3. Get user_id (use customer_email for now)
-    const userId = session.customer_email;
-    if (!userId) {
-      return NextResponse.json({ success: false, error: 'No customer email in session' }, { status: 400 });
+
+    // Parse video IDs
+    const videoIdArray = video_ids.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id));
+    
+    if (videoIdArray.length === 0) {
+      return NextResponse.json({ 
+        success: false, 
+        message: 'No valid video IDs found' 
+      }, { status: 400 });
     }
-    // 4. Get video duration from your videos table
-    const { data: video, error: videoError } = await supabaseAdmin
-      .from('CollectionVideo')
-      .select('duration')
-      .eq('id', videoId)
-      .single();
-    if (videoError || !video) {
-      return NextResponse.json({ success: false, error: 'Video not found' }, { status: 404 });
+
+    // Get video details
+    const { data: videos, error: videosError } = await supabase
+      .from('collection_videos')
+      .select('id, title, price')
+      .in('id', videoIdArray);
+
+    if (videosError || !videos || videos.length === 0) {
+      return NextResponse.json({ 
+        success: false, 
+        message: 'Videos not found' 
+      }, { status: 404 });
     }
-    // 5. Insert into UsersVideos (grant access)
-    await supabaseAdmin
-      .from('UsersVideos')
-      .insert([
-        { userId: userId, videoId: Number(videoId), purchasedAt: new Date().toISOString() }
-      ]);
-    // 6. Always create a new token row
-    const token = randomUUID();
-    const expiresAt = new Date(Date.now() + (video.duration || 30) * 60 * 1000).toISOString();
-    const { data: tokenRow, error: tokenError } = await supabaseAdmin
-      .from('purchase_tokens')
-      .insert([
-        { token, user_id: userId, video_id: Number(videoId), expires_at: expiresAt }
-      ])
-      .select('token')
-      .single();
-    if (tokenError || !tokenRow) {
-      return NextResponse.json({ success: false, error: 'Failed to create access token' }, { status: 500 });
+
+    // Calculate expiration date (30 days from now)
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 30);
+
+    // Insert purchase records
+    const purchaseRecords = videos.map(video => ({
+      user_id: user_id,
+      video_id: video.id,
+      expires_at: expiresAt.toISOString(),
+    }));
+
+    const { data: purchases, error: purchaseError } = await supabase
+      .from('purchases')
+      .insert(purchaseRecords)
+      .select('*');
+
+    if (purchaseError) {
+      console.error('Error inserting purchases:', purchaseError);
+      return NextResponse.json({ 
+        success: false, 
+        message: 'Failed to record purchases' 
+      }, { status: 500 });
     }
-    // 7. Return success, videoId, token
-    return NextResponse.json({ success: true, videoId: Number(videoId), token: tokenRow.token });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message || 'Internal server error' }, { status: 500 });
+
+    // Return success with purchase details
+    const purchaseDetails = videos.map(video => ({
+      videoId: video.id,
+      title: video.title,
+      expiresAt: expiresAt.toISOString(),
+    }));
+
+    return NextResponse.json({
+      success: true,
+      message: 'Purchase verified and recorded successfully',
+      purchases: purchaseDetails,
+    });
+
+  } catch (error) {
+    console.error('Purchase verification error:', error);
+    return NextResponse.json({ 
+      success: false, 
+      message: 'Internal server error' 
+    }, { status: 500 });
   }
 } 

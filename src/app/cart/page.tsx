@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { useCart } from "@/context/CartContext";
+import { supabase } from "@/lib/supabase";
 
 interface SuggestedVideo {
   id: number;
@@ -22,11 +22,32 @@ interface SuggestedVideo {
 
 export default function CartPage() {
   const router = useRouter();
-  const { data: session, status } = useSession();
   const { items, removeItem, subtotal, tax, total, clearCart, addItem, isInCart } = useCart();
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [suggestedVideos, setSuggestedVideos] = useState<SuggestedVideo[]>([]);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+
+  // Check authentication on mount
+  useEffect(() => {
+    checkAuth();
+  }, []);
+
+  const checkAuth = async () => {
+    try {
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (error || !user) {
+        setIsAuthenticated(false);
+        router.push('/signin');
+        return;
+      }
+      setIsAuthenticated(true);
+    } catch (err) {
+      console.error('Auth check failed:', err);
+      setIsAuthenticated(false);
+      router.push('/signin');
+    }
+  };
 
   // Fetch suggested videos
   useEffect(() => {
@@ -54,8 +75,8 @@ export default function CartPage() {
   }, [items]);
 
   const handleCheckout = async () => {
-    if (!session) {
-      router.push('/api/auth/signin');
+    if (!isAuthenticated) {
+      router.push('/signin');
       return;
     }
 
@@ -72,8 +93,7 @@ export default function CartPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          cartItems: items,
-          userEmail: session.user?.email
+          cartItems: items
         }),
       });
 
@@ -97,8 +117,8 @@ export default function CartPage() {
   };
 
   const handleSuggestedVideoPurchase = async (video: SuggestedVideo) => {
-    if (!session) {
-      router.push('/api/auth/signin');
+    if (!isAuthenticated) {
+      router.push('/signin');
       return;
     }
 
@@ -130,7 +150,7 @@ export default function CartPage() {
     }
   };
 
-  if (status === 'loading') {
+  if (isAuthenticated === null) {
     return (
       <div className="min-h-screen bg-[#D4C7B4] flex items-center justify-center">
         <motion.div
@@ -142,6 +162,10 @@ export default function CartPage() {
         </motion.div>
       </div>
     );
+  }
+
+  if (!isAuthenticated) {
+    return null; // Will redirect to signin
   }
 
   return (
@@ -441,13 +465,8 @@ export default function CartPage() {
                         />
                         Processing...
                       </motion.div>
-                    ) : session ? 'Proceed to Checkout' : 'Sign in to Checkout'}
+                    ) : 'Proceed to Checkout'}
                   </motion.button>
-                  {!session && (
-                    <p className="text-sm text-[#654C37]/60 mt-4 text-center">
-                      Please sign in to complete your purchase
-                    </p>
-                  )}
                 </motion.div>
               </motion.div>
             </motion.div>
