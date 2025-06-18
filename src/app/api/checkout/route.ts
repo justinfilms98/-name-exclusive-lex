@@ -57,6 +57,7 @@ export async function POST(req: NextRequest) {
         user_email: user.email || '',
         video_id: videoId ? String(videoId) : '',
         video_ids: videoIds,
+        cart_summary: JSON.stringify(cartItems)
       },
     });
 

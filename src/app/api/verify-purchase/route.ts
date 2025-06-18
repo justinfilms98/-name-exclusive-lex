@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Extract metadata
-    const { user_id, video_ids } = session.metadata || {};
+    const { user_id, video_ids, cart_summary } = session.metadata || {};
     
     if (!user_id || !video_ids) {
       return NextResponse.json({ 
@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ 
         success: false, 
         message: 'No valid video IDs found' 
-      }, { status: 400 });
+      }, { status: 404 });
     }
 
     // Get video details
