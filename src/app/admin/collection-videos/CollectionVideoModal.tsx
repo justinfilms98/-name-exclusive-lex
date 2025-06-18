@@ -21,7 +21,6 @@ interface CollectionVideo {
   thumbnail: string;
   videoUrl: string;
   thumbnailPath?: string;
-  videoPath?: string;
   order: number;
   category: string;
   ageRating: 'G' | 'PG' | 'PG-13' | 'R';
@@ -48,7 +47,6 @@ export default function CollectionVideoModal({ open, onClose, onSave, initialDat
     thumbnail: initialData?.thumbnail || '',
     videoUrl: initialData?.videoUrl || '',
     thumbnailPath: initialData?.thumbnailPath,
-    videoPath: initialData?.videoPath,
     order: slotOrder,
     category: initialData?.category || '',
     ageRating: initialData?.ageRating || 'PG',
@@ -75,7 +73,6 @@ export default function CollectionVideoModal({ open, onClose, onSave, initialDat
         thumbnail: initialData?.thumbnail || '',
         videoUrl: initialData?.videoUrl || '',
         thumbnailPath: initialData?.thumbnailPath,
-        videoPath: initialData?.videoPath,
         order: slotOrder,
         category: initialData?.category || '',
         ageRating: initialData?.ageRating || 'PG',
@@ -101,7 +98,7 @@ export default function CollectionVideoModal({ open, onClose, onSave, initialDat
 
     try {
       // Delete old file if exists
-      const oldPath = type === 'thumbnail' ? formData.thumbnailPath : formData.videoPath;
+      const oldPath = type === 'thumbnail' ? formData.thumbnailPath : formData.videoUrl;
       if (oldPath) {
         await deleteFile(oldPath, type);
       }
