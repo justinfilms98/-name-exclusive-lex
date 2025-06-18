@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
     // Get video details to find the video path
     const { data: video, error: videoError } = await supabase
       .from('collection_videos')
-      .select('video_path, video_url')
+      .select('video_path, video_url, thumbnail_path')
       .eq('id', videoId)
       .single();
 
@@ -40,26 +40,47 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Video not found' }, { status: 404 });
     }
 
-    // TEMPORARY: Use dummy signed URL for testing
-    // TODO: Replace with real Supabase signed URL generation
-    const dummySignedUrl = "https://storage.googleapis.com/sample-videos/video123/mp4/720/big_buck_bunny_720p_1mb.mp4";
-    
-    // Real implementation (commented out for now):
-    /*
-    const expiresIn = 60 * 60; // 1 hour in seconds
-    const { data: signedUrlData, error: signedUrlError } = await supabase.storage
-      .from('videos')
-      .createSignedUrl(video.video_path || video.video_url, expiresIn);
+    // Try to generate real signed URL first
+    let signedUrl: string;
+    let expiresAt: string;
 
-    if (signedUrlError || !signedUrlData?.signedUrl) {
-      console.error('Failed to generate signed URL:', signedUrlError);
-      return NextResponse.json({ error: 'Failed to generate video URL' }, { status: 500 });
+    try {
+      // Determine the correct path for the video
+      const videoPath = video.video_path || video.video_url;
+      
+      if (videoPath && videoPath.startsWith('videos/')) {
+        // Real video file exists, generate signed URL
+        const expiresIn = 60 * 60; // 1 hour in seconds
+        const { data: signedUrlData, error: signedUrlError } = await supabase.storage
+          .from('videos')
+          .createSignedUrl(videoPath, expiresIn);
+
+        if (signedUrlError || !signedUrlData?.signedUrl) {
+          console.error('Failed to generate signed URL:', signedUrlError);
+          throw new Error('Failed to generate video URL');
+        }
+
+        signedUrl = signedUrlData.signedUrl;
+        expiresAt = new Date(Date.now() + expiresIn * 1000).toISOString();
+        console.log('Generated real signed URL for video:', videoId);
+      } else {
+        // No real video file, use fallback
+        throw new Error('No video file found');
+      }
+    } catch (error) {
+      console.log('Using fallback URL for video:', videoId, error);
+      
+      // FALLBACK: Use dummy signed URL for testing
+      // TODO: Replace with real video files in production
+      signedUrl = "https://storage.googleapis.com/sample-videos/video123/mp4/720/big_buck_bunny_720p_1mb.mp4";
+      expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString(); // 1 hour
     }
-    */
 
     return NextResponse.json({ 
-      signedUrl: dummySignedUrl,
-      expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString() // 1 hour
+      signedUrl,
+      expiresAt,
+      videoPath: video.video_path || video.video_url,
+      isFallback: signedUrl.includes('storage.googleapis.com')
     });
 
   } catch (error) {
