@@ -11,7 +11,6 @@ interface HeroVideo {
   thumbnail: string;
   videoUrl: string;
   thumbnailPath?: string;
-  videoPath?: string;
   order: number;
   price: number;
   status: 'draft' | 'pending' | 'approved' | 'rejected';
@@ -61,7 +60,6 @@ interface HeroVideoFormData {
   videoUrl: string;
   order: number;
   thumbnailPath?: string;
-  videoPath?: string;
 }
 
 // Helper function to format watch time
@@ -77,7 +75,6 @@ export default function HeroVideoModal({ open, onClose, onSave, initialData, slo
     videoUrl: initialData?.videoUrl || '',
     order: slotOrder,
     thumbnailPath: initialData?.thumbnailPath,
-    videoPath: initialData?.videoPath,
     title: initialData?.title || '',
     description: initialData?.description || '',
   });
@@ -98,7 +95,6 @@ export default function HeroVideoModal({ open, onClose, onSave, initialData, slo
         videoUrl: initialData?.videoUrl || '',
         order: slotOrder,
         thumbnailPath: initialData?.thumbnailPath,
-        videoPath: initialData?.videoPath,
         title: initialData?.title || '',
         description: initialData?.description || '',
       });
@@ -129,7 +125,7 @@ export default function HeroVideoModal({ open, onClose, onSave, initialData, slo
 
     try {
       // Delete old file if exists
-      const oldPath = type === 'thumbnail' ? formData.thumbnailPath : formData.videoPath;
+      const oldPath = type === 'thumbnail' ? formData.thumbnailPath : '';
       if (oldPath) {
         await deleteFile(oldPath, type);
       }
@@ -146,7 +142,7 @@ export default function HeroVideoModal({ open, onClose, onSave, initialData, slo
       setFormData(prev => ({
         ...prev,
         [type === 'thumbnail' ? 'thumbnail' : 'videoUrl']: result.url,
-        [type === 'thumbnail' ? 'thumbnailPath' : 'videoPath']: result.path,
+        [type === 'thumbnail' ? 'thumbnailPath' : '']: result.path,
       }));
       // Mark upload as complete so UI unfreezes
       setUploadProgress(prev => ({

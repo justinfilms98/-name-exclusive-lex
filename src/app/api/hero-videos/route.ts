@@ -9,7 +9,6 @@ const heroVideoSchema = z.object({
   thumbnail: z.string().url("Invalid thumbnail URL"),
   videoUrl: z.string().url("Invalid video URL"),
   thumbnailPath: z.string().optional(),
-  videoPath: z.string().optional(),
   order: z.number().int().min(1).max(3),
   price: z.number().min(0).default(0),
   status: z.enum(['draft', 'pending', 'approved', 'rejected']).default('draft'),

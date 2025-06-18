@@ -21,7 +21,6 @@ const collectionVideoSchema = z.object({
   thumbnail: z.string().url("Invalid thumbnail URL"),
   videoUrl: z.string().url("Invalid video URL"),
   thumbnailPath: z.string().optional(),
-  videoPath: z.string().optional(),
   order: z.number().int().min(1),
   category: z.string().min(1, "Category is required"),
   ageRating: z.enum(['G', 'PG', 'PG-13', 'R']).default('PG'),
@@ -48,7 +47,6 @@ export async function GET(req: NextRequest) {
         thumbnail: true,
         videoUrl: true,
         thumbnailPath: true,
-        videoPath: true,
         order: true,
         price: true,
         duration: true,
@@ -81,7 +79,7 @@ export async function POST(req: NextRequest) {
 
     // Only pick fields that exist in the Prisma model
     const {
-      collection, title, description, thumbnail, videoUrl, thumbnailPath, videoPath, order, duration
+      collection, title, description, thumbnail, videoUrl, thumbnailPath, order, duration
     } = validatedData;
     // Price is not in the Zod schema but is required by Prisma
     const safePrice = typeof (validatedData as any).price === 'number' ? (validatedData as any).price : 0;
@@ -109,7 +107,6 @@ export async function POST(req: NextRequest) {
         thumbnail,
         videoUrl,
         thumbnailPath,
-        videoPath,
         order,
         price: safePrice,
         duration,
@@ -122,7 +119,6 @@ export async function POST(req: NextRequest) {
         thumbnail: true,
         videoUrl: true,
         thumbnailPath: true,
-        videoPath: true,
         order: true,
         price: true,
         duration: true,
@@ -181,7 +177,6 @@ export async function PUT(req: NextRequest) {
         thumbnail: true,
         videoUrl: true,
         thumbnailPath: true,
-        videoPath: true,
         order: true,
         price: true,
         duration: true,
@@ -220,7 +215,6 @@ export async function DELETE(req: NextRequest) {
       where: { id: parseInt(id) },
       select: {
         thumbnailPath: true,
-        videoPath: true,
       }
     });
     // TODO: Delete files from storage

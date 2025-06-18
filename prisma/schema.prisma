@@ -179,7 +179,6 @@ model CollectionVideo {
   thumbnail     String // URL to the thumbnail image
   videoUrl      String // URL to the video file
   thumbnailPath String? // Path in storage for thumbnail
-  videoPath     String? // Path in storage for video
   price         Float          @default(0.00) // Price in USD
   order         Int // 1-20 for the slot in the collection
   duration      Int? // Duration in minutes

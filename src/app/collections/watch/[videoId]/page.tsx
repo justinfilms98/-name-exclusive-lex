@@ -68,11 +68,10 @@ export default async function WatchPage({ params, searchParams }: PageProps) {
     );
 
     // 3) Create signed URL
-    const videoPath = video.videoUrl.split('/').pop();
     const { data: signedData, error: signedError } = await supabaseAdmin
       .storage
       .from('videos') // replace with your actual bucket name if different
-      .createSignedUrl(videoPath, 60 * 60);
+      .createSignedUrl(video.videoUrl, 60 * 60);
     debug += `signedData: ${JSON.stringify(signedData)} | signedError: ${JSON.stringify(signedError)}\n`;
     if (signedError || !signedData?.signedUrl) return (
       <div style={{ background: 'white', color: 'black', padding: 20 }}>
