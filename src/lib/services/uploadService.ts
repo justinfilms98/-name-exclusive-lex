@@ -72,11 +72,11 @@ function generateUniqueFilename(originalName: string, type: UploadType, slotOrde
 
 // Get authenticated user session
 async function getAuthenticatedUser() {
-  const { data: { user }, error } = await supabase.auth.getUser();
-  if (error || !user) {
-    throw new Error('User not authenticated');
+  const { data: { session }, error } = await supabase.auth.getSession();
+  if (error || !session) {
+    throw new Error('No session - user not authenticated');
   }
-  return user;
+  return session.user;
 }
 
 // Main upload function with authentication and fallback
@@ -101,14 +101,15 @@ export async function uploadFile(
   console.log('[uploadFile] Uploading to bucket', bucket, 'with filename', filename);
 
   try {
-    // First, try to get authenticated user
+    // First, try to get authenticated user session
     const user = await getAuthenticatedUser();
     console.log('[uploadFile] Authenticated user:', user.id);
 
     // Try direct upload with authentication
     const { data, error } = await supabase.storage.from(bucket).upload(filename, file, {
       cacheControl: '3600',
-      upsert: true,
+      upsert: false,
+      contentType: file.type
     });
 
     if (error) {
