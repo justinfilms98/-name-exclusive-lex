@@ -13,6 +13,8 @@ const supabase = createClient(
   }
 );
 
+export const dynamic = "force-dynamic";
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams, origin } = new URL(request.url);
