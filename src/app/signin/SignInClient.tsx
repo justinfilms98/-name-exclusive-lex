@@ -59,15 +59,33 @@ export default function SignInClient() {
 
   const handleGoogleSignIn = async () => {
     try {
+      setIsLoading(true);
+      setError(null);
+      
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`
+          redirectTo: `${window.location.origin}/auth/v1/callback`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          }
         }
       });
-      if (error) throw error;
+      
+      if (error) {
+        console.error('Google OAuth error:', error);
+        if (error.message.includes('DNS') || error.message.includes('network')) {
+          setError('Network connection issue. Please check your internet connection and try again.');
+        } else {
+          setError(error.message || 'Google sign-in failed. Please try again.');
+        }
+      }
     } catch (err: any) {
-      setError(err.message || 'Google sign-in failed');
+      console.error('Google sign-in exception:', err);
+      setError('Unable to connect to Google. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
