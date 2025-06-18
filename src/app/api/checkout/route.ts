@@ -18,11 +18,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'All items must have a price greater than $0.' }, { status: 400 });
     }
 
-    // Get authenticated user
+    // Get authenticated user (optional for checkout)
     const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
-    }
+    
+    // Generate a unique identifier for anonymous users
+    const sessionId = user?.id || `anon_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const userEmail = user?.email || null;
 
     const line_items = cartItems.map((item: any) => ({
       price_data: {
@@ -39,7 +40,14 @@ export async function POST(req: NextRequest) {
     // Collect video IDs for metadata
     const videoIds = cartItems.map((item: any) => item.id).join(',');
     const videoId = cartItems.length === 1 ? cartItems[0].id : undefined;
-    console.log('Creating Stripe session with:', { userEmail: user.email, userId: user.id, videoIds, videoId, cartItems });
+    console.log('Creating Stripe session with:', { 
+      userEmail, 
+      userId: user?.id || 'anonymous', 
+      sessionId,
+      videoIds, 
+      videoId, 
+      cartItems 
+    });
 
     const successUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/success?session_id={CHECKOUT_SESSION_ID}`;
     const cancelUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/cart`;
@@ -49,15 +57,17 @@ export async function POST(req: NextRequest) {
       payment_method_types: ['card'],
       line_items,
       mode: 'payment',
-      customer_email: user.email,
+      customer_email: userEmail || undefined,
       success_url: successUrl,
       cancel_url: cancelUrl,
       metadata: {
-        user_id: user.id,
-        user_email: user.email || '',
+        user_id: user?.id || 'anonymous',
+        session_id: sessionId,
+        user_email: userEmail || '',
         video_id: videoId ? String(videoId) : '',
         video_ids: videoIds,
-        cart_summary: JSON.stringify(cartItems)
+        cart_summary: JSON.stringify(cartItems),
+        is_authenticated: user ? 'true' : 'false'
       },
     });
 

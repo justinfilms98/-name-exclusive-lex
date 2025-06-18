@@ -14,15 +14,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Session ID is required' }, { status: 400 });
     }
 
-    // Validate user session first
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return NextResponse.json({ 
-        success: false, 
-        message: 'Authentication required' 
-      }, { status: 401 });
-    }
-
     // Retrieve the checkout session from Stripe
     const session = await stripe.checkout.sessions.retrieve(sessionId);
     
@@ -34,7 +25,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Extract and validate metadata
-    const { user_id, video_ids, cart_summary } = session.metadata || {};
+    const { user_id, session_id, video_ids, cart_summary, is_authenticated } = session.metadata || {};
     
     if (!user_id || !video_ids) {
       console.error('Invalid session metadata:', session.metadata);
@@ -42,6 +33,67 @@ export async function POST(req: NextRequest) {
         success: false, 
         message: 'Invalid session metadata' 
       }, { status: 400 });
+    }
+
+    // Check if user is authenticated
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const isUserAuthenticated = !authError && user;
+    const isAnonymousPurchase = user_id === 'anonymous' || is_authenticated === 'false';
+
+    // For anonymous purchases, we'll create a temporary access mechanism
+    if (isAnonymousPurchase) {
+      console.log('Processing anonymous purchase:', { sessionId, userEmail: session.customer_email });
+      
+      // Parse video IDs
+      const videoIdArray = video_ids.split(',')
+        .map(id => id.trim())
+        .filter(id => id.length > 0)
+        .map(id => {
+          const parsed = parseInt(id);
+          return isNaN(parsed) ? null : parsed;
+        })
+        .filter(id => id !== null) as number[];
+
+      if (videoIdArray.length === 0) {
+        return NextResponse.json({ 
+          success: false, 
+          message: 'No valid video IDs found' 
+        }, { status: 400 });
+      }
+
+      // Get video details
+      const { data: videos, error: videosError } = await supabase
+        .from('collection_videos')
+        .select('id, title, price')
+        .in('id', videoIdArray);
+
+      if (videosError || !videos || videos.length === 0) {
+        return NextResponse.json({ 
+          success: false, 
+          message: 'Videos not found' 
+        }, { status: 404 });
+      }
+
+      // For anonymous users, return success with instructions to sign up
+      return NextResponse.json({
+        success: true,
+        message: 'Purchase completed successfully! Please sign up to access your videos.',
+        requiresSignup: true,
+        userEmail: session.customer_email,
+        purchases: videos.map(video => ({
+          videoId: video.id,
+          title: video.title,
+          expiresAt: null, // Will be set after signup
+        })),
+      });
+    }
+
+    // For authenticated users, proceed with normal flow
+    if (!isUserAuthenticated) {
+      return NextResponse.json({ 
+        success: false, 
+        message: 'Authentication required to access purchased content' 
+      }, { status: 401 });
     }
 
     // Verify the session belongs to the authenticated user
