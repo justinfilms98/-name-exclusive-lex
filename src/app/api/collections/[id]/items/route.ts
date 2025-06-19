@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import { randomUUID } from 'crypto';
 
 const mediaItemSchema = z.object({
   mediaType: z.enum(['video', 'photo']),
@@ -71,6 +72,7 @@ export async function POST(
     // Create media item in database
     const mediaItem = await prisma.mediaItem.create({
       data: {
+        id: randomUUID(),
         collectionId: id,
         mediaType: validatedData.mediaType,
         filePath: validatedData.filePath,
