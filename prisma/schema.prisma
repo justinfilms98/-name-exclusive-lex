@@ -9,47 +9,99 @@ datasource db {
   schemas  = ["auth", "public"]
 }
 
-model User {
-  id             String          @id @default(cuid())
-  name           String?
-  email          String?         @unique
-  emailVerified  DateTime?       @db.Timestamp(6)
-  image          String?
-  password       String?
-  role           String?         @default("user")
-  createdAt      DateTime?       @default(now()) @db.Timestamp(6)
-  updatedAt      DateTime?       @default(now()) @updatedAt @db.Timestamp(6)
-  accounts       Account[]
-  mediaPurchases MediaPurchase[]
-  purchases      Purchase[]
-  sessions       Session[]
-  videos         Video[]
+model CollectionVideo {
+  id            Int            @id @default(autoincrement())
+  collection    String
+  title         String
+  description   String
+  thumbnail     String
+  videoUrl      String
+  order         Int
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  price         Float          @default(0.00)
+  thumbnailPath String?
+  userId        String?        @db.Uuid
+  Purchase      Purchase[]
+  VideoPricing  VideoPricing[]
 
-  @@map("User")
   @@schema("public")
 }
 
-model Account {
-  id                String  @id @default(cuid())
-  userId            String
-  type              String
-  provider          String
-  providerAccountId String
-  refresh_token     String?
-  access_token      String?
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String?
-  session_state     String?
-  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+model HeroVideo {
+  id                   Int                    @id @default(autoincrement())
+  title                String
+  description          String
+  thumbnail            String
+  videoUrl             String
+  order                Int
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+  ageRating            String                 @default("PG")
+  category             String                 @default("entertainment")
+  moderatedAt          DateTime?
+  moderatedBy          String?
+  price                Float                  @default(0.00)
+  rejectionReason      String?
+  status               String                 @default("draft")
+  tags                 String[]
+  moderated            Boolean                @default(false)
+  userId               String?                @db.Uuid
+  ContentModerationLog ContentModerationLog[]
+  VideoAnalytics       VideoAnalytics[]
+  VideoPricing         VideoPricing[]
 
-  @@unique([provider, providerAccountId])
+  @@index([ageRating])
+  @@index([category])
+  @@index([status])
+  @@schema("public")
+}
+
+model Collection {
+  id         String      @id
+  name       String
+  createdAt  DateTime?   @default(now()) @db.Timestamp(6)
+  userId     String?     @db.Uuid
+  mediaItems MediaItem[]
+
+  @@schema("public")
+}
+
+model MediaItem {
+  id            String          @id
+  collectionId  String
+  mediaType     String
+  filePath      String
+  thumbnailPath String?
+  description   String?
+  price         Float?          @default(0.00)
+  duration      Int?
+  createdAt     DateTime?       @default(now()) @db.Timestamp(6)
+  userId        String?         @db.Uuid
+  collection    Collection      @relation(fields: [collectionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  MediaPurchase MediaPurchase[]
+
+  @@schema("public")
+}
+
+model Video {
+  id           String    @id
+  title        String
+  description  String
+  price        Float
+  type         String
+  videoKey     String
+  thumbnailKey String
+  createdAt    DateTime? @default(now()) @db.Timestamp(6)
+  updatedAt    DateTime? @default(now()) @updatedAt @db.Timestamp(6)
+  creatorId    String
+  User         User      @relation(fields: [creatorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
   @@schema("public")
 }
 
 model Session {
-  id           String   @id @default(cuid())
+  id           String   @id
   sessionToken String?  @unique
   userId       String
   expires      DateTime @db.Timestamp(6)
@@ -67,181 +119,22 @@ model VerificationToken {
   @@schema("public")
 }
 
-model Video {
-  id           String    @id @default(cuid())
-  title        String
-  description  String
-  price        Float
-  type         String
-  videoKey     String
-  thumbnailKey String
-  createdAt    DateTime? @default(now()) @db.Timestamp(6)
-  updatedAt    DateTime? @default(now()) @updatedAt @db.Timestamp(6)
-  creatorId    String
-  creator      User      @relation(fields: [creatorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-
-  @@map("Video")
-  @@schema("public")
-}
-
-model Purchase {
-  id        String          @id @default(cuid())
-  userId    String
-  videoId   Int
-  createdAt DateTime?       @default(now()) @db.Timestamp(6)
-  expiresAt DateTime        @db.Timestamp(6)
-  user      User            @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  video     CollectionVideo @relation(fields: [videoId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-
-  @@schema("public")
-}
-
-model HeroVideo {
-  id              Int                    @id @default(autoincrement())
-  title           String
-  description     String
-  thumbnail       String
-  videoUrl        String
-  order           Int
-  createdAt       DateTime               @default(now())
-  updatedAt       DateTime               @updatedAt
-  ageRating       String                 @default("PG")
-  category        String                 @default("entertainment")
-  moderatedAt     DateTime?
-  moderatedBy     String?
-  price           Float                  @default(0.00)
-  rejectionReason String?
-  status          String                 @default("draft")
-  tags            String[]
-  moderated       Boolean                @default(false)
-  userId          String?                @db.Uuid
-  moderationLogs  ContentModerationLog[]
-  analytics       VideoAnalytics[]
-  pricing         VideoPricing[]         @relation("HeroVideoPricing")
-
-  @@index([status])
-  @@index([category])
-  @@index([ageRating])
-  @@schema("public")
-}
-
-model Collection {
-  id         String      @id @default(cuid())
-  name       String
-  createdAt  DateTime?   @default(now()) @db.Timestamp(6)
-  userId     String?     @db.Uuid
-  mediaItems MediaItem[]
-
-  @@schema("public")
-}
-
-model MediaItem {
-  id            String          @id @default(cuid())
-  collectionId  String
-  mediaType     String
-  filePath      String
-  thumbnailPath String?
-  description   String?
-  price         Float?          @default(0.00)
-  duration      Int?
+model User {
+  id            String          @id
+  name          String?
+  email         String?         @unique
+  emailVerified DateTime?       @db.Timestamp(6)
+  image         String?
+  password      String?
+  role          String?         @default("user")
   createdAt     DateTime?       @default(now()) @db.Timestamp(6)
-  userId        String?         @db.Uuid
-  collection    Collection      @relation(fields: [collectionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  purchases     MediaPurchase[]
+  updatedAt     DateTime?       @default(now()) @updatedAt @db.Timestamp(6)
+  Account       Account[]
+  MediaPurchase MediaPurchase[]
+  Purchase      Purchase[]
+  sessions      Session[]
+  Video         Video[]
 
-  @@schema("public")
-}
-
-model MediaPurchase {
-  id          String    @id @default(cuid())
-  userId      String
-  mediaItemId String
-  createdAt   DateTime? @default(now()) @db.Timestamp(6)
-  expiresAt   DateTime? @db.Timestamp(6)
-  mediaItem   MediaItem @relation(fields: [mediaItemId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  user        User      @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-
-  @@schema("public")
-}
-
-model CollectionVideo {
-  id            Int            @id @default(autoincrement())
-  collection    String
-  title         String
-  description   String
-  thumbnail     String
-  videoUrl      String
-  order         Int
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  price         Float          @default(0.00)
-  thumbnailPath String?
-  userId        String?        @db.Uuid
-  purchases     Purchase[]
-  pricing       VideoPricing[] @relation("CollectionVideoPricing")
-
-  @@schema("public")
-}
-
-model VideoAnalytics {
-  id          Int       @id @default(autoincrement())
-  videoId     Int
-  views       Int?      @default(0)
-  uniqueViews Int?      @default(0)
-  watchTime   Int?      @default(0)
-  likes       Int?      @default(0)
-  shares      Int?      @default(0)
-  comments    Int?      @default(0)
-  revenue     Float?    @default(0.00)
-  date        DateTime? @default(now()) @db.Timestamp(6)
-  country     String?
-  device      String?
-  referrer    String?
-  video       HeroVideo @relation(fields: [videoId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-
-  @@index([videoId, date])
-  @@index([country])
-  @@index([device])
-  @@schema("public")
-}
-
-model VideoPricing {
-  id          Int              @id @default(autoincrement())
-  videoId     Int?
-  heroVideoId Int?
-  type        String
-  price       Float
-  currency    String?          @default("USD")
-  duration    Int?
-  startDate   DateTime?        @default(now()) @db.Timestamp(6)
-  endDate     DateTime?        @db.Timestamp(6)
-  discount    Float?
-  promoCode   String?
-  region      String?
-  isActive    Boolean?         @default(true)
-  heroVideo   HeroVideo?       @relation("HeroVideoPricing", fields: [heroVideoId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  video       CollectionVideo? @relation("CollectionVideoPricing", fields: [videoId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-
-  @@index([videoId, type])
-  @@index([heroVideoId, type])
-  @@index([isActive])
-  @@index([promoCode])
-  @@schema("public")
-}
-
-model ContentModerationLog {
-  id          Int       @id @default(autoincrement())
-  videoId     Int
-  moderatorId String
-  action      String
-  reason      String?
-  notes       String?
-  createdAt   DateTime? @default(now()) @db.Timestamp(6)
-  video       HeroVideo @relation(fields: [videoId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-
-  @@index([videoId])
-  @@index([moderatorId])
-  @@index([action])
   @@schema("public")
 }
 
@@ -562,6 +455,26 @@ model users {
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model Account {
+  id                String  @id
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  User              User    @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([provider, providerAccountId])
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model AdminActionLog {
   id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   action         String
@@ -572,6 +485,97 @@ model AdminActionLog {
   triggered_by   String?   @default("system")
   created_at     DateTime? @default(now()) @db.Timestamptz(6)
 
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model ContentModerationLog {
+  id          Int       @id @default(autoincrement())
+  videoId     Int
+  moderatorId String
+  action      String
+  reason      String?
+  notes       String?
+  createdAt   DateTime? @default(now()) @db.Timestamp(6)
+  HeroVideo   HeroVideo @relation(fields: [videoId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([action])
+  @@index([moderatorId])
+  @@index([videoId])
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model MediaPurchase {
+  id          String    @id
+  userId      String
+  mediaItemId String
+  createdAt   DateTime? @default(now()) @db.Timestamp(6)
+  expiresAt   DateTime? @db.Timestamp(6)
+  MediaItem   MediaItem @relation(fields: [mediaItemId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  User        User      @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model Purchase {
+  id              String          @id
+  userId          String
+  videoId         Int
+  createdAt       DateTime?       @default(now()) @db.Timestamp(6)
+  expiresAt       DateTime        @db.Timestamp(6)
+  User            User            @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  CollectionVideo CollectionVideo @relation(fields: [videoId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model VideoAnalytics {
+  id          Int       @id @default(autoincrement())
+  videoId     Int
+  views       Int?      @default(0)
+  uniqueViews Int?      @default(0)
+  watchTime   Int?      @default(0)
+  likes       Int?      @default(0)
+  shares      Int?      @default(0)
+  comments    Int?      @default(0)
+  revenue     Float?    @default(0.00)
+  date        DateTime? @default(now()) @db.Timestamp(6)
+  country     String?
+  device      String?
+  referrer    String?
+  HeroVideo   HeroVideo @relation(fields: [videoId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([country])
+  @@index([device])
+  @@index([videoId, date])
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model VideoPricing {
+  id              Int              @id @default(autoincrement())
+  videoId         Int?
+  heroVideoId     Int?
+  type            String
+  price           Float
+  currency        String?          @default("USD")
+  duration        Int?
+  startDate       DateTime?        @default(now()) @db.Timestamp(6)
+  endDate         DateTime?        @db.Timestamp(6)
+  discount        Float?
+  promoCode       String?
+  region          String?
+  isActive        Boolean?         @default(true)
+  HeroVideo       HeroVideo?       @relation(fields: [heroVideoId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  CollectionVideo CollectionVideo? @relation(fields: [videoId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([heroVideoId, type])
+  @@index([isActive])
+  @@index([promoCode])
+  @@index([videoId, type])
   @@schema("public")
 }
 
