@@ -21,7 +21,11 @@ async function main() {
       })
       console.log('✅ Collection created with simple string ID:', testCollection1.id)
     } catch (error) {
-      console.log('❌ Failed with simple string ID:', error.message)
+      if (error instanceof Error) {
+        console.log('❌ Failed with simple string ID:', error.message)
+      } else {
+        console.log('❌ Failed with simple string ID:', error)
+      }
     }
 
     // Test 3: Try to create a collection with UUID
@@ -35,7 +39,11 @@ async function main() {
       })
       console.log('✅ Collection created with UUID:', testCollection2.id)
     } catch (error) {
-      console.log('❌ Failed with UUID:', error.message)
+      if (error instanceof Error) {
+        console.log('❌ Failed with UUID:', error.message)
+      } else {
+        console.log('❌ Failed with UUID:', error)
+      }
     }
 
     // Test 4: Check existing collections
@@ -49,13 +57,21 @@ async function main() {
     })
 
   } catch (error) {
-    console.error('❌ Error during testing:', error)
+    if (error instanceof Error) {
+      console.error('❌ Error during testing:', error.message)
+    } else {
+      console.error('❌ Error during testing:', error)
+    }
   }
 }
 
 main()
   .catch((e) => {
-    console.error('❌ Error:', e)
+    if (e instanceof Error) {
+      console.error('❌ Error:', e.message)
+    } else {
+      console.error('❌ Error:', e)
+    }
     process.exit(1)
   })
   .finally(async () => {
