@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import { randomUUID } from 'crypto';
 
 const collectionSchema = z.object({
   name: z.string().min(1, "Collection name is required"),
@@ -39,6 +40,7 @@ export async function POST(req: NextRequest) {
 
     const collection = await prisma.collection.create({
       data: {
+        id: randomUUID(),
         name: validatedData.name,
       },
       select: {
