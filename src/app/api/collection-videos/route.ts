@@ -108,7 +108,6 @@ export async function POST(req: NextRequest) {
         thumbnailPath,
         order,
         price: safePrice,
-        duration,
       },
       select: {
         id: true,
