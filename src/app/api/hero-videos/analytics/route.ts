@@ -166,13 +166,13 @@ export async function GET(req: Request) {
 
     // Calculate aggregated metrics
     const aggregated = analytics.reduce((acc, curr) => ({
-      totalViews: acc.totalViews + curr.views,
-      totalUniqueViews: acc.totalUniqueViews + curr.uniqueViews,
-      totalWatchTime: acc.totalWatchTime + curr.watchTime,
-      totalLikes: acc.totalLikes + curr.likes,
-      totalShares: acc.totalShares + curr.shares,
-      totalComments: acc.totalComments + curr.comments,
-      totalRevenue: acc.totalRevenue + curr.revenue
+      totalViews: acc.totalViews + (curr.views ?? 0),
+      totalUniqueViews: acc.totalUniqueViews + (curr.uniqueViews ?? 0),
+      totalWatchTime: acc.totalWatchTime + (curr.watchTime ?? 0),
+      totalLikes: acc.totalLikes + (curr.likes ?? 0),
+      totalShares: acc.totalShares + (curr.shares ?? 0),
+      totalComments: acc.totalComments + (curr.comments ?? 0),
+      totalRevenue: acc.totalRevenue + (curr.revenue ?? 0)
     }), {
       totalViews: 0,
       totalUniqueViews: 0,
