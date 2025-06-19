@@ -49,7 +49,6 @@ export async function GET(req: NextRequest) {
         thumbnailPath: true,
         order: true,
         price: true,
-        duration: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -121,7 +120,6 @@ export async function POST(req: NextRequest) {
         thumbnailPath: true,
         order: true,
         price: true,
-        duration: true,
         createdAt: true,
         updatedAt: true,
       }
@@ -179,7 +177,6 @@ export async function PUT(req: NextRequest) {
         thumbnailPath: true,
         order: true,
         price: true,
-        duration: true,
         createdAt: true,
         updatedAt: true,
       }
