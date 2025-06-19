@@ -154,7 +154,7 @@ export async function GET(req: Request) {
         date: 'desc'
       },
       include: {
-        video: {
+        HeroVideo: {
           select: {
             id: true,
             title: true,
