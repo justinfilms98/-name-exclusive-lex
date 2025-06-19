@@ -29,20 +29,32 @@ async function main() {
         })
         console.log('✅ Collection created with user ID:', collection.id)
       } catch (error) {
-        console.log('❌ Failed to create collection with user ID:', error.message)
+        if (error instanceof Error) {
+          console.log('❌ Failed to create collection with user ID:', error.message)
+        } else {
+          console.log('❌ Failed to create collection with user ID:', error)
+        }
       }
     } else {
       console.log('User not found')
     }
 
   } catch (error) {
-    console.error('❌ Error:', error)
+    if (error instanceof Error) {
+      console.error('❌ Error:', error.message)
+    } else {
+      console.error('❌ Error:', error)
+    }
   }
 }
 
 main()
   .catch((e) => {
-    console.error('❌ Error:', e)
+    if (e instanceof Error) {
+      console.error('❌ Error:', e.message)
+    } else {
+      console.error('❌ Error:', e)
+    }
     process.exit(1)
   })
   .finally(async () => {

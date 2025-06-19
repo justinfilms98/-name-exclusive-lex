@@ -23,16 +23,24 @@ async function main() {
     console.log('✅ Collection ID:', testCollection.id)
 
   } catch (error) {
-    console.error('❌ Error:', error)
-    if (error.code === 'P2023') {
-      console.log('UUID format error detected')
+    if (error instanceof Error) {
+      console.error('❌ Error:', error.message)
+      if (error.message.includes('P2023')) {
+        console.log('UUID format error detected')
+      }
+    } else {
+      console.error('❌ Error:', error)
     }
   }
 }
 
 main()
   .catch((e) => {
-    console.error('❌ Error:', e)
+    if (e instanceof Error) {
+      console.error('❌ Error:', e.message)
+    } else {
+      console.error('❌ Error:', e)
+    }
     process.exit(1)
   })
   .finally(async () => {
