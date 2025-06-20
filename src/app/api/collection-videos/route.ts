@@ -3,12 +3,6 @@ import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { serverUpload } from '@/lib/services/serverUploadService';
 
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
-
 // Validation schemas
 const pricingSchema = z.object({
   type: z.enum(['one_time', 'subscription', 'rental']),

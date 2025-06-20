@@ -3,12 +3,6 @@ import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { serverUpload } from '@/lib/services/serverUploadService';
 
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
-
 // Validation schemas
 const heroVideoSchema = z.object({
   title: z.string().min(1, "Title is required").max(100, "Title too long"),
