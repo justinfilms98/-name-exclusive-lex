@@ -189,7 +189,7 @@ export default function CollectionVideoModal({ open, onClose, onSave, initialDat
       const sanitizedPricing = formData.pricing.map(p => ({
         ...p,
         price: (typeof p.price === 'string' ? p.price === '' : isNaN(Number(p.price))) ? 0 : Number(p.price),
-        duration: (typeof p.duration === 'string' ? p.duration === '' : isNaN(Number(p.duration))) ? 0 : Number(p.duration),
+        duration: ((typeof p.duration === 'string' ? p.duration === '' : isNaN(Number(p.duration))) ? 0 : Number(p.duration)) * 60, // Convert minutes to seconds
         discount: (typeof p.discount === 'string' ? p.discount === '' : isNaN(Number(p.discount))) ? 0 : Number(p.discount),
       }));
       await onSave({ ...formData, pricing: sanitizedPricing });
@@ -437,10 +437,10 @@ export default function CollectionVideoModal({ open, onClose, onSave, initialDat
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold mb-1">Duration (days, for rental/subscription)</label>
+                  <label className="block text-sm font-semibold mb-1">Duration (minutes)</label>
                   <input
                     type="number"
-                    className="w-full border rounded px-2 py-1"
+                    className="w-full border rounded px-3 py-2"
                     value={typeof pricing.duration === 'number' && !isNaN(pricing.duration) ? pricing.duration : ''}
                     min={0}
                     onChange={e => handlePricingChange(idx, 'duration', e.target.value === '' ? '' : parseInt(e.target.value))}

@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import { serverUpload } from '@/lib/services/serverUploadService';
+
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
 
 // Validation schemas
 const heroVideoSchema = z.object({
@@ -70,48 +77,61 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const data = await req.json();
-    
-    // Validate input
-    const validatedData = heroVideoSchema.parse(data);
+    const { fields, uploadedFileUrl, uploadedFilePath } = await serverUpload(req);
 
-    // Only pick fields that exist in the Prisma model
-    const {
-      title, description, thumbnail, videoUrl, order,
-      price, status, ageRating, category, tags
-    } = validatedData;
+    if (!uploadedFileUrl || !uploadedFilePath) {
+      return NextResponse.json(
+        { error: 'File upload failed.' },
+        { status: 400 }
+      );
+    }
+    
+    // Formidable returns fields as arrays, so we extract the first element.
+    const rawData = Object.fromEntries(
+      Object.entries(fields).map(([key, value]) => [key, value?.[0]])
+    );
+
+    const validatedData = heroVideoSchema.parse({
+      ...rawData,
+      order: rawData.order ? parseInt(rawData.order as string, 10) : undefined,
+      price: rawData.price ? parseFloat(rawData.price as string) : undefined,
+      videoUrl: uploadedFileUrl,
+      // Assuming thumbnail is also uploaded or handled separately
+      thumbnail: rawData.thumbnail || 'https://via.placeholder.com/150', 
+    });
 
     // Check if slot is already taken
     const existingVideo = await prisma.heroVideo.findFirst({
-      where: { order }
+      where: { order: validatedData.order }
     });
 
     if (existingVideo) {
       return NextResponse.json(
-        { error: `Slot ${order} is already taken` },
+        { error: `Slot ${validatedData.order} is already taken` },
         { status: 400 }
       );
     }
 
     // Set initial status to pending if not draft
-    let finalStatus = status;
+    let finalStatus = validatedData.status;
     if (finalStatus !== 'draft') {
       finalStatus = 'pending';
     }
 
     const video = await prisma.heroVideo.create({
       data: {
-        title,
-        description,
-        thumbnail,
-        videoUrl,
-        order,
-        price,
+        title: validatedData.title,
+        description: validatedData.description,
+        thumbnail: validatedData.thumbnail,
+        videoUrl: validatedData.videoUrl,
+        order: validatedData.order,
+        price: validatedData.price,
         status: finalStatus,
-        ageRating,
-        category,
-        tags,
+        ageRating: validatedData.ageRating,
+        category: validatedData.category,
+        tags: validatedData.tags,
         moderated: false,
+        videoPath: uploadedFilePath,
       },
       select: {
         id: true,
@@ -128,6 +148,7 @@ export async function POST(req: NextRequest) {
         moderated: true,
         createdAt: true,
         updatedAt: true,
+        videoPath: true,
       }
     });
     

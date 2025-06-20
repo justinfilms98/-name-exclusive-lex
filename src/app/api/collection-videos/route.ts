@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import { serverUpload } from '@/lib/services/serverUploadService';
+
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
 
 // Validation schemas
 const pricingSchema = z.object({
@@ -70,18 +77,34 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const data = await req.json();
-    console.log('POST /api/collection-videos', data);
-    
-    // Validate input
-    const validatedData = collectionVideoSchema.parse(data);
+    const { fields, uploadedFileUrl, uploadedFilePath } = await serverUpload(req);
 
-    // Only pick fields that exist in the Prisma model
+    if (!uploadedFileUrl || !uploadedFilePath) {
+      return NextResponse.json(
+        { error: 'File upload failed.' },
+        { status: 400 }
+      );
+    }
+    
+    const rawData = Object.fromEntries(
+      Object.entries(fields).map(([key, value]) => [key, value?.[0]])
+    );
+
+    const validatedData = collectionVideoSchema.parse({
+      ...rawData,
+      order: rawData.order ? parseInt(rawData.order as string, 10) : undefined,
+      price: rawData.price ? parseFloat(rawData.price as string) : undefined,
+      duration: rawData.duration ? parseInt(rawData.duration as string, 10) : undefined,
+      videoUrl: uploadedFileUrl,
+      thumbnail: rawData.thumbnail || 'https://via.placeholder.com/150', // Placeholder
+      pricing: [], // This needs to be handled based on your form structure
+    });
+
     const {
-      collection, title, description, thumbnail, videoUrl, thumbnailPath, order, duration
+      collection, title, description, thumbnail, order, duration
     } = validatedData;
-    // Price is not in the Zod schema but is required by Prisma
-    const safePrice = typeof (validatedData as any).price === 'number' ? (validatedData as any).price : 0;
+    
+    const safePrice = validatedData.price ?? 0;
 
     // Check if slot is already taken in this collection
     const existingVideo = await prisma.collectionVideo.findFirst({
@@ -104,10 +127,12 @@ export async function POST(req: NextRequest) {
         title,
         description,
         thumbnail,
-        videoUrl,
-        thumbnailPath,
+        videoUrl: uploadedFileUrl,
+        thumbnailPath: thumbnail, // Assuming same for now
+        videoPath: uploadedFilePath,
         order,
         price: safePrice,
+        duration,
       },
       select: {
         id: true,
@@ -121,6 +146,8 @@ export async function POST(req: NextRequest) {
         price: true,
         createdAt: true,
         updatedAt: true,
+        videoPath: true,
+        duration: true,
       }
     });
     
