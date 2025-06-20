@@ -21,6 +21,8 @@ model CollectionVideo {
   updatedAt     DateTime       @updatedAt
   price         Float          @default(0.00)
   thumbnailPath String?
+  videoPath     String?
+  duration      Int?
   userId        String?        @db.Uuid
   Purchase      Purchase[]
   VideoPricing  VideoPricing[]
@@ -46,6 +48,8 @@ model HeroVideo {
   status               String                 @default("draft")
   tags                 String[]
   moderated            Boolean                @default(false)
+  videoPath            String?
+  duration             Int?
   userId               String?                @db.Uuid
   ContentModerationLog ContentModerationLog[]
   VideoAnalytics       VideoAnalytics[]
