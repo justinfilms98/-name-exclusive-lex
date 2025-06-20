@@ -1,5 +1,7 @@
 # Collection Media System
 
+<!-- Deployment trigger: Header refactor with NextAuth server component -->
+
 This document describes the new flexible media management system for collections.
 
 ## Overview
