@@ -51,6 +51,20 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(redirectUrl);
   }
 
+  // Handle admin route authorization
+  if (req.nextUrl.pathname.startsWith('/admin')) {
+    const user = session?.user;
+    const isAdmin =
+      (user?.user_metadata as any)?.role === 'admin' ||
+      user?.email === 'contact.exclusivelex@gmail.com';
+
+    if (!isAdmin) {
+      const redirectUrl = req.nextUrl.clone();
+      redirectUrl.pathname = '/unauthorized';
+      return NextResponse.redirect(redirectUrl);
+    }
+  }
+
   // If accessing signin page while already authenticated, redirect to home
   if (req.nextUrl.pathname === '/signin' && session) {
     const redirectUrl = req.nextUrl.clone();
