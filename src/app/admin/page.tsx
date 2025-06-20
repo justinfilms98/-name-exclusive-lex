@@ -1,32 +1,6 @@
-"use client";
-import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
 import Link from 'next/link';
 
 export default function AdminDashboard() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
-
-  console.log('SESSION USER:', session?.user);
-
-  useEffect(() => {
-    const isAdmin =
-      (session?.user as any)?.role?.toLowerCase() === 'admin' ||
-      session?.user?.email === 'contact.exclusivelex@gmail.com';
-    if (status !== 'loading' && !isAdmin) {
-      router.replace('/');
-    }
-  }, [session, status, router]);
-
-  const isAdmin =
-    (session?.user as any)?.role?.toLowerCase() === 'admin' ||
-    session?.user?.email === 'contact.exclusivelex@gmail.com';
-
-  if (status === 'loading' || (session && !isAdmin)) {
-    return null;
-  }
-
   return (
     <div className="min-h-screen bg-blue-50 p-8 pt-28">
       <div className="max-w-4xl mx-auto">
