@@ -1,17 +1,15 @@
 import Link from 'next/link';
 import { CartPreview } from "@/components/CartPreview";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import HeaderClient from './HeaderClient';
 
-export default async function Header() {
-  const session = await getServerSession(authOptions);
-  const user = session?.user;
-
+export default function Header() {
   return (
     <header className="fixed top-0 left-0 w-full z-50 bg-white/90 backdrop-blur border-b border-[#654C37]/10 shadow-sm">
       <div className="container mx-auto px-4 py-3 flex items-center justify-between relative">
-        <HeaderClient user={user} />
+        <div className="md:hidden">
+          {/* Mobile menu could be triggered here, handled by HeaderClient */}
+          <HeaderClient />
+        </div>
         
         {/* Centered Logo / Brand */}
         <div className="flex-1 flex justify-center">
@@ -22,22 +20,12 @@ export default async function Header() {
           </Link>
         </div>
         
-        {/* Right: Cart, Account/Login (desktop only) */}
-        <div className="hidden md:flex items-center gap-4">
-          <CartPreview />
-          <Link href="/cart" className="text-[#D4C7B4] hover:underline px-2 py-1 link-underline">🛒</Link>
-          {user ? (
-            <div className="flex items-center gap-2">
-              <Link href="/account">
-                <button className="bg-[#D4C7B4] text-[#654C37] px-3 py-1 rounded text-sm button-animate">My Account</button>
-              </Link>
-              {/* Sign out is a client-side action, handled in HeaderClient */}
-            </div>
-          ) : (
-             <Link href="/signin">
-                <button className="bg-[#D4C7B4] text-[#654C37] px-3 py-1 rounded text-sm button-animate">Login</button>
-             </Link>
-          )}
+        {/* Right-side container */}
+        <div className="flex items-center gap-4">
+           {/* Cart and Account/Login for desktop, handled by HeaderClient */}
+           <div className="hidden md:flex">
+             <HeaderClient />
+           </div>
         </div>
       </div>
     </header>

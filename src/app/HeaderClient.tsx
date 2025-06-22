@@ -3,43 +3,34 @@
 import { useSession, signOut } from 'next-auth/react';
 import Link from 'next/link';
 import { useCart } from '@/context/CartContext';
-import { ShoppingCart, User, LogIn, LogOut } from 'lucide-react';
+import { CartPreview } from '@/components/CartPreview';
 
 export default function HeaderClient() {
   const { data: session } = useSession();
-  const { itemCount } = useCart();
+  const user = session?.user;
 
   return (
-    <div className="flex items-center space-x-6">
-      <Link href="/cart" className="relative text-white hover:text-gray-300 transition-colors">
-        <ShoppingCart className="h-6 w-6" />
-        {itemCount > 0 && (
-          <span className="absolute -top-2 -right-3 flex h-5 w-5 items-center justify-center rounded-full bg-pink-600 text-xs font-bold animate-pulse">
-            {itemCount}
-          </span>
+    <>
+      {/* Combined Desktop and Mobile */}
+      <div className="flex items-center gap-4">
+        <CartPreview />
+        <Link href="/cart" className="text-[#D4C7B4] hover:underline px-2 py-1 link-underline md:hidden">🛒</Link> {/* Mobile Cart Icon */}
+        
+        {user ? (
+          <div className="flex items-center gap-2">
+            <Link href="/account">
+              <button className="bg-[#D4C7B4] text-[#654C37] px-3 py-1 rounded text-sm button-animate">My Account</button>
+            </Link>
+            <button onClick={() => signOut()} className="bg-transparent text-[#654C37] px-3 py-1 rounded text-sm hover:underline">
+              Sign Out
+            </button>
+          </div>
+        ) : (
+           <Link href="/signin">
+              <button className="bg-[#D4C7B4] text-[#654C37] px-3 py-1 rounded text-sm button-animate">Login</button>
+           </Link>
         )}
-      </Link>
-
-      {session?.user ? (
-        <>
-          <Link href="/account" className="flex items-center space-x-2 text-white hover:text-gray-300 transition-colors">
-            <User className="h-5 w-5" />
-            <span>Account</span>
-          </Link>
-          <button 
-            onClick={() => signOut()} 
-            className="flex items-center space-x-2 text-white hover:text-gray-300 transition-colors"
-          >
-            <LogOut className="h-5 w-5" />
-            <span>Sign Out</span>
-          </button>
-        </>
-      ) : (
-        <Link href="/signin" className="flex items-center space-x-2 text-white hover:text-gray-300 transition-colors">
-          <LogIn className="h-5 w-5" />
-          <span>Sign In</span>
-        </Link>
-      )}
-    </div>
+      </div>
+    </>
   );
 } 
