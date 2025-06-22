@@ -23,38 +23,41 @@ async function getPurchaseHistory(userId: string): Promise<PurchaseHistoryItem[]
   const purchases = await prisma.purchase.findMany({
     where: { userId },
     include: {
-      CollectionVideo: true, // Correct casing from schema
+      collectionVideo: true,
     },
     orderBy: {
       createdAt: 'desc',
     },
   });
 
-  // Fetch timed access records - use type assertion since TypeScript doesn't recognize it
-  const timedAccessRecords = await (prisma as any).timedAccess.findMany({
-    where: { userId },
+  const videoIds = purchases.map(p => p.videoId);
+
+  const timedAccessEntries = await prisma.timedAccess.findMany({
+    where: {
+      userId: userId,
+      videoId: { in: videoIds },
+    },
   });
 
-  // Build lookup map
-  const accessMap = new Map(
-    timedAccessRecords.map((record: any) => [record.videoId, record.expiresAt])
-  );
+  const accessMap = new Map<string, Date>();
+  timedAccessEntries.forEach(entry => {
+    accessMap.set(entry.videoId.toString(), entry.expiresAt);
+  });
 
-  // Merge data
   const purchaseHistory = purchases
     .map(p => {
-      if (!p.CollectionVideo) return null;
+      if (!p.collectionVideo) return null;
 
       const item: PurchaseHistoryItem = {
-        id: parseInt(p.id as any), // Convert to number
-        purchaseDate: p.createdAt as Date,
+        id: p.id,
+        purchaseDate: p.createdAt,
         expiresAt: accessMap.get(p.videoId.toString()) as Date | null,
         video: {
-          id: p.CollectionVideo.id.toString(),
-          title: p.CollectionVideo.title,
-          description: p.CollectionVideo.description,
-          thumbnailPath: p.CollectionVideo.thumbnailPath,
-          price: p.CollectionVideo.price,
+          id: p.collectionVideo.id.toString(),
+          title: p.collectionVideo.title,
+          description: p.collectionVideo.description,
+          thumbnailPath: p.collectionVideo.thumbnailPath,
+          price: p.collectionVideo.price,
         },
       };
       return item;
