@@ -24,7 +24,7 @@ model CollectionVideo {
   videoPath     String?
   duration      Int?
   userId        String?        @db.Uuid
-  Purchase      Purchase[]
+  purchases     Purchase[]
   VideoPricing  VideoPricing[]
 
   @@schema("public")
@@ -138,6 +138,7 @@ model User {
   Purchase      Purchase[]
   sessions      Session[]
   Video         Video[]
+  TimedAccess   TimedAccess[]
 
   @@schema("public")
 }
@@ -524,13 +525,14 @@ model MediaPurchase {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model Purchase {
-  id              String          @id
-  userId          String
-  videoId         Int
-  createdAt       DateTime?       @default(now()) @db.Timestamp(6)
-  expiresAt       DateTime        @db.Timestamp(6)
-  User            User            @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  CollectionVideo CollectionVideo @relation(fields: [videoId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  id               Int      @id @default(autoincrement())
+  userId           String
+  videoId          Int // This should correspond to a CollectionVideo ID
+  createdAt        DateTime @default(now())
+  stripeCheckoutId String?  @unique
+
+  user            User             @relation(fields: [userId], references: [id])
+  collectionVideo CollectionVideo? @relation(fields: [videoId], references: [id])
 
   @@schema("public")
 }
@@ -580,6 +582,20 @@ model VideoPricing {
   @@index([isActive])
   @@index([promoCode])
   @@index([videoId, type])
+  @@schema("public")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model TimedAccess {
+  id        Int      @id @default(autoincrement())
+  userId    String
+  videoId   String // Generic ID for the accessed item
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, videoId]) // A user can only have one active access record per video
   @@schema("public")
 }
 

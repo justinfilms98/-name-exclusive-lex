@@ -1,26 +1,12 @@
 import Link from 'next/link';
 import { CartPreview } from "@/components/CartPreview";
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
-import HeaderClient from './HeaderClient'; // We will create this component next
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import HeaderClient from './HeaderClient';
 
 export default async function Header() {
-  const cookieStore = cookies();
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
-        },
-      },
-    }
-  );
-
-  const { data: { user } } = await supabase.auth.getUser();
-  const isLoggedIn = !!user;
+  const session = await getServerSession(authOptions);
+  const user = session?.user;
 
   return (
     <header className="fixed top-0 left-0 w-full z-50 bg-white/90 backdrop-blur border-b border-[#654C37]/10 shadow-sm">
@@ -40,7 +26,7 @@ export default async function Header() {
         <div className="hidden md:flex items-center gap-4">
           <CartPreview />
           <Link href="/cart" className="text-[#D4C7B4] hover:underline px-2 py-1 link-underline">🛒</Link>
-          {isLoggedIn ? (
+          {user ? (
             <div className="flex items-center gap-2">
               <Link href="/account">
                 <button className="bg-[#D4C7B4] text-[#654C37] px-3 py-1 rounded text-sm button-animate">My Account</button>

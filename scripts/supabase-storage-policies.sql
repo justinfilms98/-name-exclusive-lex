@@ -1,8 +1,8 @@
 -- Supabase Storage Policies for Exclusive Lex
 -- Run this in your Supabase SQL editor
 
--- Enable RLS on storage.objects
-ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+-- RLS is already enabled on storage.objects, so the ALTER TABLE command is not needed.
+-- ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
 
 -- Policy for authenticated uploads to thumbnails and videos buckets
 CREATE POLICY "Allow authenticated uploads"

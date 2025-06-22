@@ -1,222 +1,125 @@
-"use client";
+'use client';
 
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
-import { motion } from "framer-motion";
+import Link from 'next/link';
+import { useCart } from '@/context/CartContext';
+import { motion } from 'framer-motion';
+import { Video, RefreshCw, AlertTriangle } from 'lucide-react';
+import { useState } from 'react';
 
+// Define the shape of the purchase history item prop
 interface Purchase {
-  id: string;
-  video_id: number;
-  created_at: string;
-  expires_at: string;
+  id: number;
+  purchaseDate: Date;
+  expiresAt: Date | null;
   video: {
+    id: string;
     title: string;
-    thumbnail: string;
     description: string;
+    thumbnailPath: string | null;
+    price: number;
   };
 }
 
-export default function AccountClient() {
-  const router = useRouter();
-  const [user, setUser] = useState<any>(null);
-  const [purchases, setPurchases] = useState<Purchase[]>([]);
-  const [loading, setLoading] = useState(true);
+export default function AccountClient({ purchases }: { purchases: Purchase[] }) {
+  const { addToCart, cartItems } = useCart();
+  const [addedId, setAddedId] = useState<string | null>(null);
 
-  useEffect(() => {
-    checkAuth();
-  }, []);
-
-  const checkAuth = async () => {
-    try {
-      const { data: { user }, error } = await supabase.auth.getUser();
-      if (error || !user) {
-        router.push('/signin');
-        return;
-      }
-      setUser(user);
-      await fetchPurchases(user.id);
-    } catch (err) {
-      console.error('Auth check failed:', err);
-      router.push('/signin');
-    } finally {
-      setLoading(false);
-    }
+  const handleRepurchase = (purchase: Purchase) => {
+    addToCart({
+      id: purchase.video.id,
+      name: purchase.video.title,
+      price: purchase.video.price,
+      thumbnail: purchase.video.thumbnailPath,
+    });
+    setAddedId(purchase.video.id);
+    setTimeout(() => setAddedId(null), 2000); // Reset after 2 seconds
   };
 
-  const fetchPurchases = async (userId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('purchases')
-        .select(`
-          id,
-          video_id,
-          created_at,
-          expires_at,
-          video:collection_videos (
-            title,
-            thumbnail,
-            description
-          )
-        `)
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      
-      // Transform the data to match our interface
-      const transformedData: Purchase[] = (data || []).map((item: any) => ({
-        id: item.id,
-        video_id: item.video_id,
-        created_at: item.created_at,
-        expires_at: item.expires_at,
-        video: {
-          title: item.video?.title || '',
-          thumbnail: item.video?.thumbnail || '',
-          description: item.video?.description || ''
-        }
-      }));
-      
-      setPurchases(transformedData);
-    } catch (err) {
-      console.error('Error fetching purchases:', err);
-    }
+  const isItemInCart = (videoId: string) => {
+    return cartItems.some(cartItem => cartItem.id === videoId);
   };
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    router.push('/');
-  };
-
-  if (loading) {
-    return (
-      <main className="container mx-auto px-4 py-8 pt-28">
-        <div className="flex justify-center items-center min-h-[60vh]">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-600"></div>
-        </div>
-      </main>
-    );
-  }
-
-  if (!user) {
-    return null; // Will redirect due to useEffect
-  }
-
-  const isExpired = (expiresAt: string) => new Date(expiresAt) < new Date();
+  const now = new Date();
 
   return (
-    <main className="container mx-auto px-4 py-8 pt-28">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="max-w-4xl mx-auto bg-white rounded-lg shadow-md p-6"
-      >
-        <h1 className="text-3xl font-bold text-gray-900 mb-6">My Account</h1>
-        
-        <div className="space-y-6">
-          {/* User Info */}
-          <div className="flex items-center space-x-4">
-            <div className="w-20 h-20 bg-purple-100 rounded-full flex items-center justify-center">
-              <span className="text-2xl font-bold text-purple-600">
-                {user.email?.charAt(0).toUpperCase()}
-              </span>
-            </div>
-            <div>
-              <h2 className="text-xl font-semibold text-gray-900">
-                {user.user_metadata?.full_name || user.email}
-              </h2>
-              <p className="text-gray-600">{user.email}</p>
-              <p className="text-sm text-gray-500">
-                Member since {new Date(user.created_at).toLocaleDateString()}
-              </p>
-            </div>
-          </div>
+    <div className="min-h-screen bg-gray-900 text-white pt-24 sm:pt-32 pb-12">
+      <div className="container mx-auto px-4">
+        <motion.h1 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-4xl font-serif text-center mb-12"
+        >
+          My Account
+        </motion.h1>
 
-          {/* Admin Dashboard Button */}
-          {user.email === 'contact.exclusivelex@gmail.com' && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.2 }}
-              className="pt-4"
-            >
-              <a href="/admin">
-                <button className="w-full bg-blue-700 text-white px-4 py-2 rounded hover:bg-blue-800 transition-colors font-semibold mb-4">
-                  Admin Dashboard
-                </button>
-              </a>
-            </motion.div>
-          )}
+        <div className="bg-gray-800 rounded-lg shadow-xl p-6 md:p-8">
+          <h2 className="text-2xl font-bold mb-6 border-b border-gray-700 pb-4">Purchase History</h2>
+          {purchases.length === 0 ? (
+            <div className="text-center py-12">
+              <AlertTriangle className="mx-auto h-12 w-12 text-gray-500 mb-4" />
+              <p className="text-gray-400">You haven't made any purchases yet.</p>
+              <Link href="/collections" className="text-pink-500 hover:underline mt-2 inline-block">
+                Browse Collections
+              </Link>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {purchases.map((purchase, index) => {
+                const isExpired = purchase.expiresAt ? new Date(purchase.expiresAt) < now : true;
+                const isInCart = isItemInCart(purchase.video.id);
 
-          {/* Purchase History */}
-          <div className="border-t pt-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Purchase History</h3>
-            {purchases.length === 0 ? (
-              <p className="text-gray-600">No purchases yet. Start exploring our collections!</p>
-            ) : (
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {purchases.map((purchase) => (
+                return (
                   <motion.div
                     key={purchase.id}
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="bg-gray-50 rounded-lg p-4 border"
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.5, delay: index * 0.1 }}
+                    className="flex flex-col md:flex-row items-center bg-gray-700/50 p-4 rounded-lg"
                   >
-                    <div className="aspect-video bg-gray-200 rounded mb-3 overflow-hidden">
-                      {purchase.video?.thumbnail && (
-                        <img
-                          src={purchase.video.thumbnail}
-                          alt={purchase.video.title}
-                          className="w-full h-full object-cover"
-                        />
+                    <img
+                      src={purchase.video.thumbnailPath || '/placeholder-thumbnail.jpg'}
+                      alt={purchase.video.title}
+                      className="w-full md:w-40 h-auto md:h-24 object-cover rounded-md mb-4 md:mb-0 md:mr-6"
+                    />
+                    <div className="flex-grow text-center md:text-left">
+                      <h3 className="text-xl font-bold">{purchase.video.title}</h3>
+                      <p className="text-sm text-gray-400">
+                        Purchased on: {new Date(purchase.purchaseDate).toLocaleDateString()}
+                      </p>
+                      <p className={`text-sm ${isExpired ? 'text-red-400' : 'text-green-400'}`}>
+                        {isExpired
+                          ? `Access Expired on ${purchase.expiresAt ? new Date(purchase.expiresAt).toLocaleDateString() : 'N/A'}`
+                          : `Access until ${purchase.expiresAt ? new Date(purchase.expiresAt).toLocaleDateString() : 'N/A'}`}
+                      </p>
+                    </div>
+                    <div className="mt-4 md:mt-0 md:ml-6 flex-shrink-0">
+                      {isExpired ? (
+                        <button
+                          onClick={() => handleRepurchase(purchase)}
+                          disabled={isInCart}
+                          className={`w-full md:w-auto flex items-center justify-center px-4 py-2 rounded-lg font-semibold transition-colors duration-300 ${
+                            isInCart 
+                              ? 'bg-green-600 cursor-not-allowed'
+                              : 'bg-blue-600 hover:bg-blue-700'
+                          }`}
+                        >
+                          <RefreshCw className={`mr-2 h-4 w-4`} />
+                          {isInCart ? 'Added ✓' : 'Re-purchase'}
+                        </button>
+                      ) : (
+                        <Link href={`/watch/${purchase.video.id}`} className="w-full md:w-auto flex items-center justify-center px-4 py-2 bg-pink-600 hover:bg-pink-700 rounded-lg font-semibold transition-transform duration-300 transform hover:scale-105">
+                          <Video className="mr-2 h-4 w-4" />
+                          Watch Now
+                        </Link>
                       )}
                     </div>
-                    <h4 className="font-semibold text-gray-900 mb-2">
-                      {purchase.video?.title || 'Video'}
-                    </h4>
-                    <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-                      {purchase.video?.description || 'No description available'}
-                    </p>
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="text-gray-500">
-                        Purchased: {new Date(purchase.created_at).toLocaleDateString()}
-                      </span>
-                      <span className={`px-2 py-1 rounded text-xs ${
-                        isExpired(purchase.expires_at)
-                          ? 'bg-red-100 text-red-700'
-                          : 'bg-green-100 text-green-700'
-                      }`}>
-                        {isExpired(purchase.expires_at) ? 'Expired' : 'Active'}
-                      </span>
-                    </div>
-                    {!isExpired(purchase.expires_at) && (
-                      <a
-                        href={`/watch/${purchase.video_id}`}
-                        className="block w-full mt-3 bg-purple-600 text-white text-center py-2 rounded hover:bg-purple-700 transition-colors text-sm"
-                      >
-                        Watch Now
-                      </a>
-                    )}
                   </motion.div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Account Actions */}
-          <div className="border-t pt-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Account Actions</h3>
-            <div className="space-y-4">
-              <button
-                onClick={handleSignOut}
-                className="w-full bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition-colors"
-              >
-                Sign Out
-              </button>
+                );
+              })}
             </div>
-          </div>
+          )}
         </div>
-      </motion.div>
-    </main>
+      </div>
+    </div>
   );
-} 
+}
