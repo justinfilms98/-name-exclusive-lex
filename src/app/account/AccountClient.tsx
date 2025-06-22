@@ -5,26 +5,13 @@ import { useCart } from '@/context/CartContext';
 import { motion } from 'framer-motion';
 import { Video, RefreshCw, AlertTriangle } from 'lucide-react';
 import { useState } from 'react';
+import { PurchaseHistoryItem } from '@/lib/types';
 
-// Define the shape of the purchase history item prop
-interface Purchase {
-  id: number;
-  purchaseDate: Date;
-  expiresAt: Date | null;
-  video: {
-    id: string;
-    title: string;
-    description: string;
-    thumbnailPath: string | null;
-    price: number;
-  };
-}
-
-export default function AccountClient({ purchases }: { purchases: Purchase[] }) {
+export default function AccountClient({ purchases }: { purchases: PurchaseHistoryItem[] }) {
   const { addToCart, cartItems } = useCart();
   const [addedId, setAddedId] = useState<string | null>(null);
 
-  const handleRepurchase = (purchase: Purchase) => {
+  const handleRepurchase = (purchase: PurchaseHistoryItem) => {
     addToCart({
       id: purchase.video.id,
       name: purchase.video.title,
