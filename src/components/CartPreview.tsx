@@ -11,7 +11,7 @@ export function CartPreview() {
   const [isHovered, setIsHovered] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
-  const { items, removeItem, totalItems, subtotal, tax, total } = useCart();
+  const { cartItems, removeFromCart, itemCount } = useCart();
   const controls = useAnimation();
 
   // Enhanced hover animation for cart icon
@@ -48,10 +48,30 @@ export function CartPreview() {
     return () => clearTimeout(timeout);
   }, [isOpen]);
 
+  const handleHoverStart = () => {
+    setIsHovered(true);
+    setIsOpen(true);
+  };
+
+  const handleCheckout = () => {
+    router.push('/cart');
+    setIsOpen(false);
+  };
+
+  const handleRemoveItem = (e: React.MouseEvent<HTMLButtonElement>, itemId: string) => {
+    e.stopPropagation(); // Prevent dropdown from closing
+    removeFromCart(itemId);
+  };
+
+  // Calculate totals locally since they are not in the context
+  const subtotal = cartItems.reduce((acc, item) => acc + item.price, 0);
+  const tax = subtotal * 0.08; // Example 8% tax
+  const total = subtotal + tax;
+
   return (
     <div className="relative" ref={dropdownRef}>
       <motion.button
-        onHoverStart={() => setIsHovered(true)}
+        onHoverStart={handleHoverStart}
         onHoverEnd={() => setIsHovered(false)}
         animate={controls}
         onClick={() => setIsOpen(!isOpen)}
@@ -72,14 +92,14 @@ export function CartPreview() {
             d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
           />
         </motion.svg>
-        {totalItems > 0 && (
+        {itemCount > 0 && (
           <motion.span
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center"
             whileHover={{ scale: 1.2 }}
           >
-            {totalItems}
+            {itemCount}
           </motion.span>
         )}
       </motion.button>
@@ -112,7 +132,7 @@ export function CartPreview() {
                 </motion.button>
               </div>
               
-              {items.length === 0 ? (
+              {cartItems.length === 0 ? (
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
@@ -139,7 +159,7 @@ export function CartPreview() {
                     transition={{ delay: 0.1 }}
                   >
                     <AnimatePresence mode="popLayout">
-                      {items.map((item, index) => (
+                      {cartItems.map((item, index) => (
                         <motion.div
                           key={item.id}
                           layout
@@ -159,8 +179,8 @@ export function CartPreview() {
                             whileHover={{ scale: 1.05 }}
                           >
                             <Image
-                              src={item.thumbnail}
-                              alt={item.title}
+                              src={item.thumbnail || '/placeholder-thumbnail.jpg'}
+                              alt={item.name}
                               fill
                               className="object-cover"
                             />
@@ -168,14 +188,14 @@ export function CartPreview() {
                           </motion.div>
                           <div className="flex-1 min-w-0">
                             <h4 className="text-sm font-medium text-[#654C37] truncate group-hover:text-[#654C37]/80 transition-colors">
-                              {item.title}
+                              {item.name}
                             </h4>
                             <p className="text-sm text-[#654C37]/60">${item.price.toFixed(2)}</p>
                           </div>
                           <motion.button
                             whileHover={{ scale: 1.1, rotate: 90 }}
                             whileTap={{ scale: 0.9 }}
-                            onClick={() => removeItem(item.id)}
+                            onClick={(e) => handleRemoveItem(e, item.id)}
                             className="text-red-500 hover:text-red-600 transition-colors p-1 opacity-0 group-hover:opacity-100"
                             aria-label="Remove item"
                           >
@@ -195,29 +215,24 @@ export function CartPreview() {
                     transition={{ delay: 0.2 }}
                   >
                     <div className="space-y-2 mb-4">
-                      <div className="flex justify-between text-[#654C37]">
-                        <span>Subtotal</span>
-                        <span>${subtotal.toFixed(2)}</span>
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-400">Subtotal</span>
+                        <span className="font-semibold">${subtotal.toFixed(2)}</span>
                       </div>
-                      <div className="flex justify-between text-[#654C37]">
-                        <span>Tax (10%)</span>
-                        <span>${tax.toFixed(2)}</span>
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-400">Tax</span>
+                        <span className="font-semibold">${tax.toFixed(2)}</span>
                       </div>
-                      <div className="border-t border-[#654C37]/10 pt-2 mt-2">
-                        <div className="flex justify-between font-semibold text-[#654C37]">
-                          <span>Total</span>
-                          <span>${total.toFixed(2)}</span>
-                        </div>
+                      <div className="flex justify-between items-center text-lg">
+                        <span className="font-bold">Total</span>
+                        <span className="font-bold">${total.toFixed(2)}</span>
                       </div>
                     </div>
                     <div className="flex gap-2">
                       <motion.button
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
-                        onClick={() => {
-                          setIsOpen(false);
-                          router.push('/cart');
-                        }}
+                        onClick={handleCheckout}
                         className="flex-1 bg-[#654C37] text-white py-2 px-4 rounded-lg hover:bg-[#654C37]/90 transition-colors"
                       >
                         View Cart
