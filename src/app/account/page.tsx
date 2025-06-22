@@ -6,19 +6,19 @@ import AccountClient from './AccountClient';
 import { PurchaseHistoryItem } from '@/lib/types';
 
 async function getPurchaseHistory(userId: string): Promise<PurchaseHistoryItem[]> {
-  const purchases = await prisma.purchase.findMany({
+  const purchases = await (prisma as any).purchase.findMany({
     where: { userId },
     include: {
-      CollectionVideo: true,
+      collectionVideo: true,
     },
     orderBy: {
       createdAt: 'desc',
     },
   });
 
-  const videoIds = purchases.map(p => p.videoId);
+  const videoIds = purchases.map((p: any) => p.videoId);
 
-  const timedAccessRecords = await prisma.timedAccess.findMany({
+  const timedAccessRecords = await (prisma as any).timedAccess.findMany({
     where: {
       userId,
       videoId: { in: videoIds },
@@ -26,27 +26,27 @@ async function getPurchaseHistory(userId: string): Promise<PurchaseHistoryItem[]
   });
 
   const accessMap = new Map(
-    timedAccessRecords.map(record => [record.videoId.toString(), record.expiresAt])
+    timedAccessRecords.map((record: any) => [record.videoId.toString(), record.expiresAt])
   );
 
   const purchaseHistory = purchases
-    .map(p => {
-      if (!p.CollectionVideo) return null;
+    .map((p: any) => {
+      if (!p.collectionVideo) return null;
 
       return {
         id: p.id,
         purchaseDate: p.createdAt,
         expiresAt: accessMap.get(p.videoId.toString()) || null,
         video: {
-          id: p.CollectionVideo.id.toString(),
-          title: p.CollectionVideo.title,
-          description: p.CollectionVideo.description,
-          thumbnailPath: p.CollectionVideo.thumbnailPath,
-          price: p.CollectionVideo.price,
+          id: p.collectionVideo.id.toString(),
+          title: p.collectionVideo.title,
+          description: p.collectionVideo.description,
+          thumbnailPath: p.collectionVideo.thumbnailPath,
+          price: p.collectionVideo.price,
         },
       };
     })
-    .filter((item): item is PurchaseHistoryItem => item !== null);
+    .filter((item: any): item is PurchaseHistoryItem => item !== null);
 
   return purchaseHistory;
 }
