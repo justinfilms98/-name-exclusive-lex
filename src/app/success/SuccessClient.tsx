@@ -7,9 +7,10 @@ import Link from 'next/link';
 export default function SuccessClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const sessionId = searchParams.get('session_id');
+  const sessionId = searchParams?.get('session_id');
   const [purchaseDetails, setPurchaseDetails] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   // This would typically be a unique ID for the content they purchased.
   // For now, we'll retrieve it from localStorage or an API call if needed.
