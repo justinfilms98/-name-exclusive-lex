@@ -9,14 +9,10 @@ export async function GET() {
   try {
     const videos = await prisma.heroVideo.findMany({
       select: {
-        id: true,
         videoUrl: true,
-        title: true,
-        subtitle: true,
-        displayOrder: true,
       },
       orderBy: {
-        displayOrder: 'asc',
+        createdAt: 'asc',
       },
       take: 3,
     });
