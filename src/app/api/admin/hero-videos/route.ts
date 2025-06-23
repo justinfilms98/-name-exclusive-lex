@@ -71,14 +71,13 @@ export async function POST(req: NextRequest) {
         description,
         order: parseInt(order, 10),
         videoPath,
-        thumbnailPath: thumbPath,
         videoUrl: getSupabasePublicUrl(videoPath),
         thumbnail: thumbPath ? getSupabasePublicUrl(thumbPath) : '/fallback-thumbnail.png',
         status: 'approved',
-        price: price ? parseFloat(price) : null,
-        duration: duration ? parseInt(duration, 10) : null,
-        seoTags: seoTags ? seoTags.split(',').map(tag => tag.trim()) : [],
-        category: category,
+        price: price ? parseFloat(price) : undefined,
+        duration: duration ? parseInt(duration, 10) : undefined,
+        tags: seoTags ? seoTags.split(',').map(tag => tag.trim()) : [],
+        category: category ?? 'entertainment',
       },
     });
 
