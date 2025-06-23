@@ -20,8 +20,12 @@ async function parseFormData(req: NextRequest): Promise<{ fields: formidable.Fie
 }
 
 async function isAdmin(req: NextRequest) {
-  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
-  return token?.role === 'admin';
+  const token = await getToken({ req });
+  console.log("Decoded Collection API Token:", token); // Log the token
+  if (!token || token.role !== 'admin') {
+    return false;
+  }
+  return true;
 }
 
 export async function POST(req: NextRequest) {

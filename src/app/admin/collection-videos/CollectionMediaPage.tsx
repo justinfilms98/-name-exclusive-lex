@@ -23,22 +23,54 @@ interface Collection {
   name: string;
 }
 
+const CollectionCard = ({ collection, onClick }: { collection: Collection, onClick: () => void }) => (
+  <div 
+    className="bg-white rounded-lg shadow-md p-6 flex flex-col justify-between items-center text-center cursor-pointer hover:shadow-lg transition-shadow"
+    onClick={onClick}
+  >
+    <h3 className="text-xl font-serif text-stone-800 mb-4">{collection.name}</h3>
+    <button className="bg-emerald-600 text-white px-4 py-2 rounded-md text-sm font-semibold hover:bg-emerald-700 transition-colors">
+      Manage Media
+    </button>
+  </div>
+);
+
 export default function CollectionMediaPage() {
-  const [selectedCollection, setSelectedCollection] = useState<string | null>(null);
-  const [collections, setCollections] = useState<any[]>([]);
-  const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [collections, setCollections] = useState<Collection[]>([]);
+  const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(null);
   const { addToast } = useToast();
 
   useEffect(() => {
-    // Fetch all collections to populate dropdown
-    // This part can be removed if the dropdown is removed
+    async function fetchCollections() {
+      try {
+        const response = await fetch('/api/collections');
+        if (!response.ok) throw new Error('Failed to fetch collections');
+        const data = await response.json();
+        setCollections(data.data || []);
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchCollections();
   }, []);
 
+  const handleManageClick = (collectionId: string) => {
+    setSelectedCollectionId(collectionId);
+    setIsModalOpen(true);
+  };
+
+  const handleModalClose = () => {
+    setIsModalOpen(false);
+    setSelectedCollectionId(null);
+  };
+
   const handleSaveSuccess = () => {
-    if (selectedCollection) {
-      // fetchMediaItems(selectedCollection);
+    if (selectedCollectionId) {
+      // fetchMediaItems(selectedCollectionId);
     }
     setIsModalOpen(false);
   };
@@ -53,29 +85,36 @@ export default function CollectionMediaPage() {
   };
 
   const handleDeleteSuccess = (id: string) => {
-    setMediaItems(prev => prev.filter(item => item.id !== id));
+    // This will be handled by the MediaItemCard component
   };
 
   return (
-    <div className="min-h-screen bg-brand-mist py-8 px-4 pt-24">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-serif text-stone-800">Manage Collection Media</h1>
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="bg-emerald-600 text-white px-6 py-2 rounded-md hover:bg-emerald-700 font-semibold"
-          >
-            Upload Media
-          </button>
+    <div className="min-h-screen bg-stone-50 py-12 pt-24">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center mb-12">
+          <h1 className="text-4xl font-serif text-stone-800">Manage Collections</h1>
+          <p className="mt-2 text-lg text-stone-600">Select a collection to add or edit its media.</p>
         </div>
 
-        {/* The rest of the media items display can be adjusted based on the new flow */}
-        
+        {loading ? (
+          <p className="text-center">Loading collections...</p>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            {collections.map(collection => (
+              <CollectionCard 
+                key={collection.id} 
+                collection={collection} 
+                onClick={() => handleManageClick(collection.id)}
+              />
+            ))}
+          </div>
+        )}
+
         <CollectionVideoModal 
           open={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
+          onClose={handleModalClose}
           onSaveSuccess={handleSaveSuccess}
-          collectionId={selectedCollection}
+          collectionId={selectedCollectionId}
         />
       </div>
     </div>
