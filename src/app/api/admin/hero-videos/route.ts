@@ -10,10 +10,18 @@ async function isAdmin(req: NextRequest): Promise<boolean> {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) return false;
 
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { role: true },
-  });
+  // Use the admin client to bypass RLS for this check
+  const { data: user, error } = await supabaseAdmin
+    .from('users')
+    .select('role')
+    .eq('id', session.user.id)
+    .single();
+  
+  if (error) {
+    console.error('Error fetching user role with admin client:', error);
+    return false;
+  }
+
   return user?.role === 'admin';
 }
 
