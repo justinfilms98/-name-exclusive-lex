@@ -101,7 +101,7 @@ export default function HeroVideosPage() {
   const [videos, setVideos] = useState<HeroVideo[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<number | null>(null);
-  const [editData, setEditData] = useState<HeroVideo | null>(null);
+  const [editData, setEditData] = useState<{ id: number; title: string; description: string; } | null>(null);
   const [loading, setLoading] = useState(false);
   const [notification, setNotification] = useState<Notification | null>(null);
   const [filterStatus, setFilterStatus] = useState<string>('all');
@@ -160,52 +160,17 @@ export default function HeroVideosPage() {
 
   function handleOpen(slot: number, video?: HeroVideo) {
     setSelectedSlot(slot);
-    setEditData(video ? { ...video, pricing: video.pricing || [] } : null);
+    setEditData(video ? { id: video.id, title: video.title, description: video.description } : null);
     setModalOpen(true);
   }
 
-  async function handleSave(data: HeroVideoFormData) {
-    setLoading(true);
-    try {
-      const url = '/api/hero-videos';
-      const method = editData ? 'PUT' : 'POST';
-      const body = editData ? { ...editData, ...data, pricing: data.pricing ?? [] } : { ...data, pricing: data.pricing ?? [] };
-
-      const res = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-
-      const responseData = await res.json();
-
-      if (!res.ok) {
-        const error: ApiError = responseData;
-        throw new Error(
-          error.details 
-            ? error.details.map(d => `${d.path.join('.')}: ${d.message}`).join('\n')
-            : error.error || 'Failed to save video'
-        );
-      }
-
-      setNotification({
-        type: 'success',
-        message: `Video ${editData ? 'updated' : 'added'} successfully!`
-      });
-      setModalOpen(false);
-      await fetchVideos();
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new Event('heroVideosUpdated'));
-      }
-    } catch (err) {
-      setNotification({
-        type: 'error',
-        message: err instanceof Error ? err.message : 'Failed to save video'
-      });
-    } finally {
-      setLoading(false);
-    }
-  }
+  const handleSaveSuccess = () => {
+    setNotification({
+      type: 'success',
+      message: `Video ${editData ? 'updated' : 'added'} successfully!`
+    });
+    fetchVideos();
+  };
 
   async function handleDelete(video: HeroVideo) {
     if (!window.confirm('Are you sure you want to delete this video? This action cannot be undone.')) {
@@ -454,8 +419,8 @@ export default function HeroVideosPage() {
       <HeroVideoModal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
-        onSave={data => handleSave({ ...data, pricing: data.pricing ?? [] })}
-        initialData={editData ? { ...editData, pricing: editData.pricing ?? [] } : undefined}
+        onSaveSuccess={handleSaveSuccess}
+        initialData={editData}
         slotOrder={selectedSlot || 1}
       />
 
