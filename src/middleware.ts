@@ -1,71 +1,38 @@
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
-import { getToken } from 'next-auth/jwt';
+import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs'
+import { NextResponse } from 'next/server'
+
+import type { NextRequest } from 'next/server'
 
 export async function middleware(req: NextRequest) {
-  const secret = process.env.NEXTAUTH_SECRET;
-  if (!secret) {
-    console.error("NEXTAUTH_SECRET is not set.");
-    // In a real scenario, you might want to return an error response
-    return NextResponse.next(); 
-  }
-
-  const token = await getToken({ req, secret, raw: true });
-  const isAuthenticated = !!token;
+  const res = NextResponse.next()
+  const supabase = createMiddlewareClient({ req, res })
   
-  // Attempt to get user role from the token
-  let userRole: string | null = null;
-  if (isAuthenticated) {
-    try {
-      const decodedToken = await getToken({ req, secret });
-      if (decodedToken && typeof decodedToken.role === 'string') {
-        userRole = decodedToken.role;
-      }
-    } catch (e) {
-      console.error("Error decoding token:", e);
-    }
+  const { data: { session } } = await supabase.auth.getSession();
+
+  const isAuthRoute = req.nextUrl.pathname.startsWith('/signin') || req.nextUrl.pathname.startsWith('/auth/callback');
+
+  // If the user is signed in and they are on an auth route, redirect them to the home page
+  if (session && isAuthRoute) {
+    return NextResponse.redirect(new URL('/', req.url))
   }
 
-  const { pathname } = req.nextUrl;
-
-  // Protected routes that require authentication
-  const protectedRoutes = ['/account', '/cart', '/watch', '/admin'];
-  const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route));
-
-  if (isProtectedRoute && !isAuthenticated) {
-    const redirectUrl = req.nextUrl.clone();
-    redirectUrl.pathname = '/signin';
-    redirectUrl.searchParams.set('callbackUrl', pathname);
-    return NextResponse.redirect(redirectUrl);
+  // If the user is not signed in and they are on a protected route, redirect them to the sign-in page
+  const isProtectedRoute = req.nextUrl.pathname.startsWith('/account') || req.nextUrl.pathname.startsWith('/admin');
+  if (!session && isProtectedRoute) {
+    return NextResponse.redirect(new URL('/signin', req.url))
   }
 
-  // Handle admin route authorization
-  if (pathname.startsWith('/admin')) {
-    const isAdmin = userRole === 'admin';
-    if (!isAdmin) {
-      const redirectUrl = req.nextUrl.clone();
-      redirectUrl.pathname = '/unauthorized';
-      return NextResponse.redirect(redirectUrl);
-    }
-  }
-
-  // If accessing signin page while already authenticated, redirect to account
-  if (pathname === '/signin' && isAuthenticated) {
-    return NextResponse.redirect(new URL('/account', req.url));
-  }
-
-  return NextResponse.next();
+  return res
 }
 
 export const config = {
   matcher: [
     /*
      * Match all request paths except for the ones starting with:
-     * - api (API routes)
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      */
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+    '/((?!_next/static|_next/image|favicon.ico).*)',
   ],
-}; 
+} 

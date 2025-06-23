@@ -7,12 +7,15 @@ import { readFileSync } from 'fs';
 import { getSupabasePublicUrl } from '@/lib/utils';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
+
 async function parseFormData(req: NextRequest): Promise<{ fields: formidable.Fields; files: formidable.Files }> {
   return new Promise((resolve, reject) => {
-    const form = formidable({
-      maxFiles: 2,
-      maxFileSize: 1024 * 1024 * 1024, // 1GB
-    });
+    const form = formidable({});
     form.parse(req as any, (err, fields, files) => {
       if (err) reject(err);
       else resolve({ fields, files });
@@ -23,38 +26,38 @@ async function parseFormData(req: NextRequest): Promise<{ fields: formidable.Fie
 async function isAdmin(req: NextRequest): Promise<boolean> {
   const supabase = createRouteHandlerClient({ cookies });
   const { data: { session } } = await supabase.auth.getSession();
-
-  if (!session) {
-    return false;
-  }
+  if (!session) return false;
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
     select: { role: true },
   });
-
   return user?.role === 'admin';
 }
 
 export async function POST(req: NextRequest) {
-  try {
-    if (!(await isAdmin(req))) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
-    }
+  if (!(await isAdmin(req))) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+  }
 
+  try {
     const { fields, files } = await parseFormData(req);
-    const { collectionId, title, description, price, duration, seoTags, mediaType } = fields;
+    const { collectionId, title, description, price, duration, seoTags } = fields;
     const { videoFile, thumbnailFile } = files;
 
-    if (!collectionId || !title || !description || !price || !duration || !mediaType || !videoFile) {
+    if (!collectionId || !title || !description || !price || !duration || !videoFile) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    const collectionName = (await prisma.collection.findUnique({ where: { id: collectionId[0] } }))?.name || 'unknown-collection';
+    const collection = await prisma.collection.findUnique({ where: { id: collectionId[0] } });
+    if (!collection) {
+      return NextResponse.json({ error: 'Collection not found' }, { status: 404 });
+    }
 
     const video = videoFile[0];
     const videoContents = readFileSync(video.filepath);
-    const videoPath = `collections/${collectionName}/${Date.now()}-${video.originalFilename}`;
+    const videoPath = `collections/${collection.name}/${Date.now()}-${video.originalFilename}`;
+    
     const { error: videoError } = await supabaseAdmin.storage
       .from('videos')
       .upload(videoPath, videoContents, { contentType: video.mimetype! });
@@ -65,7 +68,7 @@ export async function POST(req: NextRequest) {
     if (thumbnailFile) {
       const thumbnail = thumbnailFile[0];
       const thumbContents = readFileSync(thumbnail.filepath);
-      thumbPath = `collections/${collectionName}/thumbnails/${Date.now()}-${thumbnail.originalFilename}`;
+      thumbPath = `collections/${collection.name}/thumbnails/${Date.now()}-${thumbnail.originalFilename}`;
       const { error: thumbError } = await supabaseAdmin.storage
         .from('thumbnails')
         .upload(thumbPath, thumbContents, { contentType: thumbnail.mimetype! });
@@ -74,18 +77,18 @@ export async function POST(req: NextRequest) {
 
     await prisma.collectionVideo.create({
       data: {
-        collection: collectionName,
+        collection: collection.name,
         collectionId: collectionId[0],
         title: title[0],
         description: description[0],
         price: parseFloat(price[0]),
         duration: parseInt(duration[0], 10),
         seoTags: seoTags ? seoTags[0].split(',').map(tag => tag.trim()) : [],
-        videoPath: videoPath,
+        videoPath,
         thumbnailPath: thumbPath,
         videoUrl: getSupabasePublicUrl(videoPath),
         thumbnail: thumbPath ? getSupabasePublicUrl(thumbPath) : '/fallback-thumbnail.png',
-        order: 0, // Simplified order
+        order: 0,
       },
     });
 

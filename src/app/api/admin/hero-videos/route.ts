@@ -7,13 +7,16 @@ import { readFileSync } from 'fs';
 import { getSupabasePublicUrl } from '@/lib/utils';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
+
 // Helper to parse FormData
 async function parseFormData(req: NextRequest): Promise<{ fields: formidable.Fields; files: formidable.Files }> {
   return new Promise((resolve, reject) => {
-    const form = formidable({
-      maxFiles: 2,
-      maxFileSize: 1024 * 1024 * 1024, // 1GB
-    });
+    const form = formidable({});
     form.parse(req as any, (err, fields, files) => {
       if (err) reject(err);
       else resolve({ fields, files });
@@ -38,11 +41,11 @@ async function isAdmin(req: NextRequest): Promise<boolean> {
 }
 
 export async function POST(req: NextRequest) {
-  try {
-    if (!(await isAdmin(req))) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
-    }
+  if (!(await isAdmin(req))) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+  }
 
+  try {
     const { fields, files } = await parseFormData(req);
     const { title, description, order } = fields;
     const { videoFile, thumbnailFile } = files;
@@ -77,11 +80,12 @@ export async function POST(req: NextRequest) {
     await prisma.heroVideo.create({
       data: {
         title: title[0],
+        description: description[0],
         order: parseInt(order[0], 10),
-        videoPath: videoPath,
+        videoPath,
+        thumbnailPath: thumbPath,
         videoUrl: getSupabasePublicUrl(videoPath),
         thumbnail: thumbPath ? getSupabasePublicUrl(thumbPath) : '/fallback-thumbnail.png',
-        description: description[0],
         status: 'approved',
       },
     });
