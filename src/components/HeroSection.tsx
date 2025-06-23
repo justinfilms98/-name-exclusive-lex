@@ -1,6 +1,8 @@
 "use client";
 import { useEffect, useState, useRef } from "react";
-import { useSession, signIn } from "next-auth/react";
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { useRouter } from 'next/navigation';
+import type { User } from "@supabase/supabase-js";
 
 interface HeroVideo {
   id: number;
@@ -14,8 +16,17 @@ export default function HeroSection() {
   const [videos, setVideos] = useState<HeroVideo[]>([]);
   const [current, setCurrent] = useState(0);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const { data: session } = useSession();
-  const isLoggedIn = !!session;
+  const [user, setUser] = useState<User | null>(null);
+  const supabase = createClientComponentClient();
+  const router = useRouter();
+
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+    }
+    getUser();
+  }, [supabase]);
 
   useEffect(() => {
     function fetchVideos() {
@@ -80,10 +91,10 @@ export default function HeroSection() {
           </p>
         </div>
         <div className="mt-8">
-          {!isLoggedIn ? (
+          {!user ? (
             <button
               className="bg-[#654C37] text-[#F2E0CF] px-8 py-3 rounded-full hover:bg-[#654C37]/90 transition-all duration-300 hover-lift focus-ring border border-[#C9BBA8]/[0.12] shadow-lg text-lg font-semibold"
-              onClick={() => signIn()}
+              onClick={() => router.push('/signin')}
             >
               Login
             </button>
