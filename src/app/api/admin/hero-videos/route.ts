@@ -7,12 +7,6 @@ import { readFileSync } from 'fs';
 import { getSupabasePublicUrl } from '@/lib/utils';
 
 // Helper to parse FormData
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
-
 async function parseFormData(req: NextRequest): Promise<{ fields: formidable.Fields; files: formidable.Files }> {
   return new Promise((resolve, reject) => {
     const form = formidable({
