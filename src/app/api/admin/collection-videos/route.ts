@@ -71,8 +71,6 @@ export async function POST(req: NextRequest) {
 
     await prisma.collectionVideo.create({
       data: {
-        collection: collection.name,
-        collectionId,
         title,
         description,
         price: parseFloat(price),
@@ -83,6 +81,11 @@ export async function POST(req: NextRequest) {
         videoUrl: getSupabasePublicUrl(videoPath),
         thumbnail: thumbPath ? getSupabasePublicUrl(thumbPath) : '/fallback-thumbnail.png',
         order: 0,
+        collection: {
+          connect: {
+            id: collectionId,
+          }
+        }
       },
     });
 

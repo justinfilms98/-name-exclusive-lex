@@ -35,6 +35,10 @@ export async function POST(req: NextRequest) {
     const title = formData.get('title') as string;
     const description = formData.get('description') as string;
     const order = formData.get('order') as string;
+    const price = formData.get('price') as string | null;
+    const duration = formData.get('duration') as string | null;
+    const seoTags = formData.get('seoTags') as string | null;
+    const category = formData.get('category') as string | null;
     const videoFile = formData.get('videoFile') as File | null;
     const thumbnailFile = formData.get('thumbnailFile') as File | null;
 
@@ -71,6 +75,10 @@ export async function POST(req: NextRequest) {
         videoUrl: getSupabasePublicUrl(videoPath),
         thumbnail: thumbPath ? getSupabasePublicUrl(thumbPath) : '/fallback-thumbnail.png',
         status: 'approved',
+        price: price ? parseFloat(price) : null,
+        duration: duration ? parseInt(duration, 10) : null,
+        seoTags: seoTags ? seoTags.split(',').map(tag => tag.trim()) : [],
+        category: category,
       },
     });
 

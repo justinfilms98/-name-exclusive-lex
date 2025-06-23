@@ -28,7 +28,7 @@ model CollectionVideo {
   userId        String?        @db.Uuid
   purchases     Purchase[]
   VideoPricing  VideoPricing[]
-  Collection    Collection?    @relation(fields: [collectionId], references: [id])
+  Collection    Collection?    @relation(fields: [collectionId], references: [id], onDelete: Cascade)
 
   @@schema("public")
 }
@@ -48,7 +48,7 @@ model HeroVideo {
   moderatedBy          String?
   price                Float                  @default(0.00)
   rejectionReason      String?
-  status               String                 @default("draft")
+  status               String                 @default("approved")
   tags                 String[]
   moderated            Boolean                @default(false)
   videoPath            String?
@@ -67,8 +67,10 @@ model HeroVideo {
 
 model Collection {
   id         String      @id
-  name       String
+  name       String       @unique
+  description String?
   createdAt  DateTime?   @default(now()) @db.Timestamp(6)
+  updatedAt  DateTime?   @default(now()) @updatedAt @db.Timestamp(6)
   userId     String?     @db.Uuid
   mediaItems MediaItem[]
   videos     CollectionVideo[]

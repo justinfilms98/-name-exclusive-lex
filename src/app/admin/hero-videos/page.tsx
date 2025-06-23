@@ -227,191 +227,23 @@ export default function HeroVideosPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto py-8 px-4 pt-24">
-      {/* Analytics Dashboard Section */}
-      <div className="mb-10">
-        <h2 className="text-xl font-bold mb-2">Hero Videos Analytics (Last 30 Days)</h2>
-        {analyticsLoading ? (
-          <div className="text-gray-500">Loading analytics...</div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="bg-white rounded-lg shadow p-4">
-              <h3 className="font-semibold mb-2">Total Views</h3>
-              <ResponsiveContainer width="100%" height={220}>
-                <BarChart data={analyticsData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" tickFormatter={d => d.slice(5)} />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="views" fill="#2563eb" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="bg-white rounded-lg shadow p-4">
-              <h3 className="font-semibold mb-2">Revenue</h3>
-              <ResponsiveContainer width="100%" height={220}>
-                <LineChart data={analyticsData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" tickFormatter={d => d.slice(5)} />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Line type="monotone" dataKey="revenue" stroke="#16a34a" strokeWidth={2} dot={false} />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        )}
-      </div>
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold">Manage Hero Videos</h2>
-        <div className="flex items-center gap-4">
-          <select 
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            className="border rounded px-3 py-1.5"
-          >
-            <option value="all">All Status</option>
-            <option value="draft">Draft</option>
-            <option value="pending">Pending Review</option>
-            <option value="approved">Approved</option>
-            <option value="rejected">Rejected</option>
-          </select>
-          <select 
-            value={filterCategory}
-            onChange={(e) => setFilterCategory(e.target.value)}
-            className="border rounded px-3 py-1.5"
-          >
-            <option value="all">All Categories</option>
-            <option value="education">Education</option>
-            <option value="entertainment">Entertainment</option>
-            <option value="sports">Sports</option>
-            <option value="music">Music</option>
-            <option value="gaming">Gaming</option>
-          </select>
-          {loading && (
-            <div className="text-sm text-gray-500">
-              <span className="animate-spin mr-2">⟳</span>
-              Loading...
-            </div>
-          )}
-        </div>
-      </div>
-
-      {notification && (
-        <div 
-          className={`mb-6 p-4 rounded-lg ${
-            notification.type === 'success' 
-              ? 'bg-green-50 text-green-800 border border-green-200' 
-              : 'bg-red-50 text-red-800 border border-red-200'
-          }`}
+    <div className="pt-8">
+      {/* Page header */}
+      <div className="flex justify-between items-center mb-8 px-4 sm:px-6 lg:px-8">
+        <h1 className="text-2xl font-bold text-gray-900">Manage Hero Videos</h1>
+        <button
+          onClick={() => handleOpen(0)}
+          className="bg-blue-600 text-white px-4 py-2 rounded-md shadow-sm hover:bg-blue-700"
         >
-          <div className="font-medium">{notification.message}</div>
-          {notification.details && notification.details.length > 0 && (
-            <ul className="mt-2 list-disc list-inside text-sm">
-              {notification.details.map((detail, i) => (
-                <li key={i}>{detail}</li>
-              ))}
-            </ul>
-          )}
+          Add Hero Video
+        </button>
+      </div>
+      
+      {/* Placeholder for content */}
+      <div className="px-4 sm:px-6 lg:px-8">
+        <div className="border-4 border-dashed border-gray-200 rounded-lg h-96">
+          {/* Video list will go here */}
         </div>
-      )}
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {[1, 2, 3].map((slot) => {
-          const video = videos.find(v => v.order === slot);
-          if (video && filterStatus !== 'all' && video.status !== filterStatus) return null;
-          if (video && filterCategory !== 'all' && video.category !== filterCategory) return null;
-          
-          return (
-            <div 
-              key={slot} 
-              className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 flex flex-col"
-            >
-              {video ? (
-                <>
-                  <div className="aspect-video mb-4 bg-gray-100 rounded-lg overflow-hidden relative group">
-                    <img 
-                      src={video.thumbnail} 
-                      alt={video.title} 
-                      className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                    />
-                    <div className="absolute top-2 left-2 flex gap-2">
-                      <span className={`px-2 py-1 rounded text-xs font-medium ${
-                        video.status === 'approved' ? 'bg-green-100 text-green-800' :
-                        video.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                        video.status === 'rejected' ? 'bg-red-100 text-red-800' :
-                        'bg-gray-100 text-gray-800'
-                      }`}>
-                        {video.status.charAt(0).toUpperCase() + video.status.slice(1)}
-                      </span>
-                      <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-medium">
-                        {video.ageRating}
-                      </span>
-                    </div>
-                    {video.price > 0 && (
-                      <div className="absolute top-2 right-2 bg-black bg-opacity-75 text-white px-2 py-1 rounded text-sm">
-                        ${video.price.toFixed(2)}
-                      </div>
-                    )}
-                  </div>
-                  <div className="mb-2">
-                    <span className="text-sm text-gray-500">{video.category}</span>
-                  </div>
-                  <h3 className="text-lg font-semibold mb-2 line-clamp-1">{video.title}</h3>
-                  <p className="text-sm text-gray-600 mb-4 line-clamp-2">{video.description}</p>
-                  {video.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mb-4">
-                      {video.tags.map(tag => (
-                        <span key={tag} className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-xs">
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                  <div className="mt-auto flex gap-2">
-                    <button 
-                      onClick={() => handleOpen(slot, video)}
-                      className="flex-1 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-                      disabled={loading}
-                    >
-                      Edit
-                    </button>
-                    <button 
-                      onClick={() => handleDelete(video)}
-                      className="flex-1 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
-                      disabled={loading}
-                    >
-                      Delete
-                    </button>
-                    <button 
-                      onClick={() => { setPricingVideo(video); setPricingModalOpen(true); }}
-                      className="flex-1 px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors"
-                      disabled={loading}
-                    >
-                      Pricing
-                    </button>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="aspect-video mb-4 bg-gray-100 rounded-lg flex items-center justify-center">
-                    <span className="text-gray-400">No Video</span>
-                  </div>
-                  <h3 className="text-lg font-semibold mb-2">Hero Video {slot}</h3>
-                  <p className="text-sm text-gray-600 mb-4">This slot is available</p>
-                  <button 
-                    onClick={() => handleOpen(slot)}
-                    className="mt-auto w-full px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
-                    disabled={loading}
-                  >
-                    Add Video
-                  </button>
-                </>
-              )}
-            </div>
-          );
-        })}
       </div>
 
       <HeroVideoModal
