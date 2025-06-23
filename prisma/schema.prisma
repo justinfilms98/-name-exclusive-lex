@@ -12,7 +12,7 @@ datasource db {
 model CollectionVideo {
   id            Int            @id @default(autoincrement())
   collection    String
-  title         String
+  title         String         @unique
   description   String
   thumbnail     String
   videoUrl      String
@@ -22,7 +22,8 @@ model CollectionVideo {
   price         Float          @default(0.00)
   thumbnailPath String?
   videoPath     String?
-  duration      Int?
+  duration      Int?           // Duration in minutes
+  seoTags       String?        // Comma-separated tags
   userId        String?        @db.Uuid
   purchases     Purchase[]
   VideoPricing  VideoPricing[]

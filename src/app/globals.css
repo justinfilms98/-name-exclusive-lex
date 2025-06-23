@@ -32,6 +32,7 @@ html, body {
   body {
     font-family: 'Vogue', Arial, Helvetica, sans-serif;
     @apply antialiased;
+    @apply bg-stone-50 text-stone-700;
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -308,4 +309,19 @@ html, body {
 }
 .link-underline:hover::after, .link-underline:focus::after {
   transform: scaleX(1);
-} 
+}
+
+@layer components {
+  .form-input, .form-textarea, .form-select {
+    @apply block w-full px-3 py-2 bg-white border border-stone-300 rounded-md shadow-sm placeholder-stone-400 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm transition-shadow;
+  }
+  .form-radio {
+    @apply h-4 w-4 text-emerald-600 border-stone-300 focus:ring-emerald-500;
+  }
+  .form-error {
+    @apply text-sm text-red-600 mt-1;
+  }
+  .shadow-subtle {
+    @apply shadow-[0_4px_12px_rgba(0,0,0,0.05)];
+  }
+}

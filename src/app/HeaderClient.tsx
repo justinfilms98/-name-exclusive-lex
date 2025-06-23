@@ -14,7 +14,18 @@ export default function HeaderClient() {
       {/* Combined Desktop and Mobile */}
       <div className="flex items-center gap-4">
         <CartPreview />
-        <Link href="/cart" className="text-[#D4C7B4] hover:underline px-2 py-1 link-underline md:hidden">🛒</Link> {/* Mobile Cart Icon */}
+        
+        {/* Centered links for larger screens */}
+        <div className="hidden md:flex items-center gap-4 absolute left-1/2 -translate-x-1/2">
+           <Link href="/collections" className="text-[#654C37] hover:underline px-3 py-1 text-sm">
+             Collections
+           </Link>
+           {/* Add other links like 'About' or 'Contact' here if needed */}
+        </div>
+
+        {/* Mobile-only icons */}
+        <Link href="/cart" className="text-[#D4C7B4] hover:underline px-2 py-1 link-underline md:hidden">🛒</Link>
+        <Link href="/collections" className="text-[#D4C7B4] hover:underline px-2 py-1 link-underline md:hidden">📚</Link>
         
         {user ? (
           <div className="flex items-center gap-2">
