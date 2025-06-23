@@ -1,67 +1,62 @@
 "use client";
-
-import { useSession, signOut as nextAuthSignOut } from 'next-auth/react';
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import type { User } from '@supabase/supabase-js';
 import Link from 'next/link';
 import { useCart } from '@/context/CartContext';
 import { CartPreview } from '@/components/CartPreview';
-import { signOut as supabaseSignOut } from '@/lib/auth';
-import { useRouter } from 'next/navigation';
 
 export default function HeaderClient() {
-  const { data: session } = useSession();
-  const user = session?.user;
+  const [user, setUser] = useState<User | null>(null);
+  const supabase = createClientComponentClient();
   const router = useRouter();
 
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    // Initial check
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+    }
+    getUser();
+
+    return () => {
+      subscription?.unsubscribe();
+    };
+  }, [supabase.auth]);
+
   const handleSignOut = async () => {
-    await supabaseSignOut();
-    await nextAuthSignOut({ redirect: false });
+    await supabase.auth.signOut();
     router.push('/');
     router.refresh();
   };
 
   return (
-    <>
-      {/* Desktop Layout - Account/Login only */}
-      <div className="hidden md:flex items-center gap-2">
+    <div className="flex items-center justify-between px-6 py-4">
+      <div className="text-xl font-bold text-stone-800">
+        <Link href="/">EXCLUSIVE LEX</Link>
+      </div>
+      <nav className="flex items-center gap-4">
+        <Link href="/collections" className="text-stone-600 hover:text-stone-900 transition-colors">Collections</Link>
         {user ? (
           <>
-            <Link href="/account" legacyBehavior>
-              <a className="bg-[#D4C7B4] text-[#654C37] px-3 py-1 rounded text-sm button-animate">My Account</a>
-            </Link>
-            <button onClick={handleSignOut} className="bg-transparent text-[#654C37] px-3 py-1 rounded text-sm hover:underline">
+            <Link href="/account" className="text-stone-600 hover:text-stone-900 transition-colors">My Account</Link>
+            <button onClick={handleSignOut} className="bg-stone-800 text-white px-3 py-1 rounded-md text-sm hover:bg-stone-900 transition-colors">
               Sign Out
             </button>
           </>
         ) : (
           <Link href="/signin">
-            <button className="bg-[#D4C7B4] text-[#654C37] px-3 py-1 rounded text-sm button-animate">Login</button>
-          </Link>
-        )}
-      </div>
-
-      {/* Mobile Layout */}
-      <div className="md:hidden flex items-center gap-4">
-        <CartPreview />
-        
-        {/* Mobile icons */}
-        <Link href="/cart" className="text-[#D4C7B4] hover:underline px-2 py-1 link-underline">🛒</Link>
-        <Link href="/collections" className="text-[#D4C7B4] hover:underline px-2 py-1 link-underline">📚</Link>
-        
-        {user ? (
-          <div className="flex items-center gap-2">
-            <Link href="/account" legacyBehavior>
-              <a className="bg-[#D4C7B4] text-[#654C37] px-3 py-1 rounded text-sm button-animate">My Account</a>
-            </Link>
-            <button onClick={handleSignOut} className="bg-transparent text-[#654C7B] px-3 py-1 rounded text-sm hover:underline">
-              Sign Out
+            <button className="bg-stone-800 text-white px-3 py-1 rounded-md text-sm hover:bg-stone-900 transition-colors">
+              Login
             </button>
-          </div>
-        ) : (
-          <Link href="/signin">
-            <button className="bg-[#D4C7B4] text-[#654C37] px-3 py-1 rounded text-sm button-animate">Login</button>
           </Link>
         )}
-      </div>
-    </>
+      </nav>
+    </div>
   );
 } 

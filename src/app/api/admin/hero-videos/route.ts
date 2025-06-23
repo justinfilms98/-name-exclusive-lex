@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getToken } from 'next-auth/jwt';
-import { supabaseAdmin } from '@/lib/supabaseAdmin';
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
 import formidable from 'formidable';
 import { readFileSync } from 'fs';
 import { getSupabasePublicUrl } from '@/lib/utils';
+import { supabaseAdmin } from '@/lib/supabaseAdmin';
 
 // Helper to parse FormData
 async function parseFormData(req: NextRequest): Promise<{ fields: formidable.Fields; files: formidable.Files }> {
@@ -20,15 +21,20 @@ async function parseFormData(req: NextRequest): Promise<{ fields: formidable.Fie
   });
 }
 
-// Ensure the user is an admin before proceeding
-async function isAdmin(req: NextRequest) {
-  const token = await getToken({ req });
-  console.log("Decoded Token:", token); // Log the token for debugging
-  // The token's 'role' property must be 'admin'
-  if (!token || token.role !== 'admin') {
+async function isAdmin(req: NextRequest): Promise<boolean> {
+  const supabase = createRouteHandlerClient({ cookies });
+  const { data: { session } } = await supabase.auth.getSession();
+
+  if (!session) {
     return false;
   }
-  return true;
+
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { role: true },
+  });
+
+  return user?.role === 'admin';
 }
 
 export async function POST(req: NextRequest) {

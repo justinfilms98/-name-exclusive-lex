@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getToken } from 'next-auth/jwt';
-import { supabaseAdmin } from '@/lib/supabaseAdmin';
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
 import formidable from 'formidable';
 import { readFileSync } from 'fs';
 import { getSupabasePublicUrl } from '@/lib/utils';
+import { supabaseAdmin } from '@/lib/supabaseAdmin';
 
 async function parseFormData(req: NextRequest): Promise<{ fields: formidable.Fields; files: formidable.Files }> {
   return new Promise((resolve, reject) => {
@@ -19,13 +20,20 @@ async function parseFormData(req: NextRequest): Promise<{ fields: formidable.Fie
   });
 }
 
-async function isAdmin(req: NextRequest) {
-  const token = await getToken({ req });
-  console.log("Decoded Collection API Token:", token); // Log the token
-  if (!token || token.role !== 'admin') {
+async function isAdmin(req: NextRequest): Promise<boolean> {
+  const supabase = createRouteHandlerClient({ cookies });
+  const { data: { session } } = await supabase.auth.getSession();
+
+  if (!session) {
     return false;
   }
-  return true;
+
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { role: true },
+  });
+
+  return user?.role === 'admin';
 }
 
 export async function POST(req: NextRequest) {
@@ -67,10 +75,12 @@ export async function POST(req: NextRequest) {
     await prisma.collectionVideo.create({
       data: {
         collection: collectionName,
+        collectionId: collectionId[0],
         title: title[0],
         description: description[0],
         price: parseFloat(price[0]),
         duration: parseInt(duration[0], 10),
+        seoTags: seoTags ? seoTags[0].split(',').map(tag => tag.trim()) : [],
         videoPath: videoPath,
         thumbnailPath: thumbPath,
         videoUrl: getSupabasePublicUrl(videoPath),

@@ -24,7 +24,7 @@ model CollectionVideo {
   thumbnailPath String?
   videoPath     String?
   duration      Int?           // Duration in minutes
-  seoTags       String?        // Comma-separated tags
+  seoTags       String[]       // Comma-separated tags
   userId        String?        @db.Uuid
   purchases     Purchase[]
   VideoPricing  VideoPricing[]

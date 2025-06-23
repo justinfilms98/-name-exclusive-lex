@@ -42,19 +42,21 @@ export default function CollectionMediaPage() {
   const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(null);
   const { addToast } = useToast();
 
-  useEffect(() => {
-    async function fetchCollections() {
-      try {
-        const response = await fetch('/api/collections');
-        if (!response.ok) throw new Error('Failed to fetch collections');
-        const data = await response.json();
-        setCollections(data.data || []);
-      } catch (error) {
-        console.error(error);
-      } finally {
-        setLoading(false);
-      }
+  const fetchCollections = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch('/api/collections');
+      if (!response.ok) throw new Error('Failed to fetch collections');
+      const data = await response.json();
+      setCollections(data.data || []);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
     }
+  }
+
+  useEffect(() => {
     fetchCollections();
   }, []);
 
@@ -69,10 +71,9 @@ export default function CollectionMediaPage() {
   };
 
   const handleSaveSuccess = () => {
-    if (selectedCollectionId) {
-      // fetchMediaItems(selectedCollectionId);
-    }
-    setIsModalOpen(false);
+    handleModalClose();
+    // Optionally, you can refresh the media items for the edited collection here
+    // but since we are just uploading, closing the modal is sufficient.
   };
 
   const handleEdit = (item: MediaItem) => {
@@ -98,7 +99,7 @@ export default function CollectionMediaPage() {
 
         {loading ? (
           <p className="text-center">Loading collections...</p>
-        ) : (
+        ) : collections.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             {collections.map(collection => (
               <CollectionCard 
@@ -107,6 +108,11 @@ export default function CollectionMediaPage() {
                 onClick={() => handleManageClick(collection.id)}
               />
             ))}
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <h3 className="text-2xl font-serif text-stone-700">No Collections Found</h3>
+            <p className="text-stone-500 mt-2">Please add collections via the Supabase dashboard to begin managing media.</p>
           </div>
         )}
 
