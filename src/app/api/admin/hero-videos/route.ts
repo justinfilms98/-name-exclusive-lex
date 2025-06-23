@@ -33,7 +33,6 @@ export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
     const title = formData.get('title') as string;
-    const description = formData.get('description') as string;
     const order = formData.get('order') as string;
     const price = formData.get('price') as string | null;
     const duration = formData.get('duration') as string | null;
@@ -42,7 +41,7 @@ export async function POST(req: NextRequest) {
     const videoFile = formData.get('videoFile') as File | null;
     const thumbnailFile = formData.get('thumbnailFile') as File | null;
 
-    if (!title || !description || !order || !videoFile) {
+    if (!title || !order || !videoFile) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
@@ -68,7 +67,6 @@ export async function POST(req: NextRequest) {
     await prisma.heroVideo.create({
       data: {
         title,
-        description,
         order: parseInt(order, 10),
         videoPath,
         videoUrl: getSupabasePublicUrl(videoPath),
