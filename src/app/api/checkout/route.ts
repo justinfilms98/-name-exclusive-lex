@@ -1,67 +1,53 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import Stripe from 'stripe';
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-04-30.basil',
-});
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
+import { stripe } from '@/lib/stripe';
+import { prisma } from '@/lib/prisma';
 
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session || !session.user) {
+  const { priceId } = await req.json();
+  const supabase = createRouteHandlerClient({ cookies });
+  
+  const { data: { session } } = await supabase.auth.getSession();
+
+  if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { cartItems } = await req.json();
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id }
+  });
 
-  if (!cartItems || !Array.isArray(cartItems) || cartItems.length === 0) {
-    return NextResponse.json({ error: 'Invalid cart items' }, { status: 400 });
+  if (!user) {
+    return NextResponse.json({ error: 'User not found' }, { status: 404 });
   }
 
-  const YOUR_DOMAIN = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  let customerId = user.stripeCustomerId;
+  if (!customerId) {
+    const customer = await stripe.customers.create({
+      email: user.email!,
+      name: user.name || undefined,
+    });
+    customerId = customer.id;
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { stripeCustomerId: customerId },
+    });
+  }
 
   try {
-    const line_items = cartItems.map(item => {
-      return {
-        price_data: {
-          currency: 'usd',
-          product_data: {
-            name: item.name,
-            images: item.thumbnail ? [item.thumbnail] : [],
-          },
-          unit_amount: Math.round(item.price * 100), // Price in cents
-        },
-        quantity: 1,
-      };
-    });
-
-    // We'll pass the cart items as a JSON string in the metadata.
-    // Stripe's metadata values are limited to 500 characters.
-    // For larger carts, a different strategy (like saving the cart to the DB first) would be needed.
-    const cartDetails = JSON.stringify(cartItems.map(item => ({ id: item.id, duration: 60 }))); // Assuming a default duration
-
     const checkoutSession = await stripe.checkout.sessions.create({
+      customer: customerId,
       payment_method_types: ['card'],
-      line_items,
+      line_items: [{ price: priceId, quantity: 1 }],
       mode: 'payment',
-      success_url: `${YOUR_DOMAIN}/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${YOUR_DOMAIN}/cart`,
-      metadata: {
-        // @ts-ignore
-        user_id: session.user.id,
-        cart_details: cartDetails,
-      },
+      success_url: `${req.nextUrl.origin}/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${req.nextUrl.origin}/`,
     });
 
-    if (!checkoutSession.url) {
-      return NextResponse.json({ error: 'Could not create Stripe Checkout session.' }, { status: 500 });
-    }
-
-    return NextResponse.json({ redirectUrl: checkoutSession.url });
-
-  } catch (error) {
-    console.error("Stripe Error:", error);
-    return NextResponse.json({ error: 'Error creating checkout session' }, { status: 500 });
+    return NextResponse.json({ sessionId: checkoutSession.id });
+  } catch (error: any) {
+    console.error(error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 } 
