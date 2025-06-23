@@ -101,7 +101,6 @@ export default function HeroVideosPage() {
   const [videos, setVideos] = useState<HeroVideo[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<number | null>(null);
-  const [editData, setEditData] = useState<{ id: number; title: string; description: string; } | null>(null);
   const [loading, setLoading] = useState(false);
   const [notification, setNotification] = useState<Notification | null>(null);
   const [filterStatus, setFilterStatus] = useState<string>('all');
@@ -160,14 +159,13 @@ export default function HeroVideosPage() {
 
   function handleOpen(slot: number, video?: HeroVideo) {
     setSelectedSlot(slot);
-    setEditData(video ? { id: video.id, title: video.title, description: video.description } : null);
     setModalOpen(true);
   }
 
   const handleSaveSuccess = () => {
     setNotification({
       type: 'success',
-      message: `Video ${editData ? 'updated' : 'added'} successfully!`
+      message: `Video ${selectedSlot ? 'updated' : 'added'} successfully!`
     });
     fetchVideos();
   };
@@ -420,7 +418,6 @@ export default function HeroVideosPage() {
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         onSaveSuccess={handleSaveSuccess}
-        initialData={editData}
         slotOrder={selectedSlot || 1}
       />
 
