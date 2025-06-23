@@ -16,30 +16,38 @@ export default function HeaderClient() {
       const { data: { user } } = await supabase.auth.getUser();
       setUser(user);
       setLoading(false);
+      router.refresh(); // Refresh the page to update server components
     });
+
+    // Also get user on initial load
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+      setLoading(false);
+    };
+    getUser();
 
     return () => {
       subscription?.unsubscribe();
     };
-  }, [supabase.auth]);
+  }, [supabase, router]);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     router.push('/');
-    router.refresh();
   };
 
   return (
     <div className="flex items-center justify-between px-6 py-4">
-      <div className="flex-shrink-0">
+      <div className="flex items-center gap-8">
         <Link href="/" className="text-2xl font-bold font-serif uppercase tracking-widest text-stone-800">
           EXCLUSIVE LEX
         </Link>
-      </div>
-      <div className="flex items-center gap-6">
         <Link href="/collections" className="text-stone-600 hover:text-stone-900 transition-colors">
           Collections
         </Link>
+      </div>
+      <div className="flex items-center gap-6">
         {!loading && (
           user ? (
             <>

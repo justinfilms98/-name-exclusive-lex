@@ -112,7 +112,7 @@ export default function CollectionVideoModal({ open, onClose, onSaveSuccess }: C
   return (
     <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4 pt-20">
       <div className="bg-white rounded-lg shadow-2xl w-full max-w-2xl max-h-full overflow-y-auto">
-        <form onSubmit={handleSubmit(onSubmit)} className="p-8">
+        <form onSubmit={handleSubmit(onSubmit)} className="p-8 py-10">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-serif text-stone-800">Add Collection Video</h2>
             <button type="button" onClick={onClose} className="text-stone-500 hover:text-stone-800">
@@ -125,7 +125,7 @@ export default function CollectionVideoModal({ open, onClose, onSaveSuccess }: C
           <div className="space-y-6">
             {/* All form fields go here, using register from react-hook-form */}
             <div>
-              <label htmlFor="collectionId">Collection*</label>
+              <label htmlFor="collectionId" className="block text-sm font-medium text-stone-700 mb-1">Collection*</label>
               <select {...register("collectionId")} className="form-input">
                 <option value="">Select a collection...</option>
                 {collections.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -136,9 +136,9 @@ export default function CollectionVideoModal({ open, onClose, onSaveSuccess }: C
             {/* Title, Description, Files, Price, Duration, SEO Tags etc. */}
           </div>
 
-          <div className="mt-8 flex justify-end gap-4">
-            <button type="button" onClick={onClose}>Cancel</button>
-            <button type="submit" disabled={!isValid || isSubmitting}>
+          <div className="mt-8 flex justify-end gap-6">
+            <button type="button" onClick={onClose} className="px-4 py-2 rounded-md text-sm font-semibold text-stone-700 bg-stone-100 hover:bg-stone-200 transition-colors">Cancel</button>
+            <button type="submit" disabled={!isValid || isSubmitting} className="px-6 py-2 rounded-md text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 disabled:bg-stone-400 disabled:cursor-not-allowed transition-colors">
               {isSubmitting ? 'Saving...' : 'Save Video'}
             </button>
           </div>
