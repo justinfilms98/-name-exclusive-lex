@@ -50,6 +50,7 @@ model HeroVideo {
   tags                 String[]
   moderated            Boolean                @default(false)
   videoPath            String?
+  thumbnailPath        String?
   duration             Int?
   userId               String?                @db.Uuid
   ContentModerationLog ContentModerationLog[]

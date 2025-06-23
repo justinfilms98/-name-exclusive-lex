@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
-import { serverUpload } from '@/lib/services/serverUploadService';
+import { getSupabasePublicUrl } from '@/lib/utils';
+import { getToken } from 'next-auth/jwt';
 
 // Validation schemas
 const heroVideoSchema = z.object({
@@ -22,6 +23,21 @@ const heroVideoSchema = z.object({
 const updateHeroVideoSchema = heroVideoSchema.extend({
   id: z.number().int().positive(),
 });
+
+// Simplified validation schema for the new form
+const postSchema = z.object({
+  id: z.number().int().optional(),
+  title: z.string().min(1, "Title is required"),
+  description: z.string().min(1, "Description is required"),
+  order: z.number().int(),
+  videoPath: z.string().min(1, "Video path is required"),
+  thumbnailPath: z.string().optional(),
+});
+
+async function isAdmin(req: NextRequest) {
+  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+  return token?.role === 'admin';
+}
 
 export async function GET(req: NextRequest) {
   try {
@@ -71,96 +87,52 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { fields, uploadedFileUrl, uploadedFilePath } = await serverUpload(req);
-
-    if (!uploadedFileUrl || !uploadedFilePath) {
-      return NextResponse.json(
-        { error: 'File upload failed.' },
-        { status: 400 }
-      );
+    if (!(await isAdmin(req))) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
+
+    const body = await req.json();
+    const validatedData = postSchema.parse(body);
     
-    // Formidable returns fields as arrays, so we extract the first element.
-    const rawData = Object.fromEntries(
-      Object.entries(fields).map(([key, value]) => [key, value?.[0]])
-    );
+    const { id, title, description, order, videoPath, thumbnailPath } = validatedData;
 
-    const validatedData = heroVideoSchema.parse({
-      ...rawData,
-      order: rawData.order ? parseInt(rawData.order as string, 10) : undefined,
-      price: rawData.price ? parseFloat(rawData.price as string) : undefined,
-      videoUrl: uploadedFileUrl,
-      // Assuming thumbnail is also uploaded or handled separately
-      thumbnail: rawData.thumbnail || 'https://via.placeholder.com/150', 
-    });
-
-    // Check if slot is already taken
-    const existingVideo = await prisma.heroVideo.findFirst({
-      where: { order: validatedData.order }
-    });
-
-    if (existingVideo) {
-      return NextResponse.json(
-        { error: `Slot ${validatedData.order} is already taken` },
-        { status: 400 }
-      );
-    }
-
-    // Set initial status to pending if not draft
-    let finalStatus = validatedData.status;
-    if (finalStatus !== 'draft') {
-      finalStatus = 'pending';
-    }
-
-    const video = await prisma.heroVideo.create({
-      data: {
-        title: validatedData.title,
-        description: validatedData.description,
-        thumbnail: validatedData.thumbnail,
-        videoUrl: validatedData.videoUrl,
-        order: validatedData.order,
-        price: validatedData.price,
-        status: finalStatus,
-        ageRating: validatedData.ageRating,
-        category: validatedData.category,
-        tags: validatedData.tags,
-        moderated: false,
-        videoPath: uploadedFilePath,
+    // Data payload for both create and update
+    const dataPayload = {
+      title,
+      description,
+      order,
+      videoPath,
+      videoUrl: getSupabasePublicUrl(videoPath),
+      thumbnailPath: thumbnailPath || null,
+      thumbnail: thumbnailPath ? getSupabasePublicUrl(thumbnailPath) : getSupabasePublicUrl(videoPath.replace(/\.[^/.]+$/, "") + ".jpg"), // Fallback for thumbnail
+      // Set default values for other required fields in the complex schema
+      status: 'draft',
+      ageRating: 'PG',
+      category: 'general',
+      tags: [],
+      price: 0,
+      moderated: false,
+    };
+    
+    // Use upsert to either create a new video or update an existing one
+    const heroVideo = await prisma.heroVideo.upsert({
+      where: { id: id || -1 }, // A non-matching ID for creation
+      create: dataPayload,
+      update: {
+        ...dataPayload,
+        // Exclude order from update if you don't want it to change, or handle separately
       },
-      select: {
-        id: true,
-        title: true,
-        description: true,
-        thumbnail: true,
-        videoUrl: true,
-        order: true,
-        price: true,
-        status: true,
-        ageRating: true,
-        category: true,
-        tags: true,
-        moderated: true,
-        createdAt: true,
-        updatedAt: true,
-        videoPath: true,
-      }
     });
-    
-    return NextResponse.json(video);
-  } catch (err) {
-    console.error("Error in POST /api/hero-videos:", err);
-    
-    if (err instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: "Validation failed", details: err.errors },
-        { status: 400 }
-      );
+
+    return NextResponse.json(heroVideo);
+
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: 'Validation failed', details: error.errors }, { status: 400 });
     }
-    
-    return NextResponse.json(
-      { error: "Failed to create hero video" },
-      { status: 500 }
-    );
+    console.error("Error in POST /api/hero-videos:", error);
+    // Be more specific about DB errors if possible
+    return NextResponse.json({ error: 'An unexpected error occurred while saving the hero video.' }, { status: 500 });
   }
 }
 
