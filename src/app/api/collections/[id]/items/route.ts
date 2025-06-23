@@ -23,17 +23,17 @@ export async function GET(
       return NextResponse.json({ error: 'Collection ID is required' }, { status: 400 });
     }
 
-    const mediaItems = await prisma.mediaItem.findMany({
+    const mediaItems = await prisma.collectionMedia.findMany({
       where: { collectionId: id },
       orderBy: { createdAt: 'desc' },
       include: {
         collection: {
-          select: { name: true }
+          select: { title: true }
         }
       }
     });
 
-    return NextResponse.json({ success: true, data: mediaItems });
+    return NextResponse.json(mediaItems);
   } catch (error) {
     console.error('Error fetching collection items:', error);
     return NextResponse.json(
