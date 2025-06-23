@@ -24,10 +24,32 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields: fileName, fileType, collection' }, { status: 400 });
     }
 
-    const filePath = `${collection}/${Date.now()}-${fileName}`;
+    // Determine bucket and path based on collection type
+    let bucketName: string;
+    let filePath: string;
+
+    if (collection === 'hero-videos') {
+      bucketName = 'videos';
+      filePath = `hero/${Date.now()}-${fileName}`;
+    } else if (collection === 'hero-videos/thumbnails') {
+      bucketName = 'thumbnails';
+      filePath = `hero/${Date.now()}-${fileName}`;
+    } else if (collection === 'collection-videos') {
+      bucketName = 'videos';
+      filePath = `collections/${Date.now()}-${fileName}`;
+    } else if (collection === 'collection-videos/thumbnails') {
+      bucketName = 'thumbnails';
+      filePath = `collections/${Date.now()}-${fileName}`;
+    } else {
+      // Default fallback
+      bucketName = 'videos';
+      filePath = `${collection}/${Date.now()}-${fileName}`;
+    }
+
+    console.log(`Creating signed URL for bucket: ${bucketName}, path: ${filePath}`);
 
     const { data, error } = await supabaseAdmin.storage
-      .from('collection_media')
+      .from(bucketName)
       .createSignedUploadUrl(filePath);
 
     if (error) {

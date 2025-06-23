@@ -12,6 +12,7 @@ datasource db {
 model CollectionVideo {
   id            Int            @id @default(autoincrement())
   collection    String
+  collectionId  String?        // Reference to Collection model
   title         String         @unique
   description   String
   thumbnail     String
@@ -27,6 +28,7 @@ model CollectionVideo {
   userId        String?        @db.Uuid
   purchases     Purchase[]
   VideoPricing  VideoPricing[]
+  Collection    Collection?    @relation(fields: [collectionId], references: [id])
 
   @@schema("public")
 }
@@ -69,6 +71,7 @@ model Collection {
   createdAt  DateTime?   @default(now()) @db.Timestamp(6)
   userId     String?     @db.Uuid
   mediaItems MediaItem[]
+  videos     CollectionVideo[]
 
   @@schema("public")
 }
