@@ -5,7 +5,7 @@ import { useCart } from '@/context/CartContext';
 import { motion } from 'framer-motion';
 
 // Simplified interface for our media items
-interface MediaItem {
+export interface MediaItem {
   id: string;
   title: string;
   description: string | null;
