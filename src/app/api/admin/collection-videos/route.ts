@@ -81,7 +81,11 @@ export async function POST(req: NextRequest) {
         videoUrl: getSupabasePublicUrl(videoPath),
         thumbnail: thumbPath ? getSupabasePublicUrl(thumbPath) : '/fallback-thumbnail.png',
         order: 0,
-        collectionId: collectionId,
+        collection: {
+          connect: {
+            id: collectionId,
+          },
+        },
       },
     });
 
