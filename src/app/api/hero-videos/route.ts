@@ -42,49 +42,32 @@ async function isAdmin(req: NextRequest) {
   return token?.role === 'admin';
 }
 
-export async function GET(req: NextRequest) {
+// This forces the route to be dynamic, ensuring it's not cached
+// and that it fetches fresh data on every request.
+export const dynamic = 'force-dynamic';
+
+export async function GET() {
   try {
-    const { searchParams } = new URL(req.url);
-    const status = searchParams.get('status');
-    const category = searchParams.get('category');
-    const ageRating = searchParams.get('ageRating');
-
-    const where = {
-      ...(status && status !== 'all' ? { status } : {}),
-      ...(category && category !== 'all' ? { category } : {}),
-      ...(ageRating && ageRating !== 'all' ? { ageRating } : {}),
-    };
-
-    const videos = await prisma.heroVideo.findMany({ 
-      where,
-      orderBy: { order: 'asc' },
+    const videos = await prisma.heroVideo.findMany({
+      where: {
+        status: 'approved',
+      },
       select: {
         id: true,
-        title: true,
-        description: true,
-        thumbnail: true,
         videoUrl: true,
         order: true,
-        price: true,
-        status: true,
-        ageRating: true,
-        category: true,
-        tags: true,
-        moderated: true,
-        moderatedBy: true,
-        moderatedAt: true,
-        rejectionReason: true,
-        createdAt: true,
-        updatedAt: true,
-      }
+        title: true,
+        description: true,
+      },
+      orderBy: {
+        order: 'asc',
+      },
+      take: 3,
     });
     return NextResponse.json(videos);
-  } catch (err) {
-    console.error("Error in GET /api/hero-videos:", err);
-    return NextResponse.json(
-      { error: "Failed to fetch hero videos" },
-      { status: 500 }
-    );
+  } catch (error) {
+    console.error('Error fetching hero videos:', error);
+    return NextResponse.json({ error: 'Failed to fetch hero videos' }, { status: 500 });
   }
 }
 
