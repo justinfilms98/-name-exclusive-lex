@@ -26,7 +26,16 @@ export default function HeroSection() {
       setUser(user);
     }
     getUser();
-  }, [supabase]);
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setUser(session?.user ?? null);
+      router.refresh();
+    });
+
+    return () => {
+      subscription?.unsubscribe();
+    };
+  }, [supabase, router]);
 
   useEffect(() => {
     function fetchVideos() {

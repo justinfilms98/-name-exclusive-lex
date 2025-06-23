@@ -9,160 +9,74 @@ datasource db {
   schemas  = ["auth", "public"]
 }
 
-model CollectionVideo {
-  id            Int      @id @default(autoincrement())
-  title         String   @unique
-  description   String
-  thumbnail     String
-  videoUrl      String
-  order         Int
-  price         Float    @default(0.00)
-  thumbnailPath String?
-  videoPath     String?
-  duration      Int?     // Duration in minutes
-  seoTags       String[] // Comma-separated tags
-  
-  // Relation to Collection
-  collectionId  String
-  collection    Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
-  
-  // Relation to User (optional, for tracking uploads)
-  userId        String?  @db.Uuid
-  
-  // Relation to Purchases
-  purchases     Purchase[]
-  
-  // Relation to Pricing
-  VideoPricing  VideoPricing[]
+// --------------------------------------------------------------------------------
+// Public Schema - new, simplified models
+// --------------------------------------------------------------------------------
 
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+model Collection {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title       String
+  description String?
+  createdAt   DateTime? @default(now()) @db.Timestamptz
 
+  media      CollectionMedia[]
+
+  @@map("collections")
+  @@schema("public")
+}
+
+model CollectionMedia {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  collectionId     String    @db.Uuid
+  title            String
+  description      String?
+  videoUrl         String?   @map("video_url")
+  thumbnailUrl     String?   @map("thumbnail_url")
+  price            Decimal?  @db.Decimal(10, 2)
+  durationSeconds  Int?      @map("duration_seconds")
+  seoTags          String[]  @map("seo_tags")
+  displayOrder     Int?      @map("display_order")
+  createdAt        DateTime? @default(now()) @db.Timestamptz @map("created_at")
+
+  collection Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  purchases  Purchase[]
+
+  @@map("collection_media")
   @@schema("public")
 }
 
 model HeroVideo {
-  id                   Int                    @id @default(autoincrement())
-  title                String
-  description          String
-  thumbnail            String
-  videoUrl             String
-  order                Int
-  createdAt            DateTime               @default(now())
-  updatedAt            DateTime               @updatedAt
-  ageRating            String                 @default("PG")
-  category             String                 @default("entertainment")
-  moderatedAt          DateTime?
-  moderatedBy          String?
-  price                Float                  @default(0.00)
-  rejectionReason      String?
-  status               String                 @default("approved")
-  tags                 String[]
-  moderated            Boolean                @default(false)
-  videoPath            String?
-  thumbnailPath        String?
-  duration             Int?
-  userId               String?                @db.Uuid
-  ContentModerationLog ContentModerationLog[]
-  VideoAnalytics       VideoAnalytics[]
-  VideoPricing         VideoPricing[]
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title         String?
+  subtitle      String?
+  videoUrl      String    @map("video_url")
+  displayOrder  Int?      @map("display_order")
+  createdAt     DateTime? @default(now()) @db.Timestamptz @map("created_at")
 
-  @@index([ageRating])
-  @@index([category])
-  @@index([status])
+  @@map("hero_videos")
   @@schema("public")
 }
 
-model Collection {
-  id          String            @id
-  name        String            @unique
-  description String?
-  userId      String?           @db.Uuid
-  createdAt   DateTime?         @default(now()) @db.Timestamp(6)
-  updatedAt   DateTime?         @default(now()) @updatedAt @db.Timestamp(6)
-  
-  // Relation to Collection Videos
-  videos      CollectionVideo[]
+model Purchase {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId          String    @map("user_id") @db.Uuid
+  mediaId         String    @map("media_id") @db.Uuid
+  amountPaid      Decimal?  @map("amount_paid") @db.Decimal(10, 2)
+  stripeChargeId  String?   @map("stripe_charge_id")
+  expiresAt       DateTime? @map("expires_at") @db.Timestamptz
+  createdAt       DateTime? @default(now()) @db.Timestamptz @map("created_at")
 
-  // Legacy relation - to be removed if MediaItem is deprecated
-  mediaItems  MediaItem[]
+  media      CollectionMedia @relation(fields: [mediaId], references: [id], onUpdate: NoAction, onDelete: NoAction)
+  user       users      @relation(fields: [userId], references: [id], onUpdate: NoAction, onDelete: NoAction)
 
+  @@map("purchases")
   @@schema("public")
 }
 
-model MediaItem {
-  id            String          @id
-  collectionId  String
-  mediaType     String
-  filePath      String
-  thumbnailPath String?
-  description   String?
-  price         Float?          @default(0.00)
-  duration      Int?
-  createdAt     DateTime?       @default(now()) @db.Timestamp(6)
-  userId        String?         @db.Uuid
-  collection    Collection      @relation(fields: [collectionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  MediaPurchase MediaPurchase[]
 
-  @@schema("public")
-}
-
-model Video {
-  id           String    @id
-  title        String
-  description  String
-  price        Float
-  type         String
-  videoKey     String
-  thumbnailKey String
-  createdAt    DateTime? @default(now()) @db.Timestamp(6)
-  updatedAt    DateTime? @default(now()) @updatedAt @db.Timestamp(6)
-  creatorId    String
-  User         User      @relation(fields: [creatorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-
-  @@schema("public")
-}
-
-model Session {
-  id           String   @id
-  sessionToken String?  @unique
-  userId       String
-  expires      DateTime @db.Timestamp(6)
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-
-  @@schema("public")
-}
-
-model VerificationToken {
-  identifier String
-  token      String   @unique
-  expires    DateTime @db.Timestamp(6)
-  stripeCustomerId String?   @unique
-
-  @@id([identifier, token])
-  @@schema("public")
-}
-
-model User {
-  id            String          @id
-  name          String?
-  email         String?         @unique
-  emailVerified DateTime?       @db.Timestamp(6)
-  image         String?
-  password      String?
-  stripeCustomerId String?   @unique
-  role          String?         @default("user")
-  createdAt     DateTime?       @default(now()) @db.Timestamp(6)
-  updatedAt     DateTime?       @default(now()) @updatedAt @db.Timestamp(6)
-  Account       Account[]
-  MediaPurchase MediaPurchase[]
-  Purchase      Purchase[]
-  sessions      Session[]
-  Video         Video[]
-  TimedAccess   TimedAccess[]
-
-  @@schema("public")
-}
+// --------------------------------------------------------------------------------
+// Auth Schema - managed by Supabase
+// --------------------------------------------------------------------------------
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -249,58 +163,49 @@ model mfa_amr_claims {
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model mfa_challenges {
-  id                     String      @id @db.Uuid
-  factor_id              String      @db.Uuid
-  created_at             DateTime    @db.Timestamptz(6)
-  verified_at            DateTime?   @db.Timestamptz(6)
-  ip_address             String      @db.Inet
-  otp_code               String?
-  web_authn_session_data Json?
-  mfa_factors            mfa_factors @relation(fields: [factor_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "mfa_challenges_auth_factor_id_fkey")
+  id          String      @id @db.Uuid
+  factor_id   String      @db.Uuid
+  created_at  DateTime    @db.Timestamptz(6)
+  verified_at DateTime?   @db.Timestamptz(6)
+  ip_address  String      @db.VarChar(64)
+  mfa_factors mfa_factors @relation(fields: [factor_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
-  @@index([created_at(sort: Desc)], map: "mfa_challenge_created_at_idx")
+  @@index([created_at(sort: Desc)])
   @@schema("auth")
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model mfa_factors {
-  id                   String           @id @db.Uuid
-  user_id              String           @db.Uuid
-  friendly_name        String?
-  factor_type          factor_type
-  status               factor_status
-  created_at           DateTime         @db.Timestamptz(6)
-  updated_at           DateTime         @db.Timestamptz(6)
-  secret               String?
-  phone                String?
-  last_challenged_at   DateTime?        @unique @db.Timestamptz(6)
-  web_authn_credential Json?
-  web_authn_aaguid     String?          @db.Uuid
-  mfa_challenges       mfa_challenges[]
-  users                users            @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  id            String           @id @db.Uuid
+  user_id       String           @db.Uuid
+  friendly_name String?
+  factor_type   factor_type
+  status        factor_status
+  created_at    DateTime         @db.Timestamptz(6)
+  updated_at    DateTime         @db.Timestamptz(6)
+  secret        String?
+  users         users            @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  mfa_challenges mfa_challenges[]
 
-  @@unique([user_id, phone], map: "unique_phone_factor_per_user")
-  @@index([user_id, created_at], map: "factor_id_created_at_idx")
-  @@index([user_id])
+  @@index([user_id, created_at], map: "mfa_factors_user_id_created_at_idx")
   @@schema("auth")
 }
 
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model one_time_tokens {
-  id         String              @id @db.Uuid
-  user_id    String              @db.Uuid
-  token_type one_time_token_type
-  token_hash String
-  relates_to String
-  created_at DateTime            @default(now()) @db.Timestamp(6)
-  updated_at DateTime            @default(now()) @db.Timestamp(6)
-  users      users               @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  id              String              @id @db.Uuid
+  user_id         String              @db.Uuid
+  token_type      one_time_token_type
+  token_hash      String
+  relates_to      String
+  created_at      DateTime            @db.Timestamptz(6)
+  updated_at      DateTime            @db.Timestamptz(6)
+  users           users?              @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
-  @@unique([user_id, token_type])
-  @@index([relates_to], map: "one_time_tokens_relates_to_hash_idx", type: Hash)
-  @@index([token_hash], map: "one_time_tokens_token_hash_hash_idx", type: Hash)
+  @@index([relates_to])
+  @@index([user_id, token_type])
   @@schema("auth")
 }
 
@@ -308,7 +213,7 @@ model one_time_tokens {
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model refresh_tokens {
   instance_id String?   @db.Uuid
-  id          BigInt    @id @default(autoincrement())
+  id          Int       @id @default(autoincrement())
   token       String?   @unique(map: "refresh_tokens_token_unique") @db.VarChar(255)
   user_id     String?   @db.VarChar(255)
   revoked     Boolean?
@@ -322,43 +227,41 @@ model refresh_tokens {
   @@index([instance_id, user_id])
   @@index([parent])
   @@index([session_id, revoked])
-  @@index([updated_at(sort: Desc)])
+  @@index([token])
   @@schema("auth")
 }
 
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model saml_providers {
-  id                String        @id @db.Uuid
-  sso_provider_id   String        @db.Uuid
-  entity_id         String        @unique
-  metadata_xml      String
-  metadata_url      String?
+  id              String            @id @db.Uuid
+  sso_provider_id String?           @db.Uuid
+  entity_id       String            @unique
+  metadata_xml    String
+  metadata_url    String?
   attribute_mapping Json?
-  created_at        DateTime?     @db.Timestamptz(6)
-  updated_at        DateTime?     @db.Timestamptz(6)
-  name_id_format    String?
-  sso_providers     sso_providers @relation(fields: [sso_provider_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  created_at      DateTime?         @db.Timestamptz(6)
+  updated_at      DateTime?         @db.Timestamptz(6)
+  sso_providers   sso_providers?    @relation(fields: [sso_provider_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  saml_relay_states saml_relay_states[]
 
-  @@index([sso_provider_id])
   @@schema("auth")
 }
 
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model saml_relay_states {
-  id              String        @id @db.Uuid
-  sso_provider_id String        @db.Uuid
+  id              String          @id @db.Uuid
+  sso_provider_id String?         @db.Uuid
   request_id      String
   for_email       String?
   redirect_to     String?
-  created_at      DateTime?     @db.Timestamptz(6)
-  updated_at      DateTime?     @db.Timestamptz(6)
-  flow_state_id   String?       @db.Uuid
-  flow_state      flow_state?   @relation(fields: [flow_state_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  sso_providers   sso_providers @relation(fields: [sso_provider_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  from_ip_address String?         @db.VarChar(64)
+  created_at      DateTime?       @db.Timestamptz(6)
+  updated_at      DateTime?       @db.Timestamptz(6)
+  flow_state_id   String?         @db.Uuid
+  flow_state      flow_state?     @relation(fields: [flow_state_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  saml_providers  saml_providers? @relation(fields: [sso_provider_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([created_at(sort: Desc)])
   @@index([for_email])
@@ -367,9 +270,8 @@ model saml_relay_states {
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model schema_migrations {
-  version String @id @unique(map: "schema_migrations_version_idx") @db.VarChar(14)
+  version String @id @db.VarChar(255)
 
   @@schema("auth")
 }
@@ -384,240 +286,90 @@ model sessions {
   factor_id      String?          @db.Uuid
   aal            aal_level?
   not_after      DateTime?        @db.Timestamptz(6)
-  refreshed_at   DateTime?        @db.Timestamp(6)
+  refreshed_at   DateTime?        @db.Timestamptz(6)
   user_agent     String?
-  ip             String?          @db.Inet
+  ip             String?          @db.VarChar(64)
   tag            String?
+  users          users            @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   mfa_amr_claims mfa_amr_claims[]
   refresh_tokens refresh_tokens[]
-  users          users            @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
-  @@index([not_after(sort: Desc)])
   @@index([user_id])
-  @@index([user_id, created_at], map: "user_id_created_at_idx")
+  @@index([user_id, created_at], map: "sessions_user_id_created_at_idx")
   @@schema("auth")
 }
 
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
-/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
 model sso_domains {
-  id              String        @id @db.Uuid
-  sso_provider_id String        @db.Uuid
-  domain          String
-  created_at      DateTime?     @db.Timestamptz(6)
-  updated_at      DateTime?     @db.Timestamptz(6)
-  sso_providers   sso_providers @relation(fields: [sso_provider_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  id              String         @id @db.Uuid
+  sso_provider_id String?        @db.Uuid
+  domain          String         @unique
+  created_at      DateTime?      @db.Timestamptz(6)
+  updated_at      DateTime?      @db.Timestamptz(6)
+  sso_providers   sso_providers? @relation(fields: [sso_provider_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
-  @@index([sso_provider_id])
   @@schema("auth")
 }
 
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
-/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
 model sso_providers {
-  id                String              @id @db.Uuid
-  resource_id       String?
-  created_at        DateTime?           @db.Timestamptz(6)
-  updated_at        DateTime?           @db.Timestamptz(6)
-  saml_providers    saml_providers[]
-  saml_relay_states saml_relay_states[]
-  sso_domains       sso_domains[]
+  id             String           @id @db.Uuid
+  resource_id    String?          @unique
+  created_at     DateTime?        @db.Timestamptz(6)
+  updated_at     DateTime?        @db.Timestamptz(6)
+  saml_providers saml_providers[]
+  sso_domains    sso_domains[]
 
   @@schema("auth")
 }
 
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
-/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
 model users {
-  instance_id                 String?           @db.Uuid
-  id                          String            @id @db.Uuid
-  aud                         String?           @db.VarChar(255)
-  role                        String?           @db.VarChar(255)
-  email                       String?           @db.VarChar(255)
-  encrypted_password          String?           @db.VarChar(255)
-  email_confirmed_at          DateTime?         @db.Timestamptz(6)
-  invited_at                  DateTime?         @db.Timestamptz(6)
-  confirmation_token          String?           @db.VarChar(255)
-  confirmation_sent_at        DateTime?         @db.Timestamptz(6)
-  recovery_token              String?           @db.VarChar(255)
-  recovery_sent_at            DateTime?         @db.Timestamptz(6)
-  email_change_token_new      String?           @db.VarChar(255)
-  email_change                String?           @db.VarChar(255)
-  email_change_sent_at        DateTime?         @db.Timestamptz(6)
-  last_sign_in_at             DateTime?         @db.Timestamptz(6)
-  raw_app_meta_data           Json?
-  raw_user_meta_data          Json?
-  is_super_admin              Boolean?
-  created_at                  DateTime?         @db.Timestamptz(6)
-  updated_at                  DateTime?         @db.Timestamptz(6)
-  phone                       String?           @unique
-  phone_confirmed_at          DateTime?         @db.Timestamptz(6)
-  phone_change                String?           @default("")
-  phone_change_token          String?           @default("") @db.VarChar(255)
-  phone_change_sent_at        DateTime?         @db.Timestamptz(6)
-  confirmed_at                DateTime?         @default(dbgenerated("LEAST(email_confirmed_at, phone_confirmed_at)")) @db.Timestamptz(6)
-  email_change_token_current  String?           @default("") @db.VarChar(255)
+  instance_id              String?           @db.Uuid
+  id                       String            @id @db.Uuid
+  aud                      String?           @db.VarChar(255)
+  role                     String?           @db.VarChar(255)
+  email                    String?           @unique(map: "users_email_partial_key") @db.VarChar(255)
+  encrypted_password       String?           @db.VarChar(255)
+  email_confirmed_at       DateTime?         @db.Timestamptz(6)
+  invited_at               DateTime?         @db.Timestamptz(6)
+  confirmation_token       String?           @unique @db.VarChar(255)
+  confirmation_sent_at     DateTime?         @db.Timestamptz(6)
+  recovery_token           String?           @unique(map: "users_recovery_token_key") @db.VarChar(255)
+  recovery_sent_at         DateTime?         @db.Timestamptz(6)
+  email_change_token_new   String?           @unique(map: "users_email_change_token_new_key") @db.VarChar(255)
+  email_change             String?           @db.VarChar(255)
+  email_change_sent_at     DateTime?         @db.Timestamptz(6)
+  last_sign_in_at          DateTime?         @db.Timestamptz(6)
+  raw_app_meta_data        Json?
+  raw_user_meta_data       Json?
+  is_sso_user              Boolean?          @default(false)
+  created_at               DateTime?         @db.Timestamptz(6)
+  updated_at               DateTime?         @db.Timestamptz(6)
+  phone                    String?           @unique(map: "users_phone_key")
+  phone_confirmed_at       DateTime?         @db.Timestamptz(6)
+  phone_change             String?           @default("")
+  phone_change_token       String?           @default("") @db.VarChar(255)
+  phone_change_sent_at     DateTime?         @db.Timestamptz(6)
+  confirmed_at             DateTime?         @default(dbgenerated("LEAST(email_confirmed_at, phone_confirmed_at)")) @db.Timestamptz(6)
+  email_change_token_current String?           @unique(map: "users_email_change_token_current_key") @default("") @db.VarChar(255)
   email_change_confirm_status Int?              @default(0) @db.SmallInt
-  banned_until                DateTime?         @db.Timestamptz(6)
-  reauthentication_token      String?           @default("") @db.VarChar(255)
-  reauthentication_sent_at    DateTime?         @db.Timestamptz(6)
-  is_sso_user                 Boolean           @default(false)
-  deleted_at                  DateTime?         @db.Timestamptz(6)
-  is_anonymous                Boolean           @default(false)
-  identities                  identities[]
-  mfa_factors                 mfa_factors[]
-  one_time_tokens             one_time_tokens[]
-  sessions                    sessions[]
+  banned_until             DateTime?         @db.Timestamptz(6)
+  reauthentication_token   String?           @unique(map: "users_reauthentication_token_key") @default("") @db.VarChar(255)
+  reauthentication_sent_at DateTime?         @db.Timestamptz(6)
+  is_super_admin           Boolean?
+  deleted_at               DateTime?         @db.Timestamptz(6)
+  identities               identities[]
+  mfa_factors              mfa_factors[]
+  one_time_tokens          one_time_tokens[]
+  sessions                 sessions[]
+  purchases                Purchase[]
 
   @@index([instance_id])
-  @@index([is_anonymous])
   @@schema("auth")
-}
-
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
-model Account {
-  id                String  @id
-  userId            String
-  type              String
-  provider          String
-  providerAccountId String
-  refresh_token     String?
-  access_token      String?
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String?
-  session_state     String?
-  User              User    @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-
-  @@unique([provider, providerAccountId])
-  @@schema("public")
-}
-
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
-model AdminActionLog {
-  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  action         String
-  table_affected String
-  row_id         String?
-  data_before    Json?
-  data_after     Json?
-  triggered_by   String?   @default("system")
-  created_at     DateTime? @default(now()) @db.Timestamptz(6)
-
-  @@schema("public")
-}
-
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
-model ContentModerationLog {
-  id          Int       @id @default(autoincrement())
-  videoId     Int
-  moderatorId String
-  action      String
-  reason      String?
-  notes       String?
-  createdAt   DateTime? @default(now()) @db.Timestamp(6)
-  HeroVideo   HeroVideo @relation(fields: [videoId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-
-  @@index([action])
-  @@index([moderatorId])
-  @@index([videoId])
-  @@schema("public")
-}
-
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
-model MediaPurchase {
-  id          String    @id
-  userId      String
-  mediaItemId String
-  createdAt   DateTime? @default(now()) @db.Timestamp(6)
-  expiresAt   DateTime? @db.Timestamp(6)
-  MediaItem   MediaItem @relation(fields: [mediaItemId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  User        User      @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-
-  @@schema("public")
-}
-
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
-model Purchase {
-  id               Int      @id @default(autoincrement())
-  userId           String
-  videoId          Int // This should correspond to a CollectionVideo ID
-  createdAt        DateTime @default(now())
-  stripeCheckoutId String?  @unique
-
-  user            User             @relation(fields: [userId], references: [id])
-  collectionVideo CollectionVideo? @relation(fields: [videoId], references: [id])
-
-  @@schema("public")
-}
-
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
-model VideoAnalytics {
-  id          Int       @id @default(autoincrement())
-  videoId     Int
-  views       Int?      @default(0)
-  uniqueViews Int?      @default(0)
-  watchTime   Int?      @default(0)
-  likes       Int?      @default(0)
-  shares      Int?      @default(0)
-  comments    Int?      @default(0)
-  revenue     Float?    @default(0.00)
-  date        DateTime? @default(now()) @db.Timestamp(6)
-  country     String?
-  device      String?
-  referrer    String?
-  HeroVideo   HeroVideo @relation(fields: [videoId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-
-  @@index([country])
-  @@index([device])
-  @@index([videoId, date])
-  @@schema("public")
-}
-
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
-model VideoPricing {
-  id              Int              @id @default(autoincrement())
-  videoId         Int?
-  heroVideoId     Int?
-  type            String
-  price           Float
-  currency        String?          @default("USD")
-  duration        Int?
-  startDate       DateTime?        @default(now()) @db.Timestamp(6)
-  endDate         DateTime?        @db.Timestamp(6)
-  discount        Float?
-  promoCode       String?
-  region          String?
-  isActive        Boolean?         @default(true)
-  HeroVideo       HeroVideo?       @relation(fields: [heroVideoId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  CollectionVideo CollectionVideo? @relation(fields: [videoId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-
-  @@index([heroVideoId, type])
-  @@index([isActive])
-  @@index([promoCode])
-  @@index([videoId, type])
-  @@schema("public")
-}
-
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
-model TimedAccess {
-  id        Int      @id @default(autoincrement())
-  userId    String
-  videoId   String // Generic ID for the accessed item
-  expiresAt DateTime
-  createdAt DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id])
-
-  @@unique([userId, videoId]) // A user can only have one active access record per video
-  @@schema("public")
 }
 
 enum aal_level {
@@ -645,7 +397,6 @@ enum factor_status {
 enum factor_type {
   totp
   webauthn
-  phone
 
   @@schema("auth")
 }

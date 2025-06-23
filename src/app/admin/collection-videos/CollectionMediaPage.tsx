@@ -20,7 +20,7 @@ interface MediaItem {
 
 interface Collection {
   id: string;
-  name: string;
+  title: string;
 }
 
 const CollectionCard = ({ collection, onClick }: { collection: Collection, onClick: () => void }) => (
@@ -28,7 +28,7 @@ const CollectionCard = ({ collection, onClick }: { collection: Collection, onCli
     className="bg-white rounded-lg shadow-md p-6 flex flex-col justify-between items-center text-center cursor-pointer hover:shadow-lg transition-shadow"
     onClick={onClick}
   >
-    <h3 className="text-xl font-serif text-stone-800 mb-4">{collection.name}</h3>
+    <h3 className="text-xl font-serif text-stone-800 mb-4">{collection.title}</h3>
     <button className="bg-emerald-600 text-white px-4 py-2 rounded-md text-sm font-semibold hover:bg-emerald-700 transition-colors">
       Manage Media
     </button>
@@ -49,7 +49,7 @@ export default function CollectionMediaPage() {
       const response = await fetch('/api/collections');
       if (!response.ok) throw new Error('Failed to fetch collections');
       const data = await response.json();
-      setCollections(data.data || []);
+      setCollections(data || []);
     } catch (error) {
       console.error(error);
       setError('Failed to fetch collections');
@@ -92,7 +92,7 @@ export default function CollectionMediaPage() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 pt-8">
+    <div className="container mx-auto px-4">
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-serif text-stone-800">Manage Collection Media</h1>
@@ -124,7 +124,7 @@ export default function CollectionMediaPage() {
       ) : (
         <div className="text-center py-12">
           <h3 className="text-2xl font-serif text-stone-700">No Collections Found</h3>
-          <p className="text-stone-500 mt-2">Please add collections via the Supabase dashboard to begin managing media.</p>
+          <p className="text-stone-500 mt-2">Please add collections via the {`'Admin' > 'Collections'`} page to begin managing media.</p>
         </div>
       )}
 

@@ -35,13 +35,13 @@ export async function POST(req: NextRequest) {
     const collectionId = formData.get('collectionId') as string;
     const title = formData.get('title') as string;
     const description = formData.get('description') as string;
-    const price = formData.get('price') as string;
-    const duration = formData.get('duration') as string;
+    const price = formData.get('price') as string | null;
+    const durationSeconds = formData.get('durationSeconds') as string | null;
     const seoTags = formData.get('seoTags') as string | null;
     const videoFile = formData.get('videoFile') as File | null;
     const thumbnailFile = formData.get('thumbnailFile') as File | null;
 
-    if (!collectionId || !title || !description || !price || !duration || !videoFile) {
+    if (!collectionId || !title || !description || !videoFile) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
@@ -51,41 +51,40 @@ export async function POST(req: NextRequest) {
     }
 
     const videoContents = Buffer.from(await videoFile.arrayBuffer());
-    const videoPath = `collections/${collection.name}/${Date.now()}-${videoFile.name}`;
+    // Sanitize title for use in path
+    const safeTitle = collection.title.replace(/[^a-zA-Z0-9]/g, '_');
+    const videoPath = `collections/${safeTitle}/${Date.now()}-${videoFile.name}`;
     
     const { error: videoError } = await supabaseAdmin.storage
-      .from('videos')
-      .upload(videoPath, videoContents, { contentType: videoFile.type! });
+      .from('collection-media') // Recommended to have a dedicated bucket
+      .upload(videoPath, videoContents, { contentType: videoFile.type!, upsert: true });
 
     if (videoError) throw new Error(`Video upload failed: ${videoError.message}`);
 
-    let thumbPath: string | null = null;
+    let thumbUrl: string | null = null;
     if (thumbnailFile) {
       const thumbContents = Buffer.from(await thumbnailFile.arrayBuffer());
-      thumbPath = `collections/${collection.name}/thumbnails/${Date.now()}-${thumbnailFile.name}`;
+      const thumbPath = `collections/${safeTitle}/thumbnails/${Date.now()}-${thumbnailFile.name}`;
       const { error: thumbError } = await supabaseAdmin.storage
-        .from('thumbnails')
-        .upload(thumbPath, thumbContents, { contentType: thumbnailFile.type! });
-      if (thumbError) console.error('Thumbnail upload failed:', thumbError.message);
+        .from('collection-media') // Upload to the same bucket
+        .upload(thumbPath, thumbContents, { contentType: thumbnailFile.type!, upsert: true });
+      if (thumbError) {
+        console.error('Thumbnail upload failed:', thumbError.message);
+      } else {
+        thumbUrl = getSupabasePublicUrl(thumbPath);
+      }
     }
 
-    await prisma.collectionVideo.create({
+    await prisma.collectionMedia.create({
       data: {
         title,
         description,
-        price: parseFloat(price),
-        duration: parseInt(duration, 10),
+        price: price ? parseFloat(price) : undefined,
+        durationSeconds: durationSeconds ? parseInt(durationSeconds, 10) : undefined,
         seoTags: seoTags ? seoTags.split(',').map(tag => tag.trim()) : [],
-        videoPath,
-        thumbnailPath: thumbPath,
         videoUrl: getSupabasePublicUrl(videoPath),
-        thumbnail: thumbPath ? getSupabasePublicUrl(thumbPath) : '/fallback-thumbnail.png',
-        order: 0,
-        collection: {
-          connect: {
-            id: collectionId,
-          },
-        },
+        thumbnailUrl: thumbUrl,
+        collectionId: collectionId,
       },
     });
 

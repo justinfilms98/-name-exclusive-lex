@@ -5,55 +5,56 @@ import { stripe } from '@/lib/stripe';
 import { prisma } from '@/lib/prisma';
 
 export async function POST(req: NextRequest) {
-  const { priceId } = await req.json();
   const supabase = createRouteHandlerClient({ cookies });
-  
-  const { data: { session } } = await supabase.auth.getSession();
+  const { data: { user } } = await supabase.auth.getUser();
 
-  if (!session) {
+  if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: {
-      id: true,
-      email: true,
-      name: true,
-      stripeCustomerId: true,
-    }
-  });
-
-  if (!user) {
-    return NextResponse.json({ error: 'User not found' }, { status: 404 });
-  }
-
-  let customerId = user.stripeCustomerId;
-  if (!customerId) {
-    const customer = await stripe.customers.create({
-      email: user.email!,
-      name: user.name || undefined,
-    });
-    customerId = customer.id;
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { stripeCustomerId: customerId },
-    });
+  const { mediaId } = await req.json();
+  if (!mediaId) {
+    return NextResponse.json({ error: 'Media ID is required' }, { status: 400 });
   }
 
   try {
-    const checkoutSession = await stripe.checkout.sessions.create({
-      customer: customerId,
-      payment_method_types: ['card'],
-      line_items: [{ price: priceId, quantity: 1 }],
-      mode: 'payment',
-      success_url: `${req.nextUrl.origin}/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${req.nextUrl.origin}/`,
+    const mediaItem = await prisma.collectionMedia.findUnique({
+      where: { id: mediaId },
     });
 
-    return NextResponse.json({ sessionId: checkoutSession.id });
+    if (!mediaItem || !mediaItem.price) {
+      return NextResponse.json({ error: 'Item not found or has no price' }, { status: 404 });
+    }
+
+    const line_items = [{
+      price_data: {
+        currency: 'usd',
+        product_data: {
+          name: mediaItem.title,
+          description: mediaItem.description || undefined,
+          images: mediaItem.thumbnailUrl ? [mediaItem.thumbnailUrl] : [],
+        },
+        unit_amount: Math.round(Number(mediaItem.price) * 100),
+      },
+      quantity: 1,
+    }];
+    
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      line_items,
+      mode: 'payment',
+      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/collections`,
+      metadata: {
+        userId: user.id,
+        mediaId: mediaItem.id,
+      },
+    });
+
+    return NextResponse.json({ url: session.url });
+
   } catch (error: any) {
-    console.error(error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('Stripe session creation error:', error);
+    return NextResponse.json({ error: 'Failed to create Stripe session' }, { status: 500 });
   }
 } 

@@ -14,24 +14,16 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const video = await prisma.collectionVideo.findUnique({
+    const video = await prisma.collectionMedia.findUnique({
       where: { id: videoId },
     });
 
-    if (!video || !video.videoPath) {
-      return NextResponse.json({ error: 'Video not found or path is missing' }, { status: 404 });
+    if (!video || !video.videoUrl) {
+      return NextResponse.json({ error: 'Video not found or URL is missing' }, { status: 404 });
     }
 
-    const { data, error } = await supabaseAdmin
-      .storage
-      .from('videos')
-      .createSignedUrl(video.videoPath, 3600); // URL valid for 1 hour
-
-    if (error) {
-      throw new Error(error.message);
-    }
-
-    return NextResponse.json({ signedUrl: data.signedUrl });
+    // For now, return the direct video URL since we're not using signed URLs
+    return NextResponse.json({ signedUrl: video.videoUrl });
 
   } catch (error: any) {
     console.error(error);

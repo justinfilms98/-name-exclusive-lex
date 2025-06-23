@@ -55,4 +55,25 @@ export async function DELETE(
       { status: 500 }
     );
   }
+}
+
+export async function GET(
+  request: Request,
+  { params }: { params: { itemId: string } }
+) {
+  try {
+    const { itemId } = params;
+    const mediaItem = await prisma.collectionMedia.findUnique({
+      where: { id: itemId },
+    });
+
+    if (!mediaItem) {
+      return NextResponse.json({ error: 'Media not found' }, { status: 404 });
+    }
+
+    return NextResponse.json(mediaItem);
+  } catch (error) {
+    console.error('Error fetching media item:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
 } 

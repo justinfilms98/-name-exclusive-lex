@@ -1,38 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
+import { prisma } from '@/lib/prisma';
 
 export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
-  const email = searchParams.get('email');
-  if (!email) {
-    return NextResponse.json({ error: 'Missing email' }, { status: 400 });
+  const supabase = createRouteHandlerClient({ cookies });
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // Get the userId from Supabase Auth users table
-  const { data: user, error: userError } = await supabase
-    .from('auth.users')
-    .select('id')
-    .eq('email', email)
-    .single();
-  if (userError || !user) {
-    return NextResponse.json({ error: 'User not found' }, { status: 404 });
-  }
+  try {
+    const purchases = await prisma.purchase.findMany({
+      where: { userId: user.id },
+      include: {
+        media: true,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
 
-  // Get all purchases for this user, joining with CollectionVideo
-  const { data: purchases, error: purchaseError } = await supabase
-    .from('Purchase')
-    .select('id, videoId, createdAt, expiresAt, video:CollectionVideo(id, title, thumbnail, duration)')
-    .eq('userId', user.id)
-    .order('createdAt', { ascending: false });
-
-  if (purchaseError) {
+    return NextResponse.json(purchases);
+  } catch (error: any) {
+    console.error('Error fetching user purchases:', error);
     return NextResponse.json({ error: 'Failed to fetch purchases' }, { status: 500 });
   }
-
-  return NextResponse.json(purchases || []);
 } 

@@ -1,11 +1,11 @@
 import { prisma } from '@/lib/prisma';
-import CollectionsClient, { MediaItem } from './CollectionsClient';
+import CollectionsClient from './CollectionsClient';
 
 export const revalidate = 60; // Revalidate data at most every 60 seconds
 
-async function getMediaItems(): Promise<MediaItem[]> {
+async function getMediaItems() {
   try {
-    const mediaItems = await prisma.collectionVideo.findMany({
+    const mediaItems = await prisma.collectionMedia.findMany({
       where: {
         price: {
           gt: 0,
@@ -15,9 +15,9 @@ async function getMediaItems(): Promise<MediaItem[]> {
         id: true,
         title: true,
         description: true,
-        thumbnailPath: true,
+        thumbnailUrl: true,
         price: true,
-        duration: true,
+        durationSeconds: true,
       },
       orderBy: {
         createdAt: 'desc',
@@ -27,9 +27,10 @@ async function getMediaItems(): Promise<MediaItem[]> {
     // The select call correctly shapes the object. The type error is likely a tooling issue.
     // We cast it to the correct type to unblock the build.
     return mediaItems.map(item => ({ 
-      ...item, 
-      id: item.id.toString() 
-    })) as MediaItem[];
+      ...item,
+      id: item.id,
+      price: item.price ? Number(item.price) : 0,
+    }));
 
   } catch (error) {
     console.error('Failed to fetch media items:', error);

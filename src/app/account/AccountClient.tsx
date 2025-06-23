@@ -2,14 +2,21 @@
 import { useEffect, useState } from 'react';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import type { User } from '@supabase/supabase-js';
+import type { Purchase, CollectionMedia } from '@prisma/client';
+import Link from 'next/link';
 
 type UserProfile = {
   role?: string;
 };
 
+type PurchaseWithMedia = Purchase & {
+  media: CollectionMedia;
+};
+
 export default function AccountClient() {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [purchases, setPurchases] = useState<PurchaseWithMedia[]>([]);
   const [loading, setLoading] = useState(true);
   const supabase = createClientComponentClient();
 
@@ -31,6 +38,17 @@ export default function AccountClient() {
           console.error("Error fetching user profile:", error.message);
         } else {
           setProfile(data);
+        }
+
+        // Fetch purchases
+        try {
+          const res = await fetch('/api/user-purchases');
+          const data = await res.json();
+          if (res.ok) {
+            setPurchases(data);
+          }
+        } catch (e) {
+          console.error("Failed to fetch purchases", e);
         }
       }
       setLoading(false);
@@ -66,7 +84,7 @@ export default function AccountClient() {
         </p>
       </div>
 
-      <div className="bg-white shadow-lg rounded-lg overflow-hidden">
+      <div className="bg-white shadow-lg rounded-lg overflow-hidden mb-8">
         <div className="px-4 py-5 sm:p-6">
           <h3 className="text-lg leading-6 font-medium text-gray-900">
             User Information
@@ -86,6 +104,44 @@ export default function AccountClient() {
                 </dd>
               </div>
             </dl>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-white shadow-lg rounded-lg overflow-hidden">
+        <div className="px-4 py-5 sm:p-6">
+          <h3 className="text-lg leading-6 font-medium text-gray-900">
+            My Purchases
+          </h3>
+          <div className="mt-5 border-t border-gray-200">
+            {purchases.length > 0 ? (
+              <ul role="list" className="divide-y divide-gray-200">
+                {purchases.map((purchase) => (
+                  <li key={purchase.id} className="py-4 flex items-center justify-between">
+                    <div className="flex items-center space-x-4">
+                      <img 
+                        src={purchase.media.thumbnailUrl || '/placeholder-thumbnail.jpg'}
+                        alt={purchase.media.title}
+                        className="w-16 h-16 rounded-md object-cover"
+                      />
+                      <div>
+                        <p className="text-md font-medium text-gray-900">{purchase.media.title}</p>
+                        <p className="text-sm text-gray-500">
+                          Purchased on {new Date(purchase.createdAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                    <Link href={`/watch/${purchase.media.id}`}>
+                      <button className="bg-emerald-600 text-white px-4 py-2 rounded-md text-sm font-semibold hover:bg-emerald-700 transition-colors">
+                        Watch Now
+                      </button>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-center text-gray-500 py-8">You have not made any purchases yet.</p>
+            )}
           </div>
         </div>
       </div>

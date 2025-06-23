@@ -130,12 +130,12 @@ export default function HeroVideoModal({ open, onClose, onSaveSuccess, slotOrder
 
               <div>
                 <label htmlFor="price" className="block text-sm font-medium text-gray-700">Price (USD, optional)</label>
-                <input type="number" {...register("price")} step="0.01" className="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md" />
+                <input type="number" {...register("price", { valueAsNumber: true })} step="0.01" className="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md" />
                 {errors.price && <p className="mt-2 text-sm text-red-600">{errors.price.message}</p>}
               </div>
               <div>
                 <label htmlFor="duration" className="block text-sm font-medium text-gray-700">Duration (seconds, optional)</label>
-                <input type="number" {...register("duration")} className="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md" />
+                <input type="number" {...register("duration", { valueAsNumber: true })} className="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md" />
                 {errors.duration && <p className="mt-2 text-sm text-red-600">{errors.duration.message}</p>}
               </div>
 
