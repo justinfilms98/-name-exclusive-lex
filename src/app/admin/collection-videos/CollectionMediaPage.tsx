@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+"use client";
+import { useState, useEffect } from 'react';
 import { useToast } from '@/components/Toast';
 import { MediaItemCard } from '@/components/MediaItemCard';
 import CollectionVideoModal from './CollectionVideoModal';
@@ -23,63 +24,21 @@ interface Collection {
 }
 
 export default function CollectionMediaPage() {
-  const [collections, setCollections] = useState<Collection[]>([]);
-  const [selectedCollection, setSelectedCollection] = useState<string>('');
+  const [selectedCollection, setSelectedCollection] = useState<string | null>(null);
+  const [collections, setCollections] = useState<any[]>([]);
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { addToast } = useToast();
 
   useEffect(() => {
-    fetchCollections();
+    // Fetch all collections to populate dropdown
+    // This part can be removed if the dropdown is removed
   }, []);
 
-  useEffect(() => {
-    if (selectedCollection) {
-      fetchMediaItems(selectedCollection);
-    }
-  }, [selectedCollection]);
-
-  const fetchCollections = async () => {
-    try {
-      const response = await fetch('/api/collections');
-      const data = await response.json();
-      
-      if (response.ok) {
-        setCollections(data.data || []);
-        if (data.data && data.data.length > 0) {
-          setSelectedCollection(data.data[0].id);
-        }
-      } else {
-        addToast(data.error || 'Failed to fetch collections', 'error');
-      }
-    } catch (error) {
-      addToast('Failed to fetch collections', 'error');
-    }
-  };
-
-  const fetchMediaItems = async (collectionId: string) => {
-    setLoading(true);
-    try {
-      const response = await fetch(`/api/collections/${collectionId}/items`);
-      const data = await response.json();
-      
-      if (response.ok) {
-        setMediaItems(data.data || []);
-      } else {
-        addToast(data.error || 'Failed to fetch media items', 'error');
-      }
-    } catch (error) {
-      addToast('Failed to fetch media items', 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleSaveSuccess = () => {
-    addToast('✅ Media uploaded successfully', 'success');
     if (selectedCollection) {
-      fetchMediaItems(selectedCollection);
+      // fetchMediaItems(selectedCollection);
     }
     setIsModalOpen(false);
   };
@@ -104,62 +63,14 @@ export default function CollectionMediaPage() {
           <h1 className="text-3xl font-serif text-stone-800">Manage Collection Media</h1>
           <button
             onClick={() => setIsModalOpen(true)}
-            disabled={!selectedCollection}
-            className="bg-emerald-600 text-white px-6 py-2 rounded-md hover:bg-emerald-700 disabled:bg-stone-400 disabled:cursor-not-allowed transition-colors font-semibold"
+            className="bg-emerald-600 text-white px-6 py-2 rounded-md hover:bg-emerald-700 font-semibold"
           >
             Upload Media
           </button>
         </div>
 
-        {/* Collection Selector */}
-        <div className="mb-6">
-          <label className="block text-brand-pine font-serif mb-2">Select Collection:</label>
-          <select
-            value={selectedCollection}
-            onChange={(e) => setSelectedCollection(e.target.value)}
-            className="border border-brand-sage rounded px-3 py-2 bg-white"
-          >
-            <option value="">Select a collection...</option>
-            {collections.map(collection => (
-              <option key={collection.id} value={collection.id}>
-                {collection.name}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Media Items Grid */}
-        {loading ? (
-          <div className="text-center py-8">
-            <p className="text-brand-sage">Loading media items...</p>
-          </div>
-        ) : mediaItems.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="w-20 h-20 bg-brand-mist rounded-full flex items-center justify-center mx-auto mb-4">
-              <span className="text-3xl text-brand-sage">📁</span>
-            </div>
-            <p className="text-brand-sage text-lg mb-4">No media items in this collection</p>
-            <button 
-              className="bg-brand-pine text-white px-4 py-2 rounded hover:bg-brand-earth transition"
-              onClick={() => setIsModalOpen(true)}
-            >
-              Upload Your First Media
-            </button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {mediaItems.map((item) => (
-              <MediaItemCard
-                key={item.id}
-                item={item}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-                onDeleteSuccess={handleDeleteSuccess}
-              />
-            ))}
-          </div>
-        )}
-
+        {/* The rest of the media items display can be adjusted based on the new flow */}
+        
         <CollectionVideoModal 
           open={isModalOpen}
           onClose={() => setIsModalOpen(false)}

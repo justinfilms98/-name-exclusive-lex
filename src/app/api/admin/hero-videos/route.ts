@@ -33,10 +33,10 @@ export async function POST(req: NextRequest) {
     }
 
     const { fields, files } = await parseFormData(req);
-    const { title, order } = fields;
+    const { title, description, order } = fields;
     const { videoFile, thumbnailFile } = files;
 
-    if (!title || !order || !videoFile) {
+    if (!title || !description || !order || !videoFile) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
         videoPath: videoPath,
         videoUrl: getSupabasePublicUrl(videoPath),
         thumbnail: thumbPath ? getSupabasePublicUrl(thumbPath) : '/fallback-thumbnail.png',
-        description: 'Default description',
+        description: description[0],
         status: 'approved',
       },
     });

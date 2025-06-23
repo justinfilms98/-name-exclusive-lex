@@ -1,6 +1,6 @@
 "use client";
 
-import { useSession } from 'next-auth/react';
+import { useSession, signOut as nextAuthSignOut } from 'next-auth/react';
 import Link from 'next/link';
 import { useCart } from '@/context/CartContext';
 import { CartPreview } from '@/components/CartPreview';
@@ -14,8 +14,9 @@ export default function HeaderClient() {
 
   const handleSignOut = async () => {
     await supabaseSignOut();
+    await nextAuthSignOut({ redirect: false });
     router.push('/');
-    router.refresh(); // Forces a refresh of the server-side rendered data
+    router.refresh();
   };
 
   return (
@@ -51,7 +52,7 @@ export default function HeaderClient() {
             <Link href="/account" legacyBehavior>
               <a className="bg-[#D4C7B4] text-[#654C37] px-3 py-1 rounded text-sm button-animate">My Account</a>
             </Link>
-            <button onClick={handleSignOut} className="bg-transparent text-[#654C37] px-3 py-1 rounded text-sm hover:underline">
+            <button onClick={handleSignOut} className="bg-transparent text-[#654C7B] px-3 py-1 rounded text-sm hover:underline">
               Sign Out
             </button>
           </div>

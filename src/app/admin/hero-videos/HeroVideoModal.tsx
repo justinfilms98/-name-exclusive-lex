@@ -8,6 +8,7 @@ import { X } from 'lucide-react';
 // Define the form schema for validation
 const formSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters.'),
+  description: z.string().min(10, 'Description must be at least 10 characters.'),
   videoFile: z.any().refine(file => file?.[0] instanceof File, 'A video file is required.'),
   thumbnailFile: z.any().optional(),
 });
@@ -35,7 +36,7 @@ export default function HeroVideoModal({ open, onClose, onSaveSuccess, slotOrder
 
   useEffect(() => {
     if (open) {
-      reset({ title: '' });
+      reset({ title: '', description: '' });
     }
   }, [open, reset]);
 
@@ -57,6 +58,7 @@ export default function HeroVideoModal({ open, onClose, onSaveSuccess, slotOrder
     
     const formData = new FormData();
     formData.append('title', data.title);
+    formData.append('description', data.description);
     formData.append('order', String(slotOrder));
     formData.append('videoFile', data.videoFile[0]);
     if (data.thumbnailFile?.[0]) {
@@ -103,6 +105,13 @@ export default function HeroVideoModal({ open, onClose, onSaveSuccess, slotOrder
               <label htmlFor="title" className="block text-sm font-medium text-stone-700 mb-1">Title *</label>
               <input {...register("title")} className="form-input" placeholder="Enter video title" />
               {errors.title && <p className="form-error">{errors.title.message}</p>}
+            </div>
+
+            {/* Description */}
+            <div>
+              <label htmlFor="description" className="block text-sm font-medium text-stone-700 mb-1">Description *</label>
+              <textarea {...register("description")} rows={3} className="form-textarea" placeholder="Enter video description" />
+              {errors.description && <p className="form-error">{errors.description.message}</p>}
             </div>
 
             {/* Video File Upload */}
