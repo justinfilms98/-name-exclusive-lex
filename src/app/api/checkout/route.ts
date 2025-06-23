@@ -15,7 +15,13 @@ export async function POST(req: NextRequest) {
   }
 
   const user = await prisma.user.findUnique({
-    where: { id: session.user.id }
+    where: { id: session.user.id },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      stripeCustomerId: true,
+    }
   });
 
   if (!user) {
