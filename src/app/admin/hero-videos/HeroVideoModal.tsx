@@ -7,14 +7,9 @@ import { X } from 'lucide-react';
 
 // Define the form schema for validation
 const formSchema = z.object({
-  mediaType: z.enum(['video', 'photo']).default('video'),
   title: z.string().min(3, 'Title must be at least 3 characters.'),
-  description: z.string().min(10, 'Description must be at least 10 characters.'),
   videoFile: z.any().refine(file => file?.[0] instanceof File, 'A video file is required.'),
   thumbnailFile: z.any().optional(),
-  price: z.number().min(0, 'Price must be a valid number.'),
-  duration: z.number().min(1, 'Duration must be at least 1 minute.'),
-  seoTags: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -23,47 +18,26 @@ interface HeroVideoModalProps {
   open: boolean;
   onClose: () => void;
   onSaveSuccess: () => void;
-  initialData?: { id: number; title: string; description: string; } | null;
   slotOrder: number;
 }
 
-export default function HeroVideoModal({ open, onClose, onSaveSuccess, initialData, slotOrder }: HeroVideoModalProps) {
+export default function HeroVideoModal({ open, onClose, onSaveSuccess, slotOrder }: HeroVideoModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
   const { register, handleSubmit, watch, reset, formState: { errors, isValid } } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     mode: 'onChange',
-    defaultValues: {
-      mediaType: 'video',
-      price: 0,
-      duration: 1,
-    }
   });
 
   const thumbnailFile = watch('thumbnailFile');
   const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
 
   useEffect(() => {
-    // Reset form when modal opens or initialData changes
-    if (open && initialData) {
-      reset({ 
-        title: initialData.title, 
-        description: initialData.description,
-        mediaType: 'video',
-        price: 0,
-        duration: 1,
-      });
-    } else if (open) {
-      reset({ 
-        title: '', 
-        description: '',
-        mediaType: 'video',
-        price: 0,
-        duration: 1,
-      });
+    if (open) {
+      reset({ title: '' });
     }
-  }, [open, initialData, reset]);
+  }, [open, reset]);
 
   useEffect(() => {
     if (thumbnailFile && thumbnailFile[0] instanceof File) {
@@ -77,63 +51,22 @@ export default function HeroVideoModal({ open, onClose, onSaveSuccess, initialDa
 
   if (!open) return null;
 
-  // Reusable direct-to-storage upload function
-  const uploadToSupabase = async (file: File, collection: string) => {
-    const signedUrlRes = await fetch('/api/admin/upload-url', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ fileName: file.name, fileType: file.type, collection }),
-    });
-    
-    if (!signedUrlRes.ok) {
-      const errorData = await signedUrlRes.json();
-      throw new Error(errorData.error || 'Could not get signed URL.');
-    }
-    
-    const { signedUrl, path } = await signedUrlRes.json();
-    if (!signedUrl) throw new Error('Could not get signed URL.');
-    
-    const uploadRes = await fetch(signedUrl, { 
-      method: 'PUT', 
-      headers: { 'Content-Type': file.type }, 
-      body: file 
-    });
-    
-    if (!uploadRes.ok) {
-      throw new Error('Failed to upload file to storage.');
-    }
-    
-    return path;
-  };
-
   const onSubmit: SubmitHandler<FormValues> = async (data) => {
     setIsSubmitting(true);
     setError(null);
     
+    const formData = new FormData();
+    formData.append('title', data.title);
+    formData.append('order', String(slotOrder));
+    formData.append('videoFile', data.videoFile[0]);
+    if (data.thumbnailFile?.[0]) {
+      formData.append('thumbnailFile', data.thumbnailFile[0]);
+    }
+
     try {
-      const videoFile = data.videoFile[0];
-      const thumbFile = data.thumbnailFile?.[0];
-
-      const videoPath = await uploadToSupabase(videoFile, 'hero-videos');
-      let thumbnailPath: string | undefined;
-      if (thumbFile) {
-        thumbnailPath = await uploadToSupabase(thumbFile, 'hero-videos/thumbnails');
-      }
-
-      const response = await fetch('/api/hero-videos', {
+      const response = await fetch('/api/admin/hero-videos', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: initialData?.id,
-          title: data.title,
-          description: data.description,
-          videoPath,
-          thumbnailPath,
-          order: slotOrder,
-          price: data.price,
-          duration: data.duration,
-          seoTags: data.seoTags,
-        }),
+        body: formData,
       });
 
       if (!response.ok) {
@@ -153,10 +86,10 @@ export default function HeroVideoModal({ open, onClose, onSaveSuccess, initialDa
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4 pt-20">
-      <div className="bg-white rounded-lg shadow-2xl w-full max-w-2xl max-h-full overflow-y-auto">
+      <div className="bg-white rounded-lg shadow-2xl w-full max-w-lg max-h-full overflow-y-auto">
         <form onSubmit={handleSubmit(onSubmit)} className="p-8">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-serif text-stone-800">{initialData ? 'Edit' : 'Add'} Hero Video</h2>
+            <h2 className="text-2xl font-serif text-stone-800">Add Hero Video</h2>
             <button type="button" onClick={onClose} className="text-stone-500 hover:text-stone-800">
               <X size={24} />
             </button>
@@ -165,27 +98,11 @@ export default function HeroVideoModal({ open, onClose, onSaveSuccess, initialDa
           {error && <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md text-sm">{error}</div>}
 
           <div className="space-y-6">
-            {/* Media Type Selection */}
-            <div>
-              <label htmlFor="mediaType" className="block text-sm font-medium text-stone-700 mb-1">Media Type</label>
-              <select {...register("mediaType")} className="form-input">
-                <option value="video">Video</option>
-                <option value="photo">Photo</option>
-              </select>
-            </div>
-
             {/* Title */}
             <div>
               <label htmlFor="title" className="block text-sm font-medium text-stone-700 mb-1">Title *</label>
               <input {...register("title")} className="form-input" placeholder="Enter video title" />
               {errors.title && <p className="form-error">{errors.title.message}</p>}
-            </div>
-
-            {/* Description */}
-            <div>
-              <label htmlFor="description" className="block text-sm font-medium text-stone-700 mb-1">Description *</label>
-              <textarea {...register("description")} rows={4} className="form-textarea" placeholder="Enter video description" />
-              {errors.description && <p className="form-error">{errors.description.message}</p>}
             </div>
 
             {/* Video File Upload */}
@@ -208,43 +125,6 @@ export default function HeroVideoModal({ open, onClose, onSaveSuccess, initialDa
                 <img src={thumbnailPreview} alt="Thumbnail Preview" className="w-48 aspect-video object-cover rounded-md border" />
               </div>
             )}
-
-            {/* Price */}
-            <div>
-              <label htmlFor="price" className="block text-sm font-medium text-stone-700 mb-1">Price (USD) *</label>
-              <input 
-                type="number" 
-                {...register("price", { valueAsNumber: true })} 
-                min="0" 
-                step="0.01" 
-                className="form-input" 
-                placeholder="0.00"
-              />
-              {errors.price && <p className="form-error">{errors.price.message}</p>}
-            </div>
-
-            {/* Duration */}
-            <div>
-              <label htmlFor="duration" className="block text-sm font-medium text-stone-700 mb-1">Duration (minutes) *</label>
-              <input 
-                type="number" 
-                {...register("duration", { valueAsNumber: true })} 
-                min="1" 
-                className="form-input" 
-                placeholder="1"
-              />
-              {errors.duration && <p className="form-error">{errors.duration.message}</p>}
-            </div>
-
-            {/* SEO Tags */}
-            <div>
-              <label htmlFor="seoTags" className="block text-sm font-medium text-stone-700 mb-1">SEO Tags (Optional)</label>
-              <input 
-                {...register("seoTags")} 
-                className="form-input" 
-                placeholder="Enter comma-separated tags"
-              />
-            </div>
           </div>
 
           <div className="mt-8 flex justify-end gap-4">

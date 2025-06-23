@@ -8,7 +8,6 @@ import { X } from 'lucide-react';
 // Define the form schema for validation
 const formSchema = z.object({
   mediaType: z.enum(['video', 'photo']).default('video'),
-  collectionId: z.string().min(1, 'Please select a collection.'),
   title: z.string().min(3, 'Title must be at least 3 characters.'),
   description: z.string().min(10, 'Description must be at least 10 characters.'),
   videoFile: z.any().refine(file => file?.[0] instanceof File, 'A video file is required.'),
@@ -20,24 +19,16 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-interface Collection {
-  id: string;
-  name: string;
-}
-
 interface CollectionVideoModalProps {
   open: boolean;
   onClose: () => void;
   onSaveSuccess: () => void;
-  initialData?: any | null;
-  slotOrder: number;
+  collectionId: string | null; // Passed from parent
 }
 
-export default function CollectionVideoModal({ open, onClose, onSaveSuccess, initialData, slotOrder }: CollectionVideoModalProps) {
+export default function CollectionVideoModal({ open, onClose, onSaveSuccess, collectionId }: CollectionVideoModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [collections, setCollections] = useState<Collection[]>([]);
-  const [loading, setLoading] = useState(false);
   
   const { register, handleSubmit, watch, reset, formState: { errors, isValid } } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -52,35 +43,17 @@ export default function CollectionVideoModal({ open, onClose, onSaveSuccess, ini
   const thumbnailFile = watch('thumbnailFile');
   const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
 
-  // Fetch collections on component mount
   useEffect(() => {
     if (open) {
-      fetchCollections();
-    }
-  }, [open]);
-
-  useEffect(() => {
-    // Reset form when modal opens or initialData changes
-    if (open && initialData) {
-      reset({ 
-        title: initialData.title, 
-        description: initialData.description,
-        mediaType: 'video',
-        price: initialData.price || 0,
-        duration: initialData.duration || 1,
-        collectionId: initialData.collectionId || '',
-      });
-    } else if (open) {
       reset({ 
         title: '', 
         description: '',
         mediaType: 'video',
         price: 0,
         duration: 1,
-        collectionId: '',
       });
     }
-  }, [open, initialData, reset]);
+  }, [open, reset]);
 
   useEffect(() => {
     if (thumbnailFile && thumbnailFile[0] instanceof File) {
@@ -92,88 +65,35 @@ export default function CollectionVideoModal({ open, onClose, onSaveSuccess, ini
     }
   }, [thumbnailFile]);
 
-  const fetchCollections = async () => {
-    setLoading(true);
-    try {
-      const response = await fetch('/api/collections');
-      const data = await response.json();
-      
-      if (response.ok) {
-        setCollections(data.data || []);
-      } else {
-        setError(data.error || 'Failed to fetch collections');
-      }
-    } catch (error) {
-      setError('Failed to fetch collections');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   if (!open) return null;
 
-  // Reusable direct-to-storage upload function
-  const uploadToSupabase = async (file: File, collection: string) => {
-    const signedUrlRes = await fetch('/api/admin/upload-url', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ fileName: file.name, fileType: file.type, collection }),
-    });
-    
-    if (!signedUrlRes.ok) {
-      const errorData = await signedUrlRes.json();
-      throw new Error(errorData.error || 'Could not get signed URL.');
-    }
-    
-    const { signedUrl, path } = await signedUrlRes.json();
-    if (!signedUrl) throw new Error('Could not get signed URL.');
-    
-    const uploadRes = await fetch(signedUrl, { 
-      method: 'PUT', 
-      headers: { 'Content-Type': file.type }, 
-      body: file 
-    });
-    
-    if (!uploadRes.ok) {
-      throw new Error('Failed to upload file to storage.');
-    }
-    
-    return path;
-  };
-
   const onSubmit: SubmitHandler<FormValues> = async (data) => {
+    if (!collectionId) {
+      setError("No collection selected. Please go back and select a collection.");
+      return;
+    }
+
     setIsSubmitting(true);
     setError(null);
     
+    const formData = new FormData();
+    formData.append('collectionId', collectionId);
+    formData.append('title', data.title);
+    formData.append('description', data.description);
+    formData.append('price', String(data.price));
+    formData.append('duration', String(data.duration));
+    formData.append('seoTags', data.seoTags || '');
+    formData.append('mediaType', data.mediaType);
+    formData.append('videoFile', data.videoFile[0]);
+    if (data.thumbnailFile?.[0]) {
+      formData.append('thumbnailFile', data.thumbnailFile[0]);
+    }
+    
     try {
-      const videoFile = data.videoFile[0];
-      const thumbFile = data.thumbnailFile?.[0];
-
-      // Upload video file
-      const videoPath = await uploadToSupabase(videoFile, 'collection-videos');
-      
-      // Upload thumbnail if provided
-      let thumbnailPath: string | undefined;
-      if (thumbFile) {
-        thumbnailPath = await uploadToSupabase(thumbFile, 'collection-videos/thumbnails');
-      }
-
-      // Create database record
-      const response = await fetch('/api/collection-videos', {
+      // This will be a new secure endpoint, similar to the hero one.
+      const response = await fetch('/api/admin/collection-videos', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          collectionId: data.collectionId,
-          mediaType: data.mediaType,
-          title: data.title,
-          description: data.description,
-          videoPath,
-          thumbnailPath,
-          price: data.price,
-          duration: data.duration,
-          seoTags: data.seoTags,
-          order: slotOrder,
-        }),
+        body: formData,
       });
 
       if (!response.ok) {
@@ -196,7 +116,7 @@ export default function CollectionVideoModal({ open, onClose, onSaveSuccess, ini
       <div className="bg-white rounded-lg shadow-2xl w-full max-w-2xl max-h-full overflow-y-auto">
         <form onSubmit={handleSubmit(onSubmit)} className="p-8">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-serif text-stone-800">{initialData ? 'Edit' : 'Add'} Collection Video</h2>
+            <h2 className="text-2xl font-serif text-stone-800">Add Collection Video</h2>
             <button type="button" onClick={onClose} className="text-stone-500 hover:text-stone-800">
               <X size={24} />
             </button>
@@ -212,20 +132,6 @@ export default function CollectionVideoModal({ open, onClose, onSaveSuccess, ini
                 <option value="video">Video</option>
                 <option value="photo">Photo</option>
               </select>
-            </div>
-
-            {/* Collection Selection */}
-            <div>
-              <label htmlFor="collectionId" className="block text-sm font-medium text-stone-700 mb-1">Collection *</label>
-              <select {...register("collectionId")} className="form-input" disabled={loading}>
-                <option value="">Select a collection</option>
-                {collections.map((collection) => (
-                  <option key={collection.id} value={collection.id}>
-                    {collection.name}
-                  </option>
-                ))}
-              </select>
-              {errors.collectionId && <p className="form-error">{errors.collectionId.message}</p>}
             </div>
 
             {/* Title */}
@@ -305,7 +211,7 @@ export default function CollectionVideoModal({ open, onClose, onSaveSuccess, ini
             <button type="button" onClick={onClose} className="px-4 py-2 rounded-md text-sm font-semibold text-stone-700 bg-stone-100 hover:bg-stone-200 transition-colors">
               Cancel
             </button>
-            <button type="submit" disabled={!isValid || isSubmitting || loading} className="px-6 py-2 rounded-md text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 disabled:bg-stone-400 disabled:cursor-not-allowed transition-colors">
+            <button type="submit" disabled={!isValid || isSubmitting} className="px-6 py-2 rounded-md text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 disabled:bg-stone-400 disabled:cursor-not-allowed transition-colors">
               {isSubmitting ? 'Saving...' : 'Save Video'}
             </button>
           </div>

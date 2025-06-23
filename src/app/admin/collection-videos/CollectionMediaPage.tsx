@@ -27,7 +27,7 @@ export default function CollectionMediaPage() {
   const [selectedCollection, setSelectedCollection] = useState<string>('');
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(false);
-  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const { addToast } = useToast();
 
   useEffect(() => {
@@ -81,7 +81,7 @@ export default function CollectionMediaPage() {
     if (selectedCollection) {
       fetchMediaItems(selectedCollection);
     }
-    setShowUploadModal(false);
+    setIsModalOpen(false);
   };
 
   const handleEdit = (item: MediaItem) => {
@@ -100,11 +100,12 @@ export default function CollectionMediaPage() {
   return (
     <div className="min-h-screen bg-brand-mist py-8 px-4 pt-24">
       <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <h2 className="text-3xl font-serif text-brand-pine">Manage Collection Media</h2>
-          <button 
-            className="bg-brand-tan text-white px-4 py-2 rounded hover:bg-brand-earth transition"
-            onClick={() => setShowUploadModal(true)}
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-serif text-stone-800">Manage Collection Media</h1>
+          <button
+            onClick={() => setIsModalOpen(true)}
+            disabled={!selectedCollection}
+            className="bg-emerald-600 text-white px-6 py-2 rounded-md hover:bg-emerald-700 disabled:bg-stone-400 disabled:cursor-not-allowed transition-colors font-semibold"
           >
             Upload Media
           </button>
@@ -140,7 +141,7 @@ export default function CollectionMediaPage() {
             <p className="text-brand-sage text-lg mb-4">No media items in this collection</p>
             <button 
               className="bg-brand-pine text-white px-4 py-2 rounded hover:bg-brand-earth transition"
-              onClick={() => setShowUploadModal(true)}
+              onClick={() => setIsModalOpen(true)}
             >
               Upload Your First Media
             </button>
@@ -159,13 +160,11 @@ export default function CollectionMediaPage() {
           </div>
         )}
 
-        {/* New Upload Modal */}
-        <CollectionVideoModal
-          open={showUploadModal}
-          onClose={() => setShowUploadModal(false)}
+        <CollectionVideoModal 
+          open={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
           onSaveSuccess={handleSaveSuccess}
-          initialData={null}
-          slotOrder={1}
+          collectionId={selectedCollection}
         />
       </div>
     </div>

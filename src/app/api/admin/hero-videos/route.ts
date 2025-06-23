@@ -6,6 +6,7 @@ import formidable from 'formidable';
 import { readFileSync } from 'fs';
 import { getSupabasePublicUrl } from '@/lib/utils';
 
+// Helper to parse FormData
 export const config = {
   api: {
     bodyParser: false,
@@ -25,6 +26,7 @@ async function parseFormData(req: NextRequest): Promise<{ fields: formidable.Fie
   });
 }
 
+// Ensure the user is an admin before proceeding
 async function isAdmin(req: NextRequest) {
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
   return token?.role === 'admin';
@@ -37,54 +39,52 @@ export async function POST(req: NextRequest) {
     }
 
     const { fields, files } = await parseFormData(req);
-    const { collectionId, title, description, price, duration, seoTags, mediaType } = fields;
+    const { title, order } = fields;
     const { videoFile, thumbnailFile } = files;
 
-    if (!collectionId || !title || !description || !price || !duration || !mediaType || !videoFile) {
+    if (!title || !order || !videoFile) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    const collectionName = (await prisma.collection.findUnique({ where: { id: collectionId[0] } }))?.name || 'unknown-collection';
-
+    // 1. Upload video file
     const video = videoFile[0];
     const videoContents = readFileSync(video.filepath);
-    const videoPath = `collections/${collectionName}/${Date.now()}-${video.originalFilename}`;
+    const videoPath = `hero/${Date.now()}-${video.originalFilename}`;
     const { error: videoError } = await supabaseAdmin.storage
       .from('videos')
       .upload(videoPath, videoContents, { contentType: video.mimetype! });
 
     if (videoError) throw new Error(`Video upload failed: ${videoError.message}`);
 
+    // 2. Upload thumbnail file (if it exists)
     let thumbPath: string | null = null;
     if (thumbnailFile) {
       const thumbnail = thumbnailFile[0];
       const thumbContents = readFileSync(thumbnail.filepath);
-      thumbPath = `collections/${collectionName}/thumbnails/${Date.now()}-${thumbnail.originalFilename}`;
+      thumbPath = `hero/thumbnails/${Date.now()}-${thumbnail.originalFilename}`;
       const { error: thumbError } = await supabaseAdmin.storage
         .from('thumbnails')
         .upload(thumbPath, thumbContents, { contentType: thumbnail.mimetype! });
-      if (thumbError) console.error('Thumbnail upload failed:', thumbError.message);
+      if (thumbError) console.error('Thumbnail upload failed:', thumbError.message); // Don't block if only thumbnail fails
     }
 
-    await prisma.collectionVideo.create({
+    // 3. Create database record
+    await prisma.heroVideo.create({
       data: {
-        collection: collectionName,
         title: title[0],
-        description: description[0],
-        price: parseFloat(price[0]),
-        duration: parseInt(duration[0], 10),
+        order: parseInt(order[0], 10),
         videoPath: videoPath,
-        thumbnailPath: thumbPath,
         videoUrl: getSupabasePublicUrl(videoPath),
         thumbnail: thumbPath ? getSupabasePublicUrl(thumbPath) : '/fallback-thumbnail.png',
-        order: 0, // Simplified order
+        description: 'Default description',
+        status: 'approved',
       },
     });
 
     return NextResponse.json({ success: true });
 
   } catch (error: any) {
-    console.error('API Error in /api/admin/collection-videos:', error);
+    console.error('API Error in /api/admin/hero-videos:', error);
     return NextResponse.json({ error: error.message || 'An unexpected error occurred' }, { status: 500 });
   }
 } 
