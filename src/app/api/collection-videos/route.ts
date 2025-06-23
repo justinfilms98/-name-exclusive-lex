@@ -5,9 +5,6 @@ export async function GET(req: NextRequest) {
   try {
     const videos = await prisma.collectionVideo.findMany({
       orderBy: { order: 'asc' },
-      include: {
-        collection: true,
-      }
     });
     return NextResponse.json(videos);
   } catch (err) {
@@ -17,4 +14,4 @@ export async function GET(req: NextRequest) {
       { status: 500 }
     );
   }
-} 
+}
