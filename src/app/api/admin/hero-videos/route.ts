@@ -2,41 +2,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
-import formidable from 'formidable';
-import { readFileSync } from 'fs';
 import { getSupabasePublicUrl } from '@/lib/utils';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
-
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
-
-// Helper to parse FormData
-async function parseFormData(req: NextRequest): Promise<{ fields: formidable.Fields; files: formidable.Files }> {
-  return new Promise((resolve, reject) => {
-    const form = formidable({});
-    form.parse(req as any, (err, fields, files) => {
-      if (err) reject(err);
-      else resolve({ fields, files });
-    });
-  });
-}
 
 async function isAdmin(req: NextRequest): Promise<boolean> {
   const supabase = createRouteHandlerClient({ cookies });
   const { data: { session } } = await supabase.auth.getSession();
-
-  if (!session) {
-    return false;
-  }
+  if (!session) return false;
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
     select: { role: true },
   });
-
   return user?.role === 'admin';
 }
 
@@ -46,42 +23,41 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { fields, files } = await parseFormData(req);
-    const { title, description, order } = fields;
-    const { videoFile, thumbnailFile } = files;
+    const formData = await req.formData();
+    const title = formData.get('title') as string;
+    const description = formData.get('description') as string;
+    const order = formData.get('order') as string;
+    const videoFile = formData.get('videoFile') as File | null;
+    const thumbnailFile = formData.get('thumbnailFile') as File | null;
 
     if (!title || !description || !order || !videoFile) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    // 1. Upload video file
-    const video = videoFile[0];
-    const videoContents = readFileSync(video.filepath);
-    const videoPath = `hero/${Date.now()}-${video.originalFilename}`;
+    const videoContents = Buffer.from(await videoFile.arrayBuffer());
+    const videoPath = `hero/${Date.now()}-${videoFile.name}`;
+    
     const { error: videoError } = await supabaseAdmin.storage
       .from('videos')
-      .upload(videoPath, videoContents, { contentType: video.mimetype! });
+      .upload(videoPath, videoContents, { contentType: videoFile.type! });
 
     if (videoError) throw new Error(`Video upload failed: ${videoError.message}`);
 
-    // 2. Upload thumbnail file (if it exists)
     let thumbPath: string | null = null;
     if (thumbnailFile) {
-      const thumbnail = thumbnailFile[0];
-      const thumbContents = readFileSync(thumbnail.filepath);
-      thumbPath = `hero/thumbnails/${Date.now()}-${thumbnail.originalFilename}`;
+      const thumbContents = Buffer.from(await thumbnailFile.arrayBuffer());
+      thumbPath = `hero/thumbnails/${Date.now()}-${thumbnailFile.name}`;
       const { error: thumbError } = await supabaseAdmin.storage
         .from('thumbnails')
-        .upload(thumbPath, thumbContents, { contentType: thumbnail.mimetype! });
-      if (thumbError) console.error('Thumbnail upload failed:', thumbError.message); // Don't block if only thumbnail fails
+        .upload(thumbPath, thumbContents, { contentType: thumbnailFile.type! });
+      if (thumbError) console.error('Thumbnail upload failed:', thumbError.message);
     }
 
-    // 3. Create database record
     await prisma.heroVideo.create({
       data: {
-        title: title[0],
-        description: description[0],
-        order: parseInt(order[0], 10),
+        title,
+        description,
+        order: parseInt(order, 10),
         videoPath,
         thumbnailPath: thumbPath,
         videoUrl: getSupabasePublicUrl(videoPath),
