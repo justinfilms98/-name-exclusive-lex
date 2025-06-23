@@ -1,523 +1,316 @@
-import React, { useRef, useState } from 'react';
-import { supabase } from '@/lib/supabase';
-import { uploadFile, deleteFile, type UploadProgress, type UploadType } from '@/lib/services/uploadService';
+"use client";
+import React, { useState, useEffect } from 'react';
+import { useForm, SubmitHandler } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { X } from 'lucide-react';
 
-interface PricingOption {
-  type: 'one_time' | 'subscription' | 'rental';
-  price: number;
-  currency: string;
-  duration?: number;
-  discount?: number;
-  promoCode?: string;
-  region?: string;
-  isActive?: boolean;
-}
+// Define the form schema for validation
+const formSchema = z.object({
+  mediaType: z.enum(['video', 'photo']).default('video'),
+  collectionId: z.string().min(1, 'Please select a collection.'),
+  title: z.string().min(3, 'Title must be at least 3 characters.'),
+  description: z.string().min(10, 'Description must be at least 10 characters.'),
+  videoFile: z.any().refine(file => file?.[0] instanceof File, 'A video file is required.'),
+  thumbnailFile: z.any().optional(),
+  price: z.number().min(0, 'Price must be a valid number.'),
+  duration: z.number().min(1, 'Duration must be at least 1 minute.'),
+  seoTags: z.string().optional(),
+});
 
-interface CollectionVideo {
-  id?: number;
-  collection: string;
-  title: string;
-  description: string;
-  thumbnail: string;
-  videoUrl: string;
-  thumbnailPath?: string;
-  order: number;
-  category: string;
-  ageRating: 'G' | 'PG' | 'PG-13' | 'R';
-  tags: string[];
-  pricing: PricingOption[];
+type FormValues = z.infer<typeof formSchema>;
+
+interface Collection {
+  id: string;
+  name: string;
 }
 
 interface CollectionVideoModalProps {
   open: boolean;
   onClose: () => void;
-  onSave: (data: Omit<CollectionVideo, 'id'>) => Promise<void>;
-  initialData?: CollectionVideo | null;
+  onSaveSuccess: () => void;
+  initialData?: any | null;
   slotOrder: number;
 }
 
-const AGE_RATINGS = ['G', 'PG', 'PG-13', 'R'] as const;
-const PRICING_TYPES = ['one_time', 'subscription', 'rental'] as const;
-
-export default function CollectionVideoModal({ open, onClose, onSave, initialData, slotOrder }: CollectionVideoModalProps) {
-  const [formData, setFormData] = useState<CollectionVideo>({
-    collection: initialData?.collection || '',
-    title: initialData?.title || '',
-    description: initialData?.description || '',
-    thumbnail: initialData?.thumbnail || '',
-    videoUrl: initialData?.videoUrl || '',
-    thumbnailPath: initialData?.thumbnailPath,
-    order: slotOrder,
-    category: initialData?.category || '',
-    ageRating: initialData?.ageRating || 'PG',
-    tags: initialData?.tags || [],
-    pricing: initialData?.pricing || [{ type: 'one_time', price: 0, currency: 'USD', isActive: true }],
-  });
-
-  const [uploadProgress, setUploadProgress] = useState<Record<UploadType, UploadProgress>>({
-    thumbnail: { progress: 0, status: 'complete' },
-    video: { progress: 0, status: 'complete' },
-  });
-  const [saving, setSaving] = useState(false);
+export default function CollectionVideoModal({ open, onClose, onSaveSuccess, initialData, slotOrder }: CollectionVideoModalProps) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
-  const thumbnailInput = useRef<HTMLInputElement>(null);
-  const videoInput = useRef<HTMLInputElement>(null);
-
-  React.useEffect(() => {
-    if (!open) {
-      setFormData({
-        collection: initialData?.collection || '',
-        title: initialData?.title || '',
-        description: initialData?.description || '',
-        thumbnail: initialData?.thumbnail || '',
-        videoUrl: initialData?.videoUrl || '',
-        thumbnailPath: initialData?.thumbnailPath,
-        order: slotOrder,
-        category: initialData?.category || '',
-        ageRating: initialData?.ageRating || 'PG',
-        tags: initialData?.tags || [],
-        pricing: initialData?.pricing || [{ type: 'one_time', price: 0, currency: 'USD', isActive: true }],
-      });
-      setError(null);
-      setSuccess(false);
+  const [collections, setCollections] = useState<Collection[]>([]);
+  const [loading, setLoading] = useState(false);
+  
+  const { register, handleSubmit, watch, reset, formState: { errors, isValid } } = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    mode: 'onChange',
+    defaultValues: {
+      mediaType: 'video',
+      price: 0,
+      duration: 1,
     }
-  }, [open, initialData, slotOrder]);
+  });
+
+  const thumbnailFile = watch('thumbnailFile');
+  const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
+
+  // Fetch collections on component mount
+  useEffect(() => {
+    if (open) {
+      fetchCollections();
+    }
+  }, [open]);
+
+  useEffect(() => {
+    // Reset form when modal opens or initialData changes
+    if (open && initialData) {
+      reset({ 
+        title: initialData.title, 
+        description: initialData.description,
+        mediaType: 'video',
+        price: initialData.price || 0,
+        duration: initialData.duration || 1,
+        collectionId: initialData.collectionId || '',
+      });
+    } else if (open) {
+      reset({ 
+        title: '', 
+        description: '',
+        mediaType: 'video',
+        price: 0,
+        duration: 1,
+        collectionId: '',
+      });
+    }
+  }, [open, initialData, reset]);
+
+  useEffect(() => {
+    if (thumbnailFile && thumbnailFile[0] instanceof File) {
+      const reader = new FileReader();
+      reader.onloadend = () => setThumbnailPreview(reader.result as string);
+      reader.readAsDataURL(thumbnailFile[0]);
+    } else {
+      setThumbnailPreview(null);
+    }
+  }, [thumbnailFile]);
+
+  const fetchCollections = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch('/api/collections');
+      const data = await response.json();
+      
+      if (response.ok) {
+        setCollections(data.data || []);
+      } else {
+        setError(data.error || 'Failed to fetch collections');
+      }
+    } catch (error) {
+      setError('Failed to fetch collections');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (!open) return null;
 
-  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>, type: UploadType) {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  // Reusable direct-to-storage upload function
+  const uploadToSupabase = async (file: File, collection: string) => {
+    const signedUrlRes = await fetch('/api/admin/upload-url', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fileName: file.name, fileType: file.type, collection }),
+    });
+    
+    if (!signedUrlRes.ok) {
+      const errorData = await signedUrlRes.json();
+      throw new Error(errorData.error || 'Could not get signed URL.');
+    }
+    
+    const { signedUrl, path } = await signedUrlRes.json();
+    if (!signedUrl) throw new Error('Could not get signed URL.');
+    
+    const uploadRes = await fetch(signedUrl, { 
+      method: 'PUT', 
+      headers: { 'Content-Type': file.type }, 
+      body: file 
+    });
+    
+    if (!uploadRes.ok) {
+      throw new Error('Failed to upload file to storage.');
+    }
+    
+    return path;
+  };
 
+  const onSubmit: SubmitHandler<FormValues> = async (data) => {
+    setIsSubmitting(true);
     setError(null);
-    setUploadProgress(prev => ({
-      ...prev,
-      [type]: { progress: 0, status: 'uploading' }
-    }));
-
+    
     try {
-      // Delete old file if exists
-      const oldPath = type === 'thumbnail' ? formData.thumbnailPath : formData.videoUrl;
-      if (oldPath) {
-        await deleteFile(oldPath, type);
+      const videoFile = data.videoFile[0];
+      const thumbFile = data.thumbnailFile?.[0];
+
+      // Upload video file
+      const videoPath = await uploadToSupabase(videoFile, 'collection-videos');
+      
+      // Upload thumbnail if provided
+      let thumbnailPath: string | undefined;
+      if (thumbFile) {
+        thumbnailPath = await uploadToSupabase(thumbFile, 'collection-videos/thumbnails');
       }
 
-      // Upload new file
-      const result = await uploadFile(file, type, slotOrder, (progress) => {
-        setUploadProgress(prev => ({
-          ...prev,
-          [type]: progress
-        }));
+      // Create database record
+      const response = await fetch('/api/collection-videos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          collectionId: data.collectionId,
+          mediaType: data.mediaType,
+          title: data.title,
+          description: data.description,
+          videoPath,
+          thumbnailPath,
+          price: data.price,
+          duration: data.duration,
+          seoTags: data.seoTags,
+          order: slotOrder,
+        }),
       });
 
-      // Update form data
-      setFormData(prev => ({
-        ...prev,
-        thumbnail: result.url,
-        thumbnailPath: result.path,
-      }));
-      // Mark upload as complete so UI unfreezes
-      setUploadProgress(prev => ({
-        ...prev,
-        [type]: { progress: 100, status: 'complete' }
-      }));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Upload failed');
-      setUploadProgress(prev => ({
-        ...prev,
-        [type]: { progress: 0, status: 'error', error: err instanceof Error ? err.message : 'Upload failed' }
-      }));
-    }
-  }
-
-  function handleTagAdd(tag: string) {
-    if (tag && !formData.tags.includes(tag)) {
-      setFormData(prev => ({ ...prev, tags: [...prev.tags, tag] }));
-    }
-  }
-  function handleTagRemove(tag: string) {
-    setFormData(prev => ({ ...prev, tags: prev.tags.filter(t => t !== tag) }));
-  }
-
-  function handlePricingChange(idx: number, field: keyof PricingOption, value: any) {
-    setFormData(prev => ({
-      ...prev,
-      pricing: prev.pricing.map((p, i) => {
-        if (i !== idx) return p;
-        // For number fields, sanitize value
-        if (["price", "duration", "discount"].includes(field)) {
-          // If value is empty or not a valid number, set as '' for input
-          const sanitized = value === '' || isNaN(value) ? '' : value;
-          return { ...p, [field]: sanitized };
-        }
-        return { ...p, [field]: value };
-      })
-    }));
-  }
-  function handleAddPricing() {
-    setFormData(prev => ({
-      ...prev,
-      pricing: [...prev.pricing, { type: 'one_time', price: 0, currency: 'USD', isActive: true }]
-    }));
-  }
-  function handleRemovePricing(idx: number) {
-    setFormData(prev => ({
-      ...prev,
-      pricing: prev.pricing.filter((_, i) => i !== idx)
-    }));
-  }
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setSaving(true);
-    setError(null);
-    setSuccess(false);
-
-    try {
-      // Validate required fields
-      if (!formData.thumbnail || !formData.videoUrl) {
-        throw new Error('Thumbnail and video are required');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to save collection video.');
       }
-      if (!formData.category) {
-        throw new Error('Category is required');
-      }
-      if (!formData.pricing.length) {
-        throw new Error('At least one pricing option is required');
-      }
-      // Sanitize pricing before save
-      const sanitizedPricing = formData.pricing.map(p => ({
-        ...p,
-        price: (typeof p.price === 'string' ? p.price === '' : isNaN(Number(p.price))) ? 0 : Number(p.price),
-        duration: ((typeof p.duration === 'string' ? p.duration === '' : isNaN(Number(p.duration))) ? 0 : Number(p.duration)) * 60, // Convert minutes to seconds
-        discount: (typeof p.discount === 'string' ? p.discount === '' : isNaN(Number(p.discount))) ? 0 : Number(p.discount),
-      }));
-      await onSave({ ...formData, pricing: sanitizedPricing });
-      setSuccess(true);
-      setTimeout(onClose, 1500);
+      
+      onSaveSuccess();
+      onClose();
+
     } catch (err: any) {
-      if (err?.response?.json) {
-        const json = await err.response.json();
-        setError(json?.error || 'Failed to save collection video');
-      } else {
-        setError(err instanceof Error ? err.message : 'Failed to save collection video');
-      }
+      setError(err.message);
     } finally {
-      setSaving(false);
+      setIsSubmitting(false);
     }
-  }
-
-  const isUploading = Object.values(uploadProgress).some(p => p.status === 'uploading');
-  const hasError = Object.values(uploadProgress).some(p => p.status === 'error');
-
-  // For tag input
-  const [tagInput, setTagInput] = useState('');
-
-  // Determine if uploads are complete
-  const uploadsComplete = uploadProgress.thumbnail.status === 'complete' && uploadProgress.video.status === 'complete';
-  const uploadsStarted = uploadProgress.thumbnail.status !== 'complete' || uploadProgress.video.status !== 'complete';
-
-  // Determine if all required fields are filled
-  const requiredFieldsFilled = formData.collection && formData.title && formData.description && formData.thumbnail && formData.videoUrl && formData.category && formData.pricing.length > 0;
-
-  // Only allow editing fields after both uploads are complete
-  const fieldsDisabled = !uploadsComplete || isUploading || saving;
+  };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-      <form onSubmit={handleSubmit} className="bg-white rounded-lg p-8 w-full max-w-2xl shadow-lg relative max-h-[90vh] overflow-y-auto">
-        <button type="button" onClick={onClose} className="absolute top-2 right-2 text-gray-500 hover:text-black" disabled={isUploading || saving}>&times;</button>
-        <h3 className="text-xl font-bold mb-4">{initialData ? 'Edit' : 'Add'} Collection Video</h3>
-        {error && <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">{error}</div>}
-        {success && <div className="mb-4 p-3 bg-green-100 text-green-700 rounded">Video saved successfully!</div>}
-        {hasError && (
-          <div className="mb-4 p-3 bg-red-200 text-red-800 rounded">A file upload failed. Please try again or check your Supabase storage settings.</div>
-        )}
-        {/* Show upload success after both uploads complete */}
-        {uploadsComplete && !initialData && (
-          <div className="mb-4 p-3 bg-blue-100 text-blue-800 rounded">Upload successful! Please fill in the video details below and save.</div>
-        )}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="mb-4">
-            <label className="block font-semibold mb-1">Collection</label>
-            <input 
-              className="w-full border rounded px-3 py-2" 
-              value={formData.collection} 
-              onChange={e => setFormData(prev => ({ ...prev, collection: e.target.value }))} 
-              required 
-              disabled={fieldsDisabled} 
-            />
+    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4 pt-20">
+      <div className="bg-white rounded-lg shadow-2xl w-full max-w-2xl max-h-full overflow-y-auto">
+        <form onSubmit={handleSubmit(onSubmit)} className="p-8">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-serif text-stone-800">{initialData ? 'Edit' : 'Add'} Collection Video</h2>
+            <button type="button" onClick={onClose} className="text-stone-500 hover:text-stone-800">
+              <X size={24} />
+            </button>
           </div>
-          <div className="mb-4">
-            <label className="block font-semibold mb-1">Title</label>
-            <input 
-              className="w-full border rounded px-3 py-2" 
-              value={formData.title} 
-              onChange={e => setFormData(prev => ({ ...prev, title: e.target.value }))} 
-              required 
-              disabled={fieldsDisabled} 
-            />
-          </div>
-        </div>
-        <div className="mb-4">
-          <label className="block font-semibold mb-1">Description</label>
-          <textarea 
-            className="w-full border rounded px-3 py-2" 
-            value={formData.description} 
-            onChange={e => setFormData(prev => ({ ...prev, description: e.target.value }))} 
-            required 
-            disabled={fieldsDisabled} 
-          />
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="mb-4">
-            <label className="block font-semibold mb-1">Thumbnail</label>
-            <input 
-              type="file" 
-              accept="image/*" 
-              ref={thumbnailInput} 
-              onChange={e => handleFileUpload(e, 'thumbnail')} 
-              className="mb-2" 
-              disabled={isUploading || saving || uploadProgress.thumbnail.status === 'uploading'} 
-            />
-            {uploadProgress.thumbnail.status === 'uploading' && (
-              <div className="mb-2">
-                <div className="h-2 bg-gray-200 rounded-full">
-                  <div 
-                    className="h-2 bg-blue-600 rounded-full transition-all duration-300" 
-                    style={{ width: `${uploadProgress.thumbnail.progress}%` }}
-                  />
-                </div>
-                <div className="text-sm text-gray-600 mt-1">
-                  Uploading thumbnail... {Math.round(uploadProgress.thumbnail.progress)}%
-                </div>
-              </div>
-            )}
-            {uploadProgress.thumbnail.status === 'error' && (
-              <div className="mb-2 text-sm text-red-600">{uploadProgress.thumbnail.error}</div>
-            )}
-            {formData.thumbnail && (
-              <img src={formData.thumbnail} alt="Thumbnail" className="w-32 h-20 object-cover rounded" />
-            )}
-          </div>
-          <div className="mb-4">
-            <label className="block font-semibold mb-1">Video File</label>
-            <input 
-              type="file" 
-              accept="video/*" 
-              ref={videoInput} 
-              onChange={e => handleFileUpload(e, 'video')} 
-              className="mb-2" 
-              disabled={isUploading || saving || uploadProgress.video.status === 'uploading'} 
-            />
-            {uploadProgress.video.status === 'uploading' && (
-              <div className="mb-2">
-                <div className="h-2 bg-gray-200 rounded-full">
-                  <div 
-                    className="h-2 bg-blue-600 rounded-full transition-all duration-300" 
-                    style={{ width: `${uploadProgress.video.progress}%` }}
-                  />
-                </div>
-                <div className="text-sm text-gray-600 mt-1">
-                  Uploading video... {Math.round(uploadProgress.video.progress)}%
-                </div>
-              </div>
-            )}
-            {uploadProgress.video.status === 'error' && (
-              <div className="mb-2 text-sm text-red-600">{uploadProgress.video.error}</div>
-            )}
-            {formData.videoUrl && (
-              <video src={formData.videoUrl} controls className="w-32 h-20 rounded" />
-            )}
-          </div>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="mb-4">
-            <label className="block font-semibold mb-1">Category</label>
-            <input
-              className="w-full border rounded px-3 py-2"
-              value={formData.category}
-              onChange={e => setFormData(prev => ({ ...prev, category: e.target.value }))}
-              required
-              disabled={fieldsDisabled}
-            />
-          </div>
-          <div className="mb-4">
-            <label className="block font-semibold mb-1">Age Rating</label>
-            <select
-              className="w-full border rounded px-3 py-2"
-              value={formData.ageRating}
-              onChange={e => setFormData(prev => ({ ...prev, ageRating: e.target.value as any }))}
-              disabled={fieldsDisabled}
-            >
-              {['G', 'PG', 'PG-13', 'R'].map(rating => (
-                <option key={rating} value={rating}>{rating}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-        <div className="mb-4">
-          <label className="block font-semibold mb-1">Tags</label>
-          <div className="flex flex-wrap gap-2 mb-2">
-            {formData.tags.map(tag => (
-              <span key={tag} className="bg-green-100 text-green-800 px-2 py-1 rounded-full flex items-center gap-1">
-                {tag}
-                <button type="button" className="ml-1 text-xs text-red-500" onClick={() => handleTagRemove(tag)} disabled={fieldsDisabled}>×</button>
-              </span>
-            ))}
-          </div>
-          <div className="flex gap-2">
-            <input
-              className="flex-1 border rounded px-3 py-2"
-              value={tagInput}
-              onChange={e => setTagInput(e.target.value)}
-              onKeyDown={e => {
-                if ((e.key === 'Enter' || e.key === ',') && tagInput.trim()) {
-                  e.preventDefault();
-                  handleTagAdd(tagInput.trim());
-                  setTagInput('');
-                }
-              }}
-              placeholder="Add tag and press Enter"
-              disabled={fieldsDisabled}
-            />
-            <button
-              type="button"
-              className="bg-green-600 text-white px-3 py-2 rounded"
-              onClick={() => { if (tagInput.trim()) { handleTagAdd(tagInput.trim()); setTagInput(''); } }}
-              disabled={fieldsDisabled}
-            >Add</button>
-          </div>
-        </div>
-        <div className="mb-4">
-          <label className="block font-semibold mb-1">Pricing Options</label>
-          {formData.pricing.map((pricing, idx) => (
-            <div key={idx} className="border rounded p-4 mb-2 flex flex-col gap-2 relative bg-gray-50">
-              <button
-                type="button"
-                className="absolute top-2 right-2 text-red-500 hover:text-red-700 text-lg"
-                onClick={() => handleRemovePricing(idx)}
-                disabled={formData.pricing.length === 1 || fieldsDisabled}
-                title="Remove pricing option"
-              >×</button>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-sm font-semibold mb-1">Type</label>
-                  <select
-                    className="w-full border rounded px-2 py-1"
-                    value={pricing.type}
-                    onChange={e => handlePricingChange(idx, 'type', e.target.value)}
-                    disabled={fieldsDisabled}
-                  >
-                    {['one_time', 'subscription', 'rental'].map(type => (
-                      <option key={type} value={type}>{type}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold mb-1">Price</label>
-                  <input
-                    type="number"
-                    className="w-full border rounded px-2 py-1"
-                    value={typeof pricing.price === 'number' && !isNaN(pricing.price) ? pricing.price : ''}
-                    min={0}
-                    step={0.01}
-                    onChange={e => handlePricingChange(idx, 'price', e.target.value === '' ? '' : parseFloat(e.target.value))}
-                    disabled={fieldsDisabled}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold mb-1">Currency</label>
-                  <input
-                    className="w-full border rounded px-2 py-1"
-                    value={pricing.currency}
-                    maxLength={3}
-                    onChange={e => handlePricingChange(idx, 'currency', e.target.value.toUpperCase())}
-                    disabled={fieldsDisabled}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold mb-1">Duration (minutes)</label>
-                  <input
-                    type="number"
-                    className="w-full border rounded px-3 py-2"
-                    value={typeof pricing.duration === 'number' && !isNaN(pricing.duration) ? pricing.duration : ''}
-                    min={0}
-                    onChange={e => handlePricingChange(idx, 'duration', e.target.value === '' ? '' : parseInt(e.target.value))}
-                    disabled={fieldsDisabled}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold mb-1">Discount (%)</label>
-                  <input
-                    type="number"
-                    className="w-full border rounded px-2 py-1"
-                    value={typeof pricing.discount === 'number' && !isNaN(pricing.discount) ? pricing.discount : ''}
-                    min={0}
-                    max={100}
-                    onChange={e => handlePricingChange(idx, 'discount', e.target.value === '' ? '' : parseFloat(e.target.value))}
-                    disabled={fieldsDisabled}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold mb-1">Promo Code</label>
-                  <input
-                    className="w-full border rounded px-2 py-1"
-                    value={pricing.promoCode || ''}
-                    onChange={e => handlePricingChange(idx, 'promoCode', e.target.value)}
-                    disabled={fieldsDisabled}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold mb-1">Region</label>
-                  <input
-                    className="w-full border rounded px-2 py-1"
-                    value={pricing.region || ''}
-                    onChange={e => handlePricingChange(idx, 'region', e.target.value)}
-                    disabled={fieldsDisabled}
-                  />
-                </div>
-                <div className="flex items-center gap-2 mt-2">
-                  <input
-                    type="checkbox"
-                    checked={pricing.isActive !== false}
-                    onChange={e => handlePricingChange(idx, 'isActive', e.target.checked)}
-                    disabled={fieldsDisabled}
-                  />
-                  <label className="text-sm">Active</label>
-                </div>
-              </div>
+
+          {error && <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md text-sm">{error}</div>}
+
+          <div className="space-y-6">
+            {/* Media Type Selection */}
+            <div>
+              <label htmlFor="mediaType" className="block text-sm font-medium text-stone-700 mb-1">Media Type</label>
+              <select {...register("mediaType")} className="form-input">
+                <option value="video">Video</option>
+                <option value="photo">Photo</option>
+              </select>
             </div>
-          ))}
-          <button
-            type="button"
-            className="bg-blue-600 text-white px-4 py-2 rounded mt-2"
-            onClick={handleAddPricing}
-            disabled={fieldsDisabled}
-          >Add Pricing Option</button>
-        </div>
-        <div className="flex justify-end gap-2">
-          <button 
-            type="button" 
-            onClick={onClose} 
-            className="px-4 py-2 text-gray-600 hover:text-gray-800"
-            disabled={isUploading || saving}
-          >
-            Cancel
-          </button>
-          <button 
-            type="submit" 
-            className={`px-4 py-2 rounded text-white ${
-              isUploading || saving || hasError || !uploadsComplete || !requiredFieldsFilled
-                ? 'bg-gray-400 cursor-not-allowed' 
-                : 'bg-blue-600 hover:bg-blue-700'
-            }`}
-            disabled={isUploading || saving || hasError || !uploadsComplete || !requiredFieldsFilled}
-          >
-            {isUploading ? 'Uploading...' : saving ? 'Saving...' : 'Save Video'}
-          </button>
-        </div>
-      </form>
+
+            {/* Collection Selection */}
+            <div>
+              <label htmlFor="collectionId" className="block text-sm font-medium text-stone-700 mb-1">Collection *</label>
+              <select {...register("collectionId")} className="form-input" disabled={loading}>
+                <option value="">Select a collection</option>
+                {collections.map((collection) => (
+                  <option key={collection.id} value={collection.id}>
+                    {collection.name}
+                  </option>
+                ))}
+              </select>
+              {errors.collectionId && <p className="form-error">{errors.collectionId.message}</p>}
+            </div>
+
+            {/* Title */}
+            <div>
+              <label htmlFor="title" className="block text-sm font-medium text-stone-700 mb-1">Title *</label>
+              <input {...register("title")} className="form-input" placeholder="Enter video title" />
+              {errors.title && <p className="form-error">{errors.title.message}</p>}
+            </div>
+
+            {/* Description */}
+            <div>
+              <label htmlFor="description" className="block text-sm font-medium text-stone-700 mb-1">Description *</label>
+              <textarea {...register("description")} rows={4} className="form-textarea" placeholder="Enter video description" />
+              {errors.description && <p className="form-error">{errors.description.message}</p>}
+            </div>
+
+            {/* Video File Upload */}
+            <div>
+              <label htmlFor="videoFile" className="block text-sm font-medium text-stone-700 mb-1">Video File *</label>
+              <input type="file" {...register("videoFile")} accept="video/mp4,video/webm,video/ogg" className="form-input" />
+              {errors.videoFile && <p className="form-error">{errors.videoFile.message as string}</p>}
+            </div>
+
+            {/* Thumbnail Upload */}
+            <div>
+              <label htmlFor="thumbnailFile" className="block text-sm font-medium text-stone-700 mb-1">Thumbnail (Optional)</label>
+              <input type="file" {...register("thumbnailFile")} accept="image/jpeg,image/png,image/webp" className="form-input" />
+            </div>
+
+            {/* Thumbnail Preview */}
+            {thumbnailPreview && (
+              <div>
+                <label className="block text-sm font-medium text-stone-700 mb-1">Thumbnail Preview</label>
+                <img src={thumbnailPreview} alt="Thumbnail Preview" className="w-48 aspect-video object-cover rounded-md border" />
+              </div>
+            )}
+
+            {/* Price */}
+            <div>
+              <label htmlFor="price" className="block text-sm font-medium text-stone-700 mb-1">Price (USD) *</label>
+              <input 
+                type="number" 
+                {...register("price", { valueAsNumber: true })} 
+                min="0" 
+                step="0.01" 
+                className="form-input" 
+                placeholder="0.00"
+              />
+              {errors.price && <p className="form-error">{errors.price.message}</p>}
+            </div>
+
+            {/* Duration */}
+            <div>
+              <label htmlFor="duration" className="block text-sm font-medium text-stone-700 mb-1">Duration (minutes) *</label>
+              <input 
+                type="number" 
+                {...register("duration", { valueAsNumber: true })} 
+                min="1" 
+                className="form-input" 
+                placeholder="1"
+              />
+              {errors.duration && <p className="form-error">{errors.duration.message}</p>}
+            </div>
+
+            {/* SEO Tags */}
+            <div>
+              <label htmlFor="seoTags" className="block text-sm font-medium text-stone-700 mb-1">SEO Tags (Optional)</label>
+              <input 
+                {...register("seoTags")} 
+                className="form-input" 
+                placeholder="Enter comma-separated tags"
+              />
+            </div>
+          </div>
+
+          <div className="mt-8 flex justify-end gap-4">
+            <button type="button" onClick={onClose} className="px-4 py-2 rounded-md text-sm font-semibold text-stone-700 bg-stone-100 hover:bg-stone-200 transition-colors">
+              Cancel
+            </button>
+            <button type="submit" disabled={!isValid || isSubmitting || loading} className="px-6 py-2 rounded-md text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 disabled:bg-stone-400 disabled:cursor-not-allowed transition-colors">
+              {isSubmitting ? 'Saving...' : 'Save Video'}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 } 

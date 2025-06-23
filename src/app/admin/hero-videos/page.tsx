@@ -229,7 +229,7 @@ export default function HeroVideosPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto py-8 px-4">
+    <div className="max-w-6xl mx-auto py-8 px-4 pt-24">
       {/* Analytics Dashboard Section */}
       <div className="mb-10">
         <h2 className="text-xl font-bold mb-2">Hero Videos Analytics (Last 30 Days)</h2>

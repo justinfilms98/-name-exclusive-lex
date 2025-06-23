@@ -200,7 +200,7 @@ export default function CollectionMediaPage() {
   };
 
   return (
-    <div className="min-h-screen bg-brand-mist py-8 px-4">
+    <div className="min-h-screen bg-brand-mist py-8 px-4 pt-24">
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-8">
           <h2 className="text-3xl font-serif text-brand-pine">Manage Collection Media</h2>

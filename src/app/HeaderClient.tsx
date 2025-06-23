@@ -9,6 +9,10 @@ export default function HeaderClient() {
   const { data: session } = useSession();
   const user = session?.user;
 
+  const handleSignOut = () => {
+    signOut({ callbackUrl: '/' });
+  };
+
   return (
     <>
       {/* Combined Desktop and Mobile */}
@@ -32,7 +36,7 @@ export default function HeaderClient() {
             <Link href="/account">
               <button className="bg-[#D4C7B4] text-[#654C37] px-3 py-1 rounded text-sm button-animate">My Account</button>
             </Link>
-            <button onClick={() => signOut()} className="bg-transparent text-[#654C37] px-3 py-1 rounded text-sm hover:underline">
+            <button onClick={handleSignOut} className="bg-transparent text-[#654C37] px-3 py-1 rounded text-sm hover:underline">
               Sign Out
             </button>
           </div>

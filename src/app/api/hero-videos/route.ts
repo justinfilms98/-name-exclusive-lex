@@ -32,6 +32,9 @@ const postSchema = z.object({
   order: z.number().int(),
   videoPath: z.string().min(1, "Video path is required"),
   thumbnailPath: z.string().optional(),
+  price: z.number().min(0).default(0),
+  duration: z.number().min(1).default(1),
+  seoTags: z.string().optional(),
 });
 
 async function isAdmin(req: NextRequest) {
@@ -94,7 +97,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const validatedData = postSchema.parse(body);
     
-    const { id, title, description, order, videoPath, thumbnailPath } = validatedData;
+    const { id, title, description, order, videoPath, thumbnailPath, price, duration, seoTags } = validatedData;
 
     // Data payload for both create and update
     const dataPayload = {
@@ -110,7 +113,9 @@ export async function POST(req: NextRequest) {
       ageRating: 'PG',
       category: 'general',
       tags: [],
-      price: 0,
+      price,
+      duration,
+      seoTags,
       moderated: false,
     };
     

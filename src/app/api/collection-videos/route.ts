@@ -71,62 +71,60 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { fields, uploadedFileUrl, uploadedFilePath } = await serverUpload(req);
+    const data = await req.json();
+    console.log('POST /api/collection-videos', data);
 
-    if (!uploadedFileUrl || !uploadedFilePath) {
+    // Validate the incoming data
+    const {
+      collectionId,
+      mediaType,
+      title,
+      description,
+      videoPath,
+      thumbnailPath,
+      price,
+      duration,
+      seoTags,
+      order
+    } = data;
+
+    // Basic validation
+    if (!collectionId || !title || !description || !videoPath) {
       return NextResponse.json(
-        { error: 'File upload failed.' },
+        { error: 'Missing required fields: collectionId, title, description, videoPath' },
         { status: 400 }
       );
     }
-    
-    const rawData = Object.fromEntries(
-      Object.entries(fields).map(([key, value]) => [key, value?.[0]])
-    );
-
-    const validatedData = collectionVideoSchema.parse({
-      ...rawData,
-      order: rawData.order ? parseInt(rawData.order as string, 10) : undefined,
-      price: rawData.price ? parseFloat(rawData.price as string) : undefined,
-      duration: rawData.duration ? parseInt(rawData.duration as string, 10) : undefined,
-      videoUrl: uploadedFileUrl,
-      thumbnail: rawData.thumbnail || 'https://via.placeholder.com/150', // Placeholder
-      pricing: [], // This needs to be handled based on your form structure
-    });
-
-    const {
-      collection, title, description, thumbnail, order, duration
-    } = validatedData;
-    
-    const safePrice = validatedData.price ?? 0;
 
     // Check if slot is already taken in this collection
     const existingVideo = await prisma.collectionVideo.findFirst({
       where: {
-        collection,
-        order,
+        collection: collectionId,
+        order: order || 1,
       }
     });
     
     if (existingVideo) {
       return NextResponse.json(
-        { error: `Slot ${order} is already taken in collection ${collection}` },
+        { error: `Slot ${order || 1} is already taken in collection ${collectionId}` },
         { status: 400 }
       );
     }
 
+    // Create the video record
     const video = await prisma.collectionVideo.create({ 
       data: {
-        collection,
+        collection: collectionId,
         title,
         description,
-        thumbnail,
-        videoUrl: uploadedFileUrl,
-        thumbnailPath: thumbnail, // Assuming same for now
-        videoPath: uploadedFilePath,
-        order,
-        price: safePrice,
-        duration,
+        thumbnail: thumbnailPath || 'https://via.placeholder.com/150',
+        videoUrl: videoPath,
+        thumbnailPath: thumbnailPath,
+        videoPath: videoPath,
+        order: order || 1,
+        price: price || 0,
+        duration: duration || null,
+        seoTags: seoTags || null,
       },
       select: {
         id: true,
@@ -142,6 +140,7 @@ export async function POST(req: NextRequest) {
         updatedAt: true,
         videoPath: true,
         duration: true,
+        seoTags: true,
       }
     });
     
