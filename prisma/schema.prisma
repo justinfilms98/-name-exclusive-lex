@@ -10,25 +10,33 @@ datasource db {
 }
 
 model CollectionVideo {
-  id            Int            @id @default(autoincrement())
-  collection    String
-  collectionId  String?        // Reference to Collection model
-  title         String         @unique
+  id            Int      @id @default(autoincrement())
+  title         String   @unique
   description   String
   thumbnail     String
   videoUrl      String
   order         Int
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  price         Float          @default(0.00)
+  price         Float    @default(0.00)
   thumbnailPath String?
   videoPath     String?
-  duration      Int?           // Duration in minutes
-  seoTags       String[]       // Comma-separated tags
-  userId        String?        @db.Uuid
+  duration      Int?     // Duration in minutes
+  seoTags       String[] // Comma-separated tags
+  
+  // Relation to Collection
+  collectionId  String
+  collection    Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  
+  // Relation to User (optional, for tracking uploads)
+  userId        String?  @db.Uuid
+  
+  // Relation to Purchases
   purchases     Purchase[]
+  
+  // Relation to Pricing
   VideoPricing  VideoPricing[]
-  Collection    Collection?    @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   @@schema("public")
 }
@@ -66,14 +74,18 @@ model HeroVideo {
 }
 
 model Collection {
-  id         String      @id
-  name       String       @unique
+  id          String            @id
+  name        String            @unique
   description String?
-  createdAt  DateTime?   @default(now()) @db.Timestamp(6)
-  updatedAt  DateTime?   @default(now()) @updatedAt @db.Timestamp(6)
-  userId     String?     @db.Uuid
-  mediaItems MediaItem[]
-  videos     CollectionVideo[]
+  userId      String?           @db.Uuid
+  createdAt   DateTime?         @default(now()) @db.Timestamp(6)
+  updatedAt   DateTime?         @default(now()) @updatedAt @db.Timestamp(6)
+  
+  // Relation to Collection Videos
+  videos      CollectionVideo[]
+
+  // Legacy relation - to be removed if MediaItem is deprecated
+  mediaItems  MediaItem[]
 
   @@schema("public")
 }
