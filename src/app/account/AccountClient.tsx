@@ -126,9 +126,11 @@ export default function AccountClient() {
                       />
                       <div>
                         <p className="text-md font-medium text-gray-900">{purchase.media.title}</p>
-                        <p className="text-sm text-gray-500">
-                          Purchased on {new Date(purchase.createdAt).toLocaleDateString()}
-                        </p>
+                        {purchase.createdAt && (
+                          <p className="text-sm text-gray-500">
+                            Purchased on {new Date(purchase.createdAt).toLocaleDateString()}
+                          </p>
+                        )}
                       </div>
                     </div>
                     <Link href={`/watch/${purchase.media.id}`}>
