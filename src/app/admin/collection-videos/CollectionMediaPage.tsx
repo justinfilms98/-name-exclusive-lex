@@ -116,11 +116,10 @@ export default function CollectionMediaPage() {
           </div>
         )}
 
-        <CollectionVideoModal 
+        <CollectionVideoModal
           open={isModalOpen}
           onClose={handleModalClose}
           onSaveSuccess={handleSaveSuccess}
-          collectionId={selectedCollectionId}
         />
       </div>
     </div>
