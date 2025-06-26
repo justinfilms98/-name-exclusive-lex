@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import HeroVideoModal from './HeroVideoModal';
+import HeroUploadWidget from '@/components/HeroUploadWidget';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, Legend, CartesianGrid } from 'recharts';
 
 interface HeroVideo {
@@ -206,7 +207,7 @@ export default function HeroVideosPage() {
     }
   }
 
-  async function handleSavePricing(pricing: any[]) {
+  const handleSavePricing = async (pricing: any[]) => {
     if (!pricingVideo) return;
     setLoading(true);
     try {
@@ -224,7 +225,22 @@ export default function HeroVideosPage() {
     } finally {
       setLoading(false);
     }
-  }
+  };
+
+  const handleUploadComplete = (videoUrl: string) => {
+    setNotification({
+      type: 'success',
+      message: 'Video uploaded successfully!'
+    });
+    fetchVideos();
+  };
+
+  const handleUploadError = (error: string) => {
+    setNotification({
+      type: 'error',
+      message: error
+    });
+  };
 
   return (
     <div className="pt-8">
@@ -239,7 +255,31 @@ export default function HeroVideosPage() {
         </button>
       </div>
       
-      {/* Placeholder for content */}
+      {/* Notification */}
+      {notification && (
+        <div className={`px-4 sm:px-6 lg:px-8 mb-4`}>
+          <div className={`p-4 rounded-md ${
+            notification.type === 'success' 
+              ? 'bg-green-50 text-green-800 border border-green-200' 
+              : 'bg-red-50 text-red-800 border border-red-200'
+          }`}>
+            {notification.message}
+          </div>
+        </div>
+      )}
+      
+      {/* Upload Widget */}
+      <div className="px-4 sm:px-6 lg:px-8 mb-8">
+        <div className="bg-white rounded-lg shadow-sm border p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Upload New Hero Video</h2>
+          <HeroUploadWidget 
+            onUploadComplete={handleUploadComplete}
+            onError={handleUploadError}
+          />
+        </div>
+      </div>
+      
+      {/* Video List */}
       <div className="px-4 sm:px-6 lg:px-8">
         <div className="border-4 border-dashed border-gray-200 rounded-lg h-96">
           {/* Video list will go here */}

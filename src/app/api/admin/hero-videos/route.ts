@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
-import { getSupabasePublicUrl } from '@/lib/utils';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 
 async function isAdmin(req: NextRequest): Promise<boolean> {
@@ -34,34 +33,19 @@ export async function POST(req: NextRequest) {
     const formData = await req.formData();
     const title = formData.get('title') as string;
     const order = formData.get('order') as string;
-    const price = formData.get('price') as string | null;
-    const duration = formData.get('duration') as string | null;
-    const seoTags = formData.get('seoTags') as string | null;
-    const category = formData.get('category') as string | null;
-    const videoFile = formData.get('videoFile') as File | null;
-    const thumbnailFile = formData.get('thumbnailFile') as File | null;
+    const subtitle = formData.get('subtitle') as string | null;
+    const videoUrl = formData.get('videoUrl') as string | null; // Now expecting a URL from UploadThing
 
-    if (!title || !order || !videoFile) {
+    if (!title || !order || !videoUrl) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    const videoContents = Buffer.from(await videoFile.arrayBuffer());
-    const videoPath = `hero/${Date.now()}-${videoFile.name}`;
-    
-    const { error: videoError } = await supabaseAdmin.storage
-      .from('videos')
-      .upload(videoPath, videoContents, { contentType: videoFile.type! });
-
-    if (videoError) throw new Error(`Video upload failed: ${videoError.message}`);
-
-    // The thumbnail logic seems to refer to a bucket that doesn't exist for hero videos.
-    // This part of the logic needs to be re-evaluated, but for now, we will bypass it
-    // to allow the creation to succeed with the fields that *do* exist.
-
+    // Create hero video with UploadThing URL
     await prisma.heroVideo.create({
       data: {
         title,
-        videoUrl: getSupabasePublicUrl(videoPath),
+        subtitle: subtitle || null,
+        videoUrl: videoUrl,
         displayOrder: parseInt(order, 10),
       },
     });
