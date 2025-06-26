@@ -15,7 +15,17 @@ export async function GET(
     const mediaItems = await prisma.collectionMedia.findMany({
       where: { collectionId: id },
       orderBy: { createdAt: 'desc' },
-      include: {
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        videoUrl: true,
+        thumbnailUrl: true,
+        price: true,
+        durationSeconds: true,
+        seoTags: true,
+        displayOrder: true,
+        createdAt: true,
         collection: {
           select: { title: true }
         }

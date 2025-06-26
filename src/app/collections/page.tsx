@@ -18,6 +18,7 @@ async function getMediaItems() {
         thumbnailUrl: true,
         price: true,
         durationSeconds: true,
+        createdAt: true,
       },
       orderBy: {
         createdAt: 'desc',
