@@ -2,7 +2,7 @@
 
 import { supabase } from "@/lib/supabase";
 import { useState } from "react";
-import { UploadButton } from "@/uploadthing.config";
+import { UploadButton } from "../../uploadthing.config";
 
 interface HeroUploadWidgetProps {
   onUploadComplete?: (videoUrl: string) => void;
