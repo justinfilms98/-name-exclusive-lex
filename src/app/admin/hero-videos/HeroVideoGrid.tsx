@@ -59,7 +59,7 @@ export default function HeroVideoGrid({ videos, setVideos }: { videos: HeroVideo
         <div className="grid gap-4">
           {padded.map((v, i) =>
             v ? (
-              <HeroVideoItem key={v.id} id={v.id} title={v.title} videoUrl={v.videoUrl} />
+              <HeroVideoItem key={v.id} {...v} />
             ) : (
               <div key={"empty-" + i} className="bg-gray-100 rounded-lg shadow p-4 flex flex-col items-center border mb-4 min-h-[180px] justify-center text-gray-400">
                 Empty Slot
