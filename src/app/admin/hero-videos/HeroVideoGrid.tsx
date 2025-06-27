@@ -14,14 +14,7 @@ import {
   verticalListSortingStrategy
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-
-// Add or import the HeroVideo type
-export type HeroVideo = {
-  id: string | number;
-  title: string;
-  videoUrl: string;
-  order?: number;
-};
+import type { HeroVideo } from './page';
 
 function HeroVideoItem({ id, title, videoUrl }: HeroVideo) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });

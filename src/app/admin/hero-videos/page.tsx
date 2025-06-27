@@ -9,7 +9,7 @@ import HeroUploadWidget from '@/components/HeroUploadWidget';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, Legend, CartesianGrid } from 'recharts';
 import HeroVideoGrid from './HeroVideoGrid';
 
-interface HeroVideo {
+export interface HeroVideo {
   id: number;
   title: string;
   description: string;
