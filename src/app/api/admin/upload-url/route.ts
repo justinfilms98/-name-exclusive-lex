@@ -1,15 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
-import { getToken } from 'next-auth/jwt';
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
 
 // Ensure the user is an admin before proceeding
 async function isAdmin(req: NextRequest) {
-  const secret = process.env.NEXTAUTH_SECRET;
-  if (!secret) {
-    throw new Error("NEXTAUTH_SECRET is not set.");
+  const supabase = createRouteHandlerClient({ cookies });
+  
+  const { data: { session } } = await supabase.auth.getSession();
+  
+  if (!session) {
+    return false;
   }
-  const token = await getToken({ req, secret });
-  return token?.role === 'admin';
+
+  // Check if user has admin role in the users table
+  const { data: userData, error } = await supabase
+    .from('users')
+    .select('role')
+    .eq('id', session.user.id)
+    .single();
+
+  if (error || !userData) {
+    return false;
+  }
+
+  return userData.role === 'admin';
 }
 
 export async function POST(req: NextRequest) {

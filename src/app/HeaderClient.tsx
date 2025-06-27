@@ -34,7 +34,7 @@ export default function HeaderClient() {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
-    router.push('/');
+    router.push('/login');
   };
 
   return (
@@ -59,7 +59,7 @@ export default function HeaderClient() {
               </button>
             </>
           ) : (
-            <Link href="/signin">
+            <Link href="/login">
               <button className="bg-stone-800 text-white px-4 py-2 rounded-md text-sm font-semibold hover:bg-stone-900 transition-colors">
                 Login
               </button>

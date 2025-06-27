@@ -21,7 +21,7 @@ export default async function WatchPage({ params }: { params: { videoId: string 
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect('/signin');
+    redirect('/login');
   }
 
   const hasAccess = await verifyPurchase(user.id, params.videoId);

@@ -86,7 +86,7 @@ export default function AuthErrorPage() {
           className="space-y-4"
         >
           <Link
-            href="/signin"
+            href="/login"
             className="w-full inline-flex justify-center items-center px-4 py-3 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors"
           >
             <LogIn className="w-4 h-4 mr-2" />

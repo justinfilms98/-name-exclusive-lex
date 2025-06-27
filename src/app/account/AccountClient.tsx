@@ -4,6 +4,7 @@ import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import type { User } from '@supabase/supabase-js';
 import type { Purchase, CollectionMedia } from '@prisma/client';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 
 type UserProfile = {
   role?: string;
@@ -18,7 +19,9 @@ export default function AccountClient() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [purchases, setPurchases] = useState<PurchaseWithMedia[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showWelcome, setShowWelcome] = useState(false);
   const supabase = createClientComponentClient();
+  const searchParams = useSearchParams();
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -27,6 +30,14 @@ export default function AccountClient() {
       setUser(user);
 
       if (user) {
+        // Check if user just logged in (redirected from auth callback)
+        const fromAuth = searchParams?.get('fromAuth');
+        if (fromAuth === 'true') {
+          setShowWelcome(true);
+          // Remove the query parameter
+          window.history.replaceState({}, document.title, window.location.pathname);
+        }
+
         // Fetch the user's role from the 'users' table in the 'public' schema
         const { data, error } = await supabase
           .from('users')
@@ -55,7 +66,7 @@ export default function AccountClient() {
     };
 
     fetchUserData();
-  }, [supabase]);
+  }, [supabase, searchParams]);
 
   if (loading) {
     return (
@@ -75,6 +86,37 @@ export default function AccountClient() {
 
   return (
     <div className="max-w-4xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+      {showWelcome && (
+        <div className="mb-8 bg-green-50 border border-green-200 rounded-lg p-6">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <svg className="h-6 w-6 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <h3 className="text-lg font-medium text-green-800">
+                Welcome back, {user.email}!
+              </h3>
+              <p className="mt-1 text-sm text-green-700">
+                You have successfully signed in to your account.
+              </p>
+            </div>
+            <div className="ml-auto pl-3">
+              <button
+                onClick={() => setShowWelcome(false)}
+                className="text-green-400 hover:text-green-600"
+              >
+                <span className="sr-only">Dismiss</span>
+                <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="text-center mb-12">
         <h1 className="text-4xl font-extrabold text-gray-900 sm:text-5xl md:text-6xl font-serif">
           My Account
@@ -107,6 +149,24 @@ export default function AccountClient() {
           </div>
         </div>
       </div>
+
+      {profile?.role === 'admin' && (
+        <div className="bg-white shadow-lg rounded-lg overflow-hidden mb-8">
+          <div className="px-4 py-5 sm:p-6">
+            <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
+              Admin Access
+            </h3>
+            <p className="text-sm text-gray-600 mb-4">
+              As an admin, you have access to the content management system.
+            </p>
+            <Link href="/admin">
+              <button className="bg-purple-600 text-white px-6 py-3 rounded-md text-sm font-semibold hover:bg-purple-700 transition-colors">
+                Access Content Management
+              </button>
+            </Link>
+          </div>
+        </div>
+      )}
 
       <div className="bg-white shadow-lg rounded-lg overflow-hidden">
         <div className="px-4 py-5 sm:p-6">

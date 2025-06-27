@@ -103,7 +103,7 @@ export default function HeroSection() {
           {!user ? (
             <button
               className="bg-[#654C37] text-[#F2E0CF] px-8 py-3 rounded-full hover:bg-[#654C37]/90 transition-all duration-300 hover-lift focus-ring border border-[#C9BBA8]/[0.12] shadow-lg text-lg font-semibold"
-              onClick={() => router.push('/signin')}
+              onClick={() => router.push('/login')}
             >
               Login
             </button>

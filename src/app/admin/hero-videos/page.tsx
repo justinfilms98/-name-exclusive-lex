@@ -1,6 +1,9 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import type { User } from '@supabase/supabase-js';
+import { useRouter } from 'next/navigation';
 import HeroVideoModal from './HeroVideoModal';
 import HeroUploadWidget from '@/components/HeroUploadWidget';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, Legend, CartesianGrid } from 'recharts';
@@ -112,6 +115,37 @@ export default function HeroVideosPage() {
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const [pricingModalOpen, setPricingModalOpen] = useState(false);
   const [pricingVideo, setPricingVideo] = useState<HeroVideo | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [userRole, setUserRole] = useState<string>('');
+  const supabase = createClientComponentClient();
+  const router = useRouter();
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+
+      if (user) {
+        // Fetch the user's role from the 'users' table
+        const { data, error } = await supabase
+          .from('users')
+          .select('role')
+          .eq('id', user.id)
+          .single();
+        
+        if (!error && data) {
+          setUserRole(data.role || 'user');
+        }
+      }
+    };
+
+    fetchUserData();
+  }, [supabase]);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    router.push('/login');
+  };
 
   async function fetchVideos() {
     setLoading(true);
@@ -198,7 +232,7 @@ export default function HeroVideosPage() {
         message: 'Video deleted successfully!'
       });
       
-      await fetchVideos();
+      fetchVideos();
     } catch (err) {
       setNotification({
         type: 'error',
@@ -211,19 +245,35 @@ export default function HeroVideosPage() {
 
   const handleSavePricing = async (pricing: any[]) => {
     if (!pricingVideo) return;
+    
     setLoading(true);
     try {
-      const res = await fetch('/api/hero-videos/pricing', {
-        method: 'POST',
+      const res = await fetch('/api/hero-videos', {
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ videoId: pricingVideo.id, pricing }),
+        body: JSON.stringify({ 
+          id: pricingVideo.id, 
+          pricing 
+        }),
       });
-      if (!res.ok) throw new Error('Failed to save pricing');
-      setNotification({ type: 'success', message: 'Pricing updated!' });
+
+      if (!res.ok) {
+        const error: ApiError = await res.json();
+        throw new Error(error.error || 'Failed to update pricing');
+      }
+
+      setNotification({
+        type: 'success',
+        message: 'Pricing updated successfully!'
+      });
+      
       setPricingModalOpen(false);
-      await fetchVideos();
+      fetchVideos();
     } catch (err) {
-      setNotification({ type: 'error', message: err instanceof Error ? err.message : 'Failed to save pricing' });
+      setNotification({
+        type: 'error',
+        message: err instanceof Error ? err.message : 'Failed to update pricing'
+      });
     } finally {
       setLoading(false);
     }
@@ -240,12 +290,42 @@ export default function HeroVideosPage() {
   const handleUploadError = (error: string) => {
     setNotification({
       type: 'error',
-      message: error
+      message: 'Upload failed: ' + error
     });
   };
 
   return (
     <div className="pt-8">
+      {/* Session Info and Logout */}
+      {user && (
+        <div className="bg-white shadow-sm border-b px-4 sm:px-6 lg:px-8 py-4 mb-6">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center space-x-4">
+              <div className="text-sm text-gray-600">
+                <span className="font-medium">Signed in as:</span> {user.email}
+              </div>
+              <div className="text-sm text-gray-600">
+                <span className="font-medium">Role:</span> {userRole || 'User'}
+              </div>
+            </div>
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={() => router.push('/account')}
+                className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                My Account
+              </button>
+              <button
+                onClick={handleSignOut}
+                className="bg-red-600 text-white px-4 py-2 rounded-md text-sm font-semibold hover:bg-red-700 transition-colors"
+              >
+                Sign Out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Page header */}
       <div className="flex justify-between items-center mb-8 px-4 sm:px-6 lg:px-8">
         <h1 className="text-2xl font-bold text-gray-900">Manage Hero Videos</h1>

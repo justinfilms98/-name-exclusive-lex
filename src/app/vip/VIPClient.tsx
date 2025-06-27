@@ -1,21 +1,34 @@
 "use client";
 
-import { useSession } from "next-auth/react";
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import type { User } from '@supabase/supabase-js';
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 // import { toast } from '@/components/Toast'; // Placeholder for toast notifications
 
 export default function VIPClient() {
-  const { data: session, status } = useSession();
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+  const supabase = createClientComponentClient();
   const router = useRouter();
 
   useEffect(() => {
-    if (status === "unauthenticated") {
+    const fetchUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+      setLoading(false);
+    };
+
+    fetchUser();
+  }, [supabase]);
+
+  useEffect(() => {
+    if (!loading && !user) {
       router.push("/");
     }
-  }, [status, router]);
+  }, [user, loading, router]);
 
-  if (status === "loading") {
+  if (loading) {
     return (
       <main className="container mx-auto px-4 py-8 pt-28">
         <div className="flex justify-center items-center min-h-[60vh]">
@@ -25,7 +38,7 @@ export default function VIPClient() {
     );
   }
 
-  if (!session) {
+  if (!user) {
     return null; // Will redirect due to useEffect
   }
 
