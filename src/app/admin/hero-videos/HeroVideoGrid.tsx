@@ -15,7 +15,15 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
-function HeroVideoItem({ id, title, videoUrl }) {
+// Add or import the HeroVideo type
+export type HeroVideo = {
+  id: string | number;
+  title: string;
+  videoUrl: string;
+  order?: number;
+};
+
+function HeroVideoItem({ id, title, videoUrl }: HeroVideo) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -29,20 +37,20 @@ function HeroVideoItem({ id, title, videoUrl }) {
   );
 }
 
-export default function HeroVideoGrid({ videos, setVideos }) {
+export default function HeroVideoGrid({ videos, setVideos }: { videos: HeroVideo[]; setVideos: (v: HeroVideo[]) => void }) {
   // Only show 3 slots, fill with empty if needed
   const sorted = [...videos].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
   const padded = [...sorted];
-  while (padded.length < 3) padded.push(null);
+  while (padded.length < 3) padded.push(null as any);
 
   const sensors = useSensors(useSensor(PointerSensor));
 
-  const handleDragEnd = async (event) => {
+  const handleDragEnd = async (event: any) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
     const oldIndex = videos.findIndex((v) => v.id === active.id);
     const newIndex = videos.findIndex((v) => v.id === over.id);
-    const newOrder = arrayMove(videos, oldIndex, newIndex);
+    const newOrder = arrayMove<HeroVideo>(videos, oldIndex, newIndex);
     setVideos(newOrder);
     // Call reorder API
     await fetch("/api/admin/hero-videos/reorder", {
