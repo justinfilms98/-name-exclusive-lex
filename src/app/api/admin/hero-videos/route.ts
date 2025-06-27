@@ -8,6 +8,12 @@ export async function POST(req: NextRequest) {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+  // Guard: Max 3 hero videos
+  const count = await prisma.heroVideo.count();
+  if (count >= 3) {
+    return NextResponse.json({ error: 'Max 3 hero videos allowed' }, { status: 403 });
+  }
+
   try {
     const formData = await req.formData();
     const title = formData.get('title') as string;
@@ -31,6 +37,31 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error('API Error in /api/admin/hero-videos:', error);
+    return NextResponse.json({ error: error.message || 'An unexpected error occurred' }, { status: 500 });
+  }
+}
+
+export async function PUT(req: NextRequest) {
+  const supabase = createRouteHandlerClient({ cookies });
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  try {
+    const { id, title, subtitle, displayOrder } = await req.json();
+    if (!id) {
+      return NextResponse.json({ error: 'Missing video id' }, { status: 400 });
+    }
+    const updateData: any = {};
+    if (title !== undefined) updateData.title = title;
+    if (subtitle !== undefined) updateData.subtitle = subtitle;
+    if (displayOrder !== undefined) updateData.displayOrder = displayOrder;
+    await prisma.heroVideo.update({
+      where: { id },
+      data: updateData,
+    });
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    console.error('API Error in PUT /api/admin/hero-videos:', error);
     return NextResponse.json({ error: error.message || 'An unexpected error occurred' }, { status: 500 });
   }
 } 

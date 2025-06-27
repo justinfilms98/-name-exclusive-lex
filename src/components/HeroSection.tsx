@@ -7,9 +7,9 @@ import type { User } from "@supabase/supabase-js";
 interface HeroVideo {
   id: number;
   videoUrl: string;
-  order: number;
+  displayOrder?: number;
   title?: string;
-  description?: string;
+  subtitle?: string;
 }
 
 export default function HeroSection() {
@@ -44,7 +44,7 @@ export default function HeroSection() {
         .then((data) => {
           setVideos(
             data
-              .sort((a: HeroVideo, b: HeroVideo) => a.order - b.order)
+              .sort((a: HeroVideo, b: HeroVideo) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0))
               .slice(0, 3)
           );
         });
@@ -96,7 +96,7 @@ export default function HeroSection() {
             {videos[current]?.title || 'Intimacy, Redefined'}
           </h1>
           <p className="text-xl md:text-2xl text-[#F2E0CF] mb-0 text-center [text-shadow:_0_1px_2px_rgba(0,0,0,0.2)]" style={{opacity: 1}}>
-            {videos[current]?.description || 'A private collection of sensual elegance'}
+            {videos[current]?.subtitle || 'A private collection of sensual elegance'}
           </p>
         </div>
         <div className="mt-8">

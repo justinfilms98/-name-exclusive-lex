@@ -20,12 +20,17 @@ export default function HeroUploadWidget({ onUploadComplete, onError }: HeroUplo
           setIsUploading(false);
           const url = res?.[0]?.url;
           if (!url) return onError?.("No file URL");
+          // Guard: Max 3 hero videos
+          const { data: existing } = await supabase.from("hero_videos").select("*");
+          if (existing && existing.length >= 3) {
+            onError?.("Max 3 hero videos allowed");
+            return;
+          }
           const { error } = await supabase.from("hero_videos").insert({
             title: "New Hero Video",
             subtitle: "Uploaded via UploadThing",
             video_url: url,
             display_order: 1,
-            moderated: false,
           });
           if (error) {
             onError?.(`Database error: ${error.message}`);
