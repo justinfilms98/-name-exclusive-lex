@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import HeroVideoModal from './HeroVideoModal';
 import HeroUploadWidget from '@/components/HeroUploadWidget';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, Legend, CartesianGrid } from 'recharts';
+import HeroVideoGrid from './HeroVideoGrid';
 
 interface HeroVideo {
   id: number;
@@ -330,7 +331,7 @@ export default function HeroVideosPage() {
       <div className="flex justify-between items-center mb-8 px-4 sm:px-6 lg:px-8">
         <h1 className="text-2xl font-bold text-gray-900">Manage Hero Videos</h1>
         <button
-          onClick={() => handleOpen(0)}
+          onClick={() => setModalOpen(true)}
           className="bg-blue-600 text-white px-4 py-2 rounded-md shadow-sm hover:bg-blue-700"
         >
           Add Hero Video
@@ -361,127 +362,17 @@ export default function HeroVideosPage() {
         </div>
       </div>
       
-      {/* Video List */}
+      {/* Drag-and-drop Hero Video Grid */}
       <div className="px-4 sm:px-6 lg:px-8">
-        <div className="border-4 border-dashed border-gray-200 rounded-lg min-h-[24rem] p-6 flex gap-6">
-          {[0, 1, 2].map((slot) => {
-            const video = videos.sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0))[slot];
-            return (
-              <div key={slot} className="flex-1 bg-white rounded-lg shadow p-4 flex flex-col items-center border relative">
-                {video ? (
-                  <>
-                    <video src={video.videoUrl} controls className="w-full h-40 object-cover rounded mb-2" />
-                    <input
-                      className="border rounded px-2 py-1 w-full mb-2"
-                      value={video.title || ''}
-                      onChange={e => {
-                        const newTitle = e.target.value;
-                        setVideos(videos.map(v => v.id === video.id ? { ...v, title: newTitle } : v));
-                      }}
-                      onBlur={async e => {
-                        const newTitle = e.target.value;
-                        await fetch('/api/admin/hero-videos', {
-                          method: 'PUT',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ id: video.id, title: newTitle }),
-                        });
-                        fetchVideos();
-                      }}
-                      placeholder="Title"
-                    />
-                    <input
-                      className="border rounded px-2 py-1 w-full mb-2"
-                      value={video.subtitle || ''}
-                      onChange={e => {
-                        const newSubtitle = e.target.value;
-                        setVideos(videos.map(v => v.id === video.id ? { ...v, subtitle: newSubtitle } : v));
-                      }}
-                      onBlur={async e => {
-                        const newSubtitle = e.target.value;
-                        await fetch('/api/admin/hero-videos', {
-                          method: 'PUT',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ id: video.id, subtitle: newSubtitle }),
-                        });
-                        fetchVideos();
-                      }}
-                      placeholder="Subtitle"
-                    />
-                    <div className="flex gap-2 mb-2">
-                      <button
-                        className="px-2 py-1 bg-gray-200 rounded disabled:opacity-50"
-                        disabled={slot === 0}
-                        onClick={async () => {
-                          // Swap with previous
-                          const prevVideo = videos.find(v => (v.displayOrder ?? 0) === (video.displayOrder ?? 0) - 1);
-                          if (!prevVideo) return;
-                          await fetch('/api/admin/hero-videos', {
-                            method: 'PUT',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ id: video.id, displayOrder: prevVideo.displayOrder }),
-                          });
-                          await fetch('/api/admin/hero-videos', {
-                            method: 'PUT',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ id: prevVideo.id, displayOrder: video.displayOrder }),
-                          });
-                          fetchVideos();
-                        }}
-                        title="Move Up"
-                      >▲</button>
-                      <button
-                        className="px-2 py-1 bg-gray-200 rounded disabled:opacity-50"
-                        disabled={slot === videos.length - 1 || slot === 2 || !videos[slot + 1]}
-                        onClick={async () => {
-                          // Swap with next
-                          const nextVideo = videos.find(v => (v.displayOrder ?? 0) === (video.displayOrder ?? 0) + 1);
-                          if (!nextVideo) return;
-                          await fetch('/api/admin/hero-videos', {
-                            method: 'PUT',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ id: video.id, displayOrder: nextVideo.displayOrder }),
-                          });
-                          await fetch('/api/admin/hero-videos', {
-                            method: 'PUT',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ id: nextVideo.id, displayOrder: video.displayOrder }),
-                          });
-                          fetchVideos();
-                        }}
-                        title="Move Down"
-                      >▼</button>
-                    </div>
-                    <div className="flex gap-2 mb-2">
-                      <button
-                        className="px-2 py-1 bg-blue-100 text-blue-700 rounded"
-                        onClick={() => handleOpen(slot, video)}
-                      >Re-upload Video</button>
-                      <button
-                        className="px-2 py-1 bg-red-100 text-red-700 rounded"
-                        onClick={() => handleDelete(video)}
-                      >Delete</button>
-                    </div>
-                  </>
-                ) : (
-                  <div className="flex flex-col items-center justify-center h-full w-full">
-                    <span className="text-gray-400">Empty Slot</span>
-                    <button
-                      className="mt-2 px-3 py-1 bg-blue-600 text-white rounded"
-                      onClick={() => handleOpen(slot)}
-                    >Add Video</button>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
+        <HeroVideoGrid videos={videos} setVideos={setVideos} />
       </div>
 
+      {/* Modal for Add/Edit */}
       <HeroVideoModal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
-        onSaveSuccess={handleSaveSuccess}
-        slotOrder={selectedSlot || 1}
+        onSaveSuccess={fetchVideos}
+        slotOrder={videos.length}
       />
 
       <PricingManagementModal
