@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!media.price || media.price <= 0) {
+    if (!media.price || Number(media.price) <= 0) {
       return NextResponse.json(
         { error: 'Invalid price for this item' },
         { status: 400 }
