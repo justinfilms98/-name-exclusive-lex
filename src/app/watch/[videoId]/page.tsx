@@ -1,4 +1,3 @@
-import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
@@ -17,12 +16,7 @@ async function verifyPurchase(userId: string, videoId: string): Promise<boolean>
 }
 
 export default async function WatchPage({ params }: { params: { videoId: string } }) {
-  const supabase = createServerComponentClient({ cookies });
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect('/login');
-  }
+  // TODO: Replace Supabase logic and User type with NextAuth if needed.
 
   const hasAccess = await verifyPurchase(user.id, params.videoId);
 

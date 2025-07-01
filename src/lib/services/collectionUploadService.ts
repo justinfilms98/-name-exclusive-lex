@@ -1,4 +1,3 @@
-import { supabase } from '@/lib/supabase';
 import { z } from 'zod';
 
 // Validation schemas
@@ -97,15 +96,7 @@ export async function uploadCollectionMedia(
     // Update progress
     onProgress?.({ progress: 0, status: 'uploading' });
 
-    const { data, error } = await supabase.storage.from('media').upload(filePath, file, {
-      cacheControl: '3600',
-      upsert: false,
-    });
-
-    if (error) {
-      console.error('[uploadCollectionMedia] Supabase upload error:', error);
-      throw error;
-    }
+    // TODO: Integrate UploadThing upload logic here. All Supabase code removed.
 
     if (!data || !data.path) {
       console.error('[uploadCollectionMedia] No data or path returned from upload', data);

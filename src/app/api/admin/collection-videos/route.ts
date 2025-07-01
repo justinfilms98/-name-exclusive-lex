@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
 import { getSupabasePublicUrl } from '@/lib/utils';
-import { supabaseAdmin } from '@/lib/supabaseAdmin';
 
 async function isAdmin(req: NextRequest): Promise<boolean> {
   const supabase = createRouteHandlerClient({ cookies });

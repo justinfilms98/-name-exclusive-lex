@@ -1,7 +1,6 @@
 "use client";
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
-import { UploadButton } from '../../uploadthing.config';
 
 interface HeroVideoModalProps {
   open: boolean;
@@ -112,14 +111,7 @@ export default function HeroVideoModal({ open, onClose, onSaveSuccess, slotOrder
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">Video File</label>
-              <UploadButton
-                onUploadComplete={handleUploadComplete}
-                onError={() => setVideoError('Upload failed. Please try again.')}
-              />
-              {videoError && <p className="mt-2 text-sm text-red-600">{videoError}</p>}
-              {videoUrl && (
-                <video src={videoUrl} controls className="mt-2 w-full rounded" />
-              )}
+              {/* TODO: Integrate UploadThing upload button here if needed. */}
             </div>
           </div>
 

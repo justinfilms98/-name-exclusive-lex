@@ -1,5 +1,4 @@
 import { NextRequest } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import formidable, { File } from 'formidable';
 import { PassThrough } from 'stream';
 
@@ -25,18 +24,7 @@ export async function serverUpload(req: NextRequest): Promise<{ fields: formidab
         const bucket = 'videos';
         const filePath = `uploads/${Date.now()}-${file.newFilename}`;
 
-        supabaseAdmin.storage
-          .from(bucket)
-          .upload(filePath, pass, {
-            contentType: file.mimetype,
-            upsert: false,
-          })
-          .then(({ error }) => {
-            if (error) {
-              console.error('Supabase upload error:', error);
-              reject(error);
-            }
-          });
+        // TODO: Integrate UploadThing upload logic here. All Supabase code removed.
         
         file.uploadedFilePath = filePath;
 

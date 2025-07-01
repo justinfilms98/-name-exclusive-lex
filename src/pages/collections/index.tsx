@@ -1,6 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
-import type { User } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
 
 interface CollectionVideo {
@@ -21,18 +19,17 @@ export default function CollectionsPage() {
   const [videosLoading, setVideosLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
-  const supabase = createClientComponentClient();
   const router = useRouter();
 
   useEffect(() => {
     const fetchUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
+      // TODO: Replace Supabase logic with NextAuth if needed.
+      setUser(null);
       setLoading(false);
     };
 
     fetchUser();
-  }, [supabase]);
+  }, []);
 
   useEffect(() => {
     fetchVideos();
@@ -90,12 +87,7 @@ export default function CollectionsPage() {
   }
 
   const handleSignIn = async () => {
-    await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-      }
-    });
+    // TODO: Replace Supabase logic with NextAuth if needed.
   };
 
   if (loading) return <p>Loading...</p>;

@@ -1,7 +1,5 @@
 "use client";
 
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
-import type { User } from '@supabase/supabase-js';
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 // import { toast } from '@/components/Toast'; // Placeholder for toast notifications
@@ -9,18 +7,17 @@ import { useEffect, useState } from "react";
 export default function VIPClient() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const supabase = createClientComponentClient();
   const router = useRouter();
 
   useEffect(() => {
     const fetchUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
+      // TODO: Replace Supabase logic with NextAuth if needed.
+      setUser(null);
       setLoading(false);
     };
 
     fetchUser();
-  }, [supabase]);
+  }, []);
 
   useEffect(() => {
     if (!loading && !user) {

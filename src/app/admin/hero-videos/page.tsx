@@ -1,8 +1,6 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
-import type { User } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
 import HeroVideoModal from './HeroVideoModal';
 import HeroUploadWidget from '@/components/HeroUploadWidget';
@@ -116,37 +114,7 @@ export default function HeroVideosPage() {
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const [pricingModalOpen, setPricingModalOpen] = useState(false);
   const [pricingVideo, setPricingVideo] = useState<HeroVideo | null>(null);
-  const [user, setUser] = useState<User | null>(null);
-  const [userRole, setUserRole] = useState<string>('');
-  const supabase = createClientComponentClient();
   const router = useRouter();
-
-  useEffect(() => {
-    const fetchUserData = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
-
-      if (user) {
-        // Fetch the user's role from the 'users' table
-        const { data, error } = await supabase
-          .from('users')
-          .select('role')
-          .eq('id', user.id)
-          .single();
-        
-        if (!error && data) {
-          setUserRole(data.role || 'user');
-        }
-      }
-    };
-
-    fetchUserData();
-  }, [supabase]);
-
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    router.push('/login');
-  };
 
   async function fetchVideos() {
     setLoading(true);
@@ -297,36 +265,6 @@ export default function HeroVideosPage() {
 
   return (
     <div className="pt-8">
-      {/* Session Info and Logout */}
-      {user && (
-        <div className="bg-white shadow-sm border-b px-4 sm:px-6 lg:px-8 py-4 mb-6">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center space-x-4">
-              <div className="text-sm text-gray-600">
-                <span className="font-medium">Signed in as:</span> {user.email}
-              </div>
-              <div className="text-sm text-gray-600">
-                <span className="font-medium">Role:</span> {userRole || 'User'}
-              </div>
-            </div>
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={() => router.push('/account')}
-                className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
-              >
-                My Account
-              </button>
-              <button
-                onClick={handleSignOut}
-                className="bg-red-600 text-white px-4 py-2 rounded-md text-sm font-semibold hover:bg-red-700 transition-colors"
-              >
-                Sign Out
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Page header */}
       <div className="flex justify-between items-center mb-8 px-4 sm:px-6 lg:px-8">
         <h1 className="text-2xl font-bold text-gray-900">Manage Hero Videos</h1>
