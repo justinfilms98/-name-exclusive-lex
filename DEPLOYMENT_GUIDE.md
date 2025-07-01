@@ -1,162 +1,297 @@
-# 🚀 Production Deployment Guide
+# 🚀 Production-Ready Content Sales Platform Deployment Guide
 
-This guide will walk you through deploying your video streaming application to production using Supabase, Vercel, and GitHub.
+## 📋 Overview
 
-## 📋 Prerequisites
+This guide covers the complete deployment of your content sales platform using:
+- **Frontend & API**: Vercel (Next.js)
+- **Database**: Railway PostgreSQL
+- **File Storage**: UploadThing
+- **Payments**: Stripe
+- **Authentication**: NextAuth.js
 
-- GitHub account
-- Supabase account (free tier available)
-- Vercel account (free tier available)
-- Stripe account (for payments)
-- Google Cloud Console access (for OAuth)
+## 🗄️ Database Setup (Railway)
 
-## 🔄 Step 1: Push Code to GitHub
+### 1. Create Railway PostgreSQL Database
 
-First, ensure your `package.json` build script is correct and push all changes to GitHub.
+1. Go to [Railway](https://railway.app) and create a new project
+2. Add a PostgreSQL service
+3. Copy the connection string from the **Connect** tab
+4. Format: `postgresql://username:password@host:port/database`
 
-Your `"build"` script in `package.json` should look like this:
-`"build": "prisma generate && prisma migrate deploy && next build"`
-
-This command ensures that every time you deploy to Vercel, your database schema is automatically created and updated before the application is built.
+### 2. Configure Database Schema
 
 ```bash
-# Add all your recent changes
-git add .
-# Commit the changes
-git commit -m "feat: Configure automatic migrations for deployment"
-# Push to your main branch
-git push origin main
+# Generate Prisma client
+npx prisma generate
+
+# Run migrations to create tables
+npx prisma migrate deploy
+
+# (Optional) Seed initial data
+npx prisma db seed
 ```
 
-## 🗄️ Step 2: Initial Setup of Services
+### 3. Environment Variables for Database
 
-### 2.1 Create Supabase Project
-1.  Go to [supabase.com](https://supabase.com) and create a new project.
-2.  Go to **Settings > Database** and copy the **Connection string** (URI). You will need this for Vercel.
+Add to your `.env.local`:
+```bash
+DATABASE_URL="postgresql://username:password@host:port/database"
+```
 
-### 2.2 Configure Google OAuth
-1.  Go to the [Google Cloud Console](https://console.cloud.google.com) and set up an OAuth 2.0 Client ID.
-2.  Copy the **Client ID** and **Client Secret**.
+## 🔐 Authentication Setup (NextAuth.js)
 
-### 2.3 Configure Stripe
-1.  Go to the [Stripe Dashboard](https://dashboard.stripe.com) and get your **live** API keys.
-2.  Create a webhook endpoint but leave it pointing to a placeholder for now. You'll get the final URL from Vercel after deployment.
+### 1. Google OAuth Configuration
 
-## 🌐 Step 3: Deploy to Vercel
+1. Go to [Google Cloud Console](https://console.cloud.google.com)
+2. Create a new project or select existing
+3. Enable Google+ API
+4. Create OAuth 2.0 credentials
+5. Add authorized redirect URIs:
+   - `https://your-domain.vercel.app/api/auth/callback/google`
+   - `http://localhost:3000/api/auth/callback/google` (for development)
 
-### 3.1 Connect GitHub Repository
-1.  Go to [vercel.com](https://vercel.com) and create a **New Project**.
-2.  Import your GitHub repository. Vercel should automatically detect it as a Next.js project.
+### 2. Generate NextAuth Secret
 
-### 3.2 Set Environment Variables
-In the Vercel project settings, go to **Settings > Environment Variables** and add all the secrets you gathered in Step 2. Use `env.production.example` as a reference.
+```bash
+# Generate a secure random string
+openssl rand -base64 32
+```
 
-The most important variable for the first deployment is the `DATABASE_URL`.
+### 3. Environment Variables for Auth
 
-### 3.3 Deploy
-1.  Click **Deploy**.
-2.  Vercel will start the build process. You can monitor the logs. The `prisma migrate deploy` command will run, creating all the tables from your `prisma/migrations` directory in your Supabase database.
-3.  Once the deployment is successful, your app will be live at a Vercel-provided domain (e.g., `your-project.vercel.app`).
+```bash
+NEXTAUTH_URL="https://your-domain.vercel.app"
+NEXTAUTH_SECRET="your_generated_secret"
+GOOGLE_CLIENT_ID="your_google_client_id"
+GOOGLE_CLIENT_SECRET="your_google_client_secret"
+```
 
-## 🔧 Step 4: Post-Deployment Configuration
+## 💳 Payment Setup (Stripe)
 
-Now that the database tables exist, you can apply your security policies and other configurations.
+### 1. Stripe Account Configuration
 
-### 4.1 Apply Supabase SQL Policies
-1.  Go to your Supabase project dashboard.
-2.  Navigate to **SQL Editor**.
-3.  Copy the entire contents of `supabase-production-setup.sql` and paste it into the editor.
-4.  Click **Run** to execute the script. This will set up your RLS policies, functions, views, and storage policies.
+1. Create a [Stripe account](https://stripe.com)
+2. Get your API keys from the dashboard
+3. Create a webhook endpoint:
+   - URL: `https://your-domain.vercel.app/api/webhooks/stripe`
+   - Events: `checkout.session.completed`, `payment_intent.succeeded`, `payment_intent.payment_failed`
 
-### 4.2 Update Service URLs
-1.  **Google OAuth**: Go back to your Google Cloud credentials and add the Vercel domain to your Authorized redirect URIs: `https://your-project.vercel.app/api/auth/callback/google`
-2.  **Stripe Webhook**: Go to your Stripe dashboard and update your webhook endpoint URL to point to your Vercel deployment: `https://your-project.vercel.app/api/webhooks/stripe`
-3.  **Supabase Storage CORS**: Go to your Supabase Storage settings and add your Vercel domain to the CORS origins for your buckets.
+### 2. Environment Variables for Stripe
 
-## ✅ Step 5: Final Testing
+```bash
+STRIPE_SECRET_KEY="sk_live_your_stripe_secret"
+STRIPE_PUBLIC_KEY="pk_live_your_stripe_public"
+STRIPE_WEBHOOK_SECRET="whsec_your_webhook_secret"
+```
 
-You are now ready to test the entire application flow on your live production URL.
-1.  **User Registration/Login**: Sign in with Google.
-2.  **Shopping Cart**: Add items to the cart.
-3.  **Stripe Checkout**: Complete a test purchase.
-4.  **Content Access**: Verify that you can watch purchased videos.
-5.  **Account Page**: Check that your purchase history is displayed correctly.
+## 📁 File Upload Setup (UploadThing)
+
+### 1. UploadThing Configuration
+
+1. Sign up at [UploadThing](https://uploadthing.com)
+2. Create a new project
+3. Get your API token from the dashboard
+
+### 2. Environment Variables for UploadThing
+
+```bash
+UPLOADTHING_TOKEN="your_uploadthing_token"
+```
+
+## 🌐 Frontend Deployment (Vercel)
+
+### 1. Connect Repository
+
+1. Go to [Vercel](https://vercel.com)
+2. Import your GitHub repository
+3. Configure build settings:
+   - Framework Preset: Next.js
+   - Build Command: `npm run build`
+   - Output Directory: `.next`
+
+### 2. Environment Variables in Vercel
+
+Add all environment variables from the sections above to Vercel's environment variables section.
+
+### 3. Domain Configuration
+
+1. Add your custom domain in Vercel
+2. Update `NEXTAUTH_URL` to match your domain
+3. Update Google OAuth redirect URIs
+
+## 🔧 Railway Backend (Optional)
+
+If you want to run backend services on Railway:
+
+### 1. Create Railway Service
+
+1. Add a new service to your Railway project
+2. Connect your GitHub repository
+3. Configure environment variables
+
+### 2. Fix Build Issues
+
+The project includes Node.js engine specification:
+```json
+{
+  "engines": {
+    "node": "18.x"
+  }
+}
+```
+
+### 3. Environment Variables on Railway
+
+Add the same environment variables to your Railway service.
+
+## 📊 Monitoring & Analytics
+
+### 1. Vercel Analytics (Optional)
+
+Enable Vercel Analytics in your `next.config.js`:
+```javascript
+const nextConfig = {
+  experimental: {
+    analyticsId: 'your_analytics_id'
+  }
+};
+```
+
+### 2. Error Tracking
+
+Consider adding error tracking services like Sentry or LogRocket.
+
+## 🔒 Security Checklist
+
+### 1. Environment Variables
+- [ ] All secrets are in environment variables
+- [ ] No secrets committed to repository
+- [ ] Production secrets are different from development
+
+### 2. Authentication
+- [ ] NextAuth.js properly configured
+- [ ] Google OAuth working
+- [ ] Admin role protection implemented
+
+### 3. Database
+- [ ] Railway PostgreSQL connected
+- [ ] Migrations applied
+- [ ] Connection string secure
+
+### 4. Payments
+- [ ] Stripe webhook configured
+- [ ] Test payments working
+- [ ] Production keys in use
+
+### 5. File Uploads
+- [ ] UploadThing configured
+- [ ] Large file uploads working
+- [ ] File access secured
+
+## 🧪 Testing Checklist
+
+### 1. Authentication Flow
+- [ ] User registration works
+- [ ] User login works
+- [ ] Admin access restricted
+- [ ] Logout works
+
+### 2. Content Management
+- [ ] Admin can upload videos
+- [ ] Content displays correctly
+- [ ] File access is secure
+
+### 3. Payment Flow
+- [ ] Checkout session creation
+- [ ] Payment processing
+- [ ] Purchase verification
+- [ ] Content access after purchase
+
+### 4. User Experience
+- [ ] Responsive design
+- [ ] Loading states
+- [ ] Error handling
+- [ ] Success messages
 
 ## 🚨 Troubleshooting
 
-### Common Issues:
+### Common Issues
 
 1. **Database Connection Errors**
-   - Verify DATABASE_URL is correct
-   - Check if Supabase project is active
-   - Ensure SQL setup was run successfully
+   - Check `DATABASE_URL` format
+   - Verify Railway service is running
+   - Check network connectivity
 
 2. **Authentication Issues**
-   - Verify Google OAuth redirect URI matches exactly
-   - Check NEXTAUTH_SECRET is set
-   - Ensure NEXTAUTH_URL matches your domain
+   - Verify Google OAuth credentials
+   - Check redirect URIs
+   - Ensure `NEXTAUTH_URL` is correct
 
-3. **Stripe Webhook Failures**
-   - Verify webhook URL is correct
-   - Check webhook secret matches
-   - Ensure endpoint is accessible
+3. **Payment Issues**
+   - Verify Stripe keys
+   - Check webhook endpoint
+   - Test with Stripe test mode
 
-4. **Storage Access Issues**
-   - Verify storage buckets exist
+4. **File Upload Issues**
+   - Check UploadThing token
+   - Verify file size limits
    - Check CORS settings
-   - Ensure storage policies are correct
 
-### Debug Commands:
+### Debug Commands
 
 ```bash
-# Check Vercel deployment logs
-vercel logs
+# Check database connection
+npx prisma db push
 
-# Test database connection locally
-npx prisma db pull
+# Generate Prisma client
+npx prisma generate
 
-# Verify environment variables
-vercel env ls
+# View database
+npx prisma studio
+
+# Test Stripe webhook locally
+stripe listen --forward-to localhost:3000/api/webhooks/stripe
 ```
 
-## 📊 Monitoring
+## 📈 Future Enhancements
 
-### Vercel Analytics
-- Enable Vercel Analytics in your project
-- Monitor performance and errors
+The platform is prepared for these future features:
 
-### Supabase Monitoring
-- Check database performance in Supabase dashboard
-- Monitor storage usage
+### 1. Email Notifications
+- Resend or Postmark integration
+- Purchase confirmations
+- Admin notifications
 
-### Stripe Dashboard
-- Monitor payment success rates
-- Check webhook delivery status
+### 2. WhatsApp Integration
+- Twilio API setup
+- Purchase notifications
+- Customer support
 
-## 🔄 Continuous Deployment
+### 3. Rate Limiting
+- Upstash Redis integration
+- API protection
+- Abuse prevention
 
-Your app will automatically redeploy when you push to the `main` branch on GitHub.
+### 4. Analytics
+- Vercel Analytics
+- Custom event tracking
+- User behavior analysis
 
-To update your app:
-1. Make changes locally
-2. Test thoroughly
-3. Commit and push to GitHub
-4. Vercel will automatically deploy
+## 📞 Support
 
-## 🎉 Success!
+For deployment issues:
+1. Check Vercel and Railway logs
+2. Verify environment variables
+3. Test locally with production settings
+4. Review this guide's troubleshooting section
 
-Your video streaming application is now live and ready for users! 
+## 🎉 Deployment Complete!
 
-**Next Steps:**
-- Add your own video content through the admin panel
-- Customize the design and branding
-- Set up monitoring and analytics
-- Consider adding more payment methods
-- Implement user feedback and support systems
+Once all steps are completed, your content sales platform will be:
+- ✅ Production-ready
+- ✅ Scalable
+- ✅ Secure
+- ✅ Monitored
+- ✅ Future-proof
 
----
-
-**Need Help?**
-- Check the troubleshooting section above
-- Review Vercel and Supabase documentation
-- Test thoroughly in development before deploying changes 
+Your platform is now ready to sell content and grow your business! 

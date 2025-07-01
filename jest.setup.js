@@ -76,12 +76,9 @@ Object.defineProperty(window, 'matchMedia', {
   })),
 });
 
-// Mock Supabase client
-jest.mock('@/lib/supabase');
-
 // Mock environment variables
-process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://test.supabase.co';
-process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key';
+process.env.NEXTAUTH_URL = 'http://localhost:3000';
+process.env.NEXTAUTH_SECRET = 'test-secret';
 
 // Mock window.URL.createObjectURL
 window.URL.createObjectURL = jest.fn(() => 'blob:test-url');

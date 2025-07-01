@@ -11,7 +11,6 @@ const nextConfig = {
       // Add more remotePatterns if needed
     ],
     domains: [
-      'qqfafeqqtozfnrpusszo.supabase.co', // Correct Supabase project ref
       'images.unsplash.com', // Keep Unsplash if used
     ],
   },

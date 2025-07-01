@@ -1,81 +1,20 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabaseAdmin';
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { generateUploadThingUrl } from '@/lib/services/uploadService';
 
-// Ensure the user is an admin before proceeding
-async function isAdmin(req: NextRequest) {
-  const supabase = createRouteHandlerClient({ cookies });
-  
-  const { data: { session } } = await supabase.auth.getSession();
-  
-  if (!session) {
-    return false;
+export async function GET() {
+  const session = await getServerSession(authOptions);
+
+  if (!session || !session.user || session.user.role !== 'admin') {
+    return new Response('Unauthorized', { status: 401 });
   }
 
-  // Check if user has admin role in the users table
-  const { data: userData, error } = await supabase
-    .from('users')
-    .select('role')
-    .eq('id', session.user.id)
-    .single();
-
-  if (error || !userData) {
-    return false;
-  }
-
-  return userData.role === 'admin';
-}
-
-export async function POST(req: NextRequest) {
   try {
-    if (!await isAdmin(req)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
-    }
-
-    const { fileName, fileType, collection } = await req.json();
-
-    if (!fileName || !fileType || !collection) {
-      return NextResponse.json({ error: 'Missing required fields: fileName, fileType, collection' }, { status: 400 });
-    }
-
-    // Determine bucket and path based on collection type
-    let bucketName: string;
-    let filePath: string;
-
-    if (collection === 'hero-videos') {
-      bucketName = 'videos';
-      filePath = `hero/${Date.now()}-${fileName}`;
-    } else if (collection === 'hero-videos/thumbnails') {
-      bucketName = 'thumbnails';
-      filePath = `hero/${Date.now()}-${fileName}`;
-    } else if (collection === 'collection-videos') {
-      bucketName = 'videos';
-      filePath = `collections/${Date.now()}-${fileName}`;
-    } else if (collection === 'collection-videos/thumbnails') {
-      bucketName = 'thumbnails';
-      filePath = `collections/${Date.now()}-${fileName}`;
-    } else {
-      // Default fallback
-      bucketName = 'videos';
-      filePath = `${collection}/${Date.now()}-${fileName}`;
-    }
-
-    console.log(`Creating signed URL for bucket: ${bucketName}, path: ${filePath}`);
-
-    const { data, error } = await supabaseAdmin.storage
-      .from(bucketName)
-      .createSignedUploadUrl(filePath);
-
-    if (error) {
-      console.error('Error creating signed URL:', error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-
-    return NextResponse.json({ ...data, filePath });
-
-  } catch (error: any) {
-    console.error('API Error:', error);
-    return NextResponse.json({ error: error.message || 'An unexpected error occurred' }, { status: 500 });
+    const urlData = await generateUploadThingUrl();
+    return Response.json(urlData);
+  } catch (err: any) {
+    return new Response(`Failed to generate upload URL: ${err.message}`, {
+      status: 500,
+    });
   }
 } 

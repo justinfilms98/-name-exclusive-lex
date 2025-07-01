@@ -1,58 +1,61 @@
-import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs'
-import { NextResponse } from 'next/server'
+// =====================================================
+// NEXT.JS MIDDLEWARE
+// Handles route protection and authentication
+// =====================================================
 
-import type { NextRequest } from 'next/server'
+import { withAuth } from 'next-auth/middleware';
+import { NextResponse } from 'next/server';
 
-export async function middleware(req: NextRequest) {
-  const res = NextResponse.next()
-  const supabase = createMiddlewareClient({ req, res })
-  
-  const { data: { session } } = await supabase.auth.getSession();
-
-  const isAuthRoute = req.nextUrl.pathname.startsWith('/login') || req.nextUrl.pathname.startsWith('/auth/callback');
-
-  // If the user is signed in and they are on an auth route, redirect them to the account page
-  if (session && isAuthRoute) {
-    return NextResponse.redirect(new URL('/account', req.url))
-  }
-
-  // If the user is not signed in and they are on a protected route, redirect them to the login page
-  const isProtectedRoute = req.nextUrl.pathname.startsWith('/account') || req.nextUrl.pathname.startsWith('/admin');
-  if (!session && isProtectedRoute) {
-    return NextResponse.redirect(new URL('/login', req.url))
-  }
-
-  // For admin routes, check if user has admin role
-  if (session && req.nextUrl.pathname.startsWith('/admin')) {
-    try {
-      // Get user role from the users table
-      const { data: userData, error } = await supabase
-        .from('users')
-        .select('role')
-        .eq('id', session.user.id)
-        .single();
-
-      if (error || !userData || userData.role !== 'admin') {
-        // User is not an admin, redirect to unauthorized page
-        return NextResponse.redirect(new URL('/unauthorized', req.url))
-      }
-    } catch (error) {
-      // Error fetching user role, redirect to unauthorized page
-      return NextResponse.redirect(new URL('/unauthorized', req.url))
+export default withAuth(
+  function middleware(req) {
+    // This function runs after authentication is verified
+    const token = req.nextauth.token;
+    const isAdminRoute = req.nextUrl.pathname.startsWith('/admin');
+    
+    // Check admin access for admin routes
+    if (isAdminRoute && token?.role !== 'admin') {
+      return NextResponse.redirect(new URL('/unauthorized', req.url));
     }
+  },
+  {
+    callbacks: {
+      authorized: ({ token, req }) => {
+        // Allow access to public routes
+        const publicRoutes = ['/', '/collections', '/hero', '/login', '/auth'];
+        const isPublicRoute = publicRoutes.some(route => 
+          req.nextUrl.pathname.startsWith(route)
+        );
+        
+        if (isPublicRoute) {
+          return true;
+        }
+        
+        // Require authentication for protected routes
+        const protectedRoutes = ['/account', '/admin', '/success', '/checkout'];
+        const isProtectedRoute = protectedRoutes.some(route => 
+          req.nextUrl.pathname.startsWith(route)
+        );
+        
+        if (isProtectedRoute) {
+          return !!token;
+        }
+        
+        return true;
+      },
+    },
   }
-
-  return res
-}
+);
 
 export const config = {
   matcher: [
     /*
      * Match all request paths except for the ones starting with:
+     * - api/auth (NextAuth.js routes)
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
+     * - public folder
      */
-    '/((?!_next/static|_next/image|favicon.ico).*)',
+    '/((?!api/auth|_next/static|_next/image|favicon.ico|public).*)',
   ],
-} 
+}; 

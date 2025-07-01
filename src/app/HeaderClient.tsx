@@ -1,72 +1,84 @@
 "use client";
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import type { User } from '@supabase/supabase-js';
+import { useSession, signOut } from 'next-auth/react';
 import Link from 'next/link';
 
 export default function HeaderClient() {
-  const [user, setUser] = useState<User | null>(null);
+  const { data: session, status } = useSession();
   const [loading, setLoading] = useState(true);
-  const supabase = createClientComponentClient();
   const router = useRouter();
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
+    if (status !== 'loading') {
       setLoading(false);
-      router.refresh(); // Refresh the page to update server components
-    });
-
-    // Also get user on initial load
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
-      setLoading(false);
-    };
-    getUser();
-
-    return () => {
-      subscription?.unsubscribe();
-    };
-  }, [supabase, router]);
+    }
+  }, [status]);
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    router.push('/login');
+    await signOut({ callbackUrl: '/login' });
   };
 
-  return (
-    <div className="flex items-center justify-between px-6 py-4">
-      <div className="flex items-center gap-8">
-        <Link href="/" className="text-2xl font-bold font-serif uppercase tracking-widest text-stone-800">
-          EXCLUSIVE LEX
-        </Link>
-        <Link href="/collections" className="text-stone-600 hover:text-stone-900 transition-colors">
-          Collections
-        </Link>
-      </div>
-      <div className="flex items-center gap-6">
-        {!loading && (
-          user ? (
-            <>
-              <Link href="/account" className="text-stone-600 hover:text-stone-900 transition-colors">
-                My Account
+  if (loading) {
+    return (
+      <header className="bg-white shadow-sm border-b border-stone-200 fixed top-0 left-0 right-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center">
+              <Link href="/" className="text-2xl font-serif text-stone-800">
+                Exclusive Lex
               </Link>
-              <button onClick={handleSignOut} className="bg-stone-800 text-white px-4 py-2 rounded-md text-sm font-semibold hover:bg-stone-900 transition-colors">
-                Sign Out
-              </button>
-            </>
-          ) : (
-            <Link href="/login">
-              <button className="bg-stone-800 text-white px-4 py-2 rounded-md text-sm font-semibold hover:bg-stone-900 transition-colors">
-                Login
-              </button>
+            </div>
+            <div className="animate-pulse bg-stone-200 h-8 w-24 rounded"></div>
+          </div>
+        </div>
+      </header>
+    );
+  }
+
+  return (
+    <header className="bg-white shadow-sm border-b border-stone-200 fixed top-0 left-0 right-0 z-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center h-16">
+          <div className="flex items-center">
+            <Link href="/" className="text-2xl font-serif text-stone-800">
+              Exclusive Lex
             </Link>
-          )
-        )}
+          </div>
+          
+          <nav className="flex items-center space-x-8">
+            <Link href="/collections" className="text-stone-600 hover:text-stone-800 transition-colors">
+              Collections
+            </Link>
+            
+            {session ? (
+              <>
+                {session.user.role === 'admin' && (
+                  <Link href="/admin" className="text-stone-600 hover:text-stone-800 transition-colors">
+                    Admin
+                  </Link>
+                )}
+                <Link href="/account" className="text-stone-600 hover:text-stone-800 transition-colors">
+                  Account
+                </Link>
+                <button
+                  onClick={handleSignOut}
+                  className="text-stone-600 hover:text-stone-800 transition-colors"
+                >
+                  Sign Out
+                </button>
+              </>
+            ) : (
+              <Link 
+                href="/login"
+                className="bg-stone-800 text-white px-4 py-2 rounded-md hover:bg-stone-900 transition-colors"
+              >
+                Sign In
+              </Link>
+            )}
+          </nav>
+        </div>
       </div>
-    </div>
+    </header>
   );
 } 

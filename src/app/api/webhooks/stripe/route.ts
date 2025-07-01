@@ -1,49 +1,179 @@
+// =====================================================
+// STRIPE WEBHOOK HANDLER
+// Processes Stripe webhook events for payment confirmations
+// =====================================================
+
 import { NextRequest, NextResponse } from 'next/server';
-import { headers } from 'next/headers';
-import Stripe from 'stripe';
-import { stripe } from '@/lib/stripe';
+import { constructWebhookEvent } from '@/lib/stripe';
 import { prisma } from '@/lib/prisma';
+import { trackEvent, trackPurchase } from '@/lib/analytics';
+import { sendPurchaseConfirmationEmail } from '@/lib/email';
+import { sendPurchaseNotification } from '@/lib/whatsapp';
 
-export async function POST(req: NextRequest) {
-  const body = await req.text();
-  const signature = headers().get('Stripe-Signature') as string;
-
-  let event: Stripe.Event;
-
+export async function POST(request: NextRequest) {
   try {
-    event = stripe.webhooks.constructEvent(
-      body,
-      signature,
-      process.env.STRIPE_WEBHOOK_SECRET!
-    );
-  } catch (err: any) {
-    return NextResponse.json({ error: `Webhook Error: ${err.message}` }, { status: 400 });
-  }
+    const body = await request.text();
+    const signature = request.headers.get('stripe-signature');
 
-  if (event.type === 'checkout.session.completed') {
-    const session = event.data.object as Stripe.Checkout.Session;
-    const { userId, mediaId } = session.metadata || {};
+    if (!signature) {
+      return NextResponse.json(
+        { error: 'Missing stripe signature' },
+        { status: 400 }
+      );
+    }
+
+    if (!process.env.STRIPE_WEBHOOK_SECRET) {
+      console.error('STRIPE_WEBHOOK_SECRET is not configured');
+      return NextResponse.json(
+        { error: 'Webhook secret not configured' },
+        { status: 500 }
+      );
+    }
+
+    let event;
+    try {
+      event = constructWebhookEvent(body, signature, process.env.STRIPE_WEBHOOK_SECRET);
+    } catch (err) {
+      console.error('Webhook signature verification failed:', err);
+      return NextResponse.json(
+        { error: 'Invalid signature' },
+        { status: 400 }
+      );
+    }
+
+    // Handle the event
+    switch (event.type) {
+      case 'checkout.session.completed':
+        await handleCheckoutSessionCompleted(event.data.object);
+        break;
+      
+      case 'payment_intent.succeeded':
+        await handlePaymentIntentSucceeded(event.data.object);
+        break;
+      
+      case 'payment_intent.payment_failed':
+        await handlePaymentIntentFailed(event.data.object);
+        break;
+      
+      default:
+        console.log(`Unhandled event type: ${event.type}`);
+    }
+
+    return NextResponse.json({ received: true });
+
+  } catch (error) {
+    console.error('Webhook error:', error);
+    return NextResponse.json(
+      { error: 'Webhook handler failed' },
+      { status: 500 }
+    );
+  }
+}
+
+async function handleCheckoutSessionCompleted(session: any) {
+  try {
+    const { userId, mediaId, title } = session.metadata;
+    const amount = session.amount_total / 100; // Convert from cents
 
     if (!userId || !mediaId) {
-      return NextResponse.json({ error: 'Missing metadata' }, { status: 400 });
+      console.error('Missing metadata in checkout session:', session.id);
+      return;
     }
 
-    try {
-      await prisma.purchase.create({
-        data: {
-          userId,
-          mediaId,
-          stripeChargeId: typeof session.payment_intent === 'string' ? session.payment_intent : '',
-          amountPaid: session.amount_total ? session.amount_total / 100 : 0,
-          // Set an expiration if needed, otherwise access is permanent
-          // expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30) // e.g., 30 days
-        },
-      });
-    } catch (error) {
-      console.error('Failed to create purchase record:', error);
-      return NextResponse.json({ error: 'Database error' }, { status: 500 });
-    }
+    // Create purchase record
+    const purchase = await prisma.purchase.create({
+      data: {
+        userId,
+        mediaId,
+        amountPaid: amount,
+        stripeChargeId: session.payment_intent as string,
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+      },
+      include: {
+        user: true,
+        media: true,
+      },
+    });
+
+    // Track the purchase
+    await trackPurchase(
+      userId,
+      mediaId,
+      title || purchase.media.title,
+      amount
+    );
+
+    // TODO: Send email confirmation to customer
+    // await sendPurchaseConfirmationEmail(
+    //   purchase.user.email,
+    //   title || purchase.media.title,
+    //   purchase.id,
+    //   `${process.env.NEXT_PUBLIC_BASE_URL}/access/${purchase.id}`
+    // );
+
+    // TODO: Send WhatsApp notification to admin
+    // await sendPurchaseNotification(
+    //   process.env.ADMIN_PHONE_NUMBER!,
+    //   purchase.user.email,
+    //   title || purchase.media.title,
+    //   amount
+    // );
+
+    console.log(`Purchase completed: ${purchase.id} for user ${userId}`);
+
+  } catch (error) {
+    console.error('Error handling checkout session completed:', error);
+    throw error;
   }
+}
 
-  return NextResponse.json({ received: true });
+async function handlePaymentIntentSucceeded(paymentIntent: any) {
+  try {
+    // This is a backup handler in case checkout.session.completed doesn't fire
+    // You might want to check if a purchase record already exists
+    
+    console.log(`Payment intent succeeded: ${paymentIntent.id}`);
+    
+    // Track the successful payment
+    await trackEvent({
+      name: 'payment_succeeded',
+      properties: {
+        payment_intent_id: paymentIntent.id,
+        amount: paymentIntent.amount / 100,
+        currency: paymentIntent.currency,
+      },
+    });
+
+  } catch (error) {
+    console.error('Error handling payment intent succeeded:', error);
+    throw error;
+  }
+}
+
+async function handlePaymentIntentFailed(paymentIntent: any) {
+  try {
+    console.log(`Payment intent failed: ${paymentIntent.id}`);
+    
+    // Track the failed payment
+    await trackEvent({
+      name: 'payment_failed',
+      properties: {
+        payment_intent_id: paymentIntent.id,
+        amount: paymentIntent.amount / 100,
+        currency: paymentIntent.currency,
+        failure_reason: paymentIntent.last_payment_error?.message,
+      },
+    });
+
+    // TODO: Send notification to admin about failed payment
+    // await sendSystemAlert(
+    //   process.env.ADMIN_PHONE_NUMBER!,
+    //   'warning',
+    //   `Payment failed: ${paymentIntent.id}`
+    // );
+
+  } catch (error) {
+    console.error('Error handling payment intent failed:', error);
+    throw error;
+  }
 }
