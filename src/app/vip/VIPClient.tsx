@@ -4,6 +4,14 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 // import { toast } from '@/components/Toast'; // Placeholder for toast notifications
 
+type User = {
+  id: string;
+  email: string;
+  name?: string | null;
+  image?: string | null;
+  role: string;
+};
+
 export default function VIPClient() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);

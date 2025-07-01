@@ -3,6 +3,8 @@ import { notFound, redirect } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import Link from 'next/link';
 import { Lock } from 'lucide-react';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 
 async function verifyPurchase(userId: string, videoId: string): Promise<boolean> {
   // Check if a purchase record exists for this user and this specific media item.
@@ -16,9 +18,13 @@ async function verifyPurchase(userId: string, videoId: string): Promise<boolean>
 }
 
 export default async function WatchPage({ params }: { params: { videoId: string } }) {
-  // TODO: Replace Supabase logic and User type with NextAuth if needed.
+  // Fetch user session
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    redirect('/login');
+  }
 
-  const hasAccess = await verifyPurchase(user.id, params.videoId);
+  const hasAccess = await verifyPurchase(session.user.id, params.videoId);
 
   if (!hasAccess) {
     return (

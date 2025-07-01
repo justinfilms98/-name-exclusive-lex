@@ -1,6 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
+type User = {
+  id: string;
+  email: string;
+  name?: string | null;
+  image?: string | null;
+  role: string;
+};
+
 interface CollectionVideo {
   id: string;
   title: string;

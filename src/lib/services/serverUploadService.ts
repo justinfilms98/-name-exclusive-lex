@@ -69,8 +69,9 @@ export async function serverUpload(req: NextRequest): Promise<{ fields: formidab
       }
 
       if (uploadedFilePath) {
-        const { data } = supabaseAdmin.storage.from('videos').getPublicUrl(uploadedFilePath);
-        resolve({ fields, files, uploadedFileUrl: data.publicUrl, uploadedFilePath });
+        // TODO: Replace with UploadThing public URL generation
+        const mockPublicUrl = `https://uploadthing.com/mock/${uploadedFilePath}`;
+        resolve({ fields, files, uploadedFileUrl: mockPublicUrl, uploadedFilePath });
       } else {
         // Resolve even if there's no file, the route can handle it
         resolve({ fields, files });

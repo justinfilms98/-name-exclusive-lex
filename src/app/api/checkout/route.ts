@@ -9,7 +9,7 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { createCheckoutSession } from '@/lib/stripe';
 import { withRateLimit, RATE_LIMITS } from '@/lib/rateLimit';
-import { trackEvent } from '@/lib/analytics';
+import { trackEvent, trackError } from '@/lib/analytics';
 
 export async function POST(request: NextRequest) {
   try {
