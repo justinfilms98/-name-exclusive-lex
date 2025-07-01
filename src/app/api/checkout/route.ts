@@ -11,6 +11,8 @@ import { createCheckoutSession } from '@/lib/stripe';
 import { withRateLimit, RATE_LIMITS } from '@/lib/rateLimit';
 import { trackEvent, trackError } from '@/lib/analytics';
 
+export const dynamic = "force-dynamic";
+
 export async function POST(request: NextRequest) {
   try {
     // Rate limiting

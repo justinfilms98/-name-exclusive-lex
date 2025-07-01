@@ -10,6 +10,8 @@ import { prisma } from '@/lib/prisma';
 import { getCheckoutSession } from '@/lib/stripe';
 import { trackEvent } from '@/lib/analytics';
 
+export const dynamic = "force-dynamic";
+
 export async function POST(request: NextRequest) {
   try {
     // Get user session
