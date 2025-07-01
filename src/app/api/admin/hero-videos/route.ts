@@ -1,43 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { prisma } from '@/lib/prisma';
+// TODO: Integrate NextAuth admin check and UploadThing logic if needed.
 
 export async function POST(req: NextRequest) {
-  // TODO: Replace Supabase logic with NextAuth if needed.
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-  // Guard: Max 3 hero videos
-  const count = await prisma.heroVideo.count();
-  if (count >= 3) {
-    return NextResponse.json({ error: 'Max 3 hero videos allowed' }, { status: 403 });
-  }
-
-  try {
-    const formData = await req.formData();
-    const title = formData.get('title') as string;
-    const order = formData.get('order') as string;
-    const subtitle = formData.get('subtitle') as string | null;
-    const videoUrl = formData.get('videoUrl') as string | null;
-
-    if (!title || !order || !videoUrl) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
-    }
-
-    await prisma.heroVideo.create({
-      data: {
-        title,
-        subtitle: subtitle || null,
-        videoUrl: videoUrl,
-        displayOrder: parseInt(order, 10),
-      },
-    });
-
-    return NextResponse.json({ success: true });
-  } catch (error: any) {
-    console.error('API Error in /api/admin/hero-videos:', error);
-    return NextResponse.json({ error: error.message || 'An unexpected error occurred' }, { status: 500 });
-  }
+  // TODO: Implement admin check and upload logic
+  return NextResponse.json({ error: 'Not implemented. Supabase logic removed.' }, { status: 501 });
 }
 
 export async function PUT(req: NextRequest) {
