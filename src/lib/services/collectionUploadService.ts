@@ -147,4 +147,6 @@ export async function deleteCollectionMedia(path: string): Promise<void> {
 export function getCollectionMediaUrl(path: string): string {
   const { data } = supabase.storage.from('media').getPublicUrl(path);
   return data.publicUrl;
-} 
+}
+
+// This file is now a placeholder. 
