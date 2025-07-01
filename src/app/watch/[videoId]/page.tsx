@@ -1,3 +1,4 @@
+// Force redeploy to ensure Vercel picks up folder rename
 export const dynamic = "force-dynamic";
 import { cookies } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
