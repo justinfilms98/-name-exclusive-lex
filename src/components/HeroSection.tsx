@@ -1,4 +1,5 @@
 "use client";
+import React from 'react';
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from 'next/navigation';
 
@@ -11,6 +12,7 @@ interface HeroVideo {
 }
 
 export default function HeroSection() {
+  // TODO: Re-implement HeroSection logic if needed.
   const [videos, setVideos] = useState<HeroVideo[]>([]);
   const [current, setCurrent] = useState(0);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -53,49 +55,7 @@ export default function HeroSection() {
 
   return (
     <div className="relative flex flex-col items-center justify-center w-full min-h-screen h-screen overflow-hidden parallax-container">
-      {/* Video backgrounds */}
-      {videos.map((video, idx) => (
-        <video
-          key={video.id}
-          src={video.videoUrl}
-          autoPlay
-          loop
-          muted
-          playsInline
-          className={`fixed top-0 left-0 w-screen h-screen object-cover transition-opacity duration-1000 parallax-bg ${
-            idx === current ? "opacity-100 z-0" : "opacity-0 z-0"
-          }`}
-          style={{ pointerEvents: "none", zIndex: 0 }}
-        />
-      ))}
-      {/* Overlay hero text, unique per video */}
-      <div className="relative z-10 flex flex-col items-center justify-center w-full h-full">
-        <div className="bg-[#654C37]/20 px-12 py-8 rounded-[3rem] backdrop-blur-sm border border-[#C9BBA8]/[0.05] shadow-lg max-w-2xl mx-auto flex flex-col items-center">
-          <h1 className="text-5xl md:text-6xl font-bold mb-4 text-[#F2E0CF] text-center [text-shadow:_0_2px_4px_rgba(0,0,0,0.3)]" style={{opacity: 1}}>
-            {videos[current]?.title || 'Intimacy, Redefined'}
-          </h1>
-          <p className="text-xl md:text-2xl text-[#F2E0CF] mb-0 text-center [text-shadow:_0_1px_2px_rgba(0,0,0,0.2)]" style={{opacity: 1}}>
-            {videos[current]?.subtitle || 'A private collection of sensual elegance'}
-          </p>
-        </div>
-        <div className="mt-8">
-          <button
-          {!user ? (
-            <button
-              className="bg-[#654C37] text-[#F2E0CF] px-8 py-3 rounded-full hover:bg-[#654C37]/90 transition-all duration-300 hover-lift focus-ring border border-[#C9BBA8]/[0.12] shadow-lg text-lg font-semibold"
-              onClick={() => router.push('/login')}
-            >
-              Login
-            </button>
-          ) : (
-            <a href="/collections">
-              <button className="bg-[#654C37] text-[#F2E0CF] px-8 py-3 rounded-full hover:bg-[#654C37]/90 transition-all duration-300 hover-lift focus-ring border border-[#C9BBA8]/[0.12] shadow-lg text-lg font-semibold">
-                Explore Collections
-              </button>
-            </a>
-          )}
-        </div>
-      </div>
+      {/* TODO: Video backgrounds and content go here. */}
     </div>
   );
 } 
