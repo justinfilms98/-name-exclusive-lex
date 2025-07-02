@@ -39,7 +39,7 @@ const MediaCard = ({ item }: { item: MediaItem }) => {
             <span>${item.price.toFixed(2)}</span>
             {item.durationSeconds && <span>{Math.floor(item.durationSeconds / 60)}m {item.durationSeconds % 60}s</span>}
           </div>
-          <Link href={`/checkout?mediaId=${item.id}`} className="w-full">
+          <Link href={`/checkout?collectionVideoId=${item.id}`} className="w-full">
             <button className="w-full bg-emerald-500 text-white px-6 py-3 rounded-full font-semibold hover:bg-emerald-600 transition-colors flex items-center justify-center space-x-2">
               <Lock size={16} />
               <span>Purchase to Unlock</span>

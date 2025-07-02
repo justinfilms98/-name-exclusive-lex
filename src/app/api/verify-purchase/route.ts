@@ -64,16 +64,16 @@ export async function POST(request: NextRequest) {
     // Find the purchase record
     const purchase = await prisma.purchase.findFirst({
       where: {
-        stripeChargeId: checkoutSession.payment_intent as string,
         userId: session.user.id,
+        collectionVideoId: checkoutSession.metadata?.collectionVideoId,
       },
       include: {
-        media: {
+        CollectionVideo: {
           include: {
             collection: true,
           },
         },
-        user: true,
+        User: true,
       },
     });
 
@@ -97,8 +97,8 @@ export async function POST(request: NextRequest) {
       name: 'purchase_verified',
       properties: {
         purchase_id: purchase.id,
-        media_id: purchase.media.id,
-        media_title: purchase.media.title,
+        media_id: purchase.CollectionVideo.id,
+        media_title: purchase.CollectionVideo.title,
       },
       userId: session.user.id,
     });
@@ -108,13 +108,12 @@ export async function POST(request: NextRequest) {
       purchase: {
         id: purchase.id,
         media: {
-          id: purchase.media.id,
-          title: purchase.media.title,
-          description: purchase.media.description,
-          videoUrl: purchase.media.videoUrl,
-          thumbnailUrl: purchase.media.thumbnailUrl,
+          id: purchase.CollectionVideo.id,
+          title: purchase.CollectionVideo.title,
+          description: purchase.CollectionVideo.description,
+          videoUrl: purchase.CollectionVideo.videoUrl,
+          thumbnail: purchase.CollectionVideo.thumbnail,
         },
-        amountPaid: Number(purchase.amountPaid),
         expiresAt: purchase.expiresAt?.toISOString(),
         createdAt: purchase.createdAt?.toISOString() || new Date().toISOString(),
       },

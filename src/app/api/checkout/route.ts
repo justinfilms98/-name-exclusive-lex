@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Fetch media item from database
-    const media = await prisma.collectionMedia.findUnique({
+    const media = await prisma.collectionVideo.findUnique({
       where: { id: mediaId },
       include: { collection: true },
     });
@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
     const existingPurchase = await prisma.purchase.findFirst({
       where: {
         userId: session.user.id,
-        mediaId: mediaId,
+        collectionVideoId: mediaId,
         expiresAt: { gt: new Date() },
       },
     });
@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
 
     const checkoutSession = await createCheckoutSession({
       userId: session.user.id,
-      mediaId: media.id,
+      collectionVideoId: mediaId,
       title: media.title,
       price: Number(media.price),
       successUrl,

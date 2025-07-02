@@ -3,8 +3,8 @@ import { prisma } from '@/lib/prisma';
 
 export async function GET(req: NextRequest) {
   try {
-    const videos = await prisma.collectionMedia.findMany({
-      orderBy: { displayOrder: 'asc' },
+    const videos = await prisma.collectionVideo.findMany({
+      orderBy: { order: 'asc' },
     });
     return NextResponse.json(videos);
   } catch (err) {

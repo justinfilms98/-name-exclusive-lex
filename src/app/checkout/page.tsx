@@ -2,17 +2,17 @@
 import { prisma } from '@/lib/prisma';
 import { notFound, useSearchParams } from 'next/navigation';
 import { Suspense, useState, useEffect } from 'react';
-import type { CollectionMedia } from '@prisma/client';
+import type { CollectionVideo } from '@prisma/client';
 
 function CheckoutContent() {
   const searchParams = useSearchParams();
-  const mediaId = searchParams?.get('mediaId');
-  const [mediaItem, setMediaItem] = useState<CollectionMedia | null>(null);
+  const collectionVideoId = searchParams?.get('collectionVideoId');
+  const [mediaItem, setMediaItem] = useState<CollectionVideo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!mediaId) {
+    if (!collectionVideoId) {
       setError("No media item selected.");
       setLoading(false);
       return;
@@ -21,7 +21,7 @@ function CheckoutContent() {
     async function fetchMedia() {
       try {
         // This is a client component, so we need an API route to fetch data
-        const response = await fetch(`/api/media/${mediaId}`);
+        const response = await fetch(`/api/media/${collectionVideoId}`);
         if (!response.ok) {
           throw new Error('Media not found');
         }
@@ -34,15 +34,15 @@ function CheckoutContent() {
       }
     }
     fetchMedia();
-  }, [mediaId]);
+  }, [collectionVideoId]);
 
   const handleCheckout = async () => {
-    if (!mediaId) return;
+    if (!collectionVideoId) return;
     try {
       const res = await fetch('/api/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mediaId }),
+        body: JSON.stringify({ collectionVideoId }),
       });
       const { url, error } = await res.json();
       if (error) {
@@ -66,7 +66,7 @@ function CheckoutContent() {
         <h2 className="text-2xl font-serif text-stone-800 mb-4">Complete Your Purchase</h2>
         <div className="flex items-center space-x-4 border-t border-b py-4 my-4">
           <img
-            src={mediaItem.thumbnailUrl || '/placeholder-thumbnail.jpg'}
+            src={mediaItem.thumbnail || '/placeholder-thumbnail.jpg'}
             alt={mediaItem.title}
             className="w-24 h-24 object-cover rounded-md"
           />

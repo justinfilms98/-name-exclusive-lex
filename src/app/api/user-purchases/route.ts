@@ -20,7 +20,7 @@ export async function GET(_req: NextRequest) {
     const purchases = await prisma.purchase.findMany({
       where: { userId: session.user.id },
       include: {
-        media: {
+        CollectionVideo: {
           include: {
             collection: true,
           },

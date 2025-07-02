@@ -16,14 +16,14 @@ export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
 // Helper function to create a checkout session
 export async function createCheckoutSession({
   userId,
-  mediaId,
+  collectionVideoId,
   title,
   price,
   successUrl,
   cancelUrl,
 }: {
   userId: string;
-  mediaId: string;
+  collectionVideoId: string;
   title: string;
   price: number;
   successUrl: string;
@@ -49,7 +49,7 @@ export async function createCheckoutSession({
     cancel_url: cancelUrl,
     metadata: {
       userId,
-      mediaId,
+      collectionVideoId,
       title,
     },
     expires_at: Math.floor(Date.now() / 1000) + (30 * 60), // 30 minutes

@@ -1,12 +1,12 @@
 "use client";
 import { useEffect, useState } from 'react';
 import { useSession, signOut } from 'next-auth/react';
-import type { Purchase, CollectionMedia } from '@prisma/client';
+import type { Purchase, CollectionVideo } from '@prisma/client';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 
 type PurchaseWithMedia = Purchase & {
-  media: CollectionMedia;
+  media: CollectionVideo;
 };
 
 export default function AccountClient() {
@@ -164,11 +164,6 @@ export default function AccountClient() {
                           </p>
                         ) : null;
                       })()}
-                    </div>
-                    <div className="text-right">
-                      <p className="font-semibold text-emerald-600">
-                        ${Number(purchase.amountPaid).toFixed(2)}
-                      </p>
                     </div>
                   </div>
                   <div className="mt-2">

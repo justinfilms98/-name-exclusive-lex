@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Fetch the media item
-    const media = await prisma.collectionMedia.findUnique({
+    const media = await prisma.collectionVideo.findUnique({
       where: { id: mediaId },
       include: { collection: true },
     });
@@ -42,8 +42,7 @@ export async function GET(req: NextRequest) {
     const purchase = await prisma.purchase.findFirst({
       where: {
         userId: session.user.id,
-        mediaId: mediaId,
-        expiresAt: { gt: new Date() }, // Only valid purchases
+        expiresAt: { gt: new Date() },
       },
     });
 

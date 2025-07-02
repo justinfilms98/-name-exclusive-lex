@@ -72,10 +72,10 @@ export async function POST(request: NextRequest) {
 
 async function handleCheckoutSessionCompleted(session: any) {
   try {
-    const { userId, mediaId, title } = session.metadata;
+    const { userId, collectionVideoId, title } = session.metadata;
     const amount = session.amount_total / 100; // Convert from cents
 
-    if (!userId || !mediaId) {
+    if (!userId || !collectionVideoId) {
       console.error('Missing metadata in checkout session:', session.id);
       return;
     }
@@ -83,30 +83,30 @@ async function handleCheckoutSessionCompleted(session: any) {
     // Create purchase record
     const purchase = await prisma.purchase.create({
       data: {
+        id: crypto.randomUUID(),
         userId,
-        mediaId,
-        amountPaid: amount,
-        stripeChargeId: session.payment_intent as string,
+        collectionVideoId,
+        createdAt: new Date(),
         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
       },
       include: {
-        user: true,
-        media: true,
+        User: true,
+        CollectionVideo: true,
       },
     });
 
     // Track the purchase
     await trackPurchase(
       userId,
-      mediaId,
-      title || purchase.media.title,
+      collectionVideoId,
+      title || purchase.CollectionVideo.title,
       amount
     );
 
     // TODO: Send email confirmation to customer
     // await sendPurchaseConfirmationEmail(
-    //   purchase.user.email,
-    //   title || purchase.media.title,
+    //   purchase.User.email,
+    //   title || purchase.CollectionVideo.title,
     //   purchase.id,
     //   `${process.env.NEXT_PUBLIC_BASE_URL}/access/${purchase.id}`
     // );
@@ -114,8 +114,8 @@ async function handleCheckoutSessionCompleted(session: any) {
     // TODO: Send WhatsApp notification to admin
     // await sendPurchaseNotification(
     //   process.env.ADMIN_PHONE_NUMBER!,
-    //   purchase.user.email,
-    //   title || purchase.media.title,
+    //   purchase.User.email,
+    //   title || purchase.CollectionVideo.title,
     //   amount
     // );
 

@@ -12,19 +12,17 @@ export async function GET(
       return NextResponse.json({ error: 'Collection ID is required' }, { status: 400 });
     }
 
-    const mediaItems = await prisma.collectionMedia.findMany({
+    const mediaItems = await prisma.collectionVideo.findMany({
       where: { collectionId: id },
       orderBy: { createdAt: 'desc' },
       select: {
         id: true,
         title: true,
         description: true,
+        thumbnail: true,
         videoUrl: true,
-        thumbnailUrl: true,
         price: true,
-        durationSeconds: true,
-        seoTags: true,
-        displayOrder: true,
+        order: true,
         createdAt: true,
         collection: {
           select: { title: true }

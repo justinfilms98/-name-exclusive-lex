@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
     const collection = await prisma.collection.create({
       data: {
         title: validatedData.title,
-        description: validatedData.description,
+        description: validatedData.description ?? '',
       },
     });
 

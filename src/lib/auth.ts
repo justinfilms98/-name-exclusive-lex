@@ -46,10 +46,12 @@ export const authOptions: NextAuthOptions = {
         // Create new user
         await prisma.user.create({
           data: {
+            id: user.id || crypto.randomUUID(),
             email: user.email!,
             name: user.name,
             image: user.image,
             role: 'user', // Default role
+            updatedAt: new Date(),
           },
         });
       }

@@ -8,25 +8,25 @@ import { Lock } from 'lucide-react';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
-async function verifyPurchase(userId: string, videoId: string): Promise<boolean> {
+async function verifyPurchase(userId: string, collectionVideoId: string): Promise<boolean> {
   // Check if a purchase record exists for this user and this specific media item.
   const purchase = await prisma.purchase.findFirst({
     where: {
       userId: userId,
-      mediaId: videoId,
+      collectionVideoId: collectionVideoId,
     },
   });
   return !!purchase;
 }
 
-export default async function WatchPage({ params }: { params: { videoId: string } }) {
+export default async function WatchPage({ params }: { params: { collectionVideoId: string } }) {
   // Fetch user session
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     redirect('/login');
   }
 
-  const hasAccess = await verifyPurchase(session.user.id, params.videoId);
+  const hasAccess = await verifyPurchase(session.user.id, params.collectionVideoId);
 
   if (!hasAccess) {
     return (
@@ -43,9 +43,9 @@ export default async function WatchPage({ params }: { params: { videoId: string 
     );
   }
 
-  // Fetch the media item details. The model is CollectionMedia.
-  const mediaItem = await prisma.collectionMedia.findUnique({
-    where: { id: params.videoId },
+  // Fetch the media item details. The model is CollectionVideo.
+  const mediaItem = await prisma.collectionVideo.findUnique({
+    where: { id: params.collectionVideoId },
   });
 
   if (!mediaItem || !mediaItem.videoUrl) {

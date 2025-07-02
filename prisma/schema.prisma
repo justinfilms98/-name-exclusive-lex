@@ -26,7 +26,7 @@ model Account {
 }
 
 model Collection {
-  id          String             @id @default(cuid())
+  id          String            @id @default(cuid())
   title       String
   description String
   createdAt   DateTime          @default(now())
@@ -35,17 +35,18 @@ model Collection {
 }
 
 model CollectionVideo {
-  id           String      @id @default(cuid())
+  id           String     @id @default(cuid())
   title        String
   description  String
   thumbnail    String
   videoUrl     String
   order        Int
-  price        Int
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
-  collection   Collection @relation(fields: [collectionId], references: [id])
+  price        Int
   collectionId String
+  collection   Collection @relation(fields: [collectionId], references: [id])
+  purchases    Purchase[]
 }
 
 model ContentModerationLog {
@@ -92,13 +93,13 @@ model HeroVideo {
 }
 
 model Purchase {
-  id        String   @id
-  userId    String
-  videoId   String
-  createdAt DateTime @default(now())
-  expiresAt DateTime
-  User      User     @relation(fields: [userId], references: [id])
-  Video     Video    @relation(fields: [videoId], references: [id])
+  id                String          @id
+  userId            String
+  createdAt         DateTime        @default(now())
+  expiresAt         DateTime
+  collectionVideoId String
+  CollectionVideo   CollectionVideo @relation(fields: [collectionVideoId], references: [id])
+  User              User            @relation(fields: [userId], references: [id])
 }
 
 model Session {
@@ -135,18 +136,17 @@ model VerificationToken {
 }
 
 model Video {
-  id           String     @id
+  id           String   @id
   title        String
   description  String
   price        Float
   type         String
   videoKey     String
   thumbnailKey String
-  createdAt    DateTime   @default(now())
+  createdAt    DateTime @default(now())
   updatedAt    DateTime
   creatorId    String
-  Purchase     Purchase[]
-  User         User       @relation(fields: [creatorId], references: [id])
+  User         User     @relation(fields: [creatorId], references: [id])
 }
 
 model VideoAnalytics {

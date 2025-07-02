@@ -5,7 +5,7 @@ export const revalidate = 60; // Revalidate data at most every 60 seconds
 
 async function getMediaItems() {
   try {
-    const mediaItems = await prisma.collectionMedia.findMany({
+    const mediaItems = await prisma.collectionVideo.findMany({
       where: {
         price: {
           gt: 0,
@@ -15,9 +15,8 @@ async function getMediaItems() {
         id: true,
         title: true,
         description: true,
-        thumbnailUrl: true,
+        thumbnail: true,
         price: true,
-        durationSeconds: true,
         createdAt: true,
       },
       orderBy: {
@@ -31,6 +30,8 @@ async function getMediaItems() {
       ...item,
       id: item.id,
       price: item.price ? Number(item.price) : 0,
+      thumbnailUrl: item.thumbnail,
+      durationSeconds: null,
     }));
 
   } catch (error) {

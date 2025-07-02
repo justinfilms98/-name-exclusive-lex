@@ -3,11 +3,11 @@ import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
 
 export async function POST(req: NextRequest) {
-  const { videoId } = await req.json();
+  const { collectionVideoId } = await req.json();
 
   try {
-    const video = await prisma.collectionMedia.findUnique({
-      where: { id: videoId },
+    const video = await prisma.collectionVideo.findUnique({
+      where: { id: collectionVideoId },
     });
 
     if (!video || !video.videoUrl) {

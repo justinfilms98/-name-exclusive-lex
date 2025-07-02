@@ -37,16 +37,22 @@ export async function POST(req: NextRequest) {
     const videoPath = '';
     const thumbUrl = '';
 
-    await prisma.collectionMedia.create({
+    // Get the highest order value for this collection and increment by 1
+    const maxOrder = await prisma.collectionVideo.findFirst({
+      where: { collectionId },
+      orderBy: { order: 'desc' },
+      select: { order: true }
+    });
+
+    await prisma.collectionVideo.create({
       data: {
         title,
         description,
-        price: price ? parseFloat(price) : undefined,
-        durationSeconds: durationSeconds ? parseInt(durationSeconds, 10) : undefined,
-        seoTags: seoTags ? seoTags.split(',').map(tag => tag.trim()) : [],
+        price: price ? parseFloat(price) : 0,
         videoUrl: videoPath,
-        thumbnailUrl: thumbUrl,
+        thumbnail: thumbUrl,
         collectionId: collectionId,
+        order: (maxOrder?.order ?? -1) + 1,
       },
     });
 
