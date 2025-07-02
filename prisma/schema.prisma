@@ -7,55 +7,123 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// =====================================================
-// CONTENT SALES PLATFORM MODELS
-// =====================================================
-
-model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  role      String   @default("user") // "user", "admin"
-  image     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  purchases Purchase[]
-  accounts  Account[]
-  sessions  Session[]
-
-  @@map("users")
-}
-
 model Account {
-  id                String  @id @default(cuid())
-  userId            String  @map("user_id")
+  id                String  @id
+  userId            String
   type              String
   provider          String
-  providerAccountId String  @map("provider_account_id")
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
   expires_at        Int?
   token_type        String?
   scope             String?
-  id_token          String? @db.Text
+  id_token          String?
   session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  User              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
-  @@map("accounts")
+}
+
+model Collection {
+  id          String             @id @default(cuid())
+  title       String
+  description String
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  videos      CollectionVideo[]
+}
+
+model CollectionVideo {
+  id           String      @id @default(cuid())
+  title        String
+  description  String
+  thumbnail    String
+  videoUrl     String
+  order        Int
+  price        Int
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  collection   Collection @relation(fields: [collectionId], references: [id])
+  collectionId String
+}
+
+model ContentModerationLog {
+  id          Int       @id @default(autoincrement())
+  videoId     Int
+  moderatorId String
+  action      String
+  reason      String?
+  notes       String?
+  createdAt   DateTime  @default(now())
+  HeroVideo   HeroVideo @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  @@index([action])
+  @@index([moderatorId])
+  @@index([videoId])
+}
+
+model HeroVideo {
+  id                   Int                    @id @default(autoincrement())
+  title                String
+  description          String
+  thumbnail            String
+  videoUrl             String
+  order                Int
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime
+  ageRating            String                 @default("PG")
+  category             String                 @default("entertainment")
+  moderatedAt          DateTime?
+  moderatedBy          String?
+  price                Float                  @default(0.00)
+  rejectionReason      String?
+  status               String                 @default("draft")
+  tags                 String[]
+  moderated            Boolean                @default(false)
+  ContentModerationLog ContentModerationLog[]
+  User                 User?                  @relation(fields: [moderatedBy], references: [id])
+  VideoAnalytics       VideoAnalytics[]
+  VideoPricing         VideoPricing[]
+
+  @@index([ageRating])
+  @@index([category])
+  @@index([status])
+}
+
+model Purchase {
+  id        String   @id
+  userId    String
+  videoId   String
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+  User      User     @relation(fields: [userId], references: [id])
+  Video     Video    @relation(fields: [videoId], references: [id])
 }
 
 model Session {
-  id           String   @id @default(cuid())
-  sessionToken String   @unique @map("session_token")
-  userId       String   @map("user_id")
+  id           String   @id
+  sessionToken String   @unique
+  userId       String
   expires      DateTime
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  User         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
 
-  @@map("sessions")
+model User {
+  id            String      @id
+  name          String?
+  email         String      @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?
+  role          String      @default("user")
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime
+  Account       Account[]
+  HeroVideo     HeroVideo[]
+  Purchase      Purchase[]
+  Session       Session[]
+  Video         Video[]
 }
 
 model VerificationToken {
@@ -64,78 +132,60 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
-  @@map("verification_tokens")
 }
 
-model Collection {
-  id          String    @id @default(cuid())
-  title       String
-  description String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  media CollectionMedia[]
-
-  @@map("collections")
+model Video {
+  id           String     @id
+  title        String
+  description  String
+  price        Float
+  type         String
+  videoKey     String
+  thumbnailKey String
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime
+  creatorId    String
+  Purchase     Purchase[]
+  User         User       @relation(fields: [creatorId], references: [id])
 }
 
-model CollectionMedia {
-  id               String    @id @default(cuid())
-  collectionId     String    @map("collection_id")
-  title            String
-  description      String?
-  videoUrl         String?   @map("video_url")
-  thumbnailUrl     String?   @map("thumbnail_url")
-  price            Decimal?  @db.Decimal(10, 2)
-  durationSeconds  Int?      @map("duration_seconds")
-  seoTags          String[]  @map("seo_tags")
-  displayOrder     Int?      @map("display_order")
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+model VideoAnalytics {
+  id          Int       @id @default(autoincrement())
+  videoId     Int
+  views       Int       @default(0)
+  uniqueViews Int       @default(0)
+  watchTime   Int       @default(0)
+  likes       Int       @default(0)
+  shares      Int       @default(0)
+  comments    Int       @default(0)
+  revenue     Float     @default(0.00)
+  date        DateTime  @default(now())
+  country     String?
+  device      String?
+  referrer    String?
+  HeroVideo   HeroVideo @relation(fields: [videoId], references: [id], onDelete: Cascade)
 
-  collection Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
-  purchases  Purchase[]
-
-  @@map("collection_media")
+  @@index([country])
+  @@index([device])
+  @@index([videoId, date])
 }
 
-model HeroVideo {
-  id            String    @id @default(cuid())
-  title         String?
-  subtitle      String?
-  videoUrl      String    @map("video_url")
-  thumbnailUrl  String?   @map("thumbnail_url")
-  displayOrder  Int?      @map("display_order")
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+model VideoPricing {
+  id        Int       @id @default(autoincrement())
+  videoId   Int
+  type      String
+  price     Float
+  currency  String    @default("USD")
+  duration  Int?
+  startDate DateTime  @default(now())
+  endDate   DateTime?
+  discount  Float?
+  promoCode String?
+  region    String?
+  isActive  Boolean   @default(true)
+  HeroVideo HeroVideo @relation(fields: [videoId], references: [id], onDelete: Cascade)
 
-  @@map("hero_videos")
-}
-
-model Purchase {
-  id              String    @id @default(cuid())
-  userId          String    @map("user_id")
-  mediaId         String    @map("media_id")
-  amountPaid      Decimal?  @map("amount_paid") @db.Decimal(10, 2)
-  stripeChargeId  String?   @map("stripe_charge_id")
-  expiresAt       DateTime? @map("expires_at")
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-
-  media CollectionMedia @relation(fields: [mediaId], references: [id], onDelete: Cascade)
-  user  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("purchases")
-}
-
-model Log {
-  id        String   @id @default(cuid())
-  userId    String?  @map("user_id")
-  action    String
-  details   Json?
-  ipAddress String?  @map("ip_address")
-  userAgent String?  @map("user_agent")
-  createdAt DateTime @default(now())
-
-  @@map("logs")
+  @@index([isActive])
+  @@index([promoCode])
+  @@index([videoId, type])
 }

@@ -19,6 +19,7 @@ async function main() {
         id: adminUserId,
         email: 'contact.exclusivelex@gmail.com',
         name: 'Admin User',
+        updatedAt: new Date(),
       },
     })
     console.log('✅ Admin user created:', adminUser.email)
@@ -26,18 +27,29 @@ async function main() {
 
     // Step 2: Create collection
     console.log('\n📝 Step 2: Creating collection...')
-    const collectionId = randomUUID()
-    console.log('Collection ID:', collectionId)
-    
-    const testCollection = await prisma.collection.create({
+    const collection = await prisma.collection.create({
       data: {
-        id: collectionId,
-        name: 'Step-by-Step Test Collection',
-        userId: adminUser.id,
+        title: 'Step-by-Step Test Collection',
+        description: 'A test collection for seeding.',
       },
     })
-    console.log('✅ Collection created:', testCollection.name)
-    console.log('Collection ID in database:', testCollection.id)
+    console.log('✅ Collection created:', collection.title)
+    console.log('Collection ID in database:', collection.id)
+
+    // Step 3: Create collection video
+    console.log('\n📝 Step 3: Creating collection video...')
+    const collectionVideo = await prisma.collectionVideo.create({
+      data: {
+        title: 'Test Video',
+        description: 'A test video for the collection.',
+        thumbnail: 'https://placehold.co/600x400',
+        videoUrl: 'https://www.example.com/video.mp4',
+        order: 1,
+        price: 10,
+        collection: { connect: { id: collection.id } },
+      },
+    })
+    console.log('✅ Collection video created:', collectionVideo.title)
 
   } catch (error) {
     if (error instanceof Error) {
