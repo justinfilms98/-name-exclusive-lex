@@ -5,7 +5,9 @@ import { useSession, signOut } from 'next-auth/react';
 import Link from 'next/link';
 
 export default function HeaderClient() {
-  const { data: session, status } = useSession();
+  const sessionHook = useSession();
+  const session = sessionHook?.data;
+  const status = sessionHook?.status;
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 

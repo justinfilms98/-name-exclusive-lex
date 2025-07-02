@@ -10,7 +10,9 @@ type PurchaseWithMedia = Purchase & {
 };
 
 export default function AccountClient() {
-  const { data: session, status } = useSession();
+  const sessionHook = useSession();
+  const session = sessionHook?.data;
+  const status = sessionHook?.status;
   const [purchases, setPurchases] = useState<PurchaseWithMedia[]>([]);
   const [loading, setLoading] = useState(true);
   const [showWelcome, setShowWelcome] = useState(false);
