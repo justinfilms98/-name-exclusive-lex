@@ -14,7 +14,7 @@ export default function HeroUploadWidget({ onUploadComplete, onError }: HeroUplo
 
   return (
     <div className="w-full">
-      <UploadButton<OurFileRouter>
+      <UploadButton<OurFileRouter, "videoUploader">
         endpoint="videoUploader"
         onUploadBegin={() => {
           setIsUploading(true);
