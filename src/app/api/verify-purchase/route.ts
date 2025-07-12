@@ -12,6 +12,75 @@ import { trackEvent } from '@/lib/analytics';
 
 export const dynamic = "force-dynamic";
 
+export async function GET(request: NextRequest) {
+  try {
+    // Get user session
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
+    // Get videoId from query params
+    const { searchParams } = new URL(request.url);
+    const videoId = searchParams.get('videoId');
+
+    if (!videoId) {
+      return NextResponse.json(
+        { error: 'Video ID is required' },
+        { status: 400 }
+      );
+    }
+
+    // Check if user has purchased this video
+    const purchase = await prisma.purchase.findFirst({
+      where: {
+        userId: session.user.id,
+        collectionVideoId: videoId,
+      },
+      include: {
+        CollectionVideo: true,
+      },
+    });
+
+    if (!purchase) {
+      return NextResponse.json({
+        hasAccess: false,
+        video: null,
+      });
+    }
+
+    // Check if access has expired
+    if (purchase.expiresAt && purchase.expiresAt < new Date()) {
+      return NextResponse.json({
+        hasAccess: false,
+        video: null,
+      });
+    }
+
+    return NextResponse.json({
+      hasAccess: true,
+      video: {
+        id: purchase.CollectionVideo.id,
+        title: purchase.CollectionVideo.title,
+        description: purchase.CollectionVideo.description,
+        videoUrl: purchase.CollectionVideo.videoUrl,
+        thumbnail: purchase.CollectionVideo.thumbnail,
+        price: purchase.CollectionVideo.price,
+      },
+    });
+
+  } catch (error) {
+    console.error('Video access verification error:', error);
+    return NextResponse.json(
+      { error: 'Failed to verify access' },
+      { status: 500 }
+    );
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     // Get user session

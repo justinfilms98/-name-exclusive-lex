@@ -17,25 +17,9 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   session: {
-    strategy: 'jwt',
+    strategy: 'database', // switched from 'jwt' to 'database'
   },
   callbacks: {
-    async jwt({ token, user, account }) {
-      // Persist the user role to the token
-      if (user) {
-        token.role = user.role;
-        token.id = user.id;
-      }
-      return token;
-    },
-    async session({ session, token }) {
-      // Send properties to the client
-      if (token) {
-        session.user.id = token.id as string;
-        session.user.role = token.role as string;
-      }
-      return session;
-    },
     async signIn({ user, account, profile }) {
       // Check if user exists in database
       const existingUser = await prisma.user.findUnique({

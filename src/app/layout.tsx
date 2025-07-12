@@ -1,22 +1,24 @@
-import { Inter } from 'next/font/google';
-import './globals.css';
-import Header from './Header';
-import { CartProvider } from '@/context/CartContext';
+import "./globals.css";
+import type { Metadata } from "next";
+import NextAuthSessionProvider from "./SessionProvider";
+import Header from "./Header";
+import { CartProvider } from "@/context/CartContext";
 
-const inter = Inter({ subsets: ['latin'] });
+export const metadata: Metadata = {
+  title: "Exclusive Lex",
+  description: "Exclusive content access",
+};
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className={inter.className}>
-        <CartProvider>
-          <Header />
-          {children}
-        </CartProvider>
+      <body>
+        <NextAuthSessionProvider>
+          <CartProvider>
+            <Header />
+            {children}
+          </CartProvider>
+        </NextAuthSessionProvider>
       </body>
     </html>
   );

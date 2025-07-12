@@ -1,5 +1,6 @@
 export const dynamic = 'force-dynamic';
+import HeroSection from '@/components/HeroSection';
 
 export default function Home() {
-  return <div style={{ color: 'white', textAlign: 'center', marginTop: 100 }}>Welcome to the Home Page!</div>;
+  return <HeroSection />;
 } 
