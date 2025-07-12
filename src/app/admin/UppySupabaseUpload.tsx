@@ -76,7 +76,6 @@ export default function UppySupabaseUpload() {
     uppyRef.current = uppy;
     return () => {
       uppy.cancelAll();
-      uppy.uninstall();
     };
   }, []);
 
