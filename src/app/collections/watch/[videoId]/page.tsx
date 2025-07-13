@@ -2,7 +2,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { redirect } from 'next/navigation';
-import VideoPlayer from './VideoPlayer';
+import VideoPlayerClientWrapper from './VideoPlayerClientWrapper';
 
 // Correct signature for a dynamic route page in Next.js App Router
 export default async function WatchCollectionVideoPage({ params }: { params: { videoId: string } }) {
@@ -30,6 +30,6 @@ export default async function WatchCollectionVideoPage({ params }: { params: { v
   const expiresAt = purchase.expiresAt?.toISOString();
 
   return (
-    <VideoPlayer src={video.videoUrl} title={video.title} expiresAt={expiresAt} />
+    <VideoPlayerClientWrapper src={video.videoUrl} title={video.title} expiresAt={expiresAt} />
   );
 } 
