@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-export async function GET(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function GET(req: NextRequest) {
   try {
-    const { id } = params;
+    // Extract the collection id from the pathname
+    const segments = req.nextUrl.pathname.split('/');
+    const id = segments[segments.indexOf('collections') + 1];
     
     if (!id) {
       return NextResponse.json({ error: 'Collection ID is required' }, { status: 400 });
