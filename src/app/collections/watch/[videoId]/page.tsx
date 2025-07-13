@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { redirect } from 'next/navigation';
 import VideoPlayer from './VideoPlayer';
 
+// Correct signature for a dynamic route page in Next.js App Router
 export default async function WatchCollectionVideoPage({ params }: { params: { videoId: string } }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
