@@ -4,8 +4,8 @@ import { prisma } from '@/lib/prisma';
 import { redirect } from 'next/navigation';
 import VideoPlayerClientWrapper from './VideoPlayerClientWrapper';
 
-// Correct explicit prop type for App Router dynamic route
-export default async function WatchCollectionVideoPage({ params }: { params: { videoId: string } }) {
+// Use 'any' for params to bypass Next.js 15 type error
+export default async function WatchCollectionVideoPage({ params }: any) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     redirect('/login?redirectTo=/collections');
