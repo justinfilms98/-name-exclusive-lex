@@ -3,6 +3,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import Link from 'next/link';
+import { CartPreview } from '@/components/CartPreview';
 
 export default function HeaderClient() {
   const sessionHook = useSession();
@@ -52,6 +53,7 @@ export default function HeaderClient() {
             <Link href="/collections" className="text-stone-600 hover:text-stone-800 transition-colors">
               Collections
             </Link>
+            <CartPreview />
             
             {session ? (
               <>

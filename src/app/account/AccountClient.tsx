@@ -9,6 +9,16 @@ type PurchaseWithMedia = Purchase & {
   media: CollectionVideo;
 };
 
+function getTimeRemaining(expiresAt: string | Date) {
+  const now = new Date();
+  const expiry = new Date(expiresAt);
+  const diff = expiry.getTime() - now.getTime();
+  if (diff <= 0) return 'Expired';
+  const hours = Math.floor(diff / (1000 * 60 * 60));
+  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+  return `${hours}h ${minutes}m remaining`;
+}
+
 export default function AccountClient() {
   const sessionHook = useSession();
   const session = sessionHook?.data;
@@ -160,7 +170,7 @@ export default function AccountClient() {
                         }
                         return expiresAtDate ? (
                           <p className="text-stone-500 text-sm">
-                            Expires: {expiresAtDate.toLocaleDateString()}
+                            Expires: {expiresAtDate.toLocaleDateString()} (<span className="text-emerald-600">{getTimeRemaining(expiresAtDate)}</span>)
                           </p>
                         ) : null;
                       })()}

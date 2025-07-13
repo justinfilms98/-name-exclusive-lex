@@ -3,6 +3,7 @@ import React from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Heart, PlayCircle, Lock } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 export type MediaItem = {
   id: string;
@@ -14,6 +15,20 @@ export type MediaItem = {
 };
 
 const MediaCard = ({ item }: { item: MediaItem }) => {
+  const router = useRouter();
+  const handlePurchase = async () => {
+    const res = await fetch('/api/checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ collectionVideoId: item.id }),
+    });
+    const data = await res.json();
+    if (data.url) {
+      window.location.href = data.url;
+    } else {
+      alert(data.error || 'Failed to start checkout.');
+    }
+  };
   return (
     <motion.div
       layout
@@ -39,12 +54,10 @@ const MediaCard = ({ item }: { item: MediaItem }) => {
             <span>${item.price.toFixed(2)}</span>
             {item.durationSeconds && <span>{Math.floor(item.durationSeconds / 60)}m {item.durationSeconds % 60}s</span>}
           </div>
-          <Link href={`/checkout?collectionVideoId=${item.id}`} className="w-full">
-            <button className="w-full bg-emerald-500 text-white px-6 py-3 rounded-full font-semibold hover:bg-emerald-600 transition-colors flex items-center justify-center space-x-2">
-              <Lock size={16} />
-              <span>Purchase to Unlock</span>
-            </button>
-          </Link>
+          <button onClick={handlePurchase} className="w-full bg-emerald-500 text-white px-6 py-3 rounded-full font-semibold hover:bg-emerald-600 transition-colors flex items-center justify-center space-x-2">
+            <Lock size={16} />
+            <span>Purchase to Unlock</span>
+          </button>
         </div>
       </div>
     </motion.div>

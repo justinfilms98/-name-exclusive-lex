@@ -5,13 +5,24 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Trash2, ShoppingCart, ArrowLeft, Loader2 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 export default function CartPage() {
   const { cartItems, removeFromCart, itemCount, clearCart } = useCart();
   const router = useRouter();
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [recommended, setRecommended] = useState<any[]>([]);
+
+  useEffect(() => {
+    async function fetchRecommended() {
+      const res = await fetch('/api/collection-videos');
+      const all = await res.json();
+      const notInCart = all.filter((v: any) => !cartItems.some((c: any) => c.id === v.id));
+      setRecommended(notInCart.sort(() => 0.5 - Math.random()).slice(0, 3));
+    }
+    fetchRecommended();
+  }, [cartItems]);
 
   const subtotal = cartItems.reduce((acc, item) => acc + item.price, 0);
   const taxRate = 0.08; // 8% tax rate
@@ -125,6 +136,26 @@ export default function CartPage() {
           </div>
         </div>
       </motion.div>
+      {recommended.length > 0 && (
+        <div className="mt-12">
+          <h2 className="text-2xl font-bold mb-4 text-center">Recommended for You</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+            {recommended.map((video) => (
+              <div key={video.id} className="bg-white rounded-lg shadow p-4 flex flex-col items-center">
+                <img src={video.thumbnail} alt={video.title} className="w-full h-40 object-cover rounded mb-2" />
+                <h3 className="font-semibold text-lg mb-1 text-center">{video.title}</h3>
+                <p className="text-stone-500 text-sm mb-2 text-center">{video.description}</p>
+                <div className="flex items-center space-x-2 text-stone-700 text-sm mb-2">
+                  <span>${video.price}</span>
+                </div>
+                <button onClick={() => router.push(`/collections`)} className="w-full bg-emerald-600 text-white px-4 py-2 rounded font-semibold hover:bg-emerald-700 transition-colors mt-2">
+                  View Collection
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 } 

@@ -87,7 +87,7 @@ async function handleCheckoutSessionCompleted(session: any) {
         userId,
         collectionVideoId,
         createdAt: new Date(),
-        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+        expiresAt: new Date(Date.now() + 72 * 60 * 60 * 1000), // 72 hours
       },
       include: {
         User: true,

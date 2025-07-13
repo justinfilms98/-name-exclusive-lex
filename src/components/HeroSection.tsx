@@ -2,6 +2,7 @@
 import React from 'react';
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from 'next/navigation';
+import { useSession } from "next-auth/react";
 
 interface HeroVideo {
   id: number;
@@ -16,6 +17,7 @@ export default function HeroSection() {
   const [current, setCurrent] = useState(0);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const router = useRouter();
+  const { data: session, status } = useSession();
 
   useEffect(() => {
     function fetchVideos() {
@@ -102,18 +104,21 @@ export default function HeroSection() {
           </p>
         )}
         <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in-delay-3">
-          <button
-            onClick={() => router.push('/collections')}
-            className="bg-white text-stone-900 px-8 py-3 rounded-md font-medium hover:bg-stone-100 transition-colors"
-          >
-            Explore Collections
-          </button>
-          <button
-            onClick={() => router.push('/login')}
-            className="border border-white text-white px-8 py-3 rounded-md font-medium hover:bg-white hover:text-stone-900 transition-colors"
-          >
-            Sign In
-          </button>
+          {status === 'loading' ? null : session ? (
+            <button
+              onClick={() => router.push('/collections')}
+              className="bg-white text-stone-900 px-8 py-3 rounded-md font-medium hover:bg-stone-100 transition-colors"
+            >
+              Explore Collections
+            </button>
+          ) : (
+            <button
+              onClick={() => router.push('/login')}
+              className="border border-white text-white px-8 py-3 rounded-md font-medium hover:bg-white hover:text-stone-900 transition-colors"
+            >
+              Sign In
+            </button>
+          )}
         </div>
       </div>
 
