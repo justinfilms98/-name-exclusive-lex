@@ -3,10 +3,10 @@
 // Handles authentication using NextAuth with Prisma adapter
 // =====================================================
 
-import { NextAuthOptions } from 'next-auth';
 import { PrismaAdapter } from '@next-auth/prisma-adapter';
 import GoogleProvider from 'next-auth/providers/google';
 import { prisma } from './prisma';
+import type { NextAuthOptions } from 'next-auth';
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
@@ -17,30 +17,21 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   session: {
-    strategy: 'database', // switched from 'jwt' to 'database'
+    strategy: 'jwt',
   },
   callbacks: {
-    async signIn({ user, account, profile }) {
-      // Check if user exists in database
-      const existingUser = await prisma.user.findUnique({
-        where: { email: user.email! },
-      });
-
-      if (!existingUser) {
-        // Create new user
-        await prisma.user.create({
-          data: {
-            id: user.id || crypto.randomUUID(),
-            email: user.email!,
-            name: user.name,
-            image: user.image,
-            role: 'user', // Default role
-            updatedAt: new Date(),
-          },
-        });
+    async session({ session, token }) {
+      if (session?.user && token) {
+        session.user.id = token.sub || '';
+        session.user.role = token.role || '';
       }
-
-      return true;
+      return session;
+    },
+    async jwt({ token, user }) {
+      if (user) {
+        token.role = user.role || '';
+      }
+      return token;
     },
   },
   pages: {
