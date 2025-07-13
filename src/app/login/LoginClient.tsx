@@ -1,8 +1,21 @@
 "use client";
 import { signIn, useSession } from 'next-auth/react';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function LoginClient() {
-  const { status } = useSession();
+  const { data: session, status } = useSession();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (status === 'authenticated' && session?.user) {
+      if (session.user.role === 'admin') {
+        router.push('/admin');
+      } else {
+        router.push('/account');
+      }
+    }
+  }, [status, session, router]);
 
   if (status === 'loading') {
     return (
@@ -22,7 +35,7 @@ export default function LoginClient() {
         <div className="bg-white py-8 px-6 shadow-lg rounded-lg">
           <button
             className="w-full flex items-center justify-center border border-stone-300 rounded-md py-3 px-4 font-semibold text-stone-800 hover:bg-stone-50 transition-colors"
-            onClick={() => signIn('google', { callbackUrl: '/account' })}
+            onClick={() => signIn('google')}
           >
             Continue with Google
           </button>
