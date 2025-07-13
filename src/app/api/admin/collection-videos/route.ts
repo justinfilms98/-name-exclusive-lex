@@ -1,14 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-
-// TODO: Add NextAuth admin check here if needed
-async function isAdmin(_req: NextRequest): Promise<boolean> {
-  // Implement admin check with NextAuth session
-  return true;
-}
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 
 export async function POST(req: NextRequest) {
-  if (!(await isAdmin(req))) {
+  const session = await getServerSession(authOptions);
+  if (!session || session.user.role !== 'admin') {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
   }
 
