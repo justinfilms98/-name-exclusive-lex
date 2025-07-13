@@ -53,6 +53,7 @@ export async function POST(req: NextRequest) {
         thumbnail: thumbUrl,
         collectionId: collectionId,
         order: (maxOrder?.order ?? -1) + 1,
+        durationMinutes: 10,
       },
     });
 
