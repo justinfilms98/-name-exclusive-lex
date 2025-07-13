@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { redirect } from 'next/navigation';
 import VideoPlayerClientWrapper from './VideoPlayerClientWrapper';
 
-// Correct signature for a dynamic route page in Next.js App Router
+// Correct explicit prop type for App Router dynamic route
 export default async function WatchCollectionVideoPage({ params }: { params: { videoId: string } }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
@@ -23,13 +23,19 @@ export default async function WatchCollectionVideoPage({ params }: { params: { v
   });
 
   if (!purchase) {
-    redirect('/collections?access=denied');
+    redirect('/collections');
   }
 
-  const video = purchase.CollectionVideo;
-  const expiresAt = purchase.expiresAt?.toISOString();
+  const { CollectionVideo } = purchase;
 
   return (
-    <VideoPlayerClientWrapper src={video.videoUrl} title={video.title} expiresAt={expiresAt} />
+    <div className="flex flex-col items-center justify-center min-h-screen">
+      <h1 className="text-2xl font-bold mb-4">{CollectionVideo.title}</h1>
+      <VideoPlayerClientWrapper
+        src={CollectionVideo.videoUrl}
+        title={CollectionVideo.title}
+        expiresAt={purchase.expiresAt?.toISOString()}
+      />
+    </div>
   );
 } 
