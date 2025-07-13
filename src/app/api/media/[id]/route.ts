@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function GET(request: NextRequest) {
   try {
-    const { id } = params;
+    // Extract the id from the pathname
+    const segments = request.nextUrl.pathname.split('/');
+    const id = segments[segments.indexOf('media') + 1];
 
     if (!id) {
       return NextResponse.json(
