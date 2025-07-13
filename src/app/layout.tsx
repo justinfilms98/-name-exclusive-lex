@@ -1,6 +1,5 @@
 import "./globals.css";
 import type { Metadata } from "next";
-import NextAuthSessionProvider from "./SessionProvider";
 import Header from "./Header";
 import { CartProvider } from "@/context/CartContext";
 
@@ -13,12 +12,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body>
-        <NextAuthSessionProvider>
-          <CartProvider>
-            <Header />
-            {children}
-          </CartProvider>
-        </NextAuthSessionProvider>
+        <CartProvider>
+          <Header />
+          {children}
+        </CartProvider>
       </body>
     </html>
   );
