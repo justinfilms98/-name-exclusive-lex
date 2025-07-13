@@ -101,6 +101,6 @@
     "whatwg-fetch": "^3.6.20"
   },
   "prisma": {
-    "seed": "node prisma/seed-collections.js"
+    "seed": "tsx prisma/seed.ts"
   }
 }
