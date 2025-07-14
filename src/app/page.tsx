@@ -5,7 +5,9 @@ import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 
 export default function Home() {
-  const { data: session, status } = useSession();
+  const sessionHook = typeof useSession === 'function' ? useSession() : undefined;
+  const session = sessionHook?.data;
+  const status = sessionHook?.status;
   return (
     <div>
       <HeroSection />
