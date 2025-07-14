@@ -4,7 +4,9 @@ import { useSession, signOut } from 'next-auth/react';
 import { CartPreview } from '@/components/CartPreview';
 
 export default function Header() {
-  const { data: session, status } = useSession();
+  const sessionHook = typeof useSession === 'function' ? useSession() : undefined;
+  const session = sessionHook?.data;
+  const status = sessionHook?.status;
   return (
     <header className="bg-white dark:bg-stone-900 shadow-sm border-b border-stone-200 dark:border-stone-800 fixed top-0 left-0 right-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
