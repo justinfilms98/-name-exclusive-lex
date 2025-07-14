@@ -4,7 +4,9 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 export default function LoginClient() {
-  const { data: session, status } = useSession();
+  const sessionHook = typeof useSession === 'function' ? useSession() : undefined;
+  const session = sessionHook?.data;
+  const status = sessionHook?.status;
   const router = useRouter();
 
   useEffect(() => {

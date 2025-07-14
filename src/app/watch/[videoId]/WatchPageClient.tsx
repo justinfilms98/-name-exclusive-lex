@@ -19,7 +19,9 @@ interface WatchPageClientProps {
 }
 
 export default function WatchPageClient({ videoId }: WatchPageClientProps) {
-  const { data: session, status } = useSession();
+  const sessionHook = typeof useSession === 'function' ? useSession() : undefined;
+  const session = sessionHook?.data;
+  const status = sessionHook?.status;
   const router = useRouter();
   const [video, setVideo] = useState<Video | null>(null);
   const [loading, setLoading] = useState(true);

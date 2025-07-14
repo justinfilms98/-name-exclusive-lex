@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { CartPreview } from '@/components/CartPreview';
 
 export default function HeaderClient() {
-  const sessionHook = useSession();
+  const sessionHook = typeof useSession === 'function' ? useSession() : undefined;
   const session = sessionHook?.data;
   const status = sessionHook?.status;
   const [loading, setLoading] = useState(true);
