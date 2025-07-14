@@ -1,12 +1,7 @@
-// =====================================================
-// NEXTAUTH CONFIGURATION
-// Handles authentication using NextAuth with Prisma adapter
-// =====================================================
-
-import { PrismaAdapter } from '@next-auth/prisma-adapter';
-import GoogleProvider from 'next-auth/providers/google';
-import { prisma } from './prisma';
-import type { NextAuthOptions } from 'next-auth';
+import GoogleProvider from "next-auth/providers/google";
+import { PrismaAdapter } from "@auth/prisma-adapter";
+import { type NextAuthOptions } from "next-auth";
+import { prisma } from "@/lib/prisma";
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
@@ -17,58 +12,18 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   session: {
-    strategy: 'jwt',
+    strategy: "database",
+  },
+  pages: {
+    signIn: "/login",
   },
   callbacks: {
-    async session({ session, token }) {
-      if (session?.user && token) {
-        session.user.id = token.sub || '';
-        session.user.role = token.role || '';
+    async session({ session, user }) {
+      if (session?.user) {
+        session.user.id = user.id;
       }
       return session;
     },
-    async jwt({ token, user }) {
-      if (user) {
-        token.sub = user.id;
-        token.role = user.role || '';
-      }
-      return token;
-    },
-    async redirect({ url, baseUrl }) {
-      return url.startsWith(baseUrl) ? url : baseUrl;
-    },
-  },
-  pages: {
-    signIn: '/login',
-    error: '/auth/error',
   },
   secret: process.env.NEXTAUTH_SECRET,
-};
-
-// Extend the built-in session types
-declare module 'next-auth' {
-  interface Session {
-    user: {
-      id: string;
-      email: string;
-      name?: string | null;
-      image?: string | null;
-      role: string;
-    };
-  }
-
-  interface User {
-    id: string;
-    email: string;
-    name?: string | null;
-    image?: string | null;
-    role: string;
-  }
-}
-
-declare module 'next-auth/jwt' {
-  interface JWT {
-    id: string;
-    role: string;
-  }
-} 
+}; 
