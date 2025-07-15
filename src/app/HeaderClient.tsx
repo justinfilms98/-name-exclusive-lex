@@ -55,7 +55,7 @@ export default function HeaderClient() {
             </Link>
             <CartPreview />
             
-            {session ? (
+            {session && session.user ? (
               <>
                 {session.user.role === 'admin' && (
                   <Link href="/admin" className="text-stone-600 hover:text-stone-800 transition-colors">
