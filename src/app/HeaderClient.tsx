@@ -57,11 +57,10 @@ export default function HeaderClient() {
             
             {session && session.user ? (
               <>
-                {session.user.role === 'admin' && (
-                  <Link href="/admin" className="text-stone-600 hover:text-stone-800 transition-colors">
-                    Admin
-                  </Link>
-                )}
+                {/* Temporarily removed admin check for testing */}
+                <Link href="/admin" className="text-stone-600 hover:text-stone-800 transition-colors">
+                  Admin
+                </Link>
                 <Link href="/account" className="text-stone-600 hover:text-stone-800 transition-colors">
                   Account
                 </Link>

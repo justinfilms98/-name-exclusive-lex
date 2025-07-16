@@ -1,7 +1,7 @@
-import GoogleProvider from "next-auth/providers/google";
-import { PrismaAdapter } from "@next-auth/prisma-adapter";
-import { type NextAuthOptions } from "next-auth";
-import { prisma } from "@/lib/prisma";
+import { PrismaAdapter } from "@auth/prisma-adapter"
+import GoogleProvider from "next-auth/providers/google"
+import { type NextAuthOptions } from "next-auth"
+import { prisma } from "@/lib/prisma"
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
@@ -19,12 +19,18 @@ export const authOptions: NextAuthOptions = {
   },
   callbacks: {
     async session({ session, user }) {
-      if (session?.user) {
-        session.user.id = user.id;
-        session.user.role = user.role;
+      // Ensure user ID gets added to session object
+      if (session.user) {
+        session.user.id = user.id
+        session.user.email = user.email
       }
-      return session;
+      return session
+    },
+    async signIn({ user }) {
+      // TEMP: Allow all users to sign in for now
+      return true
     },
   },
   secret: process.env.NEXTAUTH_SECRET,
-}; 
+  debug: true,
+} 
