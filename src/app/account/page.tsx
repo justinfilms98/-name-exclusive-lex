@@ -1,10 +1,10 @@
-import { getServerSession } from 'next-auth';
+import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import AccountClient from './AccountClient';
 import { redirect } from 'next/navigation';
 
 export default async function AccountPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getServerSession(authOptions) as any;
   if (!session) {
     redirect('/login');
   }

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { getServerSession } from 'next-auth';
+import { getServerSession } from 'next-auth/next';
 import { CheckCircle, Download, Play, Clock } from 'lucide-react';
 import Link from 'next/link';
 
