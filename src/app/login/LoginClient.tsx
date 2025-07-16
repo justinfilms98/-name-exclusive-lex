@@ -11,7 +11,7 @@ export default function LoginClient() {
 
   useEffect(() => {
     if (status === 'authenticated' && session?.user) {
-      if (session.user.role === 'admin') {
+      if ((session.user as any).role === 'admin') {
         router.push('/admin');
       } else {
         router.push('/account');

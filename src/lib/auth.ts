@@ -1,6 +1,6 @@
 import { PrismaAdapter } from "@auth/prisma-adapter"
 import GoogleProvider from "next-auth/providers/google"
-import type { NextAuthOptions } from "next-auth"
+import type { AuthOptions as NextAuthOptions } from "next-auth/core/types";
 import { prisma } from "@/lib/prisma"
 
 export const authOptions: NextAuthOptions = {
@@ -18,17 +18,25 @@ export const authOptions: NextAuthOptions = {
     signIn: "/login",
   },
   callbacks: {
-    async session({ session, user }) {
-      // Ensure user ID gets added to session object
-      if (session.user) {
-        session.user.id = user.id
-        session.user.email = user.email
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = (user as any).id;
+        token.email = (user as any).email;
+        token.role = (user as any).role;
       }
-      return session
+      return token;
+    },
+    async session({ session, token }) {
+      if (session.user && token) {
+        (session.user as any).id = token.id as string;
+        (session.user as any).email = token.email as string;
+        (session.user as any).role = token.role as string;
+      }
+      return session;
     },
     async signIn({ user }) {
       // TEMP: Allow all users to sign in for now
-      return true
+      return true;
     },
   },
   secret: process.env.NEXTAUTH_SECRET,

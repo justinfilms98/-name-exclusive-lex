@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
 
     // Get user session
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    if (!session?.user || !(session.user as any).id) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
     // Check if user already purchased this item
     const existingPurchase = await prisma.purchase.findFirst({
       where: {
-        userId: session.user.id,
+        userId: (session.user as any).id,
         collectionVideoId: mediaId,
         expiresAt: { gt: new Date() },
       },
@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
     const cancelUrl = `${baseUrl}/collections?canceled=true`;
 
     const checkoutSession = await createCheckoutSession({
-      userId: session.user.id,
+      userId: (session.user as any).id,
       collectionVideoId: mediaId,
       title: media.title,
       price: Number(media.price),
@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
         media_title: media.title,
         price: Number(media.price),
       },
-      userId: session.user.id,
+      userId: (session.user as any).id,
     });
 
     // TODO: Send notification to admin about new checkout

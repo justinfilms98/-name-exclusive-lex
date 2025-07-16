@@ -7,7 +7,7 @@ export default async function AdminPage() {
   if (!session) {
     redirect('/login');
   }
-  if (session.user.role !== 'admin') {
+  if (!session.user || (session.user as any).role !== 'admin') {
     redirect('/unauthorized');
   }
   return (

@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
 
     // Get user session
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    if (!session?.user || !(session.user as any).id) {
       return NextResponse.json(
         { error: "Authentication required" },
         { status: 401 }
@@ -41,7 +41,7 @@ export async function GET(req: NextRequest) {
     // Check if user has a valid purchase for this media
     const purchase = await prisma.purchase.findFirst({
       where: {
-        userId: session.user.id,
+        userId: (session.user as any).id,
         expiresAt: { gt: new Date() },
       },
     });

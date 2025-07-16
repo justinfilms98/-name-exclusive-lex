@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
   try {
     // Get user session
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    if (!session?.user || !(session.user as any).id) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
     // Check if user has purchased this video
     const purchase = await prisma.purchase.findFirst({
       where: {
-        userId: session.user.id,
+        userId: (session.user as any).id,
         collectionVideoId: videoId,
       },
       include: {
@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
   try {
     // Get user session
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    if (!session?.user || !(session.user as any).id) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
@@ -123,7 +123,7 @@ export async function POST(request: NextRequest) {
 
     // Verify the session belongs to the current user
     const { userId } = checkoutSession.metadata || {};
-    if (userId !== session.user.id) {
+    if (userId !== (session.user as any).id) {
       return NextResponse.json(
         { error: 'Unauthorized access to this session' },
         { status: 403 }
@@ -133,7 +133,7 @@ export async function POST(request: NextRequest) {
     // Find the purchase record
     const purchase = await prisma.purchase.findFirst({
       where: {
-        userId: session.user.id,
+        userId: (session.user as any).id,
         collectionVideoId: checkoutSession.metadata?.collectionVideoId,
       },
       include: {
@@ -169,7 +169,7 @@ export async function POST(request: NextRequest) {
         media_id: purchase.CollectionVideo.id,
         media_title: purchase.CollectionVideo.title,
       },
-      userId: session.user.id,
+      userId: (session.user as any).id,
     });
 
     // Return purchase details

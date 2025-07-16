@@ -10,7 +10,7 @@ export async function GET(_req: NextRequest) {
   try {
     // Get user session
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    if (!session?.user || !(session.user as any).id) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
@@ -18,7 +18,7 @@ export async function GET(_req: NextRequest) {
     }
 
     const purchases = await prisma.purchase.findMany({
-      where: { userId: session.user.id },
+      where: { userId: (session.user as any).id },
       include: {
         CollectionVideo: {
           include: {
