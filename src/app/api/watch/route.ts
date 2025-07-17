@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { prisma } from '@/lib/prisma';
 
 export async function POST(req: NextRequest) {
   const { collectionVideoId } = await req.json();
 
   try {
-    const video = await prisma.collectionVideo.findUnique({
+    const { prisma } = await import('@/lib/prisma');
+    const prismaClient = prisma();
+    
+    const video = await prismaClient.collectionVideo.findUnique({
       where: { id: collectionVideoId },
     });
 

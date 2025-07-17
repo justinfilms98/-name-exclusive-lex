@@ -33,8 +33,9 @@ export async function GET(request: NextRequest) {
     }
 
     const { prisma } = await import('@/lib/prisma');
+    const prismaClient = prisma();
 
-    const purchase = await prisma.purchase.findFirst({
+    const purchase = await prismaClient.purchase.findFirst({
       where: {
         userId: (session.user as any).id,
         collectionVideoId: videoId,
@@ -144,9 +145,10 @@ export async function POST(request: NextRequest) {
     }
 
     const { prisma } = await import('@/lib/prisma');
+    const prismaClient = prisma();
 
     // Find the purchase record
-    const purchase = await prisma.purchase.findFirst({
+    const purchase = await prismaClient.purchase.findFirst({
       where: {
         userId: (session.user as any).id,
         collectionVideoId: checkoutSession.metadata?.collectionVideoId,

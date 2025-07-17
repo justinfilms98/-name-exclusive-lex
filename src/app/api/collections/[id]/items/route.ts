@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
 
 export async function GET(req: NextRequest) {
   try {
@@ -11,7 +10,10 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Collection ID is required' }, { status: 400 });
     }
 
-    const mediaItems = await prisma.collectionVideo.findMany({
+    const { prisma } = await import('@/lib/prisma');
+    const prismaClient = prisma();
+
+    const mediaItems = await prismaClient.collectionVideo.findMany({
       where: { collectionId: id },
       orderBy: { createdAt: 'desc' },
       select: {

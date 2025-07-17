@@ -1,32 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { safeDbOperation } from '@/lib/prisma';
 
 export async function GET(request: NextRequest) {
   try {
-    const mediaItems = await safeDbOperation(
-      async () => {
-        const { prisma } = await import('@/lib/prisma');
-        return await prisma.collectionVideo.findMany({
-          where: {
-            price: {
-              gt: 0,
-            },
-          },
-          select: {
-            id: true,
-            title: true,
-            description: true,
-            thumbnail: true,
-            price: true,
-            createdAt: true,
-          },
-          orderBy: {
-            createdAt: 'desc',
-          },
-        });
+    const { prisma } = await import('@/lib/prisma');
+    const prismaClient = prisma();
+    
+    const mediaItems = await prismaClient.collectionVideo.findMany({
+      where: {
+        price: {
+          gt: 0,
+        },
       },
-      [] // fallback empty array
-    );
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        thumbnail: true,
+        price: true,
+        createdAt: true,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
 
     return NextResponse.json(mediaItems);
   } catch (error) {

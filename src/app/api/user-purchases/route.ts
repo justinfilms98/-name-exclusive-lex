@@ -17,8 +17,9 @@ export async function GET(_req: NextRequest) {
     }
 
     const { prisma } = await import('@/lib/prisma');
+    const prismaClient = prisma();
 
-    const purchases = await prisma.purchase.findMany({
+    const purchases = await prismaClient.purchase.findMany({
       where: { userId: (session.user as any).id },
       include: {
         CollectionVideo: {

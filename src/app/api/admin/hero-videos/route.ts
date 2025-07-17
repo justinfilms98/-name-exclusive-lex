@@ -5,13 +5,14 @@ import { authOptions } from '@/lib/auth';
 export async function GET(req: NextRequest) {
   try {
     const { prisma } = await import('@/lib/prisma');
+    const prismaClient = prisma();
     
     const session = await getServerSession(authOptions);
     if (!session?.user || (session.user as any).role !== 'admin') {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
 
-    const videos = await prisma.heroVideo.findMany({
+    const videos = await prismaClient.heroVideo.findMany({
       orderBy: { order: 'asc' },
     });
 
@@ -25,6 +26,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const { prisma } = await import('@/lib/prisma');
+    const prismaClient = prisma();
     
     const session = await getServerSession(authOptions);
     if (!session?.user || (session.user as any).role !== 'admin') {
@@ -43,12 +45,12 @@ export async function POST(req: NextRequest) {
     }
 
     // Get the highest order value and increment by 1
-    const maxOrder = await prisma.heroVideo.findFirst({
+    const maxOrder = await prismaClient.heroVideo.findFirst({
       orderBy: { order: 'desc' },
       select: { order: true }
     });
 
-    const video = await prisma.heroVideo.create({
+    const video = await prismaClient.heroVideo.create({
       data: {
         title,
         description,
@@ -70,6 +72,7 @@ export async function POST(req: NextRequest) {
 export async function PUT(req: NextRequest) {
   try {
     const { prisma } = await import('@/lib/prisma');
+    const prismaClient = prisma();
     
     const session = await getServerSession(authOptions);
     if (!session?.user || (session.user as any).role !== 'admin') {
@@ -82,7 +85,7 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: 'Video ID is required' }, { status: 400 });
     }
 
-    const video = await prisma.heroVideo.update({
+    const video = await prismaClient.heroVideo.update({
       where: { id: parseInt(id) },
       data: {
         ...updateData,
@@ -100,6 +103,7 @@ export async function PUT(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   try {
     const { prisma } = await import('@/lib/prisma');
+    const prismaClient = prisma();
     
     const session = await getServerSession(authOptions);
     if (!session?.user || (session.user as any).role !== 'admin') {
@@ -113,7 +117,7 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: 'Video ID is required' }, { status: 400 });
     }
 
-    await prisma.heroVideo.delete({
+    await prismaClient.heroVideo.delete({
       where: { id: parseInt(id) },
     });
 

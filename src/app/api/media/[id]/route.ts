@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
 
 export async function GET(request: NextRequest) {
   try {
@@ -14,7 +13,10 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const media = await prisma.collectionVideo.findUnique({
+    const { prisma } = await import('@/lib/prisma');
+    const prismaClient = prisma();
+
+    const media = await prismaClient.collectionVideo.findUnique({
       where: { id },
       select: {
         id: true,

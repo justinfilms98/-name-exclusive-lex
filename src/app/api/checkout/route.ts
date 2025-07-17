@@ -53,9 +53,10 @@ export async function POST(request: NextRequest) {
 
     // Dynamic import to prevent Prisma instantiation during build
     const { prisma } = await import('@/lib/prisma');
+    const prismaClient = prisma();
 
     // Fetch media item from database
-    const media = await prisma.collectionVideo.findUnique({
+    const media = await prismaClient.collectionVideo.findUnique({
       where: { id: mediaId },
       include: { collection: true },
     });
@@ -75,7 +76,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user already purchased this item
-    const existingPurchase = await prisma.purchase.findFirst({
+    const existingPurchase = await prismaClient.purchase.findFirst({
       where: {
         userId: (session.user as any).id,
         collectionVideoId: mediaId,

@@ -5,6 +5,7 @@ import { authOptions } from '@/lib/auth';
 export async function POST(req: NextRequest) {
   try {
     const { prisma } = await import('@/lib/prisma');
+    const prismaClient = prisma();
     
     const session = await getServerSession(authOptions);
     if (!session?.user || (session.user as any).role !== 'admin') {
@@ -19,7 +20,7 @@ export async function POST(req: NextRequest) {
 
     // Update the order of each video
     for (let i = 0; i < videoIds.length; i++) {
-      await prisma.heroVideo.update({
+      await prismaClient.heroVideo.update({
         where: { id: videoIds[i] },
         data: { order: i },
       });
