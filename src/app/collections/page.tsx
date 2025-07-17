@@ -1,32 +1,21 @@
-import { prisma } from '@/lib/prisma';
 import CollectionsClient from './CollectionsClient';
 
 export const revalidate = 60; // Revalidate data at most every 60 seconds
 
 async function getMediaItems() {
   try {
-    const mediaItems = await prisma.collectionVideo.findMany({
-      where: {
-        price: {
-          gt: 0,
-        },
-      },
-      select: {
-        id: true,
-        title: true,
-        description: true,
-        thumbnail: true,
-        price: true,
-        createdAt: true,
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
+    // Use API route instead of direct Prisma access
+    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/collections`, {
+      next: { revalidate: 60 }
     });
     
-    // The select call correctly shapes the object. The type error is likely a tooling issue.
-    // We cast it to the correct type to unblock the build.
-    return mediaItems.map(item => ({ 
+    if (!response.ok) {
+      throw new Error('Failed to fetch collections');
+    }
+    
+    const mediaItems = await response.json();
+    
+    return mediaItems.map((item: any) => ({ 
       ...item,
       id: item.id,
       price: item.price ? Number(item.price) : 0,

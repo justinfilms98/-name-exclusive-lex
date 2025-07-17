@@ -1,5 +1,4 @@
 "use client";
-import { prisma } from '@/lib/prisma';
 import { notFound, useSearchParams } from 'next/navigation';
 import { Suspense, useState, useEffect } from 'react';
 import type { CollectionVideo } from '@prisma/client';
@@ -92,7 +91,6 @@ function CheckoutContent() {
     </div>
   );
 }
-
 
 export default function CheckoutPage() {
   return (

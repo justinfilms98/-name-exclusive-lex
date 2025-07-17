@@ -1,53 +1,38 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { z } from 'zod';
+import { safeDbOperation } from '@/lib/prisma';
 
-const collectionSchema = z.object({
-  title: z.string().min(1, "Collection title is required"),
-  description: z.string().optional(),
-});
-
-export const dynamic = 'force-dynamic';
-
-export async function GET(req: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
-    const collections = await prisma.collection.findMany({
-      orderBy: {
-        title: 'asc',
+    const mediaItems = await safeDbOperation(
+      async () => {
+        const { prisma } = await import('@/lib/prisma');
+        return await prisma.collectionVideo.findMany({
+          where: {
+            price: {
+              gt: 0,
+            },
+          },
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            thumbnail: true,
+            price: true,
+            createdAt: true,
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+        });
       },
-    });
-    return NextResponse.json(collections);
-  } catch (error: any) {
-    console.error('Error fetching collections:', error);
-    return NextResponse.json({ error: error.message || 'Failed to fetch collections' }, { status: 500 });
-  }
-}
+      [] // fallback empty array
+    );
 
-export async function POST(req: NextRequest) {
-  try {
-    const data = await req.json();
-    const validatedData = collectionSchema.parse(data);
-
-    const collection = await prisma.collection.create({
-      data: {
-        title: validatedData.title,
-        description: validatedData.description ?? '',
-      },
-    });
-
-    return NextResponse.json(collection);
+    return NextResponse.json(mediaItems);
   } catch (error) {
-    console.error('Error creating collection:', error);
-    
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: "Validation failed", details: error.errors },
-        { status: 400 }
-      );
-    }
-    
+    console.error('Error fetching collections:', error);
     return NextResponse.json(
-      { error: 'Failed to create collection' },
+      { error: 'Failed to fetch collections' },
       { status: 500 }
     );
   }
