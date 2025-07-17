@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { trackError } from "@/lib/analytics";
 
+// Force dynamic rendering to prevent build-time execution
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {

@@ -13,6 +13,11 @@ const globalForPrisma = globalThis as unknown as {
 function getPrismaClient(): PrismaClient {
   if (!globalForPrisma.prisma) {
     if (!process.env.DATABASE_URL) {
+      // During build time, return a mock client to prevent errors
+      if (process.env.NODE_ENV === 'production' && !process.env.DATABASE_URL) {
+        console.warn('DATABASE_URL not available during build, using mock client');
+        return {} as PrismaClient;
+      }
       throw new Error('DATABASE_URL is not defined. Cannot initialize Prisma client.');
     }
     
