@@ -6,24 +6,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
 import { getCheckoutSession } from '@/lib/stripe';
-import { trackEvent } from '@/lib/analytics';
+import { trackEvent, trackError } from '@/lib/analytics';
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   try {
-    // Get user session
-    const session = await getServerSession(authOptions);
-    if (!session?.user || !(session.user as any).id) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
-    }
-
-    // Get videoId from query params
     const { searchParams } = new URL(request.url);
     const videoId = searchParams.get('videoId');
 
@@ -34,48 +23,72 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Check if user has purchased this video
+    // Get user session
+    const session = await getServerSession(authOptions);
+    if (!session?.user || !(session.user as any).id) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
+    const { prisma } = await import('@/lib/prisma');
+
     const purchase = await prisma.purchase.findFirst({
       where: {
         userId: (session.user as any).id,
         collectionVideoId: videoId,
       },
       include: {
-        CollectionVideo: true,
+        CollectionVideo: {
+          include: {
+            collection: true,
+          },
+        },
+        User: true,
       },
     });
 
     if (!purchase) {
-      return NextResponse.json({
-        hasAccess: false,
-        video: null,
-      });
+      return NextResponse.json(
+        { error: 'Purchase not found' },
+        { status: 404 }
+      );
     }
 
-    // Check if access has expired
-    if (purchase.expiresAt && purchase.expiresAt < new Date()) {
-      return NextResponse.json({
-        hasAccess: false,
-        video: null,
-      });
+    // Check if purchase has expired
+    if (purchase.expiresAt < new Date()) {
+      return NextResponse.json(
+        { error: 'Purchase has expired' },
+        { status: 410 }
+      );
     }
 
-    return NextResponse.json({
-      hasAccess: true,
-      video: {
-        id: purchase.CollectionVideo.id,
-        title: purchase.CollectionVideo.title,
-        description: purchase.CollectionVideo.description,
-        videoUrl: purchase.CollectionVideo.videoUrl,
-        thumbnail: purchase.CollectionVideo.thumbnail,
-        price: purchase.CollectionVideo.price,
+    // Track successful verification
+    await trackEvent({
+      name: 'purchase_verified',
+      properties: {
+        userId: (session.user as any).id,
+        videoId,
+        purchaseId: purchase.id,
       },
     });
 
-  } catch (error) {
-    console.error('Video access verification error:', error);
+    return NextResponse.json({
+      valid: true,
+      purchase: {
+        id: purchase.id,
+        expiresAt: purchase.expiresAt,
+        CollectionVideo: purchase.CollectionVideo,
+      },
+    });
+  } catch (error: any) {
+    console.error('Error verifying purchase:', error);
+    
+    await trackError(error as Error);
+    
     return NextResponse.json(
-      { error: 'Failed to verify access' },
+      { error: 'Failed to verify purchase' },
       { status: 500 }
     );
   }
@@ -130,6 +143,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const { prisma } = await import('@/lib/prisma');
+
     // Find the purchase record
     const purchase = await prisma.purchase.findFirst({
       where: {
@@ -153,52 +168,36 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if access has expired
-    if (purchase.expiresAt && purchase.expiresAt < new Date()) {
-      return NextResponse.json(
-        { error: 'Access has expired' },
-        { status: 410 }
-      );
-    }
-
-    // Track the successful verification
+    // Track successful verification
     await trackEvent({
       name: 'purchase_verified',
       properties: {
-        purchase_id: purchase.id,
-        media_id: purchase.CollectionVideo.id,
-        media_title: purchase.CollectionVideo.title,
+        userId: (session.user as any).id,
+        videoId: purchase.collectionVideoId,
+        purchaseId: purchase.id,
+        sessionId,
+        amount: checkoutSession.amount_total,
       },
-      userId: (session.user as any).id,
     });
 
-    // Return purchase details
     return NextResponse.json({
+      valid: true,
       purchase: {
         id: purchase.id,
-        media: {
-          id: purchase.CollectionVideo.id,
-          title: purchase.CollectionVideo.title,
-          description: purchase.CollectionVideo.description,
-          videoUrl: purchase.CollectionVideo.videoUrl,
-          thumbnail: purchase.CollectionVideo.thumbnail,
-        },
-        expiresAt: purchase.expiresAt?.toISOString(),
-        createdAt: purchase.createdAt?.toISOString() || new Date().toISOString(),
+        expiresAt: purchase.expiresAt,
+        CollectionVideo: purchase.CollectionVideo,
+      },
+      session: {
+        id: checkoutSession.id,
+        payment_status: checkoutSession.payment_status,
+        amount_total: checkoutSession.amount_total,
       },
     });
-
-  } catch (error) {
-    console.error('Purchase verification error:', error);
+  } catch (error: any) {
+    console.error('Error verifying purchase:', error);
     
-    // Track the error
-    await trackEvent({
-      name: 'purchase_verification_error',
-      properties: {
-        error: error instanceof Error ? error.message : 'Unknown error',
-      },
-    });
-
+    await trackError(error as Error);
+    
     return NextResponse.json(
       { error: 'Failed to verify purchase' },
       { status: 500 }

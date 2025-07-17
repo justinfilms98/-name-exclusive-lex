@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 
@@ -10,6 +9,9 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    // Dynamic import to prevent Prisma instantiation during build
+    const { prisma } = await import('@/lib/prisma');
+    
     const formData = await req.formData();
     const collectionId = formData.get('collectionId') as string;
     const title = formData.get('title') as string;

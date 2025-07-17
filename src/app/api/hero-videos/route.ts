@@ -1,28 +1,27 @@
-import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { NextRequest, NextResponse } from 'next/server';
 
 // This forces the route to be dynamic, ensuring it's not cached
 // and that it fetches fresh data on every request.
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const { prisma } = await import('@/lib/prisma');
+    
     const videos = await prisma.heroVideo.findMany({
-      select: {
-        id: true,
-        title: true,
-        description: true,
-        videoUrl: true,
-        order: true,
+      where: {
+        status: 'published',
+        moderated: true,
       },
-      orderBy: {
-        order: 'asc',
-      },
-      take: 3,
+      orderBy: { order: 'asc' },
     });
+
     return NextResponse.json(videos);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching hero videos:', error);
-    return NextResponse.json({ error: 'Failed to fetch hero videos' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to fetch hero videos' },
+      { status: 500 }
+    );
   }
 } 

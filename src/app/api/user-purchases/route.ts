@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
 import { trackError } from '@/lib/analytics';
 
 export const dynamic = "force-dynamic";
@@ -16,6 +15,8 @@ export async function GET(_req: NextRequest) {
         { status: 401 }
       );
     }
+
+    const { prisma } = await import('@/lib/prisma');
 
     const purchases = await prisma.purchase.findMany({
       where: { userId: (session.user as any).id },

@@ -6,9 +6,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { withRateLimit } from '@/lib/rateLimit';
+import { RATE_LIMITS } from '@/lib/rateLimit';
 import { createCheckoutSession } from '@/lib/stripe';
-import { withRateLimit, RATE_LIMITS } from '@/lib/rateLimit';
 import { trackEvent, trackError } from '@/lib/analytics';
 
 export const dynamic = "force-dynamic";
@@ -51,6 +51,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Dynamic import to prevent Prisma instantiation during build
+    const { prisma } = await import('@/lib/prisma');
+
     // Fetch media item from database
     const media = await prisma.collectionVideo.findUnique({
       where: { id: mediaId },
@@ -82,12 +85,12 @@ export async function POST(request: NextRequest) {
 
     if (existingPurchase) {
       return NextResponse.json(
-        { error: 'You already have access to this content' },
+        { error: 'You already own this content' },
         { status: 400 }
       );
     }
 
-    // Create checkout session
+    // Create Stripe checkout session
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
     const successUrl = `${baseUrl}/success?session_id={CHECKOUT_SESSION_ID}`;
     const cancelUrl = `${baseUrl}/collections?canceled=true`;
@@ -123,8 +126,7 @@ export async function POST(request: NextRequest) {
       url: checkoutSession.url,
       sessionId: checkoutSession.id,
     });
-
-  } catch (error) {
+  } catch (error: any) {
     console.error('Checkout error:', error);
     
     // Track the error

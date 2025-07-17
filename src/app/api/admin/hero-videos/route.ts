@@ -1,134 +1,116 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const { prisma } = await import('@/lib/prisma');
     
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const session = await getServerSession(authOptions);
+    if (!session?.user || (session.user as any).role !== 'admin') {
+      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
 
     const videos = await prisma.heroVideo.findMany({
       orderBy: { order: 'asc' },
-      select: {
-        id: true,
-        title: true,
-        description: true,
-        videoUrl: true,
-        order: true,
-        createdAt: true,
-        updatedAt: true,
-      },
     });
 
     return NextResponse.json(videos);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching hero videos:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch hero videos' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to fetch hero videos' }, { status: 500 });
   }
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const { prisma } = await import('@/lib/prisma');
     
+    const session = await getServerSession(authOptions);
     if (!session?.user || (session.user as any).role !== 'admin') {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
 
-    const body = await req.json();
-    const { title, description, videoUrl, order } = body;
+    const formData = await req.formData();
+    const title = formData.get('title') as string;
+    const description = formData.get('description') as string;
+    const videoUrl = formData.get('videoUrl') as string;
+    const thumbnail = formData.get('thumbnail') as string;
+    const price = formData.get('price') as string;
 
-    if (!title || !videoUrl) {
-      return NextResponse.json(
-        { error: 'Title and video URL are required' },
-        { status: 400 }
-      );
+    if (!title || !description || !videoUrl || !thumbnail) {
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
+
+    // Get the highest order value and increment by 1
+    const maxOrder = await prisma.heroVideo.findFirst({
+      orderBy: { order: 'desc' },
+      select: { order: true }
+    });
 
     const video = await prisma.heroVideo.create({
       data: {
         title,
-        description: description || '',
+        description,
         videoUrl,
-        thumbnail: videoUrl, // Use video URL as thumbnail for now
-        order: order || 0,
+        thumbnail,
+        price: price ? parseFloat(price) : 0,
+        order: (maxOrder?.order ?? -1) + 1,
         updatedAt: new Date(),
       },
     });
 
     return NextResponse.json(video);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating hero video:', error);
-    return NextResponse.json(
-      { error: 'Failed to create hero video' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to create hero video' }, { status: 500 });
   }
 }
 
 export async function PUT(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const { prisma } = await import('@/lib/prisma');
     
+    const session = await getServerSession(authOptions);
     if (!session?.user || (session.user as any).role !== 'admin') {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
 
-    const body = await req.json();
-    const { id, title, description, videoUrl, order } = body;
+    const { id, ...updateData } = await req.json();
 
     if (!id) {
-      return NextResponse.json(
-        { error: 'Video ID is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Video ID is required' }, { status: 400 });
     }
 
     const video = await prisma.heroVideo.update({
       where: { id: parseInt(id) },
       data: {
-        title,
-        description: description || '',
-        videoUrl,
-        thumbnail: videoUrl, // Use video URL as thumbnail for now
-        order: order || 0,
+        ...updateData,
         updatedAt: new Date(),
       },
     });
 
     return NextResponse.json(video);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error updating hero video:', error);
-    return NextResponse.json(
-      { error: 'Failed to update hero video' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to update hero video' }, { status: 500 });
   }
 }
 
 export async function DELETE(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const { prisma } = await import('@/lib/prisma');
     
+    const session = await getServerSession(authOptions);
     if (!session?.user || (session.user as any).role !== 'admin') {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
 
-    const body = await req.json();
-    const { id } = body;
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get('id');
 
     if (!id) {
-      return NextResponse.json(
-        { error: 'Video ID is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Video ID is required' }, { status: 400 });
     }
 
     await prisma.heroVideo.delete({
@@ -136,11 +118,8 @@ export async function DELETE(req: NextRequest) {
     });
 
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error deleting hero video:', error);
-    return NextResponse.json(
-      { error: 'Failed to delete hero video' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to delete hero video' }, { status: 500 });
   }
 } 
