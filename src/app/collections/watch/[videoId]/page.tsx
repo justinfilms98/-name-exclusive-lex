@@ -11,7 +11,7 @@ export default async function WatchCollectionVideoPage({ params }: any) {
     redirect('/login?redirectTo=/collections');
   }
 
-  const purchase = await prisma.purchase.findFirst({
+  const purchase = await prisma().purchase.findFirst({
     where: {
       userId: (session.user as any).id,
       collectionVideoId: params.videoId,
