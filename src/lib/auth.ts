@@ -34,7 +34,19 @@ export const authOptions: NextAuthOptions = {
       }
       return session;
     },
-    async signIn({ user }) {
+    async signIn({ user, account, profile }) {
+      // Runtime type check guards for Google Auth callback
+      if (!profile?.sub || !account?.provider) {
+        console.error('Missing OAuth providerAccountId or provider in callback:', { profile, account });
+        throw new Error('Missing OAuth providerAccountId or provider in callback.');
+      }
+
+      // Additional safety checks
+      if (!user?.email) {
+        console.error('Missing user email in callback:', user);
+        throw new Error('Missing user email in callback.');
+      }
+
       // TEMP: Allow all users to sign in for now
       return true;
     },

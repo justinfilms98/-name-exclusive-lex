@@ -9,6 +9,8 @@ import { trackEvent, trackPurchase } from '@/lib/analytics';
 import { sendPurchaseConfirmationEmail } from '@/lib/email';
 import { sendPurchaseNotification } from '@/lib/whatsapp';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.text();

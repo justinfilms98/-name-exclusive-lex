@@ -1,6 +1,5 @@
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
 import { redirect } from 'next/navigation';
 import VideoPlayerClientWrapper from './VideoPlayerClientWrapper';
 
@@ -11,21 +10,21 @@ export default async function WatchCollectionVideoPage({ params }: any) {
     redirect('/login?redirectTo=/collections');
   }
 
-  const purchase = await prisma().purchase.findFirst({
-    where: {
-      userId: (session.user as any).id,
-      collectionVideoId: params.videoId,
-      expiresAt: { gt: new Date() },
-    },
-    include: {
-      CollectionVideo: true,
+  // Fetch purchase data from API route instead of direct Prisma access
+  const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+  const response = await fetch(`${baseUrl}/api/verify-purchase-access?videoId=${params.videoId}`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
     },
   });
 
-  if (!purchase) {
+  if (!response.ok) {
     redirect('/collections');
   }
 
+  const data = await response.json();
+  const { purchase } = data;
   const { CollectionVideo } = purchase;
 
   return (
@@ -34,7 +33,7 @@ export default async function WatchCollectionVideoPage({ params }: any) {
       <VideoPlayerClientWrapper
         src={CollectionVideo.videoUrl}
         title={CollectionVideo.title}
-        expiresAt={purchase.expiresAt?.toISOString()}
+        expiresAt={purchase.expiresAt}
       />
     </div>
   );
