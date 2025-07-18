@@ -21,37 +21,17 @@ export function getAuthOptions(): NextAuthOptions {
       error: "/auth/error",
     },
     callbacks: {
-      async jwt({ token, user }) {
-        if (user) {
-          token.id = (user as any).id;
-          token.email = (user as any).email;
-          token.role = (user as any).role;
-        }
-        return token;
+      async signIn({ user, account }) {
+        // Allow all Google sign-ins
+        return true;
       },
-      async session({ session, token }) {
-        if (session.user && token) {
-          (session.user as any).id = token.id as string;
-          (session.user as any).email = token.email as string;
-          (session.user as any).role = token.role as string;
+      async session({ session, user }) {
+        if (session.user && user) {
+          (session.user as any).id = user.id;
+          session.user.email = user.email;
+          (session.user as any).role = (user as any).role || 'user';
         }
         return session;
-      },
-      async signIn({ user, account, profile }) {
-        // Runtime type check guards for Google Auth callback
-        if (!profile?.sub || !account?.provider) {
-          console.error('Missing OAuth providerAccountId or provider in callback:', { profile, account });
-          throw new Error('Missing OAuth providerAccountId or provider in callback.');
-        }
-
-        // Additional safety checks
-        if (!user?.email) {
-          console.error('Missing user email in callback:', user);
-          throw new Error('Missing user email in callback.');
-        }
-
-        // TEMP: Allow all users to sign in for now
-        return true;
       },
     },
     secret: process.env.NEXTAUTH_SECRET,
