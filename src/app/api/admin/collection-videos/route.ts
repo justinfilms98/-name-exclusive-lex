@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
+import { getAuthOptions } from '@/lib/auth';
 
 // Force dynamic rendering to prevent build-time execution
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await getServerSession(getAuthOptions());
   if (!session || !session.user || (session.user as any).role !== 'admin') {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
   }
