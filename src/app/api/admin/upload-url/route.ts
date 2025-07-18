@@ -1,11 +1,11 @@
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
+import { getAuthOptions } from '@/lib/auth';
 import { generateUploadThingUrl } from '@/lib/services/uploadService';
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const session = await getServerSession(authOptions);
+  const session = await getServerSession(getAuthOptions());
 
   if (!session || !session.user || (session.user as any).role !== 'admin') {
     return new Response('Unauthorized', { status: 401 });

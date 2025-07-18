@@ -1,10 +1,5 @@
 import { PrismaClient } from "@prisma/client";
 
-// Check if DATABASE_URL is available
-if (!process.env.DATABASE_URL) {
-  console.error('DATABASE_URL is not defined. Database operations will fail.');
-}
-
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };

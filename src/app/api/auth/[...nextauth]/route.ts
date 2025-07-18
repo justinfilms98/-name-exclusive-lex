@@ -4,10 +4,10 @@
 // =====================================================
 
 import NextAuth from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { getAuthOptions } from "@/lib/auth";
 
 // Force dynamic rendering to prevent build-time execution
 export const dynamic = 'force-dynamic';
 
-const handler = NextAuth(authOptions);
+const handler = NextAuth(getAuthOptions());
 export { handler as GET, handler as POST }; 

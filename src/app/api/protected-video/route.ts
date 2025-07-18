@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { getAuthOptions } from "@/lib/auth";
 import { trackError } from "@/lib/analytics";
 
 // Force dynamic rendering to prevent build-time execution
@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Get user session
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(getAuthOptions());
     if (!session?.user || !(session.user as any).id) {
       return NextResponse.json(
         { error: "Authentication required" },

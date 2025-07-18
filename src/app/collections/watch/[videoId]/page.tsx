@@ -1,11 +1,11 @@
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
+import { getAuthOptions } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import VideoPlayerClientWrapper from './VideoPlayerClientWrapper';
 
 // Use 'any' for params to bypass Next.js 15 type error
 export default async function WatchCollectionVideoPage({ params }: any) {
-  const session = await getServerSession(authOptions);
+  const session = await getServerSession(getAuthOptions());
   if (!session?.user || !(session.user as any).id) {
     redirect('/login?redirectTo=/collections');
   }
