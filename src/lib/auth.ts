@@ -1,18 +1,12 @@
 import { PrismaAdapter } from "@auth/prisma-adapter"
 import GoogleProvider from "next-auth/providers/google"
 import type { AuthOptions as NextAuthOptions } from "next-auth/core/types";
-
-// Lazy adapter initialization
-function getAdapter() {
-  // Only create adapter when actually needed at runtime
-  const { prisma } = require('@/lib/prisma');
-  return PrismaAdapter(prisma());
-}
+import { prisma } from "@/lib/prisma";
 
 // Export a function that returns authOptions to prevent build-time instantiation
 export function getAuthOptions(): NextAuthOptions {
   return {
-    adapter: getAdapter(),
+    adapter: PrismaAdapter(prisma),
     providers: [
       GoogleProvider({
         clientId: process.env.GOOGLE_CLIENT_ID!,
