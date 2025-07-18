@@ -8,6 +8,7 @@ import { getServerSession } from 'next-auth/next';
 import { getAuthOptions } from '@/lib/auth';
 import { getCheckoutSession } from '@/lib/stripe';
 import { trackEvent, trackError } from '@/lib/analytics';
+import { prisma } from '@/lib/prisma';
 
 export const dynamic = "force-dynamic";
 
@@ -32,10 +33,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const { prisma } = await import('@/lib/prisma');
-    const prismaClient = prisma();
-
-    const purchase = await prismaClient.purchase.findFirst({
+    const purchase = await prisma.purchase.findFirst({
       where: {
         userId: (session.user as any).id,
         collectionVideoId: videoId,
@@ -144,11 +142,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { prisma } = await import('@/lib/prisma');
-    const prismaClient = prisma();
-
     // Find the purchase record
-    const purchase = await prismaClient.purchase.findFirst({
+    const purchase = await prisma.purchase.findFirst({
       where: {
         userId: (session.user as any).id,
         collectionVideoId: checkoutSession.metadata?.collectionVideoId,
@@ -198,7 +193,10 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('Error verifying purchase:', error);
     
-    await trackError(error as Error);
+    await trackError(error as Error, {
+      endpoint: '/api/verify-purchase',
+      method: 'POST',
+    });
     
     return NextResponse.json(
       { error: 'Failed to verify purchase' },

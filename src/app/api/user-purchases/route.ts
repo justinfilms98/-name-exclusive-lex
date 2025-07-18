@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { getAuthOptions } from '@/lib/auth';
 import { trackError } from '@/lib/analytics';
+import { prisma } from '@/lib/prisma';
 
 export const dynamic = "force-dynamic";
 
@@ -16,10 +17,7 @@ export async function GET(_req: NextRequest) {
       );
     }
 
-    const { prisma } = await import('@/lib/prisma');
-    const prismaClient = prisma();
-
-    const purchases = await prismaClient.purchase.findMany({
+    const purchases = await prisma.purchase.findMany({
       where: { userId: (session.user as any).id },
       include: {
         CollectionVideo: {
