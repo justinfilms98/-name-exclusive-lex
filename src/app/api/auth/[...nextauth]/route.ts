@@ -9,15 +9,13 @@ import { getAuthOptions } from "@/lib/auth";
 // Force dynamic rendering to prevent build-time execution
 export const dynamic = 'force-dynamic';
 
-// Lazy handler creation to prevent build-time execution
-let _handler: any = null;
-
-function getHandler() {
-  if (!_handler) {
-    _handler = NextAuth(getAuthOptions());
-  }
-  return _handler;
+// Export handler functions directly without immediate execution
+export async function GET(request: Request) {
+  const handler = NextAuth(getAuthOptions());
+  return handler(request);
 }
 
-const handler = getHandler();
-export { handler as GET, handler as POST }; 
+export async function POST(request: Request) {
+  const handler = NextAuth(getAuthOptions());
+  return handler(request);
+} 
