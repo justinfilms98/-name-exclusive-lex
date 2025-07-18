@@ -18,6 +18,7 @@ export function getAuthOptions(): NextAuthOptions {
     },
     pages: {
       signIn: "/login",
+      error: "/auth/error",
     },
     callbacks: {
       async jwt({ token, user }) {
@@ -54,6 +55,6 @@ export function getAuthOptions(): NextAuthOptions {
       },
     },
     secret: process.env.NEXTAUTH_SECRET,
-    debug: true,
+    debug: process.env.NODE_ENV === 'development',
   };
 } 

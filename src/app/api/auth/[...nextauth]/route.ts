@@ -15,7 +15,14 @@ const handler = NextAuth(getAuthOptions());
 // Export handler functions with proper error handling
 export async function GET(request: Request) {
   try {
-    return handler(request);
+    // Ensure the request has proper query parameters
+    const url = new URL(request.url);
+    if (!url.searchParams.has('nextauth')) {
+      url.searchParams.set('nextauth', 'session');
+    }
+    
+    const modifiedRequest = new Request(url.toString(), request);
+    return handler(modifiedRequest);
   } catch (error) {
     console.error('NextAuth GET error:', error);
     return new Response('Authentication error', { status: 500 });
@@ -24,7 +31,14 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    return handler(request);
+    // Ensure the request has proper query parameters
+    const url = new URL(request.url);
+    if (!url.searchParams.has('nextauth')) {
+      url.searchParams.set('nextauth', 'signin');
+    }
+    
+    const modifiedRequest = new Request(url.toString(), request);
+    return handler(modifiedRequest);
   } catch (error) {
     console.error('NextAuth POST error:', error);
     return new Response('Authentication error', { status: 500 });
