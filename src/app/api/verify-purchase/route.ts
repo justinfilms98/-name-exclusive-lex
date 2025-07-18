@@ -38,14 +38,16 @@ export async function GET(request: NextRequest) {
         userId: (session.user as any).id,
         collectionVideoId: videoId,
       },
-      include: {
-        CollectionVideo: {
-          include: {
-            collection: true,
-          },
-        },
-        User: true,
-      },
+    });
+
+    if (!purchase) {
+      return NextResponse.json({ error: 'Purchase not found' }, { status: 404 });
+    }
+
+    // Get video details separately
+    const video = await prisma.collectionVideo.findUnique({
+      where: { id: purchase.collectionVideoId },
+      include: { collection: true },
     });
 
     if (!purchase) {
@@ -78,7 +80,7 @@ export async function GET(request: NextRequest) {
       purchase: {
         id: purchase.id,
         expiresAt: purchase.expiresAt,
-        CollectionVideo: purchase.CollectionVideo,
+        CollectionVideo: video,
       },
     });
   } catch (error: any) {
@@ -148,14 +150,16 @@ export async function POST(request: NextRequest) {
         userId: (session.user as any).id,
         collectionVideoId: checkoutSession.metadata?.collectionVideoId,
       },
-      include: {
-        CollectionVideo: {
-          include: {
-            collection: true,
-          },
-        },
-        User: true,
-      },
+    });
+
+    if (!purchase) {
+      return NextResponse.json({ error: 'Purchase not found' }, { status: 404 });
+    }
+
+    // Get video details separately
+    const video = await prisma.collectionVideo.findUnique({
+      where: { id: purchase.collectionVideoId },
+      include: { collection: true },
     });
 
     if (!purchase) {
@@ -182,7 +186,7 @@ export async function POST(request: NextRequest) {
       purchase: {
         id: purchase.id,
         expiresAt: purchase.expiresAt,
-        CollectionVideo: purchase.CollectionVideo,
+        CollectionVideo: video,
       },
       session: {
         id: checkoutSession.id,

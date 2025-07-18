@@ -91,17 +91,18 @@ async function handleCheckoutSessionCompleted(session: any) {
         createdAt: new Date(),
         expiresAt: new Date(Date.now() + 72 * 60 * 60 * 1000), // 72 hours
       },
-      include: {
-        User: true,
-        CollectionVideo: true,
-      },
+    });
+
+    // Get video details for tracking
+    const video = await prisma.collectionVideo.findUnique({
+      where: { id: collectionVideoId },
     });
 
     // Track the purchase
     await trackPurchase(
       userId,
       collectionVideoId,
-      title || purchase.CollectionVideo.title,
+      title || video?.title || 'Unknown Video',
       amount
     );
 
