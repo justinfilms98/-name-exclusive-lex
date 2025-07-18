@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import { prisma } from '@/lib/prisma';
 
 // Force dynamic rendering to prevent build-time execution
 export const dynamic = 'force-dynamic';
@@ -8,10 +9,7 @@ export async function POST(req: NextRequest) {
   const { collectionVideoId } = await req.json();
 
   try {
-    const { prisma } = await import('@/lib/prisma');
-    const prismaClient = prisma();
-    
-    const video = await prismaClient.collectionVideo.findUnique({
+    const video = await prisma.collectionVideo.findUnique({
       where: { id: collectionVideoId },
     });
 

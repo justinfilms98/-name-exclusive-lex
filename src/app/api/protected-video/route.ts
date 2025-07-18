@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { getAuthOptions } from "@/lib/auth";
 import { trackError } from "@/lib/analytics";
+import { prisma } from "@/lib/prisma";
 
 // Force dynamic rendering to prevent build-time execution
 export const dynamic = "force-dynamic";
@@ -25,11 +26,8 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const { prisma } = await import('@/lib/prisma');
-    const prismaClient = prisma();
-
     // Fetch the media item
-    const media = await prismaClient.collectionVideo.findUnique({
+    const media = await prisma.collectionVideo.findUnique({
       where: { id: mediaId },
       include: { collection: true },
     });
@@ -42,7 +40,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Check if user has a valid purchase for this media
-    const purchase = await prismaClient.purchase.findFirst({
+    const purchase = await prisma.purchase.findFirst({
       where: {
         userId: (session.user as any).id,
         expiresAt: { gt: new Date() },

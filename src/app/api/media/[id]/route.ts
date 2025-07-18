@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,10 +16,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const { prisma } = await import('@/lib/prisma');
-    const prismaClient = prisma();
-
-    const media = await prismaClient.collectionVideo.findUnique({
+    const media = await prisma.collectionVideo.findUnique({
       where: { id },
       select: {
         id: true,

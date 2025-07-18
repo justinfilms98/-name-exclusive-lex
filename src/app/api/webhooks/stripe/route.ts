@@ -8,6 +8,7 @@ import { constructWebhookEvent } from '@/lib/stripe';
 import { trackEvent, trackPurchase } from '@/lib/analytics';
 import { sendPurchaseConfirmationEmail } from '@/lib/email';
 import { sendPurchaseNotification } from '@/lib/whatsapp';
+import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
@@ -73,9 +74,6 @@ export async function POST(request: NextRequest) {
 
 async function handleCheckoutSessionCompleted(session: any) {
   try {
-    const { prisma } = await import('@/lib/prisma');
-    const prismaClient = prisma();
-    
     const { userId, collectionVideoId, title } = session.metadata;
     const amount = session.amount_total / 100; // Convert from cents
 
@@ -85,7 +83,7 @@ async function handleCheckoutSessionCompleted(session: any) {
     }
 
     // Create purchase record
-    const purchase = await prismaClient.purchase.create({
+    const purchase = await prisma.purchase.create({
       data: {
         id: crypto.randomUUID(),
         userId,
