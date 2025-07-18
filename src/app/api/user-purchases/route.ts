@@ -1,20 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
-import { getAuthOptions } from '@/lib/auth';
-import { trackError } from '@/lib/analytics';
 import { prisma } from '@/lib/prisma';
+import { getAuthOptions } from '@/lib/auth';
 
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';
 
-export async function GET(_req: NextRequest) {
+export async function GET() {
   try {
-    // Get user session
     const session = await getServerSession(getAuthOptions());
-    if (!session?.user || !(session.user as any).id) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
+    
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const purchases = await prisma.purchase.findMany({
@@ -26,20 +22,11 @@ export async function GET(_req: NextRequest) {
           },
         },
       },
-      orderBy: {
-        createdAt: 'desc',
-      },
     });
 
     return NextResponse.json(purchases);
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error fetching user purchases:', error);
-    
-    await trackError(error as Error, {
-      endpoint: '/api/user-purchases',
-      method: 'GET',
-    });
-    
     return NextResponse.json({ error: 'Failed to fetch purchases' }, { status: 500 });
   }
 } 
