@@ -21,8 +21,11 @@ export function getAuthOptions(): NextAuthOptions {
       error: "/auth/error",
     },
     callbacks: {
-      async signIn({ user, account }) {
-        // Allow all Google sign-ins
+      async signIn({ user, account, profile }) {
+        // Always allow sign-in for Google accounts
+        if (account?.provider === 'google') {
+          return true;
+        }
         return true;
       },
       async session({ session, user }) {

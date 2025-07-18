@@ -3,14 +3,8 @@ import { PrismaClient } from '@prisma/client';
 async function main() {
   console.log('Starting database seed...');
 
-  // Create a fresh Prisma client
-  const prisma = new PrismaClient({
-    datasources: {
-      db: {
-        url: process.env.DATABASE_URL,
-      },
-    },
-  });
+  // Use the default Prisma client that reads from environment
+  const prisma = new PrismaClient();
 
   try {
     // Test connection
