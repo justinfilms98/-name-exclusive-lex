@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { getAuthOptions } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
 
 // Force dynamic rendering to prevent build-time execution
 export const dynamic = 'force-dynamic';
@@ -12,10 +13,6 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    // Dynamic import to prevent Prisma instantiation during build
-    const { prisma } = await import('@/lib/prisma');
-    const prismaClient = prisma();
-    
     const formData = await req.formData();
     const collectionId = formData.get('collectionId') as string;
     const title = formData.get('title') as string;
@@ -31,7 +28,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    const collection = await prismaClient.collection.findUnique({ where: { id: collectionId } });
+    const collection = await prisma.collection.findUnique({ where: { id: collectionId } });
     if (!collection) {
       return NextResponse.json({ error: 'Collection not found' }, { status: 404 });
     }
@@ -41,13 +38,13 @@ export async function POST(req: NextRequest) {
     const thumbUrl = '';
 
     // Get the highest order value for this collection and increment by 1
-    const maxOrder = await prismaClient.collectionVideo.findFirst({
+    const maxOrder = await prisma.collectionVideo.findFirst({
       where: { collectionId },
       orderBy: { order: 'desc' },
       select: { order: true }
     });
 
-    await prismaClient.collectionVideo.create({
+    await prisma.collectionVideo.create({
       data: {
         title,
         description,
