@@ -19,10 +19,5 @@ function getHandler() {
   return _handler;
 }
 
-export async function GET(request: Request) {
-  return getHandler().GET(request);
-}
-
-export async function POST(request: Request) {
-  return getHandler().POST(request);
-} 
+const handler = getHandler();
+export { handler as GET, handler as POST }; 

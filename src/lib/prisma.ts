@@ -9,8 +9,11 @@ function getPrismaClient(): PrismaClient {
   if (!globalForPrisma.prisma) {
     if (!process.env.DATABASE_URL) {
       // During build time or when DATABASE_URL is missing, throw a clear error
+      console.error('DATABASE_URL is missing. Available env vars:', Object.keys(process.env).filter(key => key.includes('DATABASE')));
       throw new Error('DATABASE_URL is missing. Check Vercel environment variables.');
     }
+    
+    console.log('Initializing Prisma client with DATABASE_URL:', process.env.DATABASE_URL?.substring(0, 20) + '...');
     
     globalForPrisma.prisma = new PrismaClient({
       log: process.env.NODE_ENV === "development" ? ["query", "error", "warn"] : ["error"],
