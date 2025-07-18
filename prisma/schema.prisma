@@ -7,8 +7,9 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// NextAuth.js Models - These must match exactly
 model Account {
-  id                String  @id
+  id                String  @id @default(cuid())
   userId            String
   type              String
   provider          String
@@ -25,6 +26,40 @@ model Account {
   @@unique([provider, providerAccountId])
 }
 
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?
+  role          String    @default("user")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  accounts      Account[]
+  sessions      Session[]
+  heroVideos    HeroVideo[]
+  purchases     Purchase[]
+  videos        Video[]
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// Application Models
 model Collection {
   id          String            @id @default(cuid())
   title       String
@@ -50,21 +85,6 @@ model CollectionVideo {
   purchases       Purchase[]
 }
 
-model ContentModerationLog {
-  id          Int       @id @default(autoincrement())
-  videoId     Int
-  moderatorId String
-  action      String
-  reason      String?
-  notes       String?
-  createdAt   DateTime  @default(now())
-  HeroVideo   HeroVideo @relation(fields: [videoId], references: [id], onDelete: Cascade)
-
-  @@index([action])
-  @@index([moderatorId])
-  @@index([videoId])
-}
-
 model HeroVideo {
   id                   Int                    @id @default(autoincrement())
   title                String
@@ -73,7 +93,7 @@ model HeroVideo {
   videoUrl             String
   order                Int
   createdAt            DateTime               @default(now())
-  updatedAt            DateTime
+  updatedAt            DateTime               @updatedAt
   ageRating            String                 @default("PG")
   category             String                 @default("entertainment")
   moderatedAt          DateTime?
@@ -83,10 +103,10 @@ model HeroVideo {
   status               String                 @default("draft")
   tags                 String[]
   moderated            Boolean                @default(false)
-  ContentModerationLog ContentModerationLog[]
-  User                 User?                  @relation(fields: [moderatedBy], references: [id])
-  VideoAnalytics       VideoAnalytics[]
-  VideoPricing         VideoPricing[]
+  moderationLogs       ContentModerationLog[]
+  user                 User?                  @relation(fields: [moderatedBy], references: [id])
+  analytics            VideoAnalytics[]
+  pricing              VideoPricing[]
 
   @@index([ageRating])
   @@index([category])
@@ -94,50 +114,17 @@ model HeroVideo {
 }
 
 model Purchase {
-  id                String          @id
+  id                String          @id @default(cuid())
   userId            String
   createdAt         DateTime        @default(now())
   expiresAt         DateTime
   collectionVideoId String
-  CollectionVideo   CollectionVideo @relation(fields: [collectionVideoId], references: [id])
-  User              User            @relation(fields: [userId], references: [id])
-}
-
-model Session {
-  id           String   @id
-  sessionToken String   @unique
-  userId       String
-  expires      DateTime
-  User         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model User {
-  id            String      @id
-  name          String?
-  email         String      @unique
-  emailVerified DateTime?
-  image         String?
-  password      String?
-  role          String      @default("user")
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime
-  Account       Account[]
-  HeroVideo     HeroVideo[]
-  Purchase      Purchase[]
-  Session       Session[]
-  Video         Video[]
-}
-
-model VerificationToken {
-  identifier String
-  token      String   @unique
-  expires    DateTime
-
-  @@unique([identifier, token])
+  collectionVideo   CollectionVideo @relation(fields: [collectionVideoId], references: [id])
+  user              User            @relation(fields: [userId], references: [id])
 }
 
 model Video {
-  id           String   @id
+  id           String   @id @default(cuid())
   title        String
   description  String
   price        Float
@@ -145,9 +132,24 @@ model Video {
   videoKey     String
   thumbnailKey String
   createdAt    DateTime @default(now())
-  updatedAt    DateTime
+  updatedAt    DateTime @updatedAt
   creatorId    String
-  User         User     @relation(fields: [creatorId], references: [id])
+  creator      User     @relation(fields: [creatorId], references: [id])
+}
+
+model ContentModerationLog {
+  id          Int       @id @default(autoincrement())
+  videoId     Int
+  moderatorId String
+  action      String
+  reason      String?
+  notes       String?
+  createdAt   DateTime  @default(now())
+  heroVideo   HeroVideo @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  @@index([action])
+  @@index([moderatorId])
+  @@index([videoId])
 }
 
 model VideoAnalytics {
@@ -164,7 +166,7 @@ model VideoAnalytics {
   country     String?
   device      String?
   referrer    String?
-  HeroVideo   HeroVideo @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  heroVideo   HeroVideo @relation(fields: [videoId], references: [id], onDelete: Cascade)
 
   @@index([country])
   @@index([device])
@@ -184,7 +186,7 @@ model VideoPricing {
   promoCode String?
   region    String?
   isActive  Boolean   @default(true)
-  HeroVideo HeroVideo @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  heroVideo HeroVideo @relation(fields: [videoId], references: [id], onDelete: Cascade)
 
   @@index([isActive])
   @@index([promoCode])

@@ -1,9 +1,8 @@
-import NextAuth from "next-auth/next";
-import { getAuthOptions } from "@/lib/auth";
+import NextAuth from "next-auth/next"
+import { authOptions } from "@/lib/auth"
 
-export const dynamic = 'force-dynamic';
+export const dynamic = 'force-dynamic'
 
-const handler = NextAuth(getAuthOptions());
+const handler = NextAuth(authOptions)
 
-// Simple export without complex error handling
-export { handler as GET, handler as POST }; 
+export { handler as GET, handler as POST } 
