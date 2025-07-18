@@ -10,6 +10,7 @@ import { withRateLimit } from '@/lib/rateLimit';
 import { RATE_LIMITS } from '@/lib/rateLimit';
 import { createCheckoutSession } from '@/lib/stripe';
 import { trackEvent, trackError } from '@/lib/analytics';
+import { prisma } from '@/lib/prisma';
 
 export const dynamic = "force-dynamic";
 
@@ -51,12 +52,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Dynamic import to prevent Prisma instantiation during build
-    const { prisma } = await import('@/lib/prisma');
-    const prismaClient = prisma();
-
     // Fetch media item from database
-    const media = await prismaClient.collectionVideo.findUnique({
+    const media = await prisma.collectionVideo.findUnique({
       where: { id: mediaId },
       include: { collection: true },
     });
@@ -76,7 +73,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user already purchased this item
-    const existingPurchase = await prismaClient.purchase.findFirst({
+    const existingPurchase = await prisma.purchase.findFirst({
       where: {
         userId: (session.user as any).id,
         collectionVideoId: mediaId,
