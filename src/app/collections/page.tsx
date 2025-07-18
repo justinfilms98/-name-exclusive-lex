@@ -1,16 +1,17 @@
+import { Suspense } from 'react';
 import CollectionsClient from './CollectionsClient';
 
-export const revalidate = 60; // Revalidate data at most every 60 seconds
+// Force dynamic rendering to prevent build-time execution
+export const dynamic = 'force-dynamic';
 
 async function getMediaItems() {
   try {
-    // Use API route instead of direct Prisma access
-    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/collections`, {
-      next: { revalidate: 60 }
+    const response = await fetch(`${process.env.NEXTAUTH_URL || 'https://exclusivelex.com'}/api/collection-videos`, {
+      cache: 'no-store',
     });
     
     if (!response.ok) {
-      throw new Error('Failed to fetch collections');
+      throw new Error('Failed to fetch media items');
     }
     
     const mediaItems = await response.json();
@@ -22,9 +23,8 @@ async function getMediaItems() {
       thumbnailUrl: item.thumbnail,
       durationSeconds: null,
     }));
-
   } catch (error) {
-    console.error('Failed to fetch media items:', error);
+    console.error('Error fetching media items:', error);
     return [];
   }
 }
@@ -32,5 +32,9 @@ async function getMediaItems() {
 export default async function CollectionsPage() {
   const items = await getMediaItems();
 
-  return <CollectionsClient items={items} />;
+  return (
+    <Suspense fallback={<div>Loading collections...</div>}>
+      <CollectionsClient items={items} />
+    </Suspense>
+  );
 } 

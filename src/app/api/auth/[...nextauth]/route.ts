@@ -9,10 +9,12 @@ import { getAuthOptions } from "@/lib/auth";
 // Force dynamic rendering to prevent build-time execution
 export const dynamic = 'force-dynamic';
 
+// Create a single handler instance
+const handler = NextAuth(getAuthOptions());
+
 // Export handler functions with proper error handling
 export async function GET(request: Request) {
   try {
-    const handler = NextAuth(getAuthOptions());
     return handler(request);
   } catch (error) {
     console.error('NextAuth GET error:', error);
@@ -22,7 +24,6 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const handler = NextAuth(getAuthOptions());
     return handler(request);
   } catch (error) {
     console.error('NextAuth POST error:', error);

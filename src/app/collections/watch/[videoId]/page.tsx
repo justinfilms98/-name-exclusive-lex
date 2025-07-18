@@ -1,43 +1,65 @@
-import { getServerSession } from 'next-auth/next';
-import { getAuthOptions } from '@/lib/auth';
-import { redirect } from 'next/navigation';
-import VideoPlayerClientWrapper from './VideoPlayerClientWrapper';
+import { Suspense } from 'react';
+import { notFound } from 'next/navigation';
+import VideoPlayer from './VideoPlayer';
 
 // Force dynamic rendering to prevent build-time execution
 export const dynamic = 'force-dynamic';
 
-// Use 'any' for params to bypass Next.js 15 type error
-export default async function WatchCollectionVideoPage({ params }: any) {
-  const session = await getServerSession(getAuthOptions());
-  if (!session?.user || !(session.user as any).id) {
-    redirect('/login?redirectTo=/collections');
+async function getVideoData(videoId: string) {
+  try {
+    const baseUrl = process.env.NEXTAUTH_URL || 'https://exclusivelex.com';
+    
+    // Fetch purchase data from API route instead of direct Prisma access
+    const purchaseResponse = await fetch(`${baseUrl}/api/verify-purchase-access?videoId=${videoId}`, {
+      cache: 'no-store',
+    });
+    
+    if (!purchaseResponse.ok) {
+      throw new Error('Failed to verify purchase access');
+    }
+    
+    const purchaseData = await purchaseResponse.json();
+    
+    if (!purchaseData.hasAccess) {
+      throw new Error('Access denied');
+    }
+    
+    // Fetch video data
+    const videoResponse = await fetch(`${baseUrl}/api/media/${videoId}`, {
+      cache: 'no-store',
+    });
+    
+    if (!videoResponse.ok) {
+      throw new Error('Failed to fetch video data');
+    }
+    
+    const videoData = await videoResponse.json();
+    
+    return {
+      src: videoData.videoUrl,
+      title: videoData.title,
+      expiresAt: purchaseData.expiresAt
+    };
+  } catch (error) {
+    console.error('Error fetching video data:', error);
+    return null;
   }
+}
 
-  // Fetch purchase data from API route instead of direct Prisma access
-  const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
-  const response = await fetch(`${baseUrl}/api/verify-purchase-access?videoId=${params.videoId}`, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  });
+export default async function WatchPage({ params }: { params: { videoId: string } }) {
+  const videoData = await getVideoData(params.videoId);
 
-  if (!response.ok) {
-    redirect('/collections');
+  if (!videoData) {
+    notFound();
   }
-
-  const data = await response.json();
-  const { purchase } = data;
-  const { CollectionVideo } = purchase;
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen">
-      <h1 className="text-2xl font-bold mb-4">{CollectionVideo.title}</h1>
-      <VideoPlayerClientWrapper
-        src={CollectionVideo.videoUrl}
-        title={CollectionVideo.title}
-        expiresAt={purchase.expiresAt}
+    <Suspense fallback={<div>Loading video...</div>}>
+      <VideoPlayer 
+        src={videoData.src}
+        title={videoData.title}
+        expiresAt={videoData.expiresAt}
       />
-    </div>
+    </Suspense>
   );
 } 

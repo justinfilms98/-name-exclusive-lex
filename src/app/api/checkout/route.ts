@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create Stripe checkout session
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+    const baseUrl = process.env.NEXTAUTH_URL || 'https://exclusivelex.com';
     const successUrl = `${baseUrl}/success?session_id={CHECKOUT_SESSION_ID}`;
     const cancelUrl = `${baseUrl}/collections?canceled=true`;
 
