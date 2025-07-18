@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
   try {
-    const { prisma } = await import('@/lib/prisma');
-    const prismaClient = prisma();
-    
-    const videos = await prismaClient.collectionVideo.findMany({
+    const videos = await prisma.collectionVideo.findMany({
       orderBy: { order: 'asc' },
     });
     return NextResponse.json(videos);
