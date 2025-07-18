@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { getAuthOptions } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,10 +26,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const { prisma } = await import('@/lib/prisma');
-    const prismaClient = prisma();
-
-    const purchase = await prismaClient.purchase.findFirst({
+    const purchase = await prisma.purchase.findFirst({
       where: {
         userId: (session.user as any).id,
         collectionVideoId: videoId,

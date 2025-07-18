@@ -1,44 +1,13 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient } from '@prisma/client'
 
 const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined;
-};
-
-// Lazy initialization function
-function getPrismaClient(): PrismaClient {
-  if (!globalForPrisma.prisma) {
-    if (!process.env.DATABASE_URL) {
-      // During build time or when DATABASE_URL is missing, throw a clear error
-      console.error('DATABASE_URL is missing. Available env vars:', Object.keys(process.env).filter(key => key.includes('DATABASE')));
-      throw new Error('DATABASE_URL is missing. Check Vercel environment variables.');
-    }
-    
-    console.log('Initializing Prisma client with DATABASE_URL:', process.env.DATABASE_URL?.substring(0, 20) + '...');
-    
-    globalForPrisma.prisma = new PrismaClient({
-      log: process.env.NODE_ENV === "development" ? ["query", "error", "warn"] : ["error"],
-    });
-  }
-  
-  return globalForPrisma.prisma;
+  prisma: PrismaClient | undefined
 }
 
-// Export a function that returns the Prisma client only when called
-export const prisma = getPrismaClient;
+export const prisma =
+  globalForPrisma.prisma ??
+  new PrismaClient({
+    log: ['error'], // Optional: log errors only
+  })
 
-// Add a safe database operation wrapper
-export async function safeDbOperation<T>(
-  operation: () => Promise<T>,
-  fallback: T
-): Promise<T> {
-  try {
-    if (!process.env.DATABASE_URL) {
-      console.error('DATABASE_URL is not defined, returning fallback');
-      return fallback;
-    }
-    return await operation();
-  } catch (error) {
-    console.error('Database operation failed:', error);
-    return fallback;
-  }
-} 
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma 
