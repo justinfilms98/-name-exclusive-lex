@@ -9,13 +9,23 @@ import { getAuthOptions } from "@/lib/auth";
 // Force dynamic rendering to prevent build-time execution
 export const dynamic = 'force-dynamic';
 
-// Export handler functions directly without immediate execution
+// Export handler functions with proper error handling
 export async function GET(request: Request) {
-  const handler = NextAuth(getAuthOptions());
-  return handler(request);
+  try {
+    const handler = NextAuth(getAuthOptions());
+    return handler(request);
+  } catch (error) {
+    console.error('NextAuth GET error:', error);
+    return new Response('Authentication error', { status: 500 });
+  }
 }
 
 export async function POST(request: Request) {
-  const handler = NextAuth(getAuthOptions());
-  return handler(request);
+  try {
+    const handler = NextAuth(getAuthOptions());
+    return handler(request);
+  } catch (error) {
+    console.error('NextAuth POST error:', error);
+    return new Response('Authentication error', { status: 500 });
+  }
 } 
