@@ -3,6 +3,9 @@ import { getAuthOptions } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import VideoPlayerClientWrapper from './VideoPlayerClientWrapper';
 
+// Force dynamic rendering to prevent build-time execution
+export const dynamic = 'force-dynamic';
+
 // Use 'any' for params to bypass Next.js 15 type error
 export default async function WatchCollectionVideoPage({ params }: any) {
   const session = await getServerSession(getAuthOptions());

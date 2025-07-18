@@ -2,6 +2,9 @@ import { getServerSession } from 'next-auth/next';
 import { getAuthOptions } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 
+// Force dynamic rendering to prevent build-time execution
+export const dynamic = 'force-dynamic';
+
 export default async function AdminPage() {
   const session = await getServerSession(getAuthOptions());
   if (!session) {
