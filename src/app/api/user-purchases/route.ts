@@ -13,18 +13,23 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Get purchases first, then get video details separately
     const purchases = await prisma.purchase.findMany({
       where: { userId: (session.user as any).id },
-      include: {
-        CollectionVideo: {
-          include: {
-            collection: true,
-          },
-        },
-      },
     });
 
-    return NextResponse.json(purchases);
+    // Get video details for each purchase
+    const purchasesWithVideos = await Promise.all(
+      purchases.map(async (purchase) => {
+        const video = await prisma.collectionVideo.findUnique({
+          where: { id: purchase.collectionVideoId },
+          include: { collection: true },
+        });
+        return { ...purchase, collectionVideo: video };
+      })
+    );
+
+    return NextResponse.json(purchasesWithVideos);
   } catch (error) {
     console.error('Error fetching user purchases:', error);
     return NextResponse.json({ error: 'Failed to fetch purchases' }, { status: 500 });
