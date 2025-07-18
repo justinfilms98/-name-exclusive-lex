@@ -5,4 +5,5 @@ export const dynamic = 'force-dynamic';
 
 const handler = NextAuth(getAuthOptions());
 
+// Simple export without complex error handling
 export { handler as GET, handler as POST }; 

@@ -23,7 +23,7 @@ async function main() {
         title: 'Hero Video 1',
         description: 'First hero video',
         thumbnail: 'https://images.unsplash.com/photo-1515378791036-0648a3ef77b2',
-        videoUrl: 'https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4',
+        videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
         order: 1,
         status: 'published',
         moderated: true,
@@ -37,7 +37,7 @@ async function main() {
         title: 'Hero Video 2',
         description: 'Second hero video',
         thumbnail: 'https://images.pexels.com/photos/1092671/pexels-photo-1092671.jpeg',
-        videoUrl: 'https://coverr.co/s3/mp4/coverr-lake-birds-2386.mp4',
+        videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
         order: 2,
         status: 'published',
         moderated: true,
@@ -51,7 +51,7 @@ async function main() {
         title: 'Hero Video 3',
         description: 'Third hero video',
         thumbnail: 'https://images.pexels.com/photos/3952236/pexels-photo-3952236.jpeg',
-        videoUrl: 'https://coverr.co/s3/mp4/coverr-mountain-pines-8373.mp4',
+        videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
         order: 3,
         status: 'published',
         moderated: true,
@@ -85,14 +85,14 @@ async function main() {
     ];
 
     const videoUrls = [
-      'https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4',
-      'https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_5mb.mp4',
-      'https://coverr.co/s3/mp4/coverr-lake-birds-2386.mp4',
-      'https://coverr.co/s3/mp4/coverr-mountain-pines-8373.mp4',
-      'https://coverr.co/s3/mp4/coverr-slow-canyon-pan-8687.mp4',
-      'https://coverr.co/s3/mp4/coverr-rain-on-window-2826.mp4',
-      'https://coverr.co/s3/mp4/coverr-beach-glide-2973.mp4',
-      'https://coverr.co/s3/mp4/coverr-lighthouse-pathway-9793.mp4',
+      'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+      'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
+      'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+      'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
+      'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
+      'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4',
+      'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4',
+      'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackOnStreetAndDirt.mp4',
     ];
 
     const prices = [10, 15, 20, 25, 30, 35, 40, 50];
