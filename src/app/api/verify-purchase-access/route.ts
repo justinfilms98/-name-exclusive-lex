@@ -28,9 +28,6 @@ export async function POST(req: NextRequest) {
           gt: new Date(),
         },
       },
-      include: {
-        CollectionVideo: true,
-      },
     });
 
     if (!purchase) {
@@ -40,14 +37,19 @@ export async function POST(req: NextRequest) {
       }, { status: 403 });
     }
 
+    // Get video details separately
+    const video = await prisma.collectionVideo.findUnique({
+      where: { id: purchase.collectionVideoId },
+    });
+
     return NextResponse.json({
       hasAccess: true,
       purchase: {
         id: purchase.id,
         expiresAt: purchase.expiresAt,
         video: {
-          id: purchase.CollectionVideo.id,
-          title: purchase.CollectionVideo.title,
+          id: video?.id,
+          title: video?.title,
         },
       },
     });
