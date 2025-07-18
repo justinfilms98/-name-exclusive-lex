@@ -11,17 +11,25 @@ export function getAuthOptions(): NextAuthOptions {
       GoogleProvider({
         clientId: process.env.GOOGLE_CLIENT_ID!,
         clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+        authorization: {
+          params: {
+            prompt: "consent",
+            access_type: "offline",
+            response_type: "code"
+          }
+        }
       }),
     ],
     session: {
       strategy: "database",
+      maxAge: 30 * 24 * 60 * 60, // 30 days
     },
     pages: {
       signIn: "/login",
       error: "/auth/error",
     },
     callbacks: {
-      async signIn({ user, account, profile }) {
+      async signIn({ user, account, profile, email, credentials }) {
         // Always allow sign-in for Google accounts
         if (account?.provider === 'google') {
           return true;
@@ -35,6 +43,22 @@ export function getAuthOptions(): NextAuthOptions {
           (session.user as any).role = (user as any).role || 'user';
         }
         return session;
+      },
+      async jwt({ token, user, account }) {
+        if (user) {
+          token.sub = user.id;
+          token.email = user.email;
+          token.role = (user as any).role || 'user';
+        }
+        return token;
+      },
+    },
+    events: {
+      async signIn({ user, account, profile }) {
+        console.log(`User signed in: ${user.email}`);
+      },
+      async signOut({ session, token }) {
+        console.log(`User signed out`);
       },
     },
     secret: process.env.NEXTAUTH_SECRET,

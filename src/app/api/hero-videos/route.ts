@@ -7,10 +7,6 @@ export async function GET(req: NextRequest) {
   try {
     console.log('Fetching hero videos...');
     
-    // Test database connection first
-    await prisma.$connect();
-    console.log('Database connected successfully');
-    
     const videos = await prisma.heroVideo.findMany({
       orderBy: { order: 'asc' },
     });
@@ -27,7 +23,5 @@ export async function GET(req: NextRequest) {
       details: errorMessage,
       timestamp: new Date().toISOString()
     }, { status: 500 });
-  } finally {
-    await prisma.$disconnect();
   }
 } 

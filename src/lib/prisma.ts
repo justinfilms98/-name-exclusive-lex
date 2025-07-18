@@ -8,13 +8,13 @@ const globalForPrisma = globalThis as unknown as {
 if (!process.env.DATABASE_URL) {
   console.error('DATABASE_URL is not defined');
 } else {
-  console.log('DATABASE_URL is defined, attempting connection...');
+  console.log('DATABASE_URL is configured');
 }
 
 export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient({
-    log: ['error', 'warn'], // Log errors and warnings for debugging
+    log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
     datasources: {
       db: {
         url: process.env.DATABASE_URL,

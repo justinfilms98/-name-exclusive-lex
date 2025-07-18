@@ -39,7 +39,9 @@
   ],
   "exclude": [
     "node_modules",
-    "prisma/**/*.ts",
-    "scripts/**/*.ts"
+    "prisma/**/*.js",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/__tests__/**/*"
   ]
 }

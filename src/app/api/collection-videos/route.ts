@@ -7,10 +7,6 @@ export async function GET(req: NextRequest) {
   try {
     console.log('Fetching collection videos...');
     
-    // Test database connection first
-    await prisma.$connect();
-    console.log('Database connected successfully');
-    
     const videos = await prisma.collectionVideo.findMany({
       orderBy: { order: 'asc' },
       include: {
@@ -33,7 +29,5 @@ export async function GET(req: NextRequest) {
       },
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
   }
 }

@@ -11,7 +11,17 @@ async function main() {
     await prisma.$connect();
     console.log('Connected to database');
 
-    // Seed Hero Videos (skip if they exist)
+    // Check if data already exists to prevent duplicates
+    const existingHeroVideos = await prisma.heroVideo.count();
+    const existingCollections = await prisma.collection.count();
+
+    if (existingHeroVideos > 0 || existingCollections > 0) {
+      console.log('Database already has data. Skipping seed to prevent duplicates.');
+      console.log(`Hero videos: ${existingHeroVideos}, Collections: ${existingCollections}`);
+      return;
+    }
+
+    // Seed Hero Videos (only if none exist)
     const heroVideos = [
       {
         title: 'Hero Video 1',
@@ -58,12 +68,8 @@ async function main() {
     ];
 
     for (const video of heroVideos) {
-      try {
-        await prisma.heroVideo.create({ data: video });
-        console.log(`Created hero video: ${video.title}`);
-      } catch (error) {
-        console.log(`Hero video ${video.title} already exists, skipping...`);
-      }
+      await prisma.heroVideo.create({ data: video });
+      console.log(`Created hero video: ${video.title}`);
     }
 
     // Seed Collections and Collection Videos
@@ -93,30 +99,26 @@ async function main() {
     const durations = [5, 7, 10, 12, 14, 16, 18, 20];
 
     for (let i = 1; i <= 8; i++) {
-      try {
-        const collection = await prisma.collection.create({
-          data: {
-            title: `Sample Collection ${i}`,
-            description: 'Preview of content in this collection.',
-          },
-        });
+      const collection = await prisma.collection.create({
+        data: {
+          title: `Sample Collection ${i}`,
+          description: 'Preview of content in this collection.',
+        },
+      });
 
-        await prisma.collectionVideo.create({
-          data: {
-            title: `Sample Collection Video ${i}`,
-            description: 'Preview of content in this collection.',
-            thumbnail: thumbnails[i - 1],
-            videoUrl: videoUrls[i - 1],
-            price: prices[i - 1],
-            durationMinutes: durations[i - 1],
-            order: i,
-            collectionId: collection.id,
-          },
-        });
-        console.log(`Created collection ${i} and video`);
-      } catch (error) {
-        console.log(`Collection ${i} already exists, skipping...`);
-      }
+      await prisma.collectionVideo.create({
+        data: {
+          title: `Sample Collection Video ${i}`,
+          description: 'Preview of content in this collection.',
+          thumbnail: thumbnails[i - 1],
+          videoUrl: videoUrls[i - 1],
+          price: prices[i - 1],
+          durationMinutes: durations[i - 1],
+          order: i,
+          collectionId: collection.id,
+        },
+      });
+      console.log(`Created collection ${i} and video`);
     }
 
     console.log('Seeding completed successfully');
@@ -129,8 +131,11 @@ async function main() {
   }
 }
 
-main()
-  .catch((e) => {
-    console.error(e);
-    process.exit(1);
-  }); 
+// Only run if called directly (not imported)
+if (require.main === module) {
+  main()
+    .catch((e) => {
+      console.error(e);
+      process.exit(1);
+    });
+} 
