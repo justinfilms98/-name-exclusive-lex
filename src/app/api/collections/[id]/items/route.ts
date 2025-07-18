@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,10 +13,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Collection ID is required' }, { status: 400 });
     }
 
-    const { prisma } = await import('@/lib/prisma');
-    const prismaClient = prisma();
-
-    const mediaItems = await prismaClient.collectionVideo.findMany({
+    const mediaItems = await prisma.collectionVideo.findMany({
       where: { collectionId: id },
       orderBy: { createdAt: 'desc' },
       select: {
