@@ -1,15 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { getAuthOptions } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
 
 // Force dynamic rendering to prevent build-time execution
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
   try {
-    const { prisma } = await import('@/lib/prisma');
-    const prismaClient = prisma();
-    
     const session = await getServerSession(getAuthOptions());
     if (!session?.user || (session.user as any).role !== 'admin') {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
@@ -23,7 +21,7 @@ export async function POST(req: NextRequest) {
 
     // Update the order of each video
     for (let i = 0; i < videoIds.length; i++) {
-      await prismaClient.heroVideo.update({
+      await prisma.heroVideo.update({
         where: { id: videoIds[i] },
         data: { order: i },
       });
