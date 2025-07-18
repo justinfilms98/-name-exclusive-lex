@@ -3,8 +3,10 @@ export const dynamic = "force-dynamic";
 import { notFound } from 'next/navigation';
 import WatchPageClient from './WatchPageClient';
 
-export default function WatchVideoPage({ params }: any) {
-  if (!params.videoId) return notFound();
+export default async function WatchVideoPage({ params }: { params: Promise<{ videoId: string }> }) {
+  const { videoId } = await params;
   
-  return <WatchPageClient videoId={params.videoId} />;
+  if (!videoId) return notFound();
+  
+  return <WatchPageClient videoId={videoId} />;
 } 

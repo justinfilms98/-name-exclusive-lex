@@ -46,8 +46,9 @@ async function getVideoData(videoId: string) {
   }
 }
 
-export default async function WatchPage({ params }: { params: { videoId: string } }) {
-  const videoData = await getVideoData(params.videoId);
+export default async function WatchPage({ params }: { params: Promise<{ videoId: string }> }) {
+  const { videoId } = await params;
+  const videoData = await getVideoData(videoId);
 
   if (!videoData) {
     notFound();
