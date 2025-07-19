@@ -21,6 +21,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ 
       error: 'Failed to fetch hero videos',
       details: errorMessage,
+      code: error.code || 'UNKNOWN',
       timestamp: new Date().toISOString()
     }, { status: 500 });
   }
