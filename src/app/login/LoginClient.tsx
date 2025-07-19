@@ -4,12 +4,11 @@ import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 export default function LoginClient() {
-  const sessionHook = typeof useSession === 'function' ? useSession() : undefined;
-  const session = sessionHook?.data;
-  const status = sessionHook?.status;
+  const { data: session, status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [showError, setShowError] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
   useEffect(() => {
     const authError = searchParams?.get('authError');
@@ -19,19 +18,57 @@ export default function LoginClient() {
   }, [searchParams]);
 
   useEffect(() => {
-    if (status === 'authenticated' && session?.user) {
+    if (status === 'authenticated' && session?.user && !isRedirecting) {
+      setIsRedirecting(true);
+      console.log('User authenticated, redirecting...', session.user);
+      
+      // Clear any auth error params from URL
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.delete('authError');
+      window.history.replaceState({}, '', newUrl.toString());
+      
+      // Redirect based on user role
       if ((session.user as any).role === 'admin') {
-        router.push('/admin');
+        router.replace('/admin');
       } else {
-        router.push('/account');
+        router.replace('/');
       }
     }
-  }, [status, session, router]);
+  }, [status, session, router, isRedirecting]);
+
+  const handleSignIn = async () => {
+    setShowError(false);
+    try {
+      const result = await signIn('google', { 
+        redirect: false,
+        callbackUrl: '/'
+      });
+      
+      if (result?.error) {
+        console.error('Sign in error:', result.error);
+        setShowError(true);
+      }
+    } catch (error) {
+      console.error('Sign in failed:', error);
+      setShowError(true);
+    }
+  };
 
   if (status === 'loading') {
     return (
       <div className="min-h-screen bg-stone-50 flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-stone-800"></div>
+      </div>
+    );
+  }
+
+  if (status === 'authenticated') {
+    return (
+      <div className="min-h-screen bg-stone-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-stone-800 mx-auto mb-4"></div>
+          <p className="text-stone-600">Redirecting...</p>
+        </div>
       </div>
     );
   }
@@ -56,10 +93,7 @@ export default function LoginClient() {
         <div className="bg-white py-8 px-6 shadow-lg rounded-lg">
           <button
             className="w-full flex items-center justify-center border border-stone-300 rounded-md py-3 px-4 font-semibold text-stone-800 hover:bg-stone-50 transition-colors"
-            onClick={() => {
-              setShowError(false);
-              signIn('google');
-            }}
+            onClick={handleSignIn}
           >
             Continue with Google
           </button>

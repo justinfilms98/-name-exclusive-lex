@@ -10,7 +10,6 @@ interface HeroVideo {
   order?: number;
   title?: string;
   subtitle?: string;
-  thumbnail?: string;
 }
 
 export default function HeroSection() {
@@ -75,7 +74,7 @@ export default function HeroSection() {
     setVideoErrors(prev => new Set(prev).add(videoId));
   };
 
-  const hasWorkingVideos = videos.some(video => !videoErrors.has(video.id));
+  const workingVideos = videos.filter(video => !videoErrors.has(video.id));
 
   if (videos.length === 0) {
     return (
@@ -88,40 +87,17 @@ export default function HeroSection() {
     );
   }
 
-  // If all videos failed to load, show a fallback with background images
-  if (!hasWorkingVideos) {
+  // If no working videos, show clean fallback without any images
+  if (workingVideos.length === 0) {
     return (
       <div className="relative flex flex-col items-center justify-center w-full min-h-screen h-screen overflow-hidden bg-gradient-to-br from-stone-900 via-stone-800 to-stone-900">
-        {/* Fallback background with images */}
-        {videos.map((video, index) => (
-          <div
-            key={video.id}
-            className={`absolute inset-0 transition-opacity duration-1000 ${
-              index === current ? 'opacity-100' : 'opacity-0'
-            }`}
-          >
-            {video.thumbnail && (
-              <div
-                className="w-full h-full bg-cover bg-center"
-                style={{ backgroundImage: `url(${video.thumbnail})` }}
-              />
-            )}
-            <div className="absolute inset-0 bg-black bg-opacity-60" />
-          </div>
-        ))}
-
         {/* Content Overlay */}
         <div className="relative z-10 text-center text-white px-4">
           <h1 className="text-6xl md:text-8xl font-serif mb-6 animate-fade-in">
             Exclusive Lex
           </h1>
-          {videos[current]?.title && (
-            <h2 className="text-2xl md:text-4xl font-light mb-4 animate-fade-in-delay">
-              {videos[current].title}
-            </h2>
-          )}
           <p className="text-lg md:text-xl text-stone-300 mb-8 animate-fade-in-delay-2">
-            Premium exclusive content awaits
+            Premium exclusive content
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in-delay-3">
             {status === 'loading' ? null : session ? (
@@ -141,55 +117,30 @@ export default function HeroSection() {
             )}
           </div>
         </div>
-
-        {/* Navigation Dots */}
-        {videos.length > 1 && (
-          <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex space-x-2">
-            {videos.map((_, index) => (
-              <button
-                key={index}
-                onClick={() => setCurrent(index)}
-                className={`w-3 h-3 rounded-full transition-colors ${
-                  index === current ? 'bg-white' : 'bg-white bg-opacity-50'
-                }`}
-              />
-            ))}
-          </div>
-        )}
       </div>
     );
   }
 
   return (
     <div className="relative flex flex-col items-center justify-center w-full min-h-screen h-screen overflow-hidden">
-      {/* Video Backgrounds */}
-      {videos.map((video, index) => (
+      {/* Video Backgrounds - Only show working videos */}
+      {workingVideos.map((video, index) => (
         <div
           key={video.id}
           className={`absolute inset-0 transition-opacity duration-1000 ${
             index === current ? 'opacity-100' : 'opacity-0'
           }`}
         >
-          {!videoErrors.has(video.id) ? (
-            <video
-              autoPlay
-              muted
-              loop
-              playsInline
-              className="w-full h-full object-cover"
-              src={video.videoUrl}
-              onError={() => handleVideoError(video.id)}
-              onLoadedData={() => console.log(`Video loaded successfully: ${video.id}`)}
-            />
-          ) : (
-            // Fallback to thumbnail if video fails
-            video.thumbnail && (
-              <div
-                className="w-full h-full bg-cover bg-center"
-                style={{ backgroundImage: `url(${video.thumbnail})` }}
-              />
-            )
-          )}
+          <video
+            autoPlay
+            muted
+            loop
+            playsInline
+            className="w-full h-full object-cover"
+            src={video.videoUrl}
+            onError={() => handleVideoError(video.id)}
+            onLoadedData={() => console.log(`Video loaded successfully: ${video.id}`)}
+          />
           {/* Overlay */}
           <div className="absolute inset-0 bg-black bg-opacity-40" />
         </div>
@@ -200,14 +151,14 @@ export default function HeroSection() {
         <h1 className="text-6xl md:text-8xl font-serif mb-6 animate-fade-in">
           Exclusive Lex
         </h1>
-        {videos[current]?.title && (
+        {workingVideos[current]?.title && (
           <h2 className="text-2xl md:text-4xl font-light mb-4 animate-fade-in-delay">
-            {videos[current].title}
+            {workingVideos[current].title}
           </h2>
         )}
-        {videos[current]?.subtitle && (
+        {workingVideos[current]?.subtitle && (
           <p className="text-lg md:text-xl text-stone-300 mb-8 animate-fade-in-delay-2">
-            {videos[current].subtitle}
+            {workingVideos[current].subtitle}
           </p>
         )}
         <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in-delay-3">
@@ -230,9 +181,9 @@ export default function HeroSection() {
       </div>
 
       {/* Navigation Dots */}
-      {videos.length > 1 && (
+      {workingVideos.length > 1 && (
         <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex space-x-2">
-          {videos.map((_, index) => (
+          {workingVideos.map((_, index) => (
             <button
               key={index}
               onClick={() => setCurrent(index)}
