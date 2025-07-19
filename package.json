@@ -33,7 +33,7 @@
     "@stripe/react-stripe-js": "^2.6.2",
     "@stripe/stripe-js": "^3.5.0",
     "@supabase/storage-js": "^2.10.1",
-    "@supabase/supabase-js": "^2.50.5",
+    "@supabase/supabase-js": "^2.52.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/hls.js": "^0.13.3",
     "@uploadthing/react": "^7.3.2",
