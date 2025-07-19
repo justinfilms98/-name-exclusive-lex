@@ -21,47 +21,47 @@ async function main() {
       return;
     }
 
-    // Seed Hero Videos (only if none exist)
+    // Seed Hero Videos with working video URLs
     const heroVideos = [
       {
-        title: 'Hero Video 1',
-        description: 'First hero video',
-        thumbnail: 'https://images.unsplash.com/photo-1515378791036-0648a3ef77b2',
-        videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+        title: 'Welcome to Exclusive Lex',
+        description: 'Premium lifestyle content',
+        thumbnail: 'https://images.unsplash.com/photo-1515378791036-0648a3ef77b2?w=1920&h=1080&fit=crop',
+        videoUrl: 'https://www.learningcontainer.com/wp-content/uploads/2020/05/sample-mp4-file.mp4',
         order: 1,
         status: 'published',
         moderated: true,
         ageRating: 'PG',
         category: 'lifestyle',
-        tags: ['sample'],
+        tags: ['welcome', 'premium'],
         price: 0,
         updatedAt: new Date(),
       },
       {
-        title: 'Hero Video 2',
-        description: 'Second hero video',
-        thumbnail: 'https://images.pexels.com/photos/1092671/pexels-photo-1092671.jpeg',
-        videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
+        title: 'Exclusive Collections',
+        description: 'Curated video experiences',
+        thumbnail: 'https://images.pexels.com/photos/1092671/pexels-photo-1092671.jpeg?w=1920&h=1080&fit=crop',
+        videoUrl: 'https://sample-videos.com/zip/10/mp4/SampleVideo_1280x720_1mb.mp4',
         order: 2,
         status: 'published',
         moderated: true,
         ageRating: 'PG',
         category: 'lifestyle',
-        tags: ['sample'],
+        tags: ['collections', 'premium'],
         price: 0,
         updatedAt: new Date(),
       },
       {
-        title: 'Hero Video 3',
-        description: 'Third hero video',
-        thumbnail: 'https://images.pexels.com/photos/3952236/pexels-photo-3952236.jpeg',
-        videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+        title: 'Premium Content',
+        description: 'High-quality exclusive videos',
+        thumbnail: 'https://images.pexels.com/photos/3952236/pexels-photo-3952236.jpeg?w=1920&h=1080&fit=crop',
+        videoUrl: 'https://file-examples.com/storage/fe68c009e7aedc85da39129/2017/10/file_example_MP4_1280_10MG.mp4',
         order: 3,
         status: 'published',
         moderated: true,
         ageRating: 'PG',
         category: 'lifestyle',
-        tags: ['sample'],
+        tags: ['premium', 'exclusive'],
         price: 0,
         updatedAt: new Date(),
       },
@@ -72,27 +72,28 @@ async function main() {
       console.log(`Created hero video: ${video.title}`);
     }
 
-    // Seed Collections and Collection Videos
+    // Seed Collections and Collection Videos with working URLs
     const thumbnails = [
-      'https://images.unsplash.com/photo-1515378791036-0648a3ef77b2',
-      'https://images.pexels.com/photos/1092671/pexels-photo-1092671.jpeg',
-      'https://images.pexels.com/photos/3952236/pexels-photo-3952236.jpeg',
-      'https://images.unsplash.com/photo-1506748686214-e9df14d4d9d0',
-      'https://images.pexels.com/photos/2104258/pexels-photo-2104258.jpeg',
-      'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f',
-      'https://images.unsplash.com/photo-1541696432-82c6da8ce7bf',
-      'https://images.unsplash.com/photo-1503023345310-bd7c1de61c7d',
+      'https://images.unsplash.com/photo-1515378791036-0648a3ef77b2?w=800&h=600&fit=crop',
+      'https://images.pexels.com/photos/1092671/pexels-photo-1092671.jpeg?w=800&h=600&fit=crop',
+      'https://images.pexels.com/photos/3952236/pexels-photo-3952236.jpeg?w=800&h=600&fit=crop',
+      'https://images.unsplash.com/photo-1506748686214-e9df14d4d9d0?w=800&h=600&fit=crop',
+      'https://images.pexels.com/photos/2104258/pexels-photo-2104258.jpeg?w=800&h=600&fit=crop',
+      'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=800&h=600&fit=crop',
+      'https://images.unsplash.com/photo-1541696432-82c6da8ce7bf?w=800&h=600&fit=crop',
+      'https://images.unsplash.com/photo-1503023345310-bd7c1de61c7d?w=800&h=600&fit=crop',
     ];
 
+    // Use smaller, more reliable video URLs for collection videos
     const videoUrls = [
-      'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
-      'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
-      'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
-      'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
-      'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
-      'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4',
-      'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4',
-      'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackOnStreetAndDirt.mp4',
+      'https://www.learningcontainer.com/wp-content/uploads/2020/05/sample-mp4-file.mp4',
+      'https://sample-videos.com/zip/10/mp4/SampleVideo_1280x720_1mb.mp4',
+      'https://file-examples.com/storage/fe68c009e7aedc85da39129/2017/10/file_example_MP4_640_3MG.mp4',
+      'https://www.learningcontainer.com/wp-content/uploads/2020/05/sample-mp4-file.mp4',
+      'https://sample-videos.com/zip/10/mp4/SampleVideo_1280x720_2mb.mp4',
+      'https://file-examples.com/storage/fe68c009e7aedc85da39129/2017/10/file_example_MP4_480_1_5MG.mp4',
+      'https://www.learningcontainer.com/wp-content/uploads/2020/05/sample-mp4-file.mp4',
+      'https://sample-videos.com/zip/10/mp4/SampleVideo_1280x720_1mb.mp4',
     ];
 
     const prices = [10, 15, 20, 25, 30, 35, 40, 50];

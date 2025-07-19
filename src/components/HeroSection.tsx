@@ -10,11 +10,13 @@ interface HeroVideo {
   order?: number;
   title?: string;
   subtitle?: string;
+  thumbnail?: string;
 }
 
 export default function HeroSection() {
   const [videos, setVideos] = useState<HeroVideo[]>([]);
   const [current, setCurrent] = useState(0);
+  const [videoErrors, setVideoErrors] = useState<Set<number>>(new Set());
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const router = useRouter();
   const sessionHook = typeof useSession === 'function' ? useSession() : undefined;
@@ -68,6 +70,13 @@ export default function HeroSection() {
     return undefined;
   }, [videos]);
 
+  const handleVideoError = (videoId: number) => {
+    console.error(`Video failed to load: ${videoId}`);
+    setVideoErrors(prev => new Set(prev).add(videoId));
+  };
+
+  const hasWorkingVideos = videos.some(video => !videoErrors.has(video.id));
+
   if (videos.length === 0) {
     return (
       <div className="relative flex flex-col items-center justify-center w-full min-h-screen h-screen overflow-hidden bg-stone-900">
@@ -75,6 +84,78 @@ export default function HeroSection() {
           <h1 className="text-6xl font-serif mb-4">Exclusive Lex</h1>
           <p className="text-xl text-stone-300 mb-8">Loading exclusive content...</p>
         </div>
+      </div>
+    );
+  }
+
+  // If all videos failed to load, show a fallback with background images
+  if (!hasWorkingVideos) {
+    return (
+      <div className="relative flex flex-col items-center justify-center w-full min-h-screen h-screen overflow-hidden bg-gradient-to-br from-stone-900 via-stone-800 to-stone-900">
+        {/* Fallback background with images */}
+        {videos.map((video, index) => (
+          <div
+            key={video.id}
+            className={`absolute inset-0 transition-opacity duration-1000 ${
+              index === current ? 'opacity-100' : 'opacity-0'
+            }`}
+          >
+            {video.thumbnail && (
+              <div
+                className="w-full h-full bg-cover bg-center"
+                style={{ backgroundImage: `url(${video.thumbnail})` }}
+              />
+            )}
+            <div className="absolute inset-0 bg-black bg-opacity-60" />
+          </div>
+        ))}
+
+        {/* Content Overlay */}
+        <div className="relative z-10 text-center text-white px-4">
+          <h1 className="text-6xl md:text-8xl font-serif mb-6 animate-fade-in">
+            Exclusive Lex
+          </h1>
+          {videos[current]?.title && (
+            <h2 className="text-2xl md:text-4xl font-light mb-4 animate-fade-in-delay">
+              {videos[current].title}
+            </h2>
+          )}
+          <p className="text-lg md:text-xl text-stone-300 mb-8 animate-fade-in-delay-2">
+            Premium exclusive content awaits
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in-delay-3">
+            {status === 'loading' ? null : session ? (
+              <button
+                onClick={() => router.push('/collections')}
+                className="bg-white text-stone-900 px-8 py-3 rounded-md font-medium hover:bg-stone-100 transition-colors"
+              >
+                Explore Collections
+              </button>
+            ) : (
+              <button
+                onClick={() => router.push('/login')}
+                className="border border-white text-white px-8 py-3 rounded-md font-medium hover:bg-white hover:text-stone-900 transition-colors"
+              >
+                Sign In
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Navigation Dots */}
+        {videos.length > 1 && (
+          <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex space-x-2">
+            {videos.map((_, index) => (
+              <button
+                key={index}
+                onClick={() => setCurrent(index)}
+                className={`w-3 h-3 rounded-full transition-colors ${
+                  index === current ? 'bg-white' : 'bg-white bg-opacity-50'
+                }`}
+              />
+            ))}
+          </div>
+        )}
       </div>
     );
   }
@@ -89,14 +170,26 @@ export default function HeroSection() {
             index === current ? 'opacity-100' : 'opacity-0'
           }`}
         >
-          <video
-            autoPlay
-            muted
-            loop
-            playsInline
-            className="w-full h-full object-cover"
-            src={video.videoUrl}
-          />
+          {!videoErrors.has(video.id) ? (
+            <video
+              autoPlay
+              muted
+              loop
+              playsInline
+              className="w-full h-full object-cover"
+              src={video.videoUrl}
+              onError={() => handleVideoError(video.id)}
+              onLoadedData={() => console.log(`Video loaded successfully: ${video.id}`)}
+            />
+          ) : (
+            // Fallback to thumbnail if video fails
+            video.thumbnail && (
+              <div
+                className="w-full h-full bg-cover bg-center"
+                style={{ backgroundImage: `url(${video.thumbnail})` }}
+              />
+            )
+          )}
           {/* Overlay */}
           <div className="absolute inset-0 bg-black bg-opacity-40" />
         </div>
