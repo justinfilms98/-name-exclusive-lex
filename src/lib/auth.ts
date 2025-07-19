@@ -42,6 +42,17 @@ export const authOptions = {
       }
       return true;
     },
+    async redirect({ url, baseUrl }: any) {
+      // Redirect to account page after successful login
+      if (url === baseUrl + '/login' || url === '/login') {
+        return baseUrl + '/account';
+      }
+      // Allow callback URLs on same origin
+      if (url.startsWith(baseUrl)) {
+        return url;
+      }
+      return baseUrl;
+    },
     async session({ session, user }: any) {
       if (session.user && user) {
         session.user.id = user.id

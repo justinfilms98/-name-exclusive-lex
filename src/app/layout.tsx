@@ -1,7 +1,7 @@
 import "./globals.css";
 import type { Metadata } from "next";
 import Header from "./Header";
-import { CartProvider } from "@/context/CartContext";
+import { Providers } from "./providers";
 
 export const metadata: Metadata = {
   title: "Exclusive Lex",
@@ -12,10 +12,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body>
-        <CartProvider>
+        <Providers>
           <Header />
           {children}
-        </CartProvider>
+        </Providers>
       </body>
     </html>
   );

@@ -7,7 +7,7 @@ import { useSession } from "next-auth/react";
 interface HeroVideo {
   id: number;
   videoUrl: string;
-  displayOrder?: number;
+  order?: number;
   title?: string;
   subtitle?: string;
 }
@@ -23,14 +23,26 @@ export default function HeroSection() {
 
   useEffect(() => {
     function fetchVideos() {
+      console.log('Fetching hero videos from client...');
       fetch("/api/hero-videos")
-        .then((res) => res.json())
+        .then((res) => {
+          console.log('Hero videos response status:', res.status);
+          return res.json();
+        })
         .then((data) => {
-          setVideos(
-            data
-              .sort((a: HeroVideo, b: HeroVideo) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0))
-              .slice(0, 3)
-          );
+          console.log('Hero videos data:', data);
+          if (Array.isArray(data)) {
+            setVideos(
+              data
+                .sort((a: HeroVideo, b: HeroVideo) => (a.order ?? 0) - (b.order ?? 0))
+                .slice(0, 3)
+            );
+          } else {
+            console.error('Expected array but got:', typeof data);
+          }
+        })
+        .catch((error) => {
+          console.error('Error fetching hero videos:', error);
         });
     }
     fetchVideos();
@@ -61,7 +73,7 @@ export default function HeroSection() {
       <div className="relative flex flex-col items-center justify-center w-full min-h-screen h-screen overflow-hidden bg-stone-900">
         <div className="text-center text-white z-10">
           <h1 className="text-6xl font-serif mb-4">Exclusive Lex</h1>
-          <p className="text-xl text-stone-300">Premium content awaits</p>
+          <p className="text-xl text-stone-300 mb-8">Loading exclusive content...</p>
         </div>
       </div>
     );
