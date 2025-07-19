@@ -20,7 +20,8 @@ export const authOptions = {
     error: "/login?authError=true",
   },
   callbacks: {
-    async signIn({ user, account, profile }) {
+    async signIn(params: any) {
+      const { user, account } = params;
       if (account?.provider === 'google') {
         const existingUser = await prisma.user.findUnique({
           where: { email: user.email! },
