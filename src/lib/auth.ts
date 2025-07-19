@@ -1,6 +1,6 @@
 import { supabase } from './supabase'
 
-export const ADMIN_EMAIL = 'justinfilms98@gmail.com' // Set your admin email
+export const ADMIN_EMAIL = 'contact.exclusivelex@gmail.com' // Set your admin email
 
 export const isAdmin = (email: string) => {
   return email === ADMIN_EMAIL

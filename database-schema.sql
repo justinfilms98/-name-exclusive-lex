@@ -45,19 +45,19 @@ CREATE POLICY "Authenticated users can view media" ON storage.objects
 CREATE POLICY "Admins can upload media" ON storage.objects
   FOR INSERT WITH CHECK (
     bucket_id = 'media' AND 
-    auth.email() = 'justinfilms98@gmail.com'
+    auth.email() = 'contact.exclusivelex@gmail.com'
   );
 
 CREATE POLICY "Admins can update media" ON storage.objects
   FOR UPDATE USING (
     bucket_id = 'media' AND 
-    auth.email() = 'justinfilms98@gmail.com'
+    auth.email() = 'contact.exclusivelex@gmail.com'
   );
 
 CREATE POLICY "Admins can delete media" ON storage.objects
   FOR DELETE USING (
     bucket_id = 'media' AND 
-    auth.email() = 'justinfilms98@gmail.com'
+    auth.email() = 'contact.exclusivelex@gmail.com'
   );
 
 -- Row Level Security policies for collections
@@ -67,7 +67,7 @@ CREATE POLICY "Everyone can view collections" ON collections
   FOR SELECT USING (true);
 
 CREATE POLICY "Admins can manage collections" ON collections
-  FOR ALL USING (auth.email() = 'justinfilms98@gmail.com');
+  FOR ALL USING (auth.email() = 'contact.exclusivelex@gmail.com');
 
 -- Row Level Security policies for purchases
 ALTER TABLE purchases ENABLE ROW LEVEL SECURITY;
@@ -79,7 +79,7 @@ CREATE POLICY "System can create purchases" ON purchases
   FOR INSERT WITH CHECK (true);
 
 CREATE POLICY "Admins can view all purchases" ON purchases
-  FOR SELECT USING (auth.email() = 'justinfilms98@gmail.com');
+  FOR SELECT USING (auth.email() = 'contact.exclusivelex@gmail.com');
 
 -- Row Level Security policies for watch_logs
 ALTER TABLE watch_logs ENABLE ROW LEVEL SECURITY;
@@ -91,7 +91,7 @@ CREATE POLICY "System can create watch logs" ON watch_logs
   FOR INSERT WITH CHECK (true);
 
 CREATE POLICY "Admins can view all watch logs" ON watch_logs
-  FOR SELECT USING (auth.email() = 'justinfilms98@gmail.com');
+  FOR SELECT USING (auth.email() = 'contact.exclusivelex@gmail.com');
 
 -- Create indexes for better performance
 CREATE INDEX idx_purchases_user_id ON purchases(user_id);

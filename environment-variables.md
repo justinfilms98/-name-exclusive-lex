@@ -15,12 +15,20 @@ NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_your_stripe_publishable_key
 STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret
 
 # Admin Configuration
-ADMIN_EMAIL=justinfilms98@gmail.com
+ADMIN_EMAIL=contact.exclusivelex@gmail.com
 
 # WhatsApp API (Optional)
 WHATSAPP_API_KEY=your_whatsapp_api_key
 WHATSAPP_PHONE_NUMBER=your_whatsapp_business_number
 ```
+
+## ❌ Variables You Can DELETE
+
+Since we replaced NextAuth with Supabase Auth, you can **safely delete** these:
+- `NEXTAUTH_URL`
+- `NEXTAUTH_SECRET`
+- `GOOGLE_CLIENT_ID` (now configured in Supabase)
+- `GOOGLE_CLIENT_SECRET` (now configured in Supabase)
 
 ## Supabase Setup Steps
 
@@ -88,12 +96,13 @@ Add all environment variables to Vercel:
 1. Go to your Vercel project dashboard
 2. Settings > Environment Variables
 3. Add all variables from your `.env.local`
-4. Redeploy the application
+4. **DELETE** the old NextAuth variables
+5. Redeploy the application
 
 ## Testing Checklist
 
 - [ ] Google OAuth login works
-- [ ] Admin can upload collections
+- [ ] Admin can upload collections (contact.exclusivelex@gmail.com)
 - [ ] Users can purchase collections
 - [ ] Stripe payments process correctly
 - [ ] Webhook creates purchase records
