@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { getCollections, uploadFile, supabase } from '@/lib/supabase';
-import { Upload, Trash2, Edit, Save, X, Image as ImageIcon, Video, Plus } from 'lucide-react';
+import { Upload, Trash2, Edit, Save, X, Image as ImageIcon, Video, Plus, AlertCircle } from 'lucide-react';
 
 interface Collection {
   id: string;
@@ -31,6 +31,7 @@ export default function AdminCollectionsPage() {
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [photoFiles, setPhotoFiles] = useState<FileList | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
   useEffect(() => {
     loadCollections();
@@ -49,13 +50,44 @@ export default function AdminCollectionsPage() {
     }
   };
 
+  const validateForm = (): boolean => {
+    const errors: string[] = [];
+
+    if (!title.trim()) {
+      errors.push('Title is required');
+    }
+
+    if (!description.trim()) {
+      errors.push('Description is required');
+    }
+
+    if (price <= 0) {
+      errors.push('Price must be greater than 0');
+    }
+
+    if (duration <= 0) {
+      errors.push('Duration must be greater than 0');
+    }
+
+    if (!videoFile) {
+      errors.push('Video file is required');
+    }
+
+    if (!thumbnailFile) {
+      errors.push('Thumbnail image is required');
+    }
+
+    setValidationErrors(errors);
+    return errors.length === 0;
+  };
+
   const handleVideoFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       
       // Validate file type
       if (!file.type.startsWith('video/')) {
-        alert('Please select a video file');
+        alert('Please select a video file (MP4, WebM, MOV, etc.)');
         return;
       }
       
@@ -66,6 +98,7 @@ export default function AdminCollectionsPage() {
       }
       
       setVideoFile(file);
+      setValidationErrors(prev => prev.filter(error => !error.includes('Video')));
     }
   };
 
@@ -74,7 +107,7 @@ export default function AdminCollectionsPage() {
       const file = e.target.files[0];
       
       if (!file.type.startsWith('image/')) {
-        alert('Please select an image file');
+        alert('Please select an image file (JPG, PNG, WebP, etc.)');
         return;
       }
       
@@ -84,11 +117,12 @@ export default function AdminCollectionsPage() {
       }
       
       setThumbnailFile(file);
+      setValidationErrors(prev => prev.filter(error => !error.includes('Thumbnail')));
     }
   };
 
   const handlePhotoFilesSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
+    if (e.target.files && e.target.files.length > 0) {
       // Validate all files are images
       for (let i = 0; i < e.target.files.length; i++) {
         const file = e.target.files[i];
@@ -107,8 +141,7 @@ export default function AdminCollectionsPage() {
   };
 
   const handleUpload = async () => {
-    if (!title.trim() || !description.trim() || !videoFile || !photoFiles || photoFiles.length === 0) {
-      alert('Please fill in all required fields and select files');
+    if (!validateForm()) {
       return;
     }
 
@@ -119,10 +152,10 @@ export default function AdminCollectionsPage() {
       const timestamp = Date.now();
       const collectionSlug = title.toLowerCase().replace(/[^a-zA-Z0-9]/g, '_');
       
-      // Upload video
-      const videoFilename = `collections/${collectionSlug}_${timestamp}/video.${videoFile.name.split('.').pop()}`;
+      // Upload video (required)
+      const videoFilename = `collections/${collectionSlug}_${timestamp}/video.${videoFile!.name.split('.').pop()}`;
       const { data: videoUpload, error: videoError } = await uploadFile(
-        videoFile,
+        videoFile!,
         'media',
         videoFilename
       );
@@ -133,37 +166,36 @@ export default function AdminCollectionsPage() {
 
       setUploadProgress(30);
 
-      // Upload thumbnail if provided
-      let thumbnailPath = '';
-      if (thumbnailFile) {
-        const thumbnailFilename = `collections/${collectionSlug}_${timestamp}/thumbnail.${thumbnailFile.name.split('.').pop()}`;
-        const { data: thumbUpload, error: thumbError } = await uploadFile(
-          thumbnailFile,
-          'media',
-          thumbnailFilename
-        );
+      // Upload thumbnail (required)
+      const thumbnailFilename = `collections/${collectionSlug}_${timestamp}/thumbnail.${thumbnailFile!.name.split('.').pop()}`;
+      const { data: thumbUpload, error: thumbError } = await uploadFile(
+        thumbnailFile!,
+        'media',
+        thumbnailFilename
+      );
 
-        if (!thumbError) {
-          thumbnailPath = thumbnailFilename;
-        }
+      if (thumbError) {
+        throw new Error(`Thumbnail upload failed: ${thumbError.message}`);
       }
 
-      setUploadProgress(50);
+      setUploadProgress(60);
 
-      // Upload photos
+      // Upload photos (optional)
       const photoPaths: string[] = [];
-      for (let i = 0; i < photoFiles.length; i++) {
-        const file = photoFiles[i];
-        const photoFilename = `collections/${collectionSlug}_${timestamp}/photo_${i + 1}.${file.name.split('.').pop()}`;
-        
-        const { data: photoUpload, error: photoError } = await uploadFile(
-          file,
-          'media',
-          photoFilename
-        );
+      if (photoFiles && photoFiles.length > 0) {
+        for (let i = 0; i < photoFiles.length; i++) {
+          const file = photoFiles[i];
+          const photoFilename = `collections/${collectionSlug}_${timestamp}/photo_${i + 1}.${file.name.split('.').pop()}`;
+          
+          const { data: photoUpload, error: photoError } = await uploadFile(
+            file,
+            'media',
+            photoFilename
+          );
 
-        if (!photoError) {
-          photoPaths.push(photoFilename);
+          if (!photoError) {
+            photoPaths.push(photoFilename);
+          }
         }
       }
 
@@ -179,7 +211,7 @@ export default function AdminCollectionsPage() {
             price: price,
             duration: duration,
             video_path: videoFilename,
-            thumbnail_path: thumbnailPath || null,
+            thumbnail_path: thumbnailFilename,
             photo_paths: photoPaths,
           }
         ])
@@ -200,6 +232,15 @@ export default function AdminCollectionsPage() {
       setVideoFile(null);
       setThumbnailFile(null);
       setPhotoFiles(null);
+      setValidationErrors([]);
+      
+      // Clear file inputs
+      const videoInput = document.getElementById('video-input') as HTMLInputElement;
+      const thumbnailInput = document.getElementById('thumbnail-input') as HTMLInputElement;
+      const photosInput = document.getElementById('photos-input') as HTMLInputElement;
+      if (videoInput) videoInput.value = '';
+      if (thumbnailInput) thumbnailInput.value = '';
+      if (photosInput) photosInput.value = '';
       
       // Reload collections
       await loadCollections();
@@ -292,16 +333,36 @@ export default function AdminCollectionsPage() {
             <Plus className="w-6 h-6 mr-2" />
             Create New Collection
           </h2>
+
+          {/* Validation Errors */}
+          {validationErrors.length > 0 && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <div className="flex items-start">
+                <AlertCircle className="w-5 h-5 text-red-500 mt-0.5 mr-2 flex-shrink-0" />
+                <div>
+                  <h3 className="text-red-800 font-medium mb-2">Please fix the following errors:</h3>
+                  <ul className="text-red-700 text-sm space-y-1">
+                    {validationErrors.map((error, index) => (
+                      <li key={index}>• {error}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          )}
           
           <div className="grid md:grid-cols-2 gap-6">
             <div>
               <label className="block text-earth text-sm font-medium mb-2">
-                Title (Required)
+                Title <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 value={title}
-                onChange={(e) => setTitle(e.target.value)}
+                onChange={(e) => {
+                  setTitle(e.target.value);
+                  setValidationErrors(prev => prev.filter(error => !error.includes('Title')));
+                }}
                 className="input"
                 placeholder="Enter collection title"
                 disabled={uploading}
@@ -310,14 +371,17 @@ export default function AdminCollectionsPage() {
 
             <div>
               <label className="block text-earth text-sm font-medium mb-2">
-                Price (USD)
+                Price (USD) <span className="text-red-500">*</span>
               </label>
               <input
                 type="number"
                 min="0"
                 step="0.01"
                 value={price}
-                onChange={(e) => setPrice(parseFloat(e.target.value) || 0)}
+                onChange={(e) => {
+                  setPrice(parseFloat(e.target.value) || 0);
+                  setValidationErrors(prev => prev.filter(error => !error.includes('Price')));
+                }}
                 className="input"
                 disabled={uploading}
               />
@@ -325,11 +389,14 @@ export default function AdminCollectionsPage() {
 
             <div className="md:col-span-2">
               <label className="block text-earth text-sm font-medium mb-2">
-                Description (Required)
+                Description <span className="text-red-500">*</span>
               </label>
               <textarea
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                onChange={(e) => {
+                  setDescription(e.target.value);
+                  setValidationErrors(prev => prev.filter(error => !error.includes('Description')));
+                }}
                 className="input h-24 resize-none"
                 placeholder="Enter collection description"
                 disabled={uploading}
@@ -338,13 +405,16 @@ export default function AdminCollectionsPage() {
 
             <div>
               <label className="block text-earth text-sm font-medium mb-2">
-                Duration (Minutes)
+                Duration (Minutes) <span className="text-red-500">*</span>
               </label>
               <input
                 type="number"
                 min="1"
                 value={duration / 60}
-                onChange={(e) => setDuration((parseInt(e.target.value) || 30) * 60)}
+                onChange={(e) => {
+                  setDuration((parseInt(e.target.value) || 30) * 60);
+                  setValidationErrors(prev => prev.filter(error => !error.includes('Duration')));
+                }}
                 className="input"
                 disabled={uploading}
               />
@@ -352,9 +422,10 @@ export default function AdminCollectionsPage() {
 
             <div>
               <label className="block text-earth text-sm font-medium mb-2">
-                Video File (Required - Max 2GB)
+                Video File <span className="text-red-500">* (Required - Max 2GB)</span>
               </label>
               <input
+                id="video-input"
                 type="file"
                 accept="video/*"
                 onChange={handleVideoFileSelect}
@@ -363,16 +434,17 @@ export default function AdminCollectionsPage() {
               />
               {videoFile && (
                 <p className="mt-2 text-sage text-sm">
-                  Selected: {videoFile.name} ({formatFileSize(videoFile.size)})
+                  ✓ Selected: {videoFile.name} ({formatFileSize(videoFile.size)})
                 </p>
               )}
             </div>
 
             <div>
               <label className="block text-earth text-sm font-medium mb-2">
-                Thumbnail (Optional - Max 10MB)
+                Thumbnail Image <span className="text-red-500">* (Required - Max 10MB)</span>
               </label>
               <input
+                id="thumbnail-input"
                 type="file"
                 accept="image/*"
                 onChange={handleThumbnailFileSelect}
@@ -381,26 +453,27 @@ export default function AdminCollectionsPage() {
               />
               {thumbnailFile && (
                 <p className="mt-2 text-sage text-sm">
-                  Selected: {thumbnailFile.name} ({formatFileSize(thumbnailFile.size)})
+                  ✓ Selected: {thumbnailFile.name} ({formatFileSize(thumbnailFile.size)})
                 </p>
               )}
             </div>
 
             <div className="md:col-span-2">
               <label className="block text-earth text-sm font-medium mb-2">
-                Photos (Required - Max 10MB each)
+                Photos (Optional - Max 10MB each)
               </label>
               <input
+                id="photos-input"
                 type="file"
                 accept="image/*"
                 multiple
                 onChange={handlePhotoFilesSelect}
-                className="input file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-sage file:text-blanc hover:file:bg-khaki"
+                className="input file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blanket file:text-earth hover:file:bg-mushroom"
                 disabled={uploading}
               />
               {photoFiles && (
                 <p className="mt-2 text-sage text-sm">
-                  Selected: {photoFiles.length} photos
+                  ✓ Selected: {photoFiles.length} photos
                 </p>
               )}
             </div>
@@ -420,7 +493,7 @@ export default function AdminCollectionsPage() {
 
           <button
             onClick={handleUpload}
-            disabled={uploading || !title.trim() || !description.trim() || !videoFile || !photoFiles}
+            disabled={uploading}
             className="mt-6 btn-primary disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
           >
             {uploading ? (
@@ -499,15 +572,15 @@ export default function AdminCollectionsPage() {
           )}
         </div>
 
-        {/* Tips */}
+        {/* Requirements Notice */}
         <div className="mt-8 bg-sage/10 border border-sage/30 rounded-lg p-6">
-          <h3 className="text-sage font-serif text-lg mb-3">Collection Upload Tips:</h3>
+          <h3 className="text-sage font-serif text-lg mb-3">Upload Requirements:</h3>
           <ul className="text-earth text-sm space-y-1">
-            <li>• Video files can be up to 2GB (MP4, WebM formats recommended)</li>
-            <li>• Include at least 1 photo, up to 10MB each (JPG, PNG formats)</li>
-            <li>• Thumbnails are optional but improve collection appearance</li>
-            <li>• Default duration is 30 minutes, adjust based on content value</li>
-            <li>• Use descriptive titles and compelling descriptions</li>
+            <li>• <strong>Video file:</strong> Required - MP4/WebM formats, up to 2GB</li>
+            <li>• <strong>Thumbnail:</strong> Required - JPG/PNG formats, up to 10MB</li>
+            <li>• <strong>Photos:</strong> Optional - JPG/PNG formats, up to 10MB each</li>
+            <li>• <strong>Title & Description:</strong> Required for all collections</li>
+            <li>• <strong>Price & Duration:</strong> Must be greater than 0</li>
             <li>• All files are stored securely with time-limited access</li>
           </ul>
         </div>

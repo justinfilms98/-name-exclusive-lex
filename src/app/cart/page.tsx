@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
-import { Trash2, ShoppingCart, CreditCard, Clock, Image as ImageIcon, ArrowLeft } from 'lucide-react';
+import { supabase, getCollections, getSignedUrl } from '@/lib/supabase';
+import { Trash2, ShoppingCart, CreditCard, Clock, Image as ImageIcon, ArrowLeft, Plus } from 'lucide-react';
 import Link from 'next/link';
 
 interface CartItem {
@@ -15,11 +15,24 @@ interface CartItem {
   photo_paths: string[];
 }
 
+interface Collection {
+  id: string;
+  title: string;
+  description: string;
+  price: number;
+  duration: number;
+  thumbnail_path: string;
+  photo_paths: string[];
+}
+
 export default function CartPage() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [allCollections, setAllCollections] = useState<Collection[]>([]);
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [thumbnailUrls, setThumbnailUrls] = useState<{[key: string]: string}>({});
+  const [addingItems, setAddingItems] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     // Get user session
@@ -33,6 +46,9 @@ export default function CartPage() {
 
     // Load cart from localStorage
     loadCart();
+
+    // Load all collections for suggestions
+    loadAllCollections();
 
     // Listen for cart updates
     const handleCartUpdate = () => {
@@ -50,6 +66,43 @@ export default function CartPage() {
     }
   };
 
+  const loadAllCollections = async () => {
+    try {
+      const { data, error } = await getCollections();
+      if (!error && data) {
+        setAllCollections(data);
+        loadThumbnails(data);
+      }
+    } catch (error) {
+      console.error('Failed to load collections:', error);
+    }
+  };
+
+  const loadThumbnails = async (collections: Collection[]) => {
+    const thumbnailPromises = collections.map(async (collection) => {
+      if (collection.thumbnail_path) {
+        try {
+          const { data, error } = await getSignedUrl('media', collection.thumbnail_path, 3600);
+          if (!error && data) {
+            return { id: collection.id, url: data.signedUrl };
+          }
+        } catch (error) {
+          console.error('Failed to load thumbnail for', collection.id, error);
+        }
+      }
+      return { id: collection.id, url: null };
+    });
+
+    const results = await Promise.all(thumbnailPromises);
+    const urlMap: {[key: string]: string} = {};
+    results.forEach(result => {
+      if (result.url) {
+        urlMap[result.id] = result.url;
+      }
+    });
+    setThumbnailUrls(urlMap);
+  };
+
   const removeFromCart = (itemId: string) => {
     const updatedCart = cartItems.filter(item => item.id !== itemId);
     setCartItems(updatedCart);
@@ -61,6 +114,29 @@ export default function CartPage() {
     setCartItems([]);
     localStorage.setItem('cart', JSON.stringify([]));
     window.dispatchEvent(new Event('cartUpdated'));
+  };
+
+  const addToCart = (collection: Collection) => {
+    setAddingItems(prev => new Set(prev).add(collection.id));
+    
+    const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+    const isAlreadyInCart = cart.some((item: any) => item.id === collection.id);
+    
+    if (!isAlreadyInCart) {
+      cart.push(collection);
+      localStorage.setItem('cart', JSON.stringify(cart));
+      setCartItems(cart);
+      window.dispatchEvent(new Event('cartUpdated'));
+    }
+
+    // Remove loading state after animation
+    setTimeout(() => {
+      setAddingItems(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(collection.id);
+        return newSet;
+      });
+    }, 800);
   };
 
   const getTotalPrice = () => {
@@ -115,6 +191,14 @@ export default function CartPage() {
     }
   };
 
+  // Get suggested collections (not in cart)
+  const getSuggestedCollections = () => {
+    const cartItemIds = cartItems.map(item => item.id);
+    return allCollections
+      .filter(collection => !cartItemIds.includes(collection.id))
+      .slice(0, 6); // Show up to 6 suggestions
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-almond pt-20 flex items-center justify-center">
@@ -125,6 +209,8 @@ export default function CartPage() {
       </div>
     );
   }
+
+  const suggestedCollections = getSuggestedCollections();
 
   return (
     <div className="min-h-screen bg-almond pt-20">
@@ -179,54 +265,66 @@ export default function CartPage() {
           <div className="grid lg:grid-cols-3 gap-8">
             {/* Cart Items */}
             <div className="lg:col-span-2 space-y-6">
-              {cartItems.map((item) => (
-                <div
-                  key={item.id}
-                  className="card p-6"
-                >
-                  <div className="flex items-start space-x-6">
-                    {/* Thumbnail */}
-                    <div className="w-24 h-32 bg-gradient-to-br from-mushroom to-blanket rounded-lg flex items-center justify-center flex-shrink-0">
-                      <ImageIcon className="w-8 h-8 text-sage/60" />
-                    </div>
+              {cartItems.map((item) => {
+                const thumbnailUrl = thumbnailUrls[item.id];
+                
+                return (
+                  <div
+                    key={item.id}
+                    className="card p-6"
+                  >
+                    <div className="flex items-start space-x-6">
+                      {/* Thumbnail */}
+                      <div className="w-24 h-32 bg-gradient-to-br from-mushroom to-blanket rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
+                        {thumbnailUrl ? (
+                          <img
+                            src={thumbnailUrl}
+                            alt={item.title}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <ImageIcon className="w-8 h-8 text-sage/60" />
+                        )}
+                      </div>
 
-                    {/* Content */}
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-xl font-serif text-earth mb-2">
-                        {item.title}
-                      </h3>
-                      <p className="text-sage text-sm mb-3 line-clamp-2">
-                        {item.description}
-                      </p>
-                      
-                      <div className="flex items-center space-x-4 text-xs text-sage">
-                        <div className="flex items-center">
-                          <Clock className="w-3 h-3 mr-1" />
-                          {formatDuration(item.duration)}
-                        </div>
-                        <div className="flex items-center">
-                          <ImageIcon className="w-3 h-3 mr-1" />
-                          {item.photo_paths?.length || 0} photos
+                      {/* Content */}
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-xl font-serif text-earth mb-2">
+                          {item.title}
+                        </h3>
+                        <p className="text-sage text-sm mb-3 line-clamp-2">
+                          {item.description}
+                        </p>
+                        
+                        <div className="flex items-center space-x-4 text-xs text-sage">
+                          <div className="flex items-center">
+                            <Clock className="w-3 h-3 mr-1" />
+                            {formatDuration(item.duration)}
+                          </div>
+                          <div className="flex items-center">
+                            <ImageIcon className="w-3 h-3 mr-1" />
+                            {item.photo_paths?.length || 0} photos
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    {/* Price & Actions */}
-                    <div className="flex flex-col items-end space-y-3">
-                      <div className="text-2xl font-bold text-earth">
-                        ${item.price.toFixed(2)}
+                      {/* Price & Actions */}
+                      <div className="flex flex-col items-end space-y-3">
+                        <div className="text-2xl font-bold text-earth">
+                          ${item.price.toFixed(2)}
+                        </div>
+                        <button
+                          onClick={() => removeFromCart(item.id)}
+                          className="text-sage hover:text-khaki transition-colors p-2 hover:bg-blanket/50 rounded-lg"
+                          title="Remove from cart"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
-                      <button
-                        onClick={() => removeFromCart(item.id)}
-                        className="text-sage hover:text-khaki transition-colors p-2 hover:bg-blanket/50 rounded-lg"
-                        title="Remove from cart"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             {/* Checkout Summary */}
@@ -309,6 +407,81 @@ export default function CartPage() {
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* You Might Also Like Section */}
+        {suggestedCollections.length > 0 && (
+          <div className="mt-16">
+            <h2 className="heading-2 mb-8 text-center">You Might Also Like</h2>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {suggestedCollections.map((collection) => {
+                const thumbnailUrl = thumbnailUrls[collection.id];
+                const isAdding = addingItems.has(collection.id);
+                
+                return (
+                  <div
+                    key={collection.id}
+                    className="card group hover:shadow-elegant transition-all duration-300"
+                  >
+                    {/* Thumbnail */}
+                    <div className="relative aspect-[4/5] overflow-hidden rounded-t-xl">
+                      {thumbnailUrl ? (
+                        <img
+                          src={thumbnailUrl}
+                          alt={collection.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-mushroom to-blanket flex items-center justify-center">
+                          <ImageIcon className="w-12 h-12 text-sage/60" />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Content */}
+                    <div className="p-4">
+                      <h3 className="font-serif text-earth text-lg mb-2 line-clamp-2">
+                        {collection.title}
+                      </h3>
+                      
+                      <p className="text-sage text-sm mb-3 line-clamp-2">
+                        {collection.description}
+                      </p>
+
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="text-xs text-sage">
+                          {collection.photo_paths?.length || 0} photos • {formatDuration(collection.duration)}
+                        </div>
+                        <div className="text-lg font-bold text-earth">
+                          ${collection.price.toFixed(2)}
+                        </div>
+                      </div>
+
+                      {/* Add to Cart Button */}
+                      <button
+                        onClick={() => addToCart(collection)}
+                        disabled={isAdding}
+                        className="w-full btn-secondary flex items-center justify-center space-x-2 disabled:opacity-50"
+                      >
+                        {isAdding ? (
+                          <>
+                            <div className="w-4 h-4 spinner"></div>
+                            <span>Adding...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Plus className="w-4 h-4" />
+                            <span>Add to Cart</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
