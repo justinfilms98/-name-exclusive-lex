@@ -1,7 +1,7 @@
 "use client";
-import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 
 interface VideoPlayerProps {
   src: string;
@@ -10,9 +10,28 @@ interface VideoPlayerProps {
 }
 
 export default function VideoPlayer({ src, title, expiresAt }: VideoPlayerProps) {
-  const { data: session } = useSession();
+  const [user, setUser] = useState<any>(null);
   const router = useRouter();
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
+
+  useEffect(() => {
+    // Get current user
+    const getSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUser(session?.user || null);
+    };
+
+    getSession();
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        setUser(session?.user || null);
+      }
+    );
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   useEffect(() => {
     if (!expiresAt) return;
@@ -20,8 +39,7 @@ export default function VideoPlayer({ src, title, expiresAt }: VideoPlayerProps)
       const ms = new Date(expiresAt).getTime() - Date.now();
       if (ms <= 0) {
         setTimeLeft(0);
-        clearInterval(interval);
-        router.push('/account');
+        router.push("/collections");
       } else {
         setTimeLeft(Math.ceil(ms / 1000));
       }
@@ -29,49 +47,50 @@ export default function VideoPlayer({ src, title, expiresAt }: VideoPlayerProps)
     return () => clearInterval(interval);
   }, [expiresAt, router]);
 
-  function formatCountdown(seconds: number | null) {
-    if (seconds === null) return '';
-    if (seconds <= 0) return 'Expired';
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m}m ${s}s`;
+  useEffect(() => {
+    if (!user) {
+      router.push("/login");
+    }
+  }, [user, router]);
+
+  const formatTime = (seconds: number): string => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    return hours > 0 ? `${hours}:${minutes.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}` : `${minutes}:${secs.toString().padStart(2, "0")}`;
+  };
+
+  if (!user) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-black">
+        <div className="text-white text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white mx-auto mb-4"></div>
+          <p>Loading...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#D4C7B4' }}>
-      <h1 className="text-3xl font-bold mb-6 text-center text-[#654C37]">{title}</h1>
-      {expiresAt && (
-        <div className="mb-4 text-lg text-emerald-700 font-semibold">Access expires in: {formatCountdown(timeLeft)}</div>
+    <div className="relative">
+      {timeLeft !== null && timeLeft > 0 && (
+        <div className="absolute top-4 right-4 z-10 bg-black bg-opacity-75 text-white px-3 py-1 rounded text-sm">
+          Time left: {formatTime(timeLeft)}
+        </div>
       )}
-      <div style={{ position: 'relative', width: '100vw', height: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <video
-          controls
-          style={{ width: '100vw', height: '80vh', objectFit: 'contain', background: 'black', userSelect: 'none', WebkitUserSelect: 'none', msUserSelect: 'none', MozUserSelect: 'none', pointerEvents: 'auto' }}
-          src={src}
-          className="rounded-lg shadow-lg select-none"
-          controlsList="nodownload noremoteplayback nofullscreen"
-          disablePictureInPicture
-          disableRemotePlayback
-          onContextMenu={e => e.preventDefault()}
-          onDragStart={e => e.preventDefault()}
-        />
-        {session?.user?.email && (
-          <div style={{
-            position: 'absolute',
-            bottom: 10,
-            right: 20,
-            background: 'rgba(0,0,0,0.5)',
-            color: 'white',
-            padding: '4px 12px',
-            borderRadius: '8px',
-            fontSize: '0.9rem',
-            pointerEvents: 'none',
-            zIndex: 10,
-            userSelect: 'none',
-          }}>
-            {session.user.email}
-          </div>
-        )}
+      <video
+        src={src}
+        controls
+        className="w-full h-auto"
+        style={{ maxHeight: "80vh" }}
+        onContextMenu={(e) => e.preventDefault()}
+        controlsList="nodownload"
+      >
+        <source src={src} type="video/mp4" />
+        Your browser does not support the video tag.
+      </video>
+      <div className="mt-4 text-center">
+        <h2 className="text-xl font-semibold">{title}</h2>
       </div>
     </div>
   );
