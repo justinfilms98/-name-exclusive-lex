@@ -19,7 +19,6 @@ CREATE TABLE hero_videos (
   title TEXT NOT NULL,
   subtitle TEXT,
   video_path TEXT NOT NULL,
-  thumbnail_path TEXT,
   order_index INTEGER NOT NULL DEFAULT 0,
   is_active BOOLEAN NOT NULL DEFAULT true,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),

@@ -8,7 +8,6 @@ interface HeroVideo {
   title: string;
   subtitle?: string;
   video_path: string;
-  thumbnail_path?: string;
   order_index: number;
 }
 

@@ -33,14 +33,13 @@ INSERT INTO collections (id, title, description, price, duration, video_path, th
   ARRAY[]
 );
 
--- Seed sample hero videos for the home page
-INSERT INTO hero_videos (id, title, subtitle, video_path, thumbnail_path, order_index, is_active) VALUES
+-- Seed sample hero videos for the home page (no thumbnails needed - they autoplay)
+INSERT INTO hero_videos (id, title, subtitle, video_path, order_index, is_active) VALUES
 (
   gen_random_uuid(),
   'Welcome to Exclusive Lex',
   'Experience premium content like never before',
   'hero/hero-video-1.mp4',
-  'hero/hero-thumb-1.jpg',
   1,
   true
 ),
@@ -49,7 +48,6 @@ INSERT INTO hero_videos (id, title, subtitle, video_path, thumbnail_path, order_
   'Discover Exclusive Collections',
   'Limited-time access to premium video content',
   'hero/hero-video-2.mp4',
-  'hero/hero-thumb-2.jpg',
   2,
   true
 ),
@@ -58,7 +56,6 @@ INSERT INTO hero_videos (id, title, subtitle, video_path, thumbnail_path, order_
   'Join the VIP Experience',
   'Unlock exclusive content with time-limited access',
   'hero/hero-video-3.mp4',
-  'hero/hero-thumb-3.jpg',
   3,
   true
 );
