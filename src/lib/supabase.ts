@@ -56,6 +56,41 @@ export const deleteFile = async (bucket: string, path: string) => {
   return { data, error }
 }
 
+// Hero Videos functions
+export const getHeroVideos = async () => {
+  const { data, error } = await supabase
+    .from('hero_videos')
+    .select('*')
+    .eq('is_active', true)
+    .order('order_index', { ascending: true })
+  return { data, error }
+}
+
+export const createHeroVideo = async (heroVideo: any) => {
+  const { data, error } = await supabase
+    .from('hero_videos')
+    .insert([heroVideo])
+    .select()
+  return { data, error }
+}
+
+export const updateHeroVideo = async (id: string, heroVideo: any) => {
+  const { data, error } = await supabase
+    .from('hero_videos')
+    .update(heroVideo)
+    .eq('id', id)
+    .select()
+  return { data, error }
+}
+
+export const deleteHeroVideo = async (id: string) => {
+  const { data, error } = await supabase
+    .from('hero_videos')
+    .delete()
+    .eq('id', id)
+  return { data, error }
+}
+
 // Database functions
 export const createCollection = async (collection: any) => {
   const { data, error } = await supabase

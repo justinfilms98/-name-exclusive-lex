@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { getCollections, supabase } from '@/lib/supabase';
+import HeroSection from '@/components/HeroSection';
 import Link from 'next/link';
 
 export default function HomePage() {
@@ -27,31 +28,10 @@ export default function HomePage() {
     loadData();
   }, []);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-stone-50 flex items-center justify-center pt-20">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-stone-800"></div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-stone-50 pt-20">
+    <div className="min-h-screen bg-stone-50">
       {/* Hero Section */}
-      <div className="bg-gradient-to-br from-stone-800 to-stone-900 text-white py-24">
-        <div className="max-w-4xl mx-auto px-4 text-center">
-          <h1 className="text-5xl font-serif mb-6">Exclusive Lex</h1>
-          <p className="text-xl text-stone-200 mb-8 max-w-2xl mx-auto">
-            Premium video content with limited-time access. Discover exclusive collections crafted just for you.
-          </p>
-          <Link
-            href="/collections"
-            className="inline-block bg-white text-stone-800 px-8 py-3 rounded-md font-semibold hover:bg-stone-100 transition-colors"
-          >
-            Browse Collections
-          </Link>
-        </div>
-      </div>
+      <HeroSection />
 
       {/* Featured Collections */}
       <div className="max-w-7xl mx-auto px-4 py-16">
@@ -60,7 +40,11 @@ export default function HomePage() {
           <p className="text-stone-600">Handpicked exclusive content</p>
         </div>
 
-        {collections.length > 0 ? (
+        {loading ? (
+          <div className="flex justify-center py-16">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-stone-800"></div>
+          </div>
+        ) : collections.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
             {collections.map((collection) => (
               <div key={collection.id} className="bg-white rounded-lg shadow-lg overflow-hidden">
@@ -111,14 +95,16 @@ export default function HomePage() {
           </div>
         )}
 
-        <div className="text-center">
-          <Link
-            href="/collections"
-            className="inline-block border border-stone-300 text-stone-700 px-8 py-3 rounded-md hover:bg-stone-50 transition-colors"
-          >
-            View All Collections
-          </Link>
-        </div>
+        {collections.length > 0 && (
+          <div className="text-center">
+            <Link
+              href="/collections"
+              className="inline-block border border-stone-300 text-stone-700 px-8 py-3 rounded-md hover:bg-stone-50 transition-colors"
+            >
+              View All Collections
+            </Link>
+          </div>
+        )}
       </div>
 
       {/* CTA Section */}

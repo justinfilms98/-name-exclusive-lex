@@ -33,5 +33,37 @@ INSERT INTO collections (id, title, description, price, duration, video_path, th
   ARRAY[]
 );
 
+-- Seed sample hero videos for the home page
+INSERT INTO hero_videos (id, title, subtitle, video_path, thumbnail_path, order_index, is_active) VALUES
+(
+  gen_random_uuid(),
+  'Welcome to Exclusive Lex',
+  'Experience premium content like never before',
+  'hero/hero-video-1.mp4',
+  'hero/hero-thumb-1.jpg',
+  1,
+  true
+),
+(
+  gen_random_uuid(),
+  'Discover Exclusive Collections',
+  'Limited-time access to premium video content',
+  'hero/hero-video-2.mp4',
+  'hero/hero-thumb-2.jpg',
+  2,
+  true
+),
+(
+  gen_random_uuid(),
+  'Join the VIP Experience',
+  'Unlock exclusive content with time-limited access',
+  'hero/hero-video-3.mp4',
+  'hero/hero-thumb-3.jpg',
+  3,
+  true
+);
+
 -- Verify the data was inserted
-SELECT id, title, price, duration, created_at FROM collections ORDER BY created_at; 
+SELECT 'Collections:' as type, id, title, price, duration, created_at FROM collections ORDER BY created_at
+UNION ALL
+SELECT 'Hero Videos:' as type, id, title, NULL as price, order_index as duration, created_at FROM hero_videos ORDER BY order_index; 

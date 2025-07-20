@@ -13,6 +13,19 @@ CREATE TABLE collections (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Create hero_videos table
+CREATE TABLE hero_videos (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title TEXT NOT NULL,
+  subtitle TEXT,
+  video_path TEXT NOT NULL,
+  thumbnail_path TEXT,
+  order_index INTEGER NOT NULL DEFAULT 0,
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Create purchases table
 CREATE TABLE purchases (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -60,6 +73,15 @@ CREATE POLICY "Admins can delete media" ON storage.objects
     auth.email() = 'contact.exclusivelex@gmail.com'
   );
 
+-- Row Level Security policies for hero_videos
+ALTER TABLE hero_videos ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Everyone can view hero videos" ON hero_videos
+  FOR SELECT USING (is_active = true);
+
+CREATE POLICY "Admins can manage hero videos" ON hero_videos
+  FOR ALL USING (auth.email() = 'contact.exclusivelex@gmail.com');
+
 -- Row Level Security policies for collections
 ALTER TABLE collections ENABLE ROW LEVEL SECURITY;
 
@@ -94,6 +116,8 @@ CREATE POLICY "Admins can view all watch logs" ON watch_logs
   FOR SELECT USING (auth.email() = 'contact.exclusivelex@gmail.com');
 
 -- Create indexes for better performance
+CREATE INDEX idx_hero_videos_order ON hero_videos(order_index);
+CREATE INDEX idx_hero_videos_active ON hero_videos(is_active);
 CREATE INDEX idx_purchases_user_id ON purchases(user_id);
 CREATE INDEX idx_purchases_collection_id ON purchases(collection_id);
 CREATE INDEX idx_purchases_expires_at ON purchases(expires_at);
@@ -113,5 +137,11 @@ $$ language 'plpgsql';
 -- Create trigger for collections updated_at
 CREATE TRIGGER update_collections_updated_at 
   BEFORE UPDATE ON collections 
+  FOR EACH ROW 
+  EXECUTE PROCEDURE update_updated_at_column();
+
+-- Create trigger for hero_videos updated_at
+CREATE TRIGGER update_hero_videos_updated_at 
+  BEFORE UPDATE ON hero_videos 
   FOR EACH ROW 
   EXECUTE PROCEDURE update_updated_at_column(); 
