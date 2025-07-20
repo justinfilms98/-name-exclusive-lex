@@ -2,44 +2,119 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase, getUserPurchases } from '@/lib/supabase';
-import { isAdmin } from '@/lib/auth';
-import { User } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabase';
+import { User, Clock, Video, Shield, LogOut, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 
+interface Purchase {
+  id: string;
+  collection_id: string;
+  amount_paid: number;
+  expires_at: string;
+  created_at: string;
+  collections: {
+    id: string;
+    title: string;
+    description: string;
+  };
+}
+
 export default function AccountPage() {
-  const [user, setUser] = useState<User | null>(null);
-  const [purchases, setPurchases] = useState<any[]>([]);
+  const [user, setUser] = useState<any>(null);
+  const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
-    const getUser = async () => {
+    loadUserData();
+  }, []);
+
+  const loadUserData = async () => {
+    try {
       const { data: { session } } = await supabase.auth.getSession();
       
-      if (!session) {
+      if (!session?.user) {
         router.push('/login');
         return;
       }
 
       setUser(session.user);
-      
-      // Get user purchases
-      const { data: purchaseData, error } = await getUserPurchases(session.user.id);
+
+      // Load user purchases
+      const { data: purchaseData, error } = await supabase
+        .from('purchases')
+        .select(`
+          *,
+          collections (
+            id,
+            title,
+            description
+          )
+        `)
+        .eq('user_id', session.user.id)
+        .order('created_at', { ascending: false });
+
       if (!error && purchaseData) {
         setPurchases(purchaseData);
       }
-      
-      setLoading(false);
-    };
 
-    getUser();
-  }, [router]);
+    } catch (error) {
+      console.error('Failed to load user data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSignOut = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (!error) {
+      localStorage.setItem('cart', JSON.stringify([]));
+      window.dispatchEvent(new Event('cartUpdated'));
+      router.push('/');
+    }
+  };
+
+  const isAccessActive = (expiresAt: string): boolean => {
+    return new Date(expiresAt) > new Date();
+  };
+
+  const formatExpiration = (expiresAt: string): string => {
+    const date = new Date(expiresAt);
+    const now = new Date();
+    
+    if (date <= now) {
+      return 'Expired';
+    }
+
+    const diffMs = date.getTime() - now.getTime();
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+    
+    if (diffHours > 24) {
+      const days = Math.floor(diffHours / 24);
+      return `${days} day${days > 1 ? 's' : ''} remaining`;
+    } else if (diffHours > 0) {
+      return `${diffHours}h ${diffMinutes}m remaining`;
+    } else {
+      return `${diffMinutes}m remaining`;
+    }
+  };
+
+  const getActivePurchases = () => {
+    return purchases.filter(p => isAccessActive(p.expires_at));
+  };
+
+  const getExpiredPurchases = () => {
+    return purchases.filter(p => !isAccessActive(p.expires_at));
+  };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-stone-50 flex items-center justify-center pt-20">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-stone-800"></div>
+      <div className="min-h-screen bg-almond pt-20 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 spinner mx-auto mb-4"></div>
+          <p className="text-sage text-lg">Loading account...</p>
+        </div>
       </div>
     );
   }
@@ -48,86 +123,149 @@ export default function AccountPage() {
     return null;
   }
 
-  const userIsAdmin = isAdmin(user.email!);
+  const activePurchases = getActivePurchases();
+  const expiredPurchases = getExpiredPurchases();
 
   return (
-    <div className="min-h-screen bg-stone-50 pt-20">
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="bg-white rounded-lg shadow-lg p-8 mb-8">
-          <div className="flex justify-between items-start mb-6">
-            <div>
-              <h1 className="text-3xl font-serif text-stone-800 mb-2">My Account</h1>
-              <p className="text-stone-600">{user.email}</p>
-              <p className="text-sm text-stone-500">Role: {userIsAdmin ? 'Admin' : 'User'}</p>
+    <div className="min-h-screen bg-almond pt-20">
+      <div className="max-w-4xl mx-auto px-4 py-16">
+        
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="heading-1 mb-2">My Account</h1>
+            <p className="text-sage">Manage your exclusive content access</p>
+          </div>
+          
+          <button
+            onClick={handleSignOut}
+            className="btn-ghost flex items-center space-x-2"
+          >
+            <LogOut className="w-4 h-4" />
+            <span>Sign Out</span>
+          </button>
+        </div>
+
+        {/* User Info */}
+        <div className="card-glass p-6 mb-8">
+          <div className="flex items-center space-x-4">
+            <div className="w-16 h-16 bg-sage/20 rounded-full flex items-center justify-center">
+              <User className="w-8 h-8 text-sage" />
             </div>
-            
-            {userIsAdmin && (
-              <Link
-                href="/admin"
-                className="bg-stone-800 text-white px-4 py-2 rounded-md hover:bg-stone-900 transition-colors"
-              >
-                Admin Dashboard
-              </Link>
-            )}
+            <div>
+              <h2 className="text-xl font-serif text-earth mb-1">{user.email}</h2>
+              <p className="text-sage text-sm">Member since {new Date(user.created_at).toLocaleDateString()}</p>
+            </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-lg p-8">
-          <h2 className="text-xl font-semibold text-stone-800 mb-4">My Purchases</h2>
-          
-          {purchases.length > 0 ? (
+        {/* Active Purchases */}
+        <div className="mb-8">
+          <h2 className="heading-3 mb-4 flex items-center">
+            <Video className="w-6 h-6 mr-2 text-sage" />
+            Active Access ({activePurchases.length})
+          </h2>
+
+          {activePurchases.length === 0 ? (
+            <div className="card p-8 text-center">
+              <Clock className="w-12 h-12 text-sage mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-earth mb-2">No Active Access</h3>
+              <p className="text-sage mb-6">Browse our collections to purchase exclusive content.</p>
+              <Link href="/collections" className="btn-primary">
+                Browse Collections
+              </Link>
+            </div>
+          ) : (
             <div className="space-y-4">
-              {purchases.map((purchase) => (
-                <div key={purchase.id} className="border border-stone-200 rounded-lg p-4">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="font-semibold text-stone-800">
-                        {purchase.collections?.title || 'Untitled Collection'}
+              {activePurchases.map((purchase) => (
+                <div key={purchase.id} className="card p-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <h3 className="text-lg font-serif text-earth mb-1">
+                        {purchase.collections.title}
                       </h3>
-                      <p className="text-stone-600 text-sm">
-                        {purchase.collections?.description}
+                      <p className="text-sage text-sm mb-2">
+                        {purchase.collections.description}
                       </p>
-                      <p className="text-stone-500 text-sm mt-1">
-                        Purchased: {new Date(purchase.created_at).toLocaleDateString()}
-                      </p>
-                      <p className="text-stone-500 text-sm">
-                        Expires: {new Date(purchase.expires_at).toLocaleDateString()}
-                      </p>
+                      <div className="flex items-center space-x-4 text-xs text-sage">
+                        <span>Purchased: {new Date(purchase.created_at).toLocaleDateString()}</span>
+                        <span>Paid: ${purchase.amount_paid.toFixed(2)}</span>
+                      </div>
                     </div>
                     
-                    <div className="text-right">
-                      <p className="font-semibold text-stone-800">
-                        ${purchase.collections?.price}
-                      </p>
-                      
-                      {new Date(purchase.expires_at) > new Date() ? (
-                        <Link
-                          href={`/collections/${purchase.collection_id}/watch`}
-                          className="inline-block mt-2 bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 transition-colors"
-                        >
-                          Watch Now
-                        </Link>
-                      ) : (
-                        <span className="inline-block mt-2 bg-gray-400 text-white px-3 py-1 rounded text-sm">
-                          Expired
-                        </span>
-                      )}
+                    <div className="ml-6 text-right">
+                      <div className="text-sm text-sage mb-2">
+                        {formatExpiration(purchase.expires_at)}
+                      </div>
+                      <Link
+                        href={`/watch/${purchase.collection_id}`}
+                        className="btn-primary text-sm flex items-center space-x-2"
+                      >
+                        <span>Watch Now</span>
+                        <ArrowRight className="w-3 h-3" />
+                      </Link>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
-          ) : (
-            <div className="text-center py-8">
-              <p className="text-stone-500 mb-4">No purchases yet</p>
-              <Link
-                href="/collections"
-                className="bg-stone-800 text-white px-6 py-2 rounded-md hover:bg-stone-900 transition-colors"
-              >
-                Browse Collections
-              </Link>
-            </div>
           )}
+        </div>
+
+        {/* Purchase History */}
+        {expiredPurchases.length > 0 && (
+          <div className="mb-8">
+            <h2 className="heading-3 mb-4 flex items-center">
+              <Shield className="w-6 h-6 mr-2 text-sage" />
+              Purchase History ({expiredPurchases.length})
+            </h2>
+
+            <div className="space-y-4">
+              {expiredPurchases.map((purchase) => (
+                <div key={purchase.id} className="card p-6 opacity-75">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <h3 className="text-lg font-serif text-earth mb-1">
+                        {purchase.collections.title}
+                      </h3>
+                      <p className="text-sage text-sm mb-2">
+                        {purchase.collections.description}
+                      </p>
+                      <div className="flex items-center space-x-4 text-xs text-sage">
+                        <span>Purchased: {new Date(purchase.created_at).toLocaleDateString()}</span>
+                        <span>Paid: ${purchase.amount_paid.toFixed(2)}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="ml-6 text-right">
+                      <div className="text-sm text-khaki mb-2">
+                        Expired {new Date(purchase.expires_at).toLocaleDateString()}
+                      </div>
+                      <Link
+                        href="/collections"
+                        className="btn-secondary text-sm"
+                      >
+                        Purchase Again
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Account Actions */}
+        <div className="card-glass p-6">
+          <h3 className="text-lg font-serif text-earth mb-4">Account Actions</h3>
+          <div className="flex flex-col sm:flex-row gap-4">
+            <Link href="/collections" className="btn-primary">
+              Browse Collections
+            </Link>
+            <Link href="/cart" className="btn-secondary">
+              View Cart
+            </Link>
+          </div>
         </div>
       </div>
     </div>

@@ -1,6 +1,6 @@
 import { supabase } from './supabase'
 
-export const ADMIN_EMAIL = 'contact.exclusivelex@gmail.com' // Set your admin email
+export const ADMIN_EMAIL = 'contact.exclusivelex@gmail.com' // Admin access email
 
 export const isAdmin = (email: string | undefined | null) => {
   return email === ADMIN_EMAIL
@@ -8,15 +8,27 @@ export const isAdmin = (email: string | undefined | null) => {
 
 export const requireAuth = async () => {
   const { data: { session } } = await supabase.auth.getSession()
-  return session
+  return session?.user || null
 }
 
 export const requireAdmin = async () => {
-  const session = await requireAuth()
-  if (!session || !isAdmin(session.user.email!)) {
+  const user = await requireAuth()
+  if (!user || !isAdmin(user.email)) {
     throw new Error('Admin access required')
   }
-  return session
+  return user
+}
+
+export const checkAccess = async (userId: string, collectionId: string) => {
+  const { data, error } = await supabase
+    .from('purchases')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('collection_id', collectionId)
+    .gt('expires_at', new Date().toISOString())
+    .single()
+  
+  return { hasAccess: !error && !!data, purchase: data }
 }
 
 export const getUserRole = (email: string) => {

@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { getHeroVideos, getSignedUrl } from '@/lib/supabase';
+import { getHeroVideos, getSignedUrl, supabase } from '@/lib/supabase';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import Link from 'next/link';
 
 interface HeroVideo {
   id: string;
@@ -17,9 +19,11 @@ export default function HeroSection() {
   const [videoUrls, setVideoUrls] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
+  const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
     loadHeroVideos();
+    loadUser();
   }, []);
 
   useEffect(() => {
@@ -38,6 +42,11 @@ export default function HeroSection() {
       return () => clearInterval(interval);
     }
   }, [heroVideos.length]);
+
+  const loadUser = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    setUser(session?.user || null);
+  };
 
   const loadHeroVideos = async () => {
     try {
@@ -94,10 +103,10 @@ export default function HeroSection() {
 
   if (loading) {
     return (
-      <div className="relative h-screen bg-gradient-to-br from-sand to-stone-300 flex items-center justify-center">
-        <div className="text-center text-pearl">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-pearl mx-auto mb-4"></div>
-          <p className="text-green">Loading exclusive content...</p>
+      <div className="relative h-screen bg-gradient-to-br from-almond via-mushroom to-blanket flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 spinner mx-auto mb-4"></div>
+          <p className="text-sage text-lg">Loading exclusive content...</p>
         </div>
       </div>
     );
@@ -105,14 +114,14 @@ export default function HeroSection() {
 
   if (error || heroVideos.length === 0) {
     return (
-      <div className="relative h-screen bg-gradient-to-br from-sand via-stone-200 to-stone-300 flex items-center justify-center">
-        <div className="text-center text-pearl max-w-2xl mx-auto px-4">
-          <h1 className="text-6xl font-serif mb-6">Exclusive Lex</h1>
-          <p className="text-xl text-green mb-8">
-            Premium video content with limited-time access
+      <div className="relative h-screen bg-gradient-to-br from-almond via-mushroom to-blanket flex items-center justify-center">
+        <div className="text-center max-w-2xl mx-auto px-4">
+          <h1 className="heading-1 mb-6 text-shadow-lg">Exclusive Lex</h1>
+          <p className="body-large text-sage mb-8">
+            Premium exclusive content with limited-time access
           </p>
-          <div className="text-salmon text-sm">
-            {error || 'Hero videos will appear here once uploaded'}
+          <div className="text-khaki">
+            {error || 'Hero videos will appear here once uploaded by admin'}
           </div>
         </div>
       </div>
@@ -120,7 +129,6 @@ export default function HeroSection() {
   }
 
   const currentVideo = heroVideos[currentVideoIndex];
-  const currentVideoUrl = videoUrls[currentVideoIndex];
 
   return (
     <div className="relative h-screen bg-black overflow-hidden hero-container group">
@@ -135,24 +143,38 @@ export default function HeroSection() {
           muted
           loop
           playsInline
+          preload="metadata"
         >
           <source src={videoUrl} type="video/mp4" />
+          <source src={videoUrl} type="video/webm" />
         </video>
       ))}
 
-      {/* Dark Overlay */}
-      <div className="absolute inset-0 bg-black bg-opacity-30"></div>
+      {/* Dark Overlay for Text Readability */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
 
       {/* Content */}
       <div className="relative z-10 h-full flex items-center justify-center">
-        <div className="text-center text-pearl max-w-4xl mx-auto px-4">
-          <h1 className="text-6xl md:text-7xl font-serif mb-4 drop-shadow-2xl">
+        <div className="text-center text-blanc max-w-4xl mx-auto px-4">
+          <h1 className="text-5xl md:text-6xl lg:text-7xl font-serif mb-4 text-shadow-lg animate-fade-in">
             {currentVideo.title}
           </h1>
           {currentVideo.subtitle && (
-            <p className="text-xl md:text-2xl text-green mb-8 drop-shadow-lg">
+            <p className="text-xl md:text-2xl lg:text-3xl text-blanket mb-8 text-shadow animate-fade-in">
               {currentVideo.subtitle}
             </p>
+          )}
+
+          {/* CTA Button - Only show when user is signed in */}
+          {user && (
+            <div className="animate-fade-in">
+              <Link
+                href="/collections"
+                className="inline-flex items-center btn-primary text-lg px-8 py-4 shadow-elegant hover:shadow-glass"
+              >
+                View Collections
+              </Link>
+            </div>
           )}
         </div>
       </div>
@@ -162,20 +184,16 @@ export default function HeroSection() {
         <>
           <button
             onClick={prevVideo}
-            className="hero-arrow absolute left-6 top-1/2 transform -translate-y-1/2 z-20 bg-black bg-opacity-30 hover:bg-opacity-50 text-pearl p-4 rounded-full hover:text-salmon transition-all duration-300 backdrop-blur-sm"
+            className="hero-controls absolute left-6 top-1/2 transform -translate-y-1/2 z-20 bg-black/30 hover:bg-black/50 text-blanc p-4 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-110"
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
+            <ChevronLeft className="w-6 h-6" />
           </button>
           
           <button
             onClick={nextVideo}
-            className="hero-arrow absolute right-6 top-1/2 transform -translate-y-1/2 z-20 bg-black bg-opacity-30 hover:bg-opacity-50 text-pearl p-4 rounded-full hover:text-salmon transition-all duration-300 backdrop-blur-sm"
+            className="hero-controls absolute right-6 top-1/2 transform -translate-y-1/2 z-20 bg-black/30 hover:bg-black/50 text-blanc p-4 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-110"
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
+            <ChevronRight className="w-6 h-6" />
           </button>
         </>
       )}
@@ -189,11 +207,25 @@ export default function HeroSection() {
               onClick={() => setCurrentVideoIndex(index)}
               className={`w-3 h-3 rounded-full transition-all duration-300 ${
                 index === currentVideoIndex 
-                  ? 'bg-salmon scale-125' 
-                  : 'bg-pearl bg-opacity-50 hover:bg-opacity-75'
+                  ? 'bg-blanc scale-125 shadow-lg' 
+                  : 'bg-blanc/50 hover:bg-blanc/75'
               }`}
             />
           ))}
+        </div>
+      )}
+
+      {/* Progress Bar */}
+      {heroVideos.length > 1 && (
+        <div className="absolute bottom-0 left-0 right-0 z-20">
+          <div className="progress-bar h-1">
+            <div 
+              className="progress-fill h-full"
+              style={{ 
+                width: `${((currentVideoIndex + 1) / heroVideos.length) * 100}%` 
+              }}
+            />
+          </div>
         </div>
       )}
     </div>

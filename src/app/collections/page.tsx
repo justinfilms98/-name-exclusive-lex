@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { getCollections, supabase } from '@/lib/supabase';
-import { ShoppingCart, Clock, Image as ImageIcon } from 'lucide-react';
+import { ShoppingCart, Clock, Image as ImageIcon, Heart } from 'lucide-react';
+import Link from 'next/link';
 
 interface Collection {
   id: string;
@@ -19,6 +20,7 @@ export default function CollectionsPage() {
   const [collections, setCollections] = useState<Collection[]>([]);
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [userPurchases, setUserPurchases] = useState<string[]>([]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -31,6 +33,20 @@ export default function CollectionsPage() {
       if (!error && data) {
         setCollections(data);
       }
+
+      // Get user purchases if logged in
+      if (session?.user) {
+        const { data: purchases } = await supabase
+          .from('purchases')
+          .select('collection_id')
+          .eq('user_id', session.user.id)
+          .gt('expires_at', new Date().toISOString());
+        
+        if (purchases) {
+          setUserPurchases(purchases.map(p => p.collection_id));
+        }
+      }
+
       setLoading(false);
     };
 
@@ -47,6 +63,10 @@ export default function CollectionsPage() {
   }, []);
 
   const addToCart = (collection: Collection) => {
+    if (userPurchases.includes(collection.id)) {
+      return; // Already purchased
+    }
+
     const cart = JSON.parse(localStorage.getItem('cart') || '[]');
     const isAlreadyInCart = cart.some((item: any) => item.id === collection.id);
     
@@ -61,22 +81,26 @@ export default function CollectionsPage() {
       const button = document.getElementById(`cart-btn-${collection.id}`);
       if (button) {
         button.classList.add('cart-bounce');
-        setTimeout(() => button.classList.remove('cart-bounce'), 500);
+        setTimeout(() => button.classList.remove('cart-bounce'), 600);
       }
     }
   };
 
   const formatDuration = (seconds: number): string => {
     const minutes = Math.floor(seconds / 60);
-    return `${minutes} min access`;
+    return `${minutes} min`;
+  };
+
+  const formatPrice = (price: number): string => {
+    return price.toFixed(2);
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-sand pt-20 flex items-center justify-center">
-        <div className="text-center text-pearl">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-salmon mx-auto mb-4"></div>
-          <p className="text-green">Loading collections...</p>
+      <div className="min-h-screen bg-almond pt-20 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 spinner mx-auto mb-4"></div>
+          <p className="text-sage text-lg">Loading collections...</p>
         </div>
       </div>
     );
@@ -84,14 +108,14 @@ export default function CollectionsPage() {
 
   if (collections.length === 0) {
     return (
-      <div className="min-h-screen bg-sand pt-20">
+      <div className="min-h-screen bg-almond pt-20">
         <div className="max-w-7xl mx-auto px-4 py-16">
           <div className="text-center py-16">
-            <div className="text-salmon mb-4">
+            <div className="text-sage mb-4">
               <ImageIcon className="w-16 h-16 mx-auto" />
             </div>
-            <h2 className="text-2xl font-semibold text-pearl mb-4">No Collections Available</h2>
-            <p className="text-green mb-8">New exclusive content coming soon.</p>
+            <h2 className="heading-2 mb-4">No Collections Available</h2>
+            <p className="body-large text-sage mb-8">New exclusive content coming soon.</p>
           </div>
         </div>
       </div>
@@ -99,76 +123,114 @@ export default function CollectionsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-sand pt-20">
+    <div className="min-h-screen bg-almond pt-20">
       <div className="max-w-7xl mx-auto px-4 py-16">
         {/* Header */}
         <div className="text-center mb-12">
-          <h1 className="text-4xl md:text-5xl font-serif text-pearl mb-4">Exclusive Collections</h1>
-          <p className="text-xl text-green max-w-2xl mx-auto">
-            Premium content with limited-time access. Each collection offers exclusive behind-the-scenes experiences.
+          <h1 className="heading-1 mb-4">Exclusive Collections</h1>
+          <p className="body-large text-sage max-w-2xl mx-auto">
+            Premium exclusive content with limited-time access. Each collection offers behind-the-scenes experiences.
           </p>
         </div>
 
         {/* Masonry Grid */}
         <div className="masonry-grid">
           {collections.map((collection, index) => {
-            // Vary card heights for masonry effect
-            const heights = ['h-64', 'h-72', 'h-80', 'h-56', 'h-68'];
-            const cardHeight = heights[index % heights.length];
+            const isPurchased = userPurchases.includes(collection.id);
+            const photoCount = collection.photo_paths?.length || 0;
             
             return (
               <div
                 key={collection.id}
-                className={`masonry-item bg-pearl bg-opacity-10 backdrop-blur-sm rounded-lg overflow-hidden border border-pearl border-opacity-20 ${cardHeight}`}
+                className="masonry-item collection-card"
               >
                 {/* Thumbnail */}
-                <div className="relative h-2/3 bg-gradient-to-br from-salmon to-cyan opacity-80 group">
-                  <div className="w-full h-full flex items-center justify-center">
-                    <ImageIcon className="w-12 h-12 text-pearl group-hover:scale-110 transition-transform duration-300" />
+                <div className="relative h-full bg-gradient-to-br from-mushroom to-blanket group overflow-hidden">
+                  {/* Placeholder for thumbnail */}
+                  <div className="w-full h-2/3 flex items-center justify-center">
+                    <ImageIcon className="w-12 h-12 text-sage/60 group-hover:scale-110 transition-transform duration-300" />
                   </div>
                   
-                  {/* Hover Overlay */}
-                  <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-300 flex items-center justify-center">
-                    <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                      <button
-                        id={`cart-btn-${collection.id}`}
-                        onClick={() => addToCart(collection)}
-                        className="bg-salmon hover:bg-cyan text-white p-3 rounded-full transition-all duration-300 transform hover:scale-110"
-                      >
-                        <ShoppingCart className="w-5 h-5" />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Title Overlay - Fades on hover */}
-                  <div className="masonry-title absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black to-transparent p-4">
-                    <h3 className="text-pearl font-semibold text-lg">
+                  {/* Content Section */}
+                  <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-earth via-earth/80 to-transparent">
+                    <h3 className="text-blanc font-serif text-xl mb-2 line-clamp-2">
                       {collection.title}
                     </h3>
-                  </div>
-                </div>
+                    
+                    <p className="text-blanket/90 text-sm mb-3 line-clamp-2">
+                      {collection.description}
+                    </p>
 
-                {/* Content */}
-                <div className="p-4 h-1/3 flex flex-col justify-between">
-                  <p className="text-green text-sm line-clamp-2 mb-2">
-                    {collection.description}
-                  </p>
-
-                  {/* Metadata */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center text-xs text-cyan">
-                      <Clock className="w-3 h-3 mr-1" />
-                      {formatDuration(collection.duration)}
+                    {/* Metadata */}
+                    <div className="flex items-center justify-between text-xs text-blanket/80 mb-4">
+                      <div className="flex items-center space-x-3">
+                        <div className="flex items-center">
+                          <Clock className="w-3 h-3 mr-1" />
+                          {formatDuration(collection.duration)}
+                        </div>
+                        <div className="flex items-center">
+                          <ImageIcon className="w-3 h-3 mr-1" />
+                          {photoCount} photos
+                        </div>
+                      </div>
                     </div>
-                    <div className="text-xs text-green">
-                      {collection.photo_paths?.length || 0} photos
+
+                    {/* Price and Action */}
+                    <div className="flex items-center justify-between">
+                      <div className="text-2xl font-bold text-blanket">
+                        ${formatPrice(collection.price)}
+                      </div>
+
+                      {isPurchased ? (
+                        <Link
+                          href={`/watch/${collection.id}`}
+                          className="bg-sage text-blanc px-4 py-2 rounded-lg text-sm font-medium hover:bg-khaki transition-colors"
+                        >
+                          Watch Now
+                        </Link>
+                      ) : user ? (
+                        <button
+                          id={`cart-btn-${collection.id}`}
+                          onClick={() => addToCart(collection)}
+                          className="bg-sage text-blanc px-4 py-2 rounded-lg text-sm font-medium hover:bg-khaki transition-all duration-300 flex items-center space-x-2 hover:shadow-soft"
+                        >
+                          <ShoppingCart className="w-4 h-4" />
+                          <span>Add to Cart</span>
+                        </button>
+                      ) : (
+                        <Link
+                          href="/login"
+                          className="bg-blanket text-earth px-4 py-2 rounded-lg text-sm font-medium hover:bg-blanc transition-colors"
+                        >
+                          Sign In
+                        </Link>
+                      )}
                     </div>
                   </div>
 
-                  {/* Price */}
-                  <div className="text-2xl font-bold text-salmon">
-                    ${collection.price}
+                  {/* Hover Overlay Effect */}
+                  <div className="masonry-overlay absolute inset-0 flex items-center justify-center">
+                    <div className="text-center transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
+                      {!isPurchased && user && (
+                        <button
+                          onClick={() => addToCart(collection)}
+                          className="bg-blanc text-earth px-6 py-3 rounded-lg font-medium shadow-elegant hover:shadow-glass transition-all duration-300 mb-4"
+                        >
+                          Quick Add to Cart
+                        </button>
+                      )}
+                      <p className="text-blanc/90 text-sm px-4">
+                        {collection.description}
+                      </p>
+                    </div>
                   </div>
+
+                  {/* Purchase Badge */}
+                  {isPurchased && (
+                    <div className="absolute top-3 right-3 bg-sage text-blanc px-2 py-1 rounded-full text-xs font-medium">
+                      Owned
+                    </div>
+                  )}
                 </div>
               </div>
             );
@@ -177,15 +239,25 @@ export default function CollectionsPage() {
 
         {/* Bottom CTA */}
         <div className="text-center mt-16">
-          <div className="bg-pearl bg-opacity-5 backdrop-blur-sm rounded-lg border border-pearl border-opacity-20 p-8 max-w-2xl mx-auto">
-            <h2 className="text-2xl font-serif text-pearl mb-4">Ready to Get Exclusive Access?</h2>
-            <p className="text-green mb-6">
+          <div className="card-glass max-w-2xl mx-auto p-8">
+            <h2 className="heading-3 mb-4">Ready for Exclusive Access?</h2>
+            <p className="text-sage mb-6">
               Add collections to your cart and checkout with Stripe for instant access.
             </p>
             {!user && (
-              <p className="text-salmon text-sm">
-                Sign in to add items to your cart and make purchases.
-              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Link href="/login" className="btn-primary">
+                  Sign In with Google
+                </Link>
+                <Link href="/cart" className="btn-secondary">
+                  View Cart
+                </Link>
+              </div>
+            )}
+            {user && (
+              <Link href="/cart" className="btn-primary">
+                Go to Cart
+              </Link>
             )}
           </div>
         </div>
