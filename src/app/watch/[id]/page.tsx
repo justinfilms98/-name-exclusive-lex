@@ -4,12 +4,15 @@ import { checkAccess } from '@/lib/auth';
 import WatchPageClient from './WatchPageClient';
 
 interface PageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 export default async function WatchPage({ params }: PageProps) {
+  // Await params in Next.js 15
+  const { id } = await params;
+
   // Get current user server-side
   const { data: { session } } = await supabase.auth.getSession();
   
@@ -18,7 +21,7 @@ export default async function WatchPage({ params }: PageProps) {
   }
 
   // Check if user has access to this collection
-  const { hasAccess, purchase } = await checkAccess(session.user.id, params.id);
+  const { hasAccess, purchase } = await checkAccess(session.user.id, id);
   
   if (!hasAccess) {
     redirect('/collections');
@@ -28,7 +31,7 @@ export default async function WatchPage({ params }: PageProps) {
   const { data: collection, error } = await supabase
     .from('collections')
     .select('*')
-    .eq('id', params.id)
+    .eq('id', id)
     .single();
 
   if (error || !collection) {
