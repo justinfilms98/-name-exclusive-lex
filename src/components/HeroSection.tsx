@@ -14,7 +14,7 @@ interface HeroVideo {
 export default function HeroSection() {
   const [heroVideos, setHeroVideos] = useState<HeroVideo[]>([]);
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
-  const [videoUrl, setVideoUrl] = useState<string>('');
+  const [videoUrls, setVideoUrls] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
 
@@ -24,9 +24,20 @@ export default function HeroSection() {
 
   useEffect(() => {
     if (heroVideos.length > 0) {
-      loadVideoUrl(heroVideos[currentVideoIndex]);
+      loadAllVideoUrls();
     }
-  }, [heroVideos, currentVideoIndex]);
+  }, [heroVideos]);
+
+  // Auto-advance videos every 8 seconds
+  useEffect(() => {
+    if (heroVideos.length > 1) {
+      const interval = setInterval(() => {
+        setCurrentVideoIndex((prev) => (prev + 1) % heroVideos.length);
+      }, 8000);
+
+      return () => clearInterval(interval);
+    }
+  }, [heroVideos.length]);
 
   const loadHeroVideos = async () => {
     try {
@@ -51,18 +62,21 @@ export default function HeroSection() {
     }
   };
 
-  const loadVideoUrl = async (video: HeroVideo) => {
+  const loadAllVideoUrls = async () => {
     try {
-      const { data, error } = await getSignedUrl('media', video.video_path, 3600);
-      
-      if (error || !data) {
-        console.error('Failed to get video URL:', error);
-        return;
-      }
-
-      setVideoUrl(data.signedUrl);
+      const urls = await Promise.all(
+        heroVideos.map(async (video) => {
+          const { data, error } = await getSignedUrl('media', video.video_path, 3600);
+          if (error || !data) {
+            console.error('Failed to get video URL:', error);
+            return '';
+          }
+          return data.signedUrl;
+        })
+      );
+      setVideoUrls(urls.filter(url => url !== ''));
     } catch (err) {
-      console.error('Failed to get video URL:', err);
+      console.error('Failed to load video URLs:', err);
     }
   };
 
@@ -80,10 +94,10 @@ export default function HeroSection() {
 
   if (loading) {
     return (
-      <div className="relative h-screen bg-stone-900 flex items-center justify-center">
-        <div className="text-center text-white">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white mx-auto mb-4"></div>
-          <p>Loading exclusive content...</p>
+      <div className="relative h-screen bg-gradient-to-br from-sand to-stone-300 flex items-center justify-center">
+        <div className="text-center text-pearl">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-pearl mx-auto mb-4"></div>
+          <p className="text-green">Loading exclusive content...</p>
         </div>
       </div>
     );
@@ -91,13 +105,13 @@ export default function HeroSection() {
 
   if (error || heroVideos.length === 0) {
     return (
-      <div className="relative h-screen bg-gradient-to-br from-stone-800 to-stone-900 flex items-center justify-center">
-        <div className="text-center text-white max-w-2xl mx-auto px-4">
+      <div className="relative h-screen bg-gradient-to-br from-sand via-stone-200 to-stone-300 flex items-center justify-center">
+        <div className="text-center text-pearl max-w-2xl mx-auto px-4">
           <h1 className="text-6xl font-serif mb-6">Exclusive Lex</h1>
-          <p className="text-xl text-stone-200 mb-8">
+          <p className="text-xl text-green mb-8">
             Premium video content with limited-time access
           </p>
-          <div className="text-stone-400 text-sm">
+          <div className="text-salmon text-sm">
             {error || 'Hero videos will appear here once uploaded'}
           </div>
         </div>
@@ -106,14 +120,17 @@ export default function HeroSection() {
   }
 
   const currentVideo = heroVideos[currentVideoIndex];
+  const currentVideoUrl = videoUrls[currentVideoIndex];
 
   return (
-    <div className="relative h-screen bg-black overflow-hidden">
-      {/* Background Video */}
-      {videoUrl && (
+    <div className="relative h-screen bg-black overflow-hidden hero-container group">
+      {/* Background Videos with Crossfade */}
+      {videoUrls.map((videoUrl, index) => (
         <video
-          key={currentVideo.id}
-          className="absolute inset-0 w-full h-full object-cover"
+          key={heroVideos[index]?.id || index}
+          className={`absolute inset-0 w-full h-full object-cover hero-crossfade ${
+            index === currentVideoIndex ? 'opacity-100' : 'opacity-0'
+          }`}
           autoPlay
           muted
           loop
@@ -121,31 +138,31 @@ export default function HeroSection() {
         >
           <source src={videoUrl} type="video/mp4" />
         </video>
-      )}
+      ))}
 
       {/* Dark Overlay */}
-      <div className="absolute inset-0 bg-black bg-opacity-40"></div>
+      <div className="absolute inset-0 bg-black bg-opacity-30"></div>
 
       {/* Content */}
       <div className="relative z-10 h-full flex items-center justify-center">
-        <div className="text-center text-white max-w-4xl mx-auto px-4">
-          <h1 className="text-6xl font-serif mb-4 drop-shadow-lg">
+        <div className="text-center text-pearl max-w-4xl mx-auto px-4">
+          <h1 className="text-6xl md:text-7xl font-serif mb-4 drop-shadow-2xl">
             {currentVideo.title}
           </h1>
           {currentVideo.subtitle && (
-            <p className="text-xl text-stone-200 mb-8 drop-shadow-lg">
+            <p className="text-xl md:text-2xl text-green mb-8 drop-shadow-lg">
               {currentVideo.subtitle}
             </p>
           )}
         </div>
       </div>
 
-      {/* Navigation */}
+      {/* Navigation Arrows - Hidden unless hovered */}
       {heroVideos.length > 1 && (
         <>
           <button
             onClick={prevVideo}
-            className="absolute left-4 top-1/2 transform -translate-y-1/2 z-20 bg-black bg-opacity-50 text-white p-3 rounded-full hover:bg-opacity-70 transition-colors"
+            className="hero-arrow absolute left-6 top-1/2 transform -translate-y-1/2 z-20 bg-black bg-opacity-30 hover:bg-opacity-50 text-pearl p-4 rounded-full hover:text-salmon transition-all duration-300 backdrop-blur-sm"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -154,26 +171,30 @@ export default function HeroSection() {
           
           <button
             onClick={nextVideo}
-            className="absolute right-4 top-1/2 transform -translate-y-1/2 z-20 bg-black bg-opacity-50 text-white p-3 rounded-full hover:bg-opacity-70 transition-colors"
+            className="hero-arrow absolute right-6 top-1/2 transform -translate-y-1/2 z-20 bg-black bg-opacity-30 hover:bg-opacity-50 text-pearl p-4 rounded-full hover:text-salmon transition-all duration-300 backdrop-blur-sm"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
           </button>
-
-          {/* Dots Indicator */}
-          <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-20 flex space-x-2">
-            {heroVideos.map((_, index) => (
-              <button
-                key={index}
-                onClick={() => setCurrentVideoIndex(index)}
-                className={`w-3 h-3 rounded-full transition-colors ${
-                  index === currentVideoIndex ? 'bg-white' : 'bg-white bg-opacity-50'
-                }`}
-              />
-            ))}
-          </div>
         </>
+      )}
+
+      {/* Dots Indicator */}
+      {heroVideos.length > 1 && (
+        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-20 flex space-x-3">
+          {heroVideos.map((_, index) => (
+            <button
+              key={index}
+              onClick={() => setCurrentVideoIndex(index)}
+              className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                index === currentVideoIndex 
+                  ? 'bg-salmon scale-125' 
+                  : 'bg-pearl bg-opacity-50 hover:bg-opacity-75'
+              }`}
+            />
+          ))}
+        </div>
       )}
     </div>
   );

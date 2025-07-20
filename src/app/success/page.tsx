@@ -5,12 +5,17 @@ import SuccessClient from './SuccessClient';
 
 export default function SuccessPage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-stone-50 flex items-center justify-center pt-20">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-stone-800"></div>
-      </div>
-    }>
-      <SuccessClient />
-    </Suspense>
+    <div className="min-h-screen bg-sand pt-20">
+      <Suspense fallback={
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center text-pearl">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-salmon mx-auto mb-4"></div>
+            <p className="text-green">Loading purchase confirmation...</p>
+          </div>
+        </div>
+      }>
+        <SuccessClient />
+      </Suspense>
+    </div>
   );
 } 

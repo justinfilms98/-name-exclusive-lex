@@ -13,11 +13,13 @@
 }
 
 :root {
-  --color-earth: #654C37;
-  --color-blanket: #F2E0CF;
-  --color-khaki: #7C745;
-  --color-almond: #C9BBA8;
-  --color-gold: #D4AF37;
+  /* New Color Scheme */
+  --bg-sand: #EFE4D4;        /* earthy sand tone background */
+  --text-pearl: #F9F6F1;     /* pearl white primary text */
+  --text-green: #A3C9A8;     /* light green secondary text */
+  --accent-salmon: #FFA9A9;   /* salmon accent */
+  --accent-cyan: #9FF5F2;     /* cyan accent */
+  --header-tan: rgba(239, 228, 212, 0.7); /* light tan with 70% opacity */
 }
 
 html, body {
@@ -323,6 +325,53 @@ html, body {
   }
   .shadow-subtle {
     @apply shadow-[0_4px_12px_rgba(0,0,0,0.05)];
+  }
+}
+
+@layer utilities {
+  .text-pearl {
+    color: var(--text-pearl);
+  }
+
+  .text-green {
+    color: var(--text-green);
+  }
+
+  .text-salmon {
+    color: var(--accent-salmon);
+  }
+
+  .text-cyan {
+    color: var(--accent-cyan);
+  }
+
+  .bg-sand {
+    background-color: var(--bg-sand);
+  }
+
+  .bg-salmon {
+    background-color: var(--accent-salmon);
+  }
+
+  .bg-cyan {
+    background-color: var(--accent-cyan);
+  }
+
+  .bg-header-tan {
+    background-color: var(--header-tan);
+    backdrop-filter: blur(10px);
+  }
+
+  .border-pearl {
+    border-color: var(--text-pearl);
+  }
+
+  .border-salmon {
+    border-color: var(--accent-salmon);
+  }
+
+  .border-cyan {
+    border-color: var(--accent-cyan);
   }
 }
 

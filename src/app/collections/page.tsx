@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { getCollections, supabase } from '@/lib/supabase';
-import Link from 'next/link';
-import Image from 'next/image';
+import { ShoppingCart, Clock, Image as ImageIcon } from 'lucide-react';
 
 interface Collection {
   id: string;
@@ -12,13 +11,14 @@ interface Collection {
   price: number;
   duration: number;
   thumbnail_path: string;
+  photo_paths: string[];
   created_at: string;
 }
 
 export default function CollectionsPage() {
   const [collections, setCollections] = useState<Collection[]>([]);
-  const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const loadData = async () => {
@@ -35,108 +35,160 @@ export default function CollectionsPage() {
     };
 
     loadData();
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        setUser(session?.user || null);
+      }
+    );
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  const handlePurchase = async (collectionId: string, price: number) => {
-    if (!user) {
-      // Redirect to login
-      window.location.href = '/login';
-      return;
-    }
-
-    try {
-      const response = await fetch('/api/create-checkout-session', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          collectionId,
-          price,
-          userId: user.id,
-        }),
-      });
-
-      const { url } = await response.json();
-      if (url) {
-        window.location.href = url;
+  const addToCart = (collection: Collection) => {
+    const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+    const isAlreadyInCart = cart.some((item: any) => item.id === collection.id);
+    
+    if (!isAlreadyInCart) {
+      cart.push(collection);
+      localStorage.setItem('cart', JSON.stringify(cart));
+      
+      // Trigger cart update event
+      window.dispatchEvent(new Event('cartUpdated'));
+      
+      // Add visual feedback
+      const button = document.getElementById(`cart-btn-${collection.id}`);
+      if (button) {
+        button.classList.add('cart-bounce');
+        setTimeout(() => button.classList.remove('cart-bounce'), 500);
       }
-    } catch (error) {
-      console.error('Purchase error:', error);
     }
+  };
+
+  const formatDuration = (seconds: number): string => {
+    const minutes = Math.floor(seconds / 60);
+    return `${minutes} min access`;
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-stone-50 flex items-center justify-center pt-20">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-stone-800"></div>
+      <div className="min-h-screen bg-sand pt-20 flex items-center justify-center">
+        <div className="text-center text-pearl">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-salmon mx-auto mb-4"></div>
+          <p className="text-green">Loading collections...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (collections.length === 0) {
+    return (
+      <div className="min-h-screen bg-sand pt-20">
+        <div className="max-w-7xl mx-auto px-4 py-16">
+          <div className="text-center py-16">
+            <div className="text-salmon mb-4">
+              <ImageIcon className="w-16 h-16 mx-auto" />
+            </div>
+            <h2 className="text-2xl font-semibold text-pearl mb-4">No Collections Available</h2>
+            <p className="text-green mb-8">New exclusive content coming soon.</p>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-stone-50 pt-20">
-      <div className="max-w-7xl mx-auto px-4 py-8">
+    <div className="min-h-screen bg-sand pt-20">
+      <div className="max-w-7xl mx-auto px-4 py-16">
+        {/* Header */}
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-serif text-stone-800 mb-4">Exclusive Collections</h1>
-          <p className="text-stone-600 max-w-2xl mx-auto">
-            Premium video content with limited-time access. Purchase once, enjoy for the duration specified.
+          <h1 className="text-4xl md:text-5xl font-serif text-pearl mb-4">Exclusive Collections</h1>
+          <p className="text-xl text-green max-w-2xl mx-auto">
+            Premium content with limited-time access. Each collection offers exclusive behind-the-scenes experiences.
           </p>
         </div>
 
-        {collections.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {collections.map((collection) => (
-              <div key={collection.id} className="bg-white rounded-lg shadow-lg overflow-hidden">
-                <div className="aspect-video bg-stone-200 relative">
-                  {collection.thumbnail_path && (
-                    <div className="w-full h-full bg-gradient-to-br from-stone-300 to-stone-400 flex items-center justify-center">
-                      <span className="text-stone-600 text-sm">Thumbnail</span>
-                    </div>
-                  )}
-                </div>
-                
-                <div className="p-6">
-                  <h3 className="text-xl font-semibold text-stone-800 mb-2">
-                    {collection.title}
-                  </h3>
-                  
-                  <p className="text-stone-600 text-sm mb-4 line-clamp-3">
-                    {collection.description}
-                  </p>
-                  
-                  <div className="flex justify-between items-center mb-4">
-                    <div>
-                      <span className="text-2xl font-bold text-stone-800">
-                        ${collection.price}
-                      </span>
-                    </div>
-                    <div className="text-sm text-stone-500">
-                      {Math.floor(collection.duration / 60)} min access
-                    </div>
+        {/* Masonry Grid */}
+        <div className="masonry-grid">
+          {collections.map((collection, index) => {
+            // Vary card heights for masonry effect
+            const heights = ['h-64', 'h-72', 'h-80', 'h-56', 'h-68'];
+            const cardHeight = heights[index % heights.length];
+            
+            return (
+              <div
+                key={collection.id}
+                className={`masonry-item bg-pearl bg-opacity-10 backdrop-blur-sm rounded-lg overflow-hidden border border-pearl border-opacity-20 ${cardHeight}`}
+              >
+                {/* Thumbnail */}
+                <div className="relative h-2/3 bg-gradient-to-br from-salmon to-cyan opacity-80 group">
+                  <div className="w-full h-full flex items-center justify-center">
+                    <ImageIcon className="w-12 h-12 text-pearl group-hover:scale-110 transition-transform duration-300" />
                   </div>
                   
-                  <button
-                    onClick={() => handlePurchase(collection.id, collection.price)}
-                    className="w-full bg-stone-800 text-white py-2 px-4 rounded-md hover:bg-stone-900 transition-colors font-medium"
-                  >
-                    {user ? 'Purchase Access' : 'Sign In to Purchase'}
-                  </button>
+                  {/* Hover Overlay */}
+                  <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-300 flex items-center justify-center">
+                    <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      <button
+                        id={`cart-btn-${collection.id}`}
+                        onClick={() => addToCart(collection)}
+                        className="bg-salmon hover:bg-cyan text-white p-3 rounded-full transition-all duration-300 transform hover:scale-110"
+                      >
+                        <ShoppingCart className="w-5 h-5" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Title Overlay - Fades on hover */}
+                  <div className="masonry-title absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black to-transparent p-4">
+                    <h3 className="text-pearl font-semibold text-lg">
+                      {collection.title}
+                    </h3>
+                  </div>
+                </div>
+
+                {/* Content */}
+                <div className="p-4 h-1/3 flex flex-col justify-between">
+                  <p className="text-green text-sm line-clamp-2 mb-2">
+                    {collection.description}
+                  </p>
+
+                  {/* Metadata */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center text-xs text-cyan">
+                      <Clock className="w-3 h-3 mr-1" />
+                      {formatDuration(collection.duration)}
+                    </div>
+                    <div className="text-xs text-green">
+                      {collection.photo_paths?.length || 0} photos
+                    </div>
+                  </div>
+
+                  {/* Price */}
+                  <div className="text-2xl font-bold text-salmon">
+                    ${collection.price}
+                  </div>
                 </div>
               </div>
-            ))}
+            );
+          })}
+        </div>
+
+        {/* Bottom CTA */}
+        <div className="text-center mt-16">
+          <div className="bg-pearl bg-opacity-5 backdrop-blur-sm rounded-lg border border-pearl border-opacity-20 p-8 max-w-2xl mx-auto">
+            <h2 className="text-2xl font-serif text-pearl mb-4">Ready to Get Exclusive Access?</h2>
+            <p className="text-green mb-6">
+              Add collections to your cart and checkout with Stripe for instant access.
+            </p>
+            {!user && (
+              <p className="text-salmon text-sm">
+                Sign in to add items to your cart and make purchases.
+              </p>
+            )}
           </div>
-        ) : (
-          <div className="text-center py-16">
-            <div className="text-stone-400 mb-4">
-              <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-              </svg>
-            </div>
-            <h3 className="text-xl font-medium text-stone-600 mb-2">No Collections Available</h3>
-            <p className="text-stone-500">New exclusive content coming soon.</p>
-          </div>
-        )}
+        </div>
       </div>
     </div>
   );

@@ -8,58 +8,54 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 
 export async function POST(request: NextRequest) {
   try {
-    const { collectionId, price, userId } = await request.json();
+    const { items, userId } = await request.json();
 
-    if (!collectionId || !price || !userId) {
-      return NextResponse.json(
-        { error: 'Missing required fields' },
-        { status: 400 }
-      );
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      return NextResponse.json({ error: 'No items provided' }, { status: 400 });
     }
 
-    // Get collection details
-    const { data: collection, error: collectionError } = await supabase
-      .from('collections')
-      .select('*')
-      .eq('id', collectionId)
-      .single();
-
-    if (collectionError || !collection) {
-      return NextResponse.json(
-        { error: 'Collection not found' },
-        { status: 404 }
-      );
+    if (!userId) {
+      return NextResponse.json({ error: 'User not authenticated' }, { status: 401 });
     }
 
-    // Create Stripe checkout session
+    // Create line items for Stripe
+    const lineItems = items.map((item: any) => ({
+      price_data: {
+        currency: 'usd',
+        product_data: {
+          name: item.title,
+          description: item.description,
+          images: [], // Add images if available
+        },
+        unit_amount: Math.round(item.price * 100), // Convert to cents
+      },
+      quantity: 1,
+    }));
+
+    // Create checkout session
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
-      line_items: [
-        {
-          price_data: {
-            currency: 'usd',
-            product_data: {
-              name: collection.title,
-              description: collection.description,
-            },
-            unit_amount: Math.round(price * 100), // Convert to cents
-          },
-          quantity: 1,
-        },
-      ],
+      line_items: lineItems,
       mode: 'payment',
-      success_url: `${request.headers.get('origin')}/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${request.headers.get('origin')}/collections`,
+      success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/cart`,
       metadata: {
-        collectionId,
         userId,
-        duration: collection.duration.toString(),
+        collectionIds: items.map((item: any) => item.id).join(','),
+      },
+      customer_email: undefined, // Let Stripe handle this
+      payment_intent_data: {
+        metadata: {
+          userId,
+          collectionIds: items.map((item: any) => item.id).join(','),
+        },
       },
     });
 
     return NextResponse.json({ url: session.url });
-  } catch (error: any) {
-    console.error('Stripe checkout error:', error);
+
+  } catch (error) {
+    console.error('Checkout session error:', error);
     return NextResponse.json(
       { error: 'Failed to create checkout session' },
       { status: 500 }
