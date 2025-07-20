@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { getHeroVideos, uploadToSupabase, getSignedUrl, supabase } from '@/lib/supabase';
+import { getHeroVideos, uploadFile, getSignedUrl, supabase } from '@/lib/supabase';
 import { Video, Upload, Trash2, Edit, Save, X } from 'lucide-react';
 
 interface HeroVideo {
@@ -78,10 +78,10 @@ export default function AdminHeroPage() {
       const filePath = `hero/${filename}`;
 
       // Upload video to Supabase storage
-      const { data: uploadData, error: uploadError } = await uploadToSupabase(
+      const { data: uploadData, error: uploadError } = await uploadFile(
+        videoFile,
         'media',
-        filePath,
-        videoFile
+        filePath
       );
 
       if (uploadError) {
