@@ -1,13 +1,19 @@
-import VIPClient from "./VIPClient";
-import { redirect } from "next/navigation";
+"use client";
 
-export const dynamic = "force-dynamic";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
-export default function Page() {
-  // Check if VIP feature is enabled
-  if (process.env.ENABLE_VIP_FEATURE !== "true") {
-    redirect("/");
-  }
+export default function VIPPage() {
+  const router = useRouter();
   
-  return <VIPClient />;
+  useEffect(() => {
+    // VIP feature disabled for now, redirect to home
+    router.push("/");
+  }, [router]);
+
+  return (
+    <div className="min-h-screen bg-stone-50 flex items-center justify-center">
+      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-stone-800"></div>
+    </div>
+  );
 } 
