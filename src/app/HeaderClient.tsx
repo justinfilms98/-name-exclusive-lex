@@ -1,87 +1,90 @@
 "use client";
-import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import { useSession, signOut } from 'next-auth/react';
+
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { CartPreview } from '@/components/CartPreview';
+import { supabase, signInWithGoogle, signOut } from '@/lib/supabase';
+import { isAdmin } from '@/lib/auth';
 
 export default function HeaderClient() {
-  const sessionHook = typeof useSession === 'function' ? useSession() : undefined;
-  const session = sessionHook?.data;
-  const status = sessionHook?.status;
+  const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const router = useRouter();
 
   useEffect(() => {
-    if (status !== 'loading') {
+    // Get initial session
+    const getSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUser(session?.user || null);
       setLoading(false);
-    }
-  }, [status]);
+    };
 
-  const handleSignOut = async () => {
-    await signOut({ callbackUrl: '/login' });
+    getSession();
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        setUser(session?.user || null);
+        setLoading(false);
+      }
+    );
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleSignIn = async () => {
+    const { error } = await signInWithGoogle();
+    if (error) {
+      console.error('Sign in error:', error);
+    }
   };
 
-  if (loading) {
-    return (
-      <header className="bg-white shadow-sm border-b border-stone-200 fixed top-0 left-0 right-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <Link href="/" className="text-2xl font-serif text-stone-800">
-                Exclusive Lex
-              </Link>
-            </div>
-            <div className="animate-pulse bg-stone-200 h-8 w-24 rounded"></div>
-          </div>
-        </div>
-      </header>
-    );
-  }
+  const handleSignOut = async () => {
+    const { error } = await signOut();
+    if (error) {
+      console.error('Sign out error:', error);
+    }
+  };
 
   return (
-    <header className="bg-white shadow-sm border-b border-stone-200 fixed top-0 left-0 right-0 z-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          <div className="flex items-center">
-            <Link href="/" className="text-2xl font-serif text-stone-800">
-              Exclusive Lex
-            </Link>
-          </div>
+    <div className="flex items-center space-x-4">
+      {loading ? (
+        <div className="w-8 h-8 animate-spin rounded-full border-2 border-gray-300 border-t-gray-900"></div>
+      ) : user ? (
+        <div className="flex items-center space-x-4">
+          <span className="text-sm text-gray-700">
+            {user.email}
+          </span>
           
-          <nav className="flex items-center space-x-8">
-            <Link href="/collections" className="text-stone-600 hover:text-stone-800 transition-colors">
-              Collections
+          {isAdmin(user.email) && (
+            <Link
+              href="/admin"
+              className="text-sm bg-stone-800 text-white px-3 py-1 rounded hover:bg-stone-900 transition-colors"
+            >
+              Admin
             </Link>
-            <CartPreview />
-            
-            {session && session.user ? (
-              <>
-                {/* Temporarily removed admin check for testing */}
-                <Link href="/admin" className="text-stone-600 hover:text-stone-800 transition-colors">
-                  Admin
-                </Link>
-                <Link href="/account" className="text-stone-600 hover:text-stone-800 transition-colors">
-                  Account
-                </Link>
-                <button
-                  onClick={handleSignOut}
-                  className="text-stone-600 hover:text-stone-800 transition-colors"
-                >
-                  Sign Out
-                </button>
-              </>
-            ) : (
-              <Link 
-                href="/login"
-                className="bg-stone-800 text-white px-4 py-2 rounded-md hover:bg-stone-900 transition-colors"
-              >
-                Sign In
-              </Link>
-            )}
-          </nav>
+          )}
+          
+          <Link
+            href="/account"
+            className="text-sm text-stone-700 hover:text-stone-900"
+          >
+            Account
+          </Link>
+          
+          <button
+            onClick={handleSignOut}
+            className="text-sm border border-stone-300 text-stone-700 px-3 py-1 rounded hover:bg-stone-50 transition-colors"
+          >
+            Sign Out
+          </button>
         </div>
-      </div>
-    </header>
+      ) : (
+        <button
+          onClick={handleSignIn}
+          className="text-sm bg-stone-800 text-white px-4 py-2 rounded hover:bg-stone-900 transition-colors"
+        >
+          Sign In with Google
+        </button>
+      )}
+    </div>
   );
 } 
