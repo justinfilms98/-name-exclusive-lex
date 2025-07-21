@@ -13,7 +13,17 @@ const supabase = createClient(
 
 export async function POST(request: NextRequest) {
   try {
-    const { collectionId } = await request.json();
+    const body = await request.json();
+    
+    // Handle both single collection and cart items
+    let collectionId = body.collectionId;
+    let userId = body.userId;
+    
+    // If it's a cart checkout, use the first item
+    if (body.items && body.items.length > 0) {
+      collectionId = body.items[0].id;
+      userId = body.userId;
+    }
 
     if (!collectionId) {
       return NextResponse.json(
@@ -37,20 +47,35 @@ export async function POST(request: NextRequest) {
     }
 
     // Get the current user
+    let user;
+    
+    // Try to get user from auth header first (for direct purchases)
     const authHeader = request.headers.get('authorization');
-    if (!authHeader) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
+    if (authHeader) {
+      const token = authHeader.replace('Bearer ', '');
+      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(token);
+      if (!authError && authUser) {
+        user = authUser;
+      }
+    }
+    
+    // If no user from auth header, try to get from userId (for cart purchases)
+    if (!user && userId) {
+      const { data: { user: userById }, error: userError } = await supabase.auth.admin.getUserById(userId);
+      if (!userError && userById) {
+        user = userById;
+      }
+    }
+    
+    // If still no user, try to get from session
+    if (!user) {
+      const { data: { session } } = await supabase.auth.getSession();
+      user = session?.user;
     }
 
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-
-    if (authError || !user) {
+    if (!user) {
       return NextResponse.json(
-        { error: 'Invalid authentication' },
+        { error: 'Authentication required' },
         { status: 401 }
       );
     }
