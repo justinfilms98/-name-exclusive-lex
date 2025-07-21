@@ -9,8 +9,11 @@ interface HeroVideo {
   title: string;
   subtitle?: string;
   video_path: string;
+  thumbnail_path?: string;
   order_index: number;
+  is_active: boolean;
   created_at: string;
+  updated_at: string;
 }
 
 export default function AdminHeroPage() {
@@ -100,9 +103,10 @@ export default function AdminHeroPage() {
             subtitle: subtitle.trim() || null,
             video_path: filePath,
             order_index: nextOrder,
+            is_active: true,
           }
         ])
-        .select()
+        .select('*')
         .single();
 
       if (error) {
@@ -115,8 +119,14 @@ export default function AdminHeroPage() {
       setVideoFile(null);
       setUploadProgress(0);
       
-      // Reload hero videos
+      // Reload hero videos immediately
       await loadHeroVideos();
+      
+      // Clear any cached data and trigger revalidation
+      if (typeof window !== 'undefined' && window.location) {
+        // Force a page refresh to clear any cached data
+        window.location.reload();
+      }
       
       alert('Hero video uploaded successfully!');
 

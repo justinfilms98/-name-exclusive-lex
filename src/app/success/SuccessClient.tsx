@@ -1,43 +1,30 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { CheckCircle, ShoppingBag, Eye, ArrowRight } from 'lucide-react';
+import { CheckCircle, Play, ArrowRight, Clock } from 'lucide-react';
 import Link from 'next/link';
 
-interface PurchaseData {
-  id: string;
-  collection_id: string;
-  amount_paid: number;
-  expires_at: string;
-  created_at: string;
-  collections: {
-    id: string;
-    title: string;
-    description: string;
-  };
-}
-
 export default function SuccessClient() {
+  const [loading, setLoading] = useState(true);
+  const [purchase, setPurchase] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
   const searchParams = useSearchParams();
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
-  const [purchases, setPurchases] = useState<PurchaseData[]>([]);
-  const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
     const sessionId = searchParams?.get('session_id');
-    
     if (!sessionId) {
-      router.push('/collections');
+      setError('No session ID provided');
+      setLoading(false);
       return;
     }
 
-    loadPurchaseData(sessionId);
-  }, [searchParams, router]);
+    verifyPurchase(sessionId);
+  }, [searchParams]);
 
-  const loadPurchaseData = async (sessionId: string) => {
+  const verifyPurchase = async (sessionId: string) => {
     try {
       // Get current user
       const { data: { session } } = await supabase.auth.getSession();
@@ -46,13 +33,7 @@ export default function SuccessClient() {
         return;
       }
 
-      setUser(session.user);
-
-      // Clear cart since purchase was successful
-      localStorage.setItem('cart', JSON.stringify([]));
-      window.dispatchEvent(new Event('cartUpdated'));
-
-      // Get purchases for this Stripe session
+      // Find the purchase record
       const { data: purchaseData, error } = await supabase
         .from('purchases')
         .select(`
@@ -60,176 +41,144 @@ export default function SuccessClient() {
           collections (
             id,
             title,
-            description
+            description,
+            duration
           )
         `)
         .eq('stripe_session_id', sessionId)
-        .eq('user_id', session.user.id);
+        .eq('user_id', session.user.id)
+        .single();
 
-      if (error) {
-        console.error('Failed to load purchase data:', error);
-        // Still show success page even if we can't load details
-      } else if (purchaseData) {
-        setPurchases(purchaseData);
+      if (error || !purchaseData) {
+        setError('Purchase not found or access denied');
+        setLoading(false);
+        return;
       }
 
+      setPurchase(purchaseData);
+      setLoading(false);
     } catch (error) {
-      console.error('Error loading purchase data:', error);
-    } finally {
+      console.error('Purchase verification error:', error);
+      setError('Failed to verify purchase');
       setLoading(false);
     }
   };
 
-  const getTotalAmount = () => {
-    return purchases.reduce((total, purchase) => total + purchase.amount_paid, 0);
-  };
-
-  const formatExpiration = (expiresAt: string) => {
-    const date = new Date(expiresAt);
-    const now = new Date();
-    const diffMs = date.getTime() - now.getTime();
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-    const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-    
-    if (diffHours > 0) {
-      return `${diffHours}h ${diffMinutes}m remaining`;
-    } else if (diffMinutes > 0) {
-      return `${diffMinutes}m remaining`;
-    } else {
-      return 'Expired';
-    }
+  const formatDuration = (seconds: number): string => {
+    const minutes = Math.floor(seconds / 60);
+    return `${minutes} minutes`;
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 spinner mx-auto mb-6"></div>
-          <h2 className="heading-2 mb-2">Confirming Your Purchase</h2>
-          <p className="text-sage">Please wait while we process your payment...</p>
+          <div className="w-12 h-12 spinner mx-auto mb-4"></div>
+          <p className="text-lex-brown text-lg">Verifying your purchase...</p>
         </div>
       </div>
     );
   }
 
-  return (
-    <div className="max-w-4xl mx-auto px-4 py-16">
-      {/* Success Header */}
-      <div className="text-center mb-12">
-        <div className="mb-6">
-          <CheckCircle className="w-20 h-20 text-sage mx-auto" />
-        </div>
-        <h1 className="heading-1 mb-4 text-shadow">
-          Purchase Successful!
-        </h1>
-        <p className="body-large text-sage max-w-2xl mx-auto">
-          Thank you for your purchase. You now have exclusive access to your selected collections.
-        </p>
-      </div>
-
-      {/* Purchase Summary */}
-      {purchases.length > 0 && (
-        <div className="card-glass p-8 mb-8">
-          <h2 className="heading-3 mb-6 flex items-center">
-            <ShoppingBag className="w-6 h-6 mr-3 text-sage" />
-            Purchase Summary
-          </h2>
-
-          <div className="space-y-4 mb-6">
-            {purchases.map((purchase) => (
-              <div key={purchase.id} className="flex justify-between items-start py-4 border-b border-mushroom/20 last:border-b-0">
-                <div className="flex-1">
-                  <h3 className="text-earth font-serif text-lg mb-1">
-                    {purchase.collections.title}
-                  </h3>
-                  <p className="text-sage text-sm mb-2">
-                    {purchase.collections.description}
-                  </p>
-                  <p className="text-khaki text-xs">
-                    Access expires: {formatExpiration(purchase.expires_at)}
-                  </p>
-                </div>
-                <div className="ml-4 text-right">
-                  <div className="text-earth font-bold text-lg">
-                    ${purchase.amount_paid.toFixed(2)}
-                  </div>
-                  <Link
-                    href={`/watch/${purchase.collection_id}`}
-                    className="inline-flex items-center text-sage hover:text-khaki transition-colors text-sm mt-2"
-                  >
-                    Watch Now
-                    <ArrowRight className="w-3 h-3 ml-1" />
-                  </Link>
-                </div>
-              </div>
-            ))}
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto p-8">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <span className="text-red-600 text-2xl">⚠️</span>
           </div>
+          <h1 className="text-2xl font-serif text-lex-brown mb-4">Purchase Verification Failed</h1>
+          <p className="text-lex-brown mb-6">{error}</p>
+          <Link 
+            href="/collections"
+            className="inline-block bg-lex-brown text-white px-6 py-3 rounded-lg hover:bg-lex-warmGray transition-colors"
+          >
+            Return to Collections
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
-          <div className="border-t border-mushroom/30 pt-4">
-            <div className="flex justify-between text-xl font-bold text-earth">
-              <span>Total Paid</span>
-              <span>${getTotalAmount().toFixed(2)}</span>
+  if (!purchase) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto p-8">
+          <div className="w-16 h-16 bg-lex-brown rounded-full flex items-center justify-center mx-auto mb-4">
+            <CheckCircle className="w-8 h-8 text-white" />
+          </div>
+          <h1 className="text-2xl font-serif text-lex-brown mb-4">Purchase Successful!</h1>
+          <p className="text-lex-brown mb-6">Your purchase has been processed successfully.</p>
+          <Link 
+            href="/collections"
+            className="inline-block bg-lex-brown text-white px-6 py-3 rounded-lg hover:bg-lex-warmGray transition-colors"
+          >
+            Browse More Collections
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const collection = purchase.collections;
+  const expiresAt = new Date(purchase.expires_at);
+  const timeLeft = Math.floor((expiresAt.getTime() - new Date().getTime()) / 1000);
+
+  return (
+    <div className="min-h-screen flex items-center justify-center p-4">
+      <div className="max-w-2xl mx-auto text-center">
+        {/* Success Icon */}
+        <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+          <CheckCircle className="w-10 h-10 text-green-600" />
+        </div>
+
+        {/* Success Message */}
+        <h1 className="text-3xl font-serif text-lex-brown mb-4">Purchase Successful!</h1>
+        <p className="text-lex-brown text-lg mb-8">
+          You now have access to <strong>{collection.title}</strong>
+        </p>
+
+        {/* Collection Details */}
+        <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
+          <h2 className="text-xl font-serif text-lex-brown mb-4">{collection.title}</h2>
+          <p className="text-lex-brown mb-4">{collection.description}</p>
+          
+          <div className="flex items-center justify-center space-x-6 text-sm text-lex-brown">
+            <div className="flex items-center">
+              <Clock className="w-4 h-4 mr-2" />
+              <span>Duration: {formatDuration(collection.duration)}</span>
+            </div>
+            <div className="flex items-center">
+              <span>Access expires in: {Math.floor(timeLeft / 3600)}h {Math.floor((timeLeft % 3600) / 60)}m</span>
             </div>
           </div>
         </div>
-      )}
 
-      {/* Access Instructions */}
-      <div className="card bg-sage/10 border-sage/30 p-6 mb-8">
-        <h3 className="text-sage font-serif text-lg mb-3 flex items-center">
-          <Eye className="w-5 h-5 mr-2" />
-          How to Access Your Content
-        </h3>
-        <div className="text-earth text-sm space-y-2">
-          <div className="flex items-start">
-            <div className="w-2 h-2 bg-sage rounded-full mr-3 mt-2"></div>
-            <span>Your purchased collections are now available in your account</span>
-          </div>
-          <div className="flex items-start">
-            <div className="w-2 h-2 bg-sage rounded-full mr-3 mt-2"></div>
-            <span>Access is time-limited based on each collection's duration</span>
-          </div>
-          <div className="flex items-start">
-            <div className="w-2 h-2 bg-sage rounded-full mr-3 mt-2"></div>
-            <span>Watch videos and view photos anytime during your access period</span>
-          </div>
-          <div className="flex items-start">
-            <div className="w-2 h-2 bg-sage rounded-full mr-3 mt-2"></div>
-            <span>All content is protected and cannot be downloaded</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Action Buttons */}
-      <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-        {purchases.length > 0 && (
+        {/* Action Buttons */}
+        <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <Link
-            href={`/watch/${purchases[0].collection_id}`}
-            className="btn-primary"
+            href={`/watch/${collection.id}`}
+            className="inline-flex items-center justify-center bg-lex-brown text-white px-8 py-3 rounded-lg hover:bg-lex-warmGray transition-colors font-medium"
           >
-            Start Watching
+            <Play className="w-5 h-5 mr-2" />
+            Watch Now
           </Link>
-        )}
-        <Link
-          href="/collections"
-          className="btn-secondary"
-        >
-          Browse More Collections
-        </Link>
-        <Link
-          href="/account"
-          className="btn-ghost"
-        >
-          View My Account
-        </Link>
-      </div>
+          
+          <Link
+            href="/collections"
+            className="inline-flex items-center justify-center bg-transparent border border-lex-brown text-lex-brown px-8 py-3 rounded-lg hover:bg-lex-brown hover:text-white transition-colors font-medium"
+          >
+            <ArrowRight className="w-5 h-5 mr-2" />
+            Browse More
+          </Link>
+        </div>
 
-      {/* Support Info */}
-      <div className="text-center">
-        <p className="text-sage text-sm">
-          Questions about your purchase? Contact us at{' '}
-          <span className="text-khaki font-medium">contact.exclusivelex@gmail.com</span>
-        </p>
+        {/* Important Notice */}
+        <div className="mt-8 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <p className="text-yellow-800 text-sm">
+            <strong>Important:</strong> Your access is time-limited. Make sure to watch the content before it expires.
+          </p>
+        </div>
       </div>
     </div>
   );

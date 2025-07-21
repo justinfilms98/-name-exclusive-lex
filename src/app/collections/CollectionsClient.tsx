@@ -4,6 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { Heart, PlayCircle, Lock } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { loadStripe } from '@stripe/stripe-js';
 
 interface Collection {
   id: string;
@@ -24,7 +25,7 @@ interface CollectionsClientProps {
 export default function CollectionsClient({ collections, user }: CollectionsClientProps) {
   const router = useRouter();
 
-  const handlePurchase = async (collectionId: string, price: number) => {
+  const handlePurchase = async (collectionId: string) => {
     if (!user) {
       router.push('/login');
       return;
@@ -38,13 +39,20 @@ export default function CollectionsClient({ collections, user }: CollectionsClie
         },
         body: JSON.stringify({
           collectionId,
-          priceId: price,
+          userId: user.id,
         }),
       });
 
-      const { url } = await response.json();
-      if (url) {
-        window.location.href = url;
+      const { sessionId } = await response.json();
+      if (sessionId) {
+        // Redirect to Stripe checkout
+        const stripe = await loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
+        if (stripe) {
+          const { error } = await stripe.redirectToCheckout({ sessionId });
+          if (error) {
+            console.error('Stripe checkout error:', error);
+          }
+        }
       }
     } catch (error) {
       console.error('Error creating checkout session:', error);
@@ -136,7 +144,7 @@ export default function CollectionsClient({ collections, user }: CollectionsClie
                   </div>
                   
                   <button
-                    onClick={() => handlePurchase(collection.id, collection.price)}
+                    onClick={() => handlePurchase(collection.id)}
                     className="bg-stone-800 text-white px-6 py-2 rounded hover:bg-stone-900 transition-colors font-medium"
                   >
                     {user ? 'Purchase' : 'Sign In to Purchase'}

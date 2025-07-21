@@ -1,48 +1,47 @@
-import { redirect } from 'next/navigation';
+import { Suspense } from 'react';
 import { supabase } from '@/lib/supabase';
-import { checkAccess } from '@/lib/auth';
+import { redirect } from 'next/navigation';
 import WatchPageClient from './WatchPageClient';
 
-interface PageProps {
-  params: Promise<{
+interface WatchPageProps {
+  params: {
     id: string;
-  }>;
+  };
 }
 
-export default async function WatchPage({ params }: PageProps) {
-  // Await params in Next.js 15
-  const { id } = await params;
-
-  // Get current user server-side
-  const { data: { session } } = await supabase.auth.getSession();
-  
-  if (!session?.user) {
-    redirect('/login');
-  }
-
-  // Check if user has access to this collection
-  const { hasAccess, purchase } = await checkAccess(session.user.id, id);
-  
-  if (!hasAccess) {
-    redirect('/collections');
-  }
-
-  // Get collection details
-  const { data: collection, error } = await supabase
+async function getCollection(id: string) {
+  const { data, error } = await supabase
     .from('collections')
     .select('*')
     .eq('id', id)
     .single();
 
-  if (error || !collection) {
+  if (error || !data) {
+    return null;
+  }
+
+  return data;
+}
+
+export default async function WatchPage({ params }: WatchPageProps) {
+  const collection = await getCollection(params.id);
+
+  if (!collection) {
     redirect('/collections');
   }
 
   return (
-    <WatchPageClient 
-      collection={collection}
-      purchase={purchase}
-      user={session.user}
-    />
+    <div className="min-h-screen bg-gradient-to-br from-lex-sand via-lex-cream to-lex-warmGray">
+      <Suspense fallback={
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className="w-12 h-12 spinner mx-auto mb-4"></div>
+            <p className="text-lex-brown text-lg">Loading video...</p>
+          </div>
+        </div>
+      }>
+        <WatchPageClient collectionId={params.id} collection={collection} />
+      </Suspense>
+    </div>
   );
 } 

@@ -201,21 +201,21 @@ export default function AdminCollectionsPage() {
 
       setUploadProgress(80);
 
-      // Insert collection record
+      // Insert collection record with proper price conversion to cents
       const { data, error } = await supabase
         .from('collections')
         .insert([
           {
             title: title.trim(),
             description: description.trim(),
-            price: price,
+            price: Math.round(parseFloat(price.toString()) * 100), // Convert to cents
             duration: duration,
             video_path: videoFilename,
             thumbnail_path: thumbnailFilename,
             photo_paths: photoPaths,
           }
         ])
-        .select()
+        .select('*')
         .single();
 
       if (error) {
@@ -242,8 +242,14 @@ export default function AdminCollectionsPage() {
       if (thumbnailInput) thumbnailInput.value = '';
       if (photosInput) photosInput.value = '';
       
-      // Reload collections
+      // Reload collections immediately
       await loadCollections();
+      
+      // Clear any cached data and trigger revalidation
+      if (typeof window !== 'undefined' && window.location) {
+        // Force a page refresh to clear any cached data
+        window.location.reload();
+      }
       
       alert('Collection uploaded successfully!');
 

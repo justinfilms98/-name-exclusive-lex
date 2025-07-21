@@ -20,45 +20,53 @@ interface Purchase {
 }
 
 interface WatchPageClientProps {
+  collectionId: string;
   collection: Collection;
-  purchase: Purchase;
-  user: any;
 }
 
-export default function WatchPageClient({ collection, purchase, user }: WatchPageClientProps) {
+export default function WatchPageClient({ collectionId, collection }: WatchPageClientProps) {
   const [videoUrl, setVideoUrl] = useState<string>('');
   const [photoUrls, setPhotoUrls] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const [currentMedia, setCurrentMedia] = useState<'video' | 'photos'>('video');
+  const [user, setUser] = useState<any>(null);
+  const [purchase, setPurchase] = useState<any>(null);
+  const [accessGranted, setAccessGranted] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
-    loadMediaUrls();
-    logWatchActivity();
-    
-    // Set up expiration timer
-    const expiresAt = new Date(purchase.expires_at);
-    const updateTimer = () => {
-      const now = new Date();
-      const diff = expiresAt.getTime() - now.getTime();
+    checkAccess();
+  }, []);
+
+  useEffect(() => {
+    if (accessGranted && purchase) {
+      loadMediaUrls();
+      logWatchActivity();
       
-      if (diff <= 0) {
-        setTimeLeft(0);
-        // Redirect to collections when expired
-        setTimeout(() => {
-          window.location.href = '/collections';
-        }, 5000);
-      } else {
-        setTimeLeft(Math.floor(diff / 1000));
-      }
-    };
+      // Set up expiration timer
+      const expiresAt = new Date(purchase.expires_at);
+      const updateTimer = () => {
+        const now = new Date();
+        const diff = expiresAt.getTime() - now.getTime();
+        
+        if (diff <= 0) {
+          setTimeLeft(0);
+          // Redirect to collections when expired
+          setTimeout(() => {
+            window.location.href = '/collections';
+          }, 5000);
+        } else {
+          setTimeLeft(Math.floor(diff / 1000));
+        }
+      };
 
-    updateTimer();
-    const interval = setInterval(updateTimer, 1000);
+      updateTimer();
+      const interval = setInterval(updateTimer, 1000);
 
-    return () => clearInterval(interval);
-  }, [purchase.expires_at]);
+      return () => clearInterval(interval);
+    }
+  }, [accessGranted, purchase]);
 
   // Refresh signed URLs every 45 seconds (before 60s expiration)
   useEffect(() => {
@@ -70,6 +78,46 @@ export default function WatchPageClient({ collection, purchase, user }: WatchPag
 
     return () => clearInterval(refreshInterval);
   }, [currentMedia, videoUrl]);
+
+  const checkAccess = async () => {
+    try {
+      // Get current user
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
+        window.location.href = '/login';
+        return;
+      }
+      setUser(session.user);
+
+      // Check if user has access to this collection
+      const { data: purchaseData, error } = await supabase
+        .from('purchases')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .eq('collection_id', collectionId)
+        .single();
+
+      if (error || !purchaseData) {
+        window.location.href = '/collections';
+        return;
+      }
+
+      // Check if purchase is still valid
+      const now = new Date();
+      const expiresAt = new Date(purchaseData.expires_at);
+      
+      if (now > expiresAt) {
+        window.location.href = '/collections';
+        return;
+      }
+
+      setPurchase(purchaseData);
+      setAccessGranted(true);
+    } catch (error) {
+      console.error('Access check failed:', error);
+      window.location.href = '/collections';
+    }
+  };
 
   const loadMediaUrls = async () => {
     try {
@@ -111,9 +159,7 @@ export default function WatchPageClient({ collection, purchase, user }: WatchPag
 
   const logWatchActivity = async () => {
     try {
-      const userAgent = navigator.userAgent;
-      const ipResponse = await fetch('/api/get-ip');
-      const ipData = await ipResponse.json();
+      if (!user) return;
       
       await supabase
         .from('watch_logs')
@@ -121,8 +167,6 @@ export default function WatchPageClient({ collection, purchase, user }: WatchPag
           {
             user_id: user.id,
             collection_id: collection.id,
-            user_agent: userAgent,
-            ip_address: ipData.ip || 'unknown',
           }
         ]);
     } catch (error) {
@@ -157,12 +201,12 @@ export default function WatchPageClient({ collection, purchase, user }: WatchPag
     }
   };
 
-  if (loading) {
+  if (loading || !accessGranted) {
     return (
       <div className="min-h-screen bg-almond pt-20 flex items-center justify-center">
         <div className="text-center">
           <div className="w-12 h-12 spinner mx-auto mb-4"></div>
-          <p className="text-sage text-lg">Loading exclusive content...</p>
+          <p className="text-sage text-lg">Verifying access...</p>
         </div>
       </div>
     );
