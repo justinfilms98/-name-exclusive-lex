@@ -25,6 +25,7 @@ export default function AdminHeroPage() {
   // Form states
   const [title, setTitle] = useState('');
   const [subtitle, setSubtitle] = useState('');
+  const [description, setDescription] = useState('');
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
 
@@ -66,7 +67,7 @@ export default function AdminHeroPage() {
   };
 
   const handleUpload = async () => {
-    if (!title.trim() || !videoFile) {
+    if (!title.trim() || !description.trim() || !videoFile) {
       alert('Please fill in all required fields and select a video file');
       return;
     }
@@ -101,6 +102,7 @@ export default function AdminHeroPage() {
           {
             title: title.trim(),
             subtitle: subtitle.trim() || null,
+            description: description.trim(),
             video_path: filePath,
             thumbnail_path: null, // Will be set if thumbnail is uploaded
             order_index: nextOrder,
@@ -117,6 +119,7 @@ export default function AdminHeroPage() {
       // Reset form
       setTitle('');
       setSubtitle('');
+      setDescription('');
       setVideoFile(null);
       setUploadProgress(0);
       
@@ -299,6 +302,19 @@ export default function AdminHeroPage() {
 
             <div className="md:col-span-2">
               <label className="block text-green text-sm font-medium mb-2">
+                Description (Required)
+              </label>
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className="w-full px-3 py-2 bg-sand border border-pearl border-opacity-30 rounded-lg text-pearl placeholder-green focus:outline-none focus:border-salmon h-24 resize-none"
+                placeholder="Enter video description"
+                disabled={uploading}
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-green text-sm font-medium mb-2">
                 Video File (Required - Max 100MB)
               </label>
               <input
@@ -330,7 +346,7 @@ export default function AdminHeroPage() {
 
           <button
             onClick={handleUpload}
-            disabled={uploading || !title.trim() || !videoFile}
+            disabled={uploading || !title.trim() || !description.trim() || !videoFile}
             className="mt-6 bg-salmon hover:bg-cyan text-white px-6 py-2 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center"
           >
             {uploading ? (
