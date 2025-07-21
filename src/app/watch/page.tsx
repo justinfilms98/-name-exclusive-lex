@@ -67,31 +67,17 @@ function WatchPageContent() {
 
   const loadPurchase = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        setError('Authentication required');
-        setLoading(false);
-        return;
+      const res = await fetch(`/api/get-purchase?session_id=${sessionId}`)
+      const json = await res.json()
+      if (!res.ok) {
+        setError(json.error || 'Unknown error')
+        return
       }
-
-      const response = await fetch(`/api/get-purchase?session_id=${sessionId}`, {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to load purchase');
-      }
-
-      const data = await response.json();
-      setPurchase(data.purchase);
-      setTimeRemaining(data.timeRemaining);
+      setPurchase(json.purchase)
 
       // Get signed URL for video
-      if (data.purchase.collections.video_path) {
-        const { data: signedUrl } = await getSignedUrl('media', data.purchase.collections.video_path);
+      if (json.purchase.collections.video_path) {
+        const { data: signedUrl } = await getSignedUrl('media', json.purchase.collections.video_path);
         if (signedUrl) {
           setVideoUrl(signedUrl.signedUrl);
         }
