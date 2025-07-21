@@ -74,13 +74,13 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
   const { error } = await supabase
     .from('purchases')
     .upsert({
-      user_id: user_id,
-      collection_id: collection_id,
-      stripe_session_id: session.id,
-      purchased_at: purchasedAt.toISOString(),
-      expires_at: expiresAt.toISOString(),
+      userId: user_id,
+      collectionId: collection_id,
+      stripeSessionId: session.id,
+      createdAt: purchasedAt.toISOString(),
+      expiresAt: expiresAt.toISOString(),
     }, {
-      onConflict: 'user_id,collection_id'
+      onConflict: 'userId,collectionId'
     });
 
   if (error) {

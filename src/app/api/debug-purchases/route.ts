@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
       const { data: purchases, error } = await supabase
         .from('purchases')
         .select('*')
-        .order('purchased_at', { ascending: false })
+        .order('createdAt', { ascending: false })
         .limit(10);
 
       if (error) {
