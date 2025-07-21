@@ -46,36 +46,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get the current user
-    let user;
-    
-    // Try to get user from auth header first (for direct purchases)
+    // Get the current user from auth header
     const authHeader = request.headers.get('authorization');
-    if (authHeader) {
-      const token = authHeader.replace('Bearer ', '');
-      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(token);
-      if (!authError && authUser) {
-        user = authUser;
-      }
-    }
-    
-    // If no user from auth header, try to get from userId (for cart purchases)
-    if (!user && userId) {
-      const { data: { user: userById }, error: userError } = await supabase.auth.admin.getUserById(userId);
-      if (!userError && userById) {
-        user = userById;
-      }
-    }
-    
-    // If still no user, try to get from session
-    if (!user) {
-      const { data: { session } } = await supabase.auth.getSession();
-      user = session?.user;
-    }
-
-    if (!user) {
+    if (!authHeader) {
       return NextResponse.json(
         { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: 'Invalid authentication' },
         { status: 401 }
       );
     }

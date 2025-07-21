@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { supabase, getCollections, getSignedUrl } from '@/lib/supabase';
 import { Trash2, ShoppingCart, CreditCard, Clock, Image as ImageIcon, ArrowLeft, Plus } from 'lucide-react';
 import Link from 'next/link';
+import { loadStripe } from '@stripe/stripe-js';
 
 interface CartItem {
   id: string;
@@ -163,10 +164,18 @@ export default function CartPage() {
     setCheckoutLoading(true);
 
     try {
+      // Get the user's session token
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        window.location.href = '/login';
+        return;
+      }
+
       const response = await fetch('/api/create-checkout-session', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
           items: cartItems,
@@ -174,18 +183,28 @@ export default function CartPage() {
         }),
       });
 
-      const { url, error } = await response.json();
+      const data = await response.json();
       
-      if (error) {
-        console.error('Checkout error:', error);
+      if (data.error) {
+        console.error('Checkout error:', data.error);
+        alert('Checkout failed: ' + data.error);
         return;
       }
 
-      if (url) {
-        window.location.href = url;
+      if (data.sessionId) {
+        // Redirect to Stripe checkout
+        const stripe = await loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
+        if (stripe) {
+          const { error } = await stripe.redirectToCheckout({ sessionId: data.sessionId });
+          if (error) {
+            console.error('Stripe checkout error:', error);
+            alert('Failed to redirect to checkout. Please try again.');
+          }
+        }
       }
     } catch (error) {
       console.error('Checkout error:', error);
+      alert('Failed to start checkout process. Please try again.');
     } finally {
       setCheckoutLoading(false);
     }
