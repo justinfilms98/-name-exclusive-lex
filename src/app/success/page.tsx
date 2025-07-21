@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { CheckCircle, Play, Clock, ArrowRight } from 'lucide-react';
@@ -22,7 +22,7 @@ interface Purchase {
   };
 }
 
-export default function SuccessPage() {
+function SuccessPageContent() {
   const [loading, setLoading] = useState(true);
   const [purchase, setPurchase] = useState<Purchase | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -240,5 +240,20 @@ export default function SuccessPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SuccessPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-stone-50 to-stone-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 spinner mx-auto mb-4"></div>
+          <p className="text-stone-600 text-lg">Loading...</p>
+        </div>
+      </div>
+    }>
+      <SuccessPageContent />
+    </Suspense>
   );
 } 
