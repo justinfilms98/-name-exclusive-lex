@@ -13,7 +13,10 @@ const supabase = createClient(
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('Checkout session creation started');
+    
     const body = await request.json();
+    console.log('Request body:', JSON.stringify(body, null, 2));
     
     // Handle both single collection and cart items
     let collectionId = body.collectionId;
@@ -25,7 +28,11 @@ export async function POST(request: NextRequest) {
       userId = body.userId;
     }
 
+    console.log('Collection ID:', collectionId);
+    console.log('User ID:', userId);
+
     if (!collectionId) {
+      console.log('Error: Collection ID is required');
       return NextResponse.json(
         { error: 'Collection ID is required' },
         { status: 400 }
@@ -33,22 +40,36 @@ export async function POST(request: NextRequest) {
     }
 
     // Get the collection details
+    console.log('Fetching collection details for ID:', collectionId);
     const { data: collection, error: collectionError } = await supabase
       .from('collections')
       .select('*')
       .eq('id', collectionId)
       .single();
 
-    if (collectionError || !collection) {
+    if (collectionError) {
+      console.log('Collection error:', collectionError);
       return NextResponse.json(
         { error: 'Collection not found' },
         { status: 404 }
       );
     }
 
+    if (!collection) {
+      console.log('Collection not found for ID:', collectionId);
+      return NextResponse.json(
+        { error: 'Collection not found' },
+        { status: 404 }
+      );
+    }
+
+    console.log('Collection found:', collection.title);
+
     // Get the current user from auth header
+    console.log('Checking authentication');
     const authHeader = request.headers.get('authorization');
     if (!authHeader) {
+      console.log('Error: No authorization header');
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
@@ -56,14 +77,26 @@ export async function POST(request: NextRequest) {
     }
 
     const token = authHeader.replace('Bearer ', '');
+    console.log('Token length:', token.length);
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
-    if (authError || !user) {
+    if (authError) {
+      console.log('Auth error:', authError);
       return NextResponse.json(
         { error: 'Invalid authentication' },
         { status: 401 }
       );
     }
+
+    if (!user) {
+      console.log('Error: No user found');
+      return NextResponse.json(
+        { error: 'Invalid authentication' },
+        { status: 401 }
+      );
+    }
+
+    console.log('User authenticated:', user.id);
 
     // Check if user already purchased this collection
     const { data: existingPurchase } = await supabase
@@ -131,6 +164,11 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Checkout session creation error:', error);
+    console.error('Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      name: error instanceof Error ? error.name : 'Unknown'
+    });
     return NextResponse.json(
       { error: 'Failed to create checkout session' },
       { status: 500 }
