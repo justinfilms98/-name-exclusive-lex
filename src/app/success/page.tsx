@@ -62,7 +62,7 @@ function SuccessPageContent() {
             price
           )
         `)
-        .eq('stripeSessionId', sessionId)
+        .eq('stripe_session_id', sessionId)
         .single();
 
       if (error || !purchaseData) {
@@ -73,7 +73,7 @@ function SuccessPageContent() {
 
       // Check if purchase is still valid
       const now = new Date();
-      const expiresAt = new Date(purchaseData.expiresAt);
+      const expiresAt = new Date(purchaseData.expires_at);
       
       if (now >= expiresAt) {
         setError('Purchase has expired');

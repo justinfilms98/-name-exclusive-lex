@@ -7,11 +7,11 @@ import { Clock, AlertCircle, Play, Pause, Volume2, VolumeX } from 'lucide-react'
 
 interface Purchase {
   id: string;
-  userId: string;
-  collectionId: string;
-  stripeSessionId: string;
-  createdAt: string;
-  expiresAt: string;
+  user_id: string;
+  collection_id: string;
+  stripe_session_id: string;
+  created_at: string;
+  expires_at: string;
   collections: {
     id: string;
     title: string;
@@ -255,7 +255,7 @@ function WatchPageContent() {
           <p className="text-stone-600 mb-4">{purchase.collections.description}</p>
           
           <div className="flex items-center justify-between text-sm text-stone-500">
-            <span>Purchased: {new Date(purchase.createdAt).toLocaleDateString()}</span>
+            <span>Purchased: {new Date(purchase.created_at).toLocaleDateString()}</span>
             <span>Duration: {Math.floor(purchase.collections.duration / 60)} minutes</span>
           </div>
         </div>
