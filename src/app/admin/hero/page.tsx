@@ -102,6 +102,7 @@ export default function AdminHeroPage() {
             title: title.trim(),
             subtitle: subtitle.trim() || null,
             video_path: filePath,
+            thumbnail_path: null, // Will be set if thumbnail is uploaded
             order_index: nextOrder,
             is_active: true,
           }

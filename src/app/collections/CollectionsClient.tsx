@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Heart, PlayCircle, Lock } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { loadStripe } from '@stripe/stripe-js';
+import { supabase } from '@/lib/supabase';
 
 interface Collection {
   id: string;
@@ -32,16 +33,28 @@ export default function CollectionsClient({ collections, user }: CollectionsClie
     }
 
     try {
+      // Get the user's session token
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        router.push('/login');
+        return;
+      }
+
       const response = await fetch('/api/create-checkout-session', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
           collectionId,
-          userId: user.id,
         }),
       });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create checkout session');
+      }
 
       const { sessionId } = await response.json();
       if (sessionId) {
@@ -56,6 +69,7 @@ export default function CollectionsClient({ collections, user }: CollectionsClie
       }
     } catch (error) {
       console.error('Error creating checkout session:', error);
+      alert('Failed to start checkout process. Please try again.');
     }
   };
 
@@ -140,7 +154,7 @@ export default function CollectionsClient({ collections, user }: CollectionsClie
                 {/* Price and Action */}
                 <div className="flex items-center justify-between">
                   <div className="text-2xl font-bold text-stone-800">
-                    ${collection.price}
+                    ${(collection.price / 100).toFixed(2)}
                   </div>
                   
                   <button

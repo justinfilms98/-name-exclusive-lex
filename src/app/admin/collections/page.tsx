@@ -12,8 +12,11 @@ interface Collection {
   duration: number;
   video_path: string;
   thumbnail_path?: string;
+  stripe_price_id?: string;
+  videos?: any[];
   photo_paths: string[];
   created_at: string;
+  updated_at: string;
 }
 
 export default function AdminCollectionsPage() {
@@ -212,6 +215,8 @@ export default function AdminCollectionsPage() {
             duration: duration,
             video_path: videoFilename,
             thumbnail_path: thumbnailFilename,
+            stripe_price_id: null, // Will be set when Stripe price is created
+            videos: [], // Initialize empty videos array
             photo_paths: photoPaths,
           }
         ])
@@ -548,7 +553,7 @@ export default function AdminCollectionsPage() {
                       
                       <div className="flex items-center space-x-6 text-sm text-sage">
                         <div className="flex items-center">
-                          <span className="font-medium text-earth">${collection.price}</span>
+                          <span className="font-medium text-earth">${(collection.price / 100).toFixed(2)}</span>
                         </div>
                         <div className="flex items-center">
                           <span>{formatDuration(collection.duration)}</span>

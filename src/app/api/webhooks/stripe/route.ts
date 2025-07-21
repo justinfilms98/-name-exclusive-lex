@@ -1,87 +1,92 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
-import { supabase } from '@/lib/supabase';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-05-28.basil',
 });
 
-const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET!;
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 export async function POST(request: NextRequest) {
   const body = await request.text();
-  const sig = request.headers.get('stripe-signature');
+  const signature = request.headers.get('stripe-signature');
+
+  if (!signature) {
+    return NextResponse.json(
+      { error: 'Missing stripe signature' },
+      { status: 400 }
+    );
+  }
 
   let event: Stripe.Event;
 
   try {
-    event = stripe.webhooks.constructEvent(body, sig!, endpointSecret);
-  } catch (err: any) {
-    console.error('Webhook signature verification failed:', err.message);
-    return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
+    event = stripe.webhooks.constructEvent(
+      body,
+      signature,
+      process.env.STRIPE_WEBHOOK_SECRET!
+    );
+  } catch (err) {
+    console.error('Webhook signature verification failed:', err);
+    return NextResponse.json(
+      { error: 'Invalid signature' },
+      { status: 400 }
+    );
   }
 
   try {
     switch (event.type) {
       case 'checkout.session.completed':
-        const session = event.data.object as Stripe.Checkout.Session;
-        
-        // Extract metadata
-        const { collectionId, userId, collectionTitle } = session.metadata || {};
-        
-        if (!collectionId || !userId) {
-          console.error('Missing metadata in checkout session');
-          return NextResponse.json({ error: 'Missing metadata' }, { status: 400 });
-        }
-
-        // Get collection details to calculate expiration
-        const { data: collection, error: collectionError } = await supabase
-          .from('collections')
-          .select('duration')
-          .eq('id', collectionId)
-          .single();
-
-        if (collectionError || !collection) {
-          console.error('Collection not found:', collectionId);
-          return NextResponse.json({ error: 'Collection not found' }, { status: 404 });
-        }
-
-        // Calculate expiration time (duration is in seconds)
-        const purchasedAt = new Date();
-        const expiresAt = new Date(purchasedAt.getTime() + collection.duration * 1000);
-
-        // Create purchase record
-        const { error: purchaseError } = await supabase
-          .from('purchases')
-          .insert({
-            user_id: userId,
-            collection_id: collectionId,
-            stripe_session_id: session.id,
-            purchased_at: purchasedAt.toISOString(),
-            expires_at: expiresAt.toISOString(),
-          });
-
-        if (purchaseError) {
-          console.error('Failed to create purchase record:', purchaseError);
-          return NextResponse.json(
-            { error: 'Failed to create purchase record' },
-            { status: 500 }
-          );
-        }
-
-        console.log(`Purchase completed: ${collectionTitle} for user ${userId}`);
+        await handleCheckoutSessionCompleted(event.data.object as Stripe.Checkout.Session);
         break;
-
+      
       default:
         console.log(`Unhandled event type: ${event.type}`);
     }
 
     return NextResponse.json({ received: true });
   } catch (error) {
-    console.error('Webhook processing error:', error);
+    console.error('Webhook handler error:', error);
     return NextResponse.json(
-      { error: 'Webhook processing failed' },
+      { error: 'Webhook handler failed' },
       { status: 500 }
     );
   }
+}
+
+async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) {
+  const { collection_id, user_id, duration } = session.metadata || {};
+  
+  if (!collection_id || !user_id || !duration) {
+    console.error('Missing metadata in checkout session:', session.id);
+    return;
+  }
+
+  // Calculate expiration time
+  const purchasedAt = new Date();
+  const expiresAt = new Date(purchasedAt.getTime() + parseInt(duration) * 1000); // duration is in seconds
+
+  // Create purchase record
+  const { error } = await supabase
+    .from('purchases')
+    .upsert({
+      user_id: user_id,
+      collection_id: collection_id,
+      stripe_session_id: session.id,
+      purchased_at: purchasedAt.toISOString(),
+      expires_at: expiresAt.toISOString(),
+    }, {
+      onConflict: 'user_id,collection_id'
+    });
+
+  if (error) {
+    console.error('Failed to create purchase record:', error);
+    throw error;
+  }
+
+  console.log(`Purchase created for user ${user_id}, collection ${collection_id}`);
 } 
