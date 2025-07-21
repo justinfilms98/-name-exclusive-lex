@@ -49,7 +49,7 @@ function SuccessPageContent() {
         return;
       }
 
-      // Find the purchase record
+      // Find the purchase record by session_id only (more flexible)
       const { data: purchaseData, error } = await supabase
         .from('purchases')
         .select(`
@@ -63,11 +63,20 @@ function SuccessPageContent() {
           )
         `)
         .eq('stripe_session_id', sessionId)
-        .eq('user_id', session.user.id)
         .single();
 
       if (error || !purchaseData) {
         setError('Purchase not found or access denied');
+        setLoading(false);
+        return;
+      }
+
+      // Check if purchase is still valid
+      const now = new Date();
+      const expiresAt = new Date(purchaseData.expires_at);
+      
+      if (now >= expiresAt) {
+        setError('Purchase has expired');
         setLoading(false);
         return;
       }
