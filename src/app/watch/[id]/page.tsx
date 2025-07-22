@@ -12,9 +12,15 @@ interface Purchase {
   expires_at: string;
 }
 
-export default function WatchPage({ params }: { params: { id: string } }) {
+export default async function WatchPage({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = await params;
+  const collectionId = resolvedParams.id;
+  
+  return <WatchPageClient collectionId={collectionId} />;
+}
+
+function WatchPageClient({ collectionId }: { collectionId: string }) {
   const router = useRouter();
-  const collectionId = params.id;
   
   const [purchase, setPurchase] = useState<Purchase | null>(null);
   const [loading, setLoading] = useState(true);
