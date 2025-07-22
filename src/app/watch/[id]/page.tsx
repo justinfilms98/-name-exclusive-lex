@@ -49,7 +49,46 @@ function WatchPageClient({ collectionId }: { collectionId: string }) {
       return;
     }
 
+    // Add security features
+    const preventDownload = (e: Event) => {
+      e.preventDefault();
+      return false;
+    };
+
+    const preventRightClick = (e: MouseEvent) => {
+      e.preventDefault();
+      return false;
+    };
+
+    const preventKeyboardShortcuts = (e: KeyboardEvent) => {
+      // Prevent Ctrl+S, Ctrl+Shift+S, F12, PrintScreen, etc.
+      if (
+        (e.ctrlKey && (e.key === 's' || e.key === 'S')) ||
+        (e.ctrlKey && e.shiftKey && (e.key === 's' || e.key === 'S')) ||
+        e.key === 'F12' ||
+        e.key === 'PrintScreen' ||
+        e.key === 'F11'
+      ) {
+        e.preventDefault();
+        return false;
+      }
+    };
+
+    // Add event listeners
+    document.addEventListener('contextmenu', preventRightClick);
+    document.addEventListener('keydown', preventKeyboardShortcuts);
+    document.addEventListener('selectstart', preventDownload);
+    document.addEventListener('dragstart', preventDownload);
+
     loadPurchase();
+
+    // Cleanup
+    return () => {
+      document.removeEventListener('contextmenu', preventRightClick);
+      document.removeEventListener('keydown', preventKeyboardShortcuts);
+      document.removeEventListener('selectstart', preventDownload);
+      document.removeEventListener('dragstart', preventDownload);
+    };
   }, [sessionId]);
 
   useEffect(() => {
@@ -225,10 +264,12 @@ function WatchPageClient({ collectionId }: { collectionId: string }) {
                 }
               }}
               className="w-full h-auto"
-              controls={showControls}
+              controls={false}
               onPlay={handleVideoPlay}
               onPause={handleVideoPause}
               onEnded={handleVideoEnded}
+              onContextMenu={(e) => e.preventDefault()}
+              style={{ userSelect: 'none', WebkitUserSelect: 'none' }}
             >
               <source src={videoUrl} type="video/mp4" />
               Your browser does not support the video tag.

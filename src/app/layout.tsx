@@ -1,22 +1,30 @@
-import "./globals.css";
-import type { Metadata } from "next";
-import Header from "./Header";
-import { Providers } from "./providers";
+import type { Metadata } from 'next'
+import { Inter } from 'next/font/google'
+import './globals.css'
+import { Providers } from './providers'
+import AgeVerificationWrapper from '@/components/AgeVerificationWrapper'
+
+const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: "Exclusive Lex",
-  description: "Exclusive content access",
-};
+  title: 'Exclusive Lex',
+  description: 'Exclusive content platform',
+}
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
   return (
     <html lang="en">
-      <body>
+      <body className={inter.className}>
         <Providers>
-          <Header />
-          {children}
+          <AgeVerificationWrapper>
+            {children}
+          </AgeVerificationWrapper>
         </Providers>
       </body>
     </html>
-  );
+  )
 }

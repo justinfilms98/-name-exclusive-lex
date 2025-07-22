@@ -2,6 +2,66 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Screenshot protection */
+@media print {
+  * {
+    display: none !important;
+  }
+}
+
+/* Prevent text selection */
+.no-select {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* Blur protection for screenshots */
+@media screen and (max-width: 1px) {
+  body {
+    filter: blur(10px);
+  }
+}
+
+/* Disable video controls */
+video::-webkit-media-controls {
+  display: none !important;
+}
+
+video::-webkit-media-controls-panel {
+  display: none !important;
+}
+
+video::-webkit-media-controls-play-button {
+  display: none !important;
+}
+
+video::-webkit-media-controls-start-playback-button {
+  display: none !important;
+}
+
+/* Custom video controls */
+.video-container {
+  position: relative;
+  overflow: hidden;
+}
+
+.video-container video {
+  pointer-events: none;
+}
+
+.video-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: transparent;
+  z-index: 10;
+  pointer-events: auto;
+}
+
 :root {
   /* Exclusive Lex Brand Colors */
   --color-blanc: #F8F6F1;
