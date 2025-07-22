@@ -3,7 +3,20 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error('Missing Supabase environment variables:', {
+    url: supabaseUrl ? 'SET' : 'MISSING',
+    key: supabaseAnonKey ? 'SET' : 'MISSING'
+  });
+}
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true
+  }
+})
 
 // Auth functions
 export const signInWithGoogle = async () => {
@@ -33,13 +46,27 @@ export const getSession = async () => {
 
 // Storage functions
 export const uploadFile = async (file: File, bucket: string, path: string) => {
-  const { data, error } = await supabase.storage
-    .from(bucket)
-    .upload(path, file, {
-      cacheControl: '3600',
-      upsert: false
-    })
-  return { data, error }
+  try {
+    console.log('Uploading file:', { name: file.name, size: file.size, bucket, path });
+    
+    const { data, error } = await supabase.storage
+      .from(bucket)
+      .upload(path, file, {
+        cacheControl: '3600',
+        upsert: false
+      })
+    
+    if (error) {
+      console.error('Supabase upload error:', error);
+    } else {
+      console.log('Upload successful:', data);
+    }
+    
+    return { data, error }
+  } catch (err: any) {
+    console.error('Upload function error:', err);
+    return { data: null, error: { message: err.message } }
+  }
 }
 
 export const getSignedUrl = async (bucket: string, path: string, expiresIn: number = 1800) => {

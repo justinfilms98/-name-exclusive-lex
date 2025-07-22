@@ -30,11 +30,11 @@ export default function UploadForm() {
   const [success, setSuccess] = useState(false);
 
   const validateFiles = () => {
-    // Video validation (max 15 min / 2GB)
+    // Video validation (max 500MB for Supabase)
     if (files.video) {
-      const maxSize = 2 * 1024 * 1024 * 1024; // 2GB
+      const maxSize = 500 * 1024 * 1024; // 500MB (Supabase limit)
       if (files.video.size > maxSize) {
-        setError('Video file must be under 2GB');
+        setError('Video file must be under 500MB for upload. Please compress your video or use a smaller file.');
         return false;
       }
     }
@@ -44,9 +44,28 @@ export default function UploadForm() {
       return false;
     }
 
+    // Thumbnail validation (max 10MB)
+    if (files.thumbnail) {
+      const maxThumbnailSize = 10 * 1024 * 1024; // 10MB
+      if (files.thumbnail.size > maxThumbnailSize) {
+        setError('Thumbnail image must be under 10MB');
+        return false;
+      }
+    }
+
     if (!files.thumbnail) {
       setError('Thumbnail image is required');
       return false;
+    }
+
+    // Photo validation (max 10MB each)
+    for (let i = 0; i < files.photos.length; i++) {
+      const photo = files.photos[i];
+      const maxPhotoSize = 10 * 1024 * 1024; // 10MB
+      if (photo.size > maxPhotoSize) {
+        setError(`Photo ${i + 1} must be under 10MB`);
+        return false;
+      }
     }
 
     return true;
@@ -56,14 +75,23 @@ export default function UploadForm() {
     // Simulate progress for now - Supabase doesn't have built-in progress
     setProgress(prev => ({ ...prev, [progressKey]: 0 }));
     
-    const { data, error } = await uploadFile(file, bucket, path);
-    
-    if (error) {
-      throw new Error(`Failed to upload ${progressKey}: ${error.message}`);
+    try {
+      console.log(`Starting upload for ${progressKey}:`, { file: file.name, size: file.size, bucket, path });
+      
+      const { data, error } = await uploadFile(file, bucket, path);
+      
+      if (error) {
+        console.error(`Upload error for ${progressKey}:`, error);
+        throw new Error(`Failed to upload ${progressKey}: ${error.message}`);
+      }
+      
+      console.log(`Upload successful for ${progressKey}:`, data);
+      setProgress(prev => ({ ...prev, [progressKey]: 100 }));
+      return data;
+    } catch (err: any) {
+      console.error(`Upload failed for ${progressKey}:`, err);
+      throw err;
     }
-    
-    setProgress(prev => ({ ...prev, [progressKey]: 100 }));
-    return data;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -75,16 +103,27 @@ export default function UploadForm() {
     setError(null);
     
     try {
+      console.log('Starting collection upload process...');
+      
       // Create unique collection ID
       const collectionId = crypto.randomUUID();
       const timestamp = Date.now();
       
+      console.log('Collection ID:', collectionId);
+      console.log('Files to upload:', {
+        video: files.video?.name,
+        thumbnail: files.thumbnail?.name,
+        photos: files.photos.map(p => p.name)
+      });
+      
       // Upload video
       const videoPath = `collections/${collectionId}/video_${timestamp}.${files.video!.name.split('.').pop()}`;
+      console.log('Uploading video to:', videoPath);
       await uploadFileWithProgress(files.video!, 'media', videoPath, 'video');
       
       // Upload thumbnail
       const thumbnailPath = `collections/${collectionId}/thumbnail_${timestamp}.${files.thumbnail!.name.split('.').pop()}`;
+      console.log('Uploading thumbnail to:', thumbnailPath);
       await uploadFileWithProgress(files.thumbnail!, 'media', thumbnailPath, 'thumbnail');
       
       // Upload photos if any
@@ -93,6 +132,7 @@ export default function UploadForm() {
         for (let i = 0; i < files.photos.length; i++) {
           const photo = files.photos[i];
           const photoPath = `collections/${collectionId}/photo_${i}_${timestamp}.${photo.name.split('.').pop()}`;
+          console.log('Uploading photo to:', photoPath);
           await uploadFileWithProgress(photo, 'media', photoPath, 'photos');
           photoPaths.push(photoPath);
         }
@@ -111,12 +151,15 @@ export default function UploadForm() {
         created_at: new Date().toISOString(),
       };
       
+      console.log('Creating collection record:', collection);
       const { error: dbError } = await createCollection(collection);
       
       if (dbError) {
+        console.error('Database error:', dbError);
         throw new Error(`Failed to save collection: ${dbError.message}`);
       }
       
+      console.log('Collection created successfully!');
       setSuccess(true);
       
       // Reset form
@@ -125,6 +168,7 @@ export default function UploadForm() {
       setProgress({});
       
     } catch (err: any) {
+      console.error('Upload process failed:', err);
       setError(err.message);
     } finally {
       setUploading(false);
@@ -216,7 +260,7 @@ export default function UploadForm() {
       <div className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-stone-700 mb-1">
-            Video File (Max 15 min / 2GB) *
+            Video File (Max 500MB) *
           </label>
           <input
             type="file"
@@ -240,7 +284,7 @@ export default function UploadForm() {
         
         <div>
           <label className="block text-sm font-medium text-stone-700 mb-1">
-            Thumbnail Image *
+            Thumbnail Image (Max 10MB) *
           </label>
           <input
             type="file"
@@ -264,7 +308,7 @@ export default function UploadForm() {
         
         <div>
           <label className="block text-sm font-medium text-stone-700 mb-1">
-            Additional Photos (Optional)
+            Additional Photos (Optional - Max 10MB each)
           </label>
           <input
             type="file"
