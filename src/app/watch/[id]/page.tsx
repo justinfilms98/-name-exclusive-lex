@@ -74,6 +74,22 @@ function WatchPageClient({ collectionId }: { collectionId: string }) {
       }
     };
 
+    // Create dynamic watermark
+    const createWatermark = () => {
+      const watermark = document.createElement('div');
+      watermark.className = 'watermark-overlay';
+      watermark.innerHTML = `
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+                    color: rgba(255,0,0,0.3); font-size: 24px; font-weight: bold; 
+                    text-align: center; pointer-events: none; z-index: 10002;">
+          EXCLUSIVE CONTENT<br>
+          ${new Date().toLocaleString()}<br>
+          UNAUTHORIZED COPYING PROHIBITED
+        </div>
+      `;
+      document.body.appendChild(watermark);
+    };
+
     // Screenshot protection
     const preventScreenshot = () => {
       // Disable dev tools
@@ -161,6 +177,28 @@ function WatchPageClient({ collectionId }: { collectionId: string }) {
         e.preventDefault();
         return false;
       });
+
+      // Add screenshot-protected class to body
+      document.body.classList.add('screenshot-protected');
+      
+      // Create dynamic watermark
+      createWatermark();
+      
+      // Update watermark every second
+      setInterval(() => {
+        const watermark = document.querySelector('.watermark-overlay');
+        if (watermark) {
+          watermark.innerHTML = `
+            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+                        color: rgba(255,0,0,0.3); font-size: 24px; font-weight: bold; 
+                        text-align: center; pointer-events: none; z-index: 10002;">
+              EXCLUSIVE CONTENT<br>
+              ${new Date().toLocaleString()}<br>
+              UNAUTHORIZED COPYING PROHIBITED
+            </div>
+          `;
+        }
+      }, 1000);
     };
 
     // Add event listeners
