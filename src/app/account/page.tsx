@@ -12,6 +12,7 @@ interface Purchase {
   amount_paid: number;
   expires_at: string;
   created_at: string;
+  stripe_session_id: string;
   collections: {
     id: string;
     title: string;
@@ -198,7 +199,7 @@ export default function AccountPage() {
                         {formatExpiration(purchase.expires_at)}
                       </div>
                       <Link
-                        href={`/watch/${purchase.collection_id}`}
+                        href={`/watch/${purchase.collection_id}?session_id=${purchase.stripe_session_id}`}
                         className="btn-primary text-sm flex items-center space-x-2"
                       >
                         <span>Watch Now</span>
