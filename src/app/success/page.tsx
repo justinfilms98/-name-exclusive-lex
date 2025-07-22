@@ -9,15 +9,14 @@ import Link from 'next/link';
 interface Purchase {
   id: string;
   user_id: string;
-  collection_id: string;
+  collection_video_id: string;
   stripe_session_id: string;
-  purchased_at: string;
+  created_at: string;
   expires_at: string;
-  collections: {
+  CollectionVideo: {
     id: string;
     title: string;
     description: string;
-    duration: number;
     price: number;
   };
 }
@@ -49,18 +48,16 @@ function SuccessPageContent() {
         return;
       }
 
-      // Find the purchase record by session_id only (more flexible)
+      // First get the purchase record
       const { data: purchaseData, error } = await supabase
         .from('purchases')
         .select(`
-          *,
-          collections (
-            id,
-            title,
-            description,
-            duration,
-            price
-          )
+          id,
+          user_id,
+          collection_video_id,
+          stripe_session_id,
+          created_at,
+          expires_at
         `)
         .eq('stripe_session_id', sessionId)
         .single();
@@ -81,7 +78,26 @@ function SuccessPageContent() {
         return;
       }
 
-      setPurchase(purchaseData);
+      // Now get the collection video details
+      const { data: collectionVideo, error: videoError } = await supabase
+        .from('CollectionVideo')
+        .select('id, title, description, price')
+        .eq('id', purchaseData.collection_video_id)
+        .single();
+
+      if (videoError || !collectionVideo) {
+        setError('Collection video not found');
+        setLoading(false);
+        return;
+      }
+
+      // Combine the data
+      const purchaseWithVideo = {
+        ...purchaseData,
+        CollectionVideo: collectionVideo
+      };
+
+      setPurchase(purchaseWithVideo);
       setLoading(false);
     } catch (error) {
       console.error('Purchase verification error:', error);
@@ -168,14 +184,14 @@ function SuccessPageContent() {
           <div className="grid md:grid-cols-2 gap-8">
             <div>
               <h2 className="text-2xl font-semibold text-stone-800 mb-4">
-                {purchase.collections.title}
+                {purchase.CollectionVideo.title}
               </h2>
-              <p className="text-stone-600 mb-6">{purchase.collections.description}</p>
+              <p className="text-stone-600 mb-6">{purchase.CollectionVideo.description}</p>
               
               <div className="space-y-3">
                 <div className="flex items-center text-stone-600">
                   <Clock className="w-5 h-5 mr-3" />
-                  <span>Duration: {formatDuration(purchase.collections.duration)}</span>
+                  <span>Duration: {formatDuration(purchase.CollectionVideo.price * 60)}</span>
                 </div>
                 <div className="flex items-center text-stone-600">
                   <CheckCircle className="w-5 h-5 mr-3" />
