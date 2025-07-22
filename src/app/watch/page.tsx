@@ -487,46 +487,97 @@ function WatchPageContent() {
                 left: '50%', 
                 transform: 'translate(-50%,-50%) rotate(-30deg)',
                 pointerEvents: 'none', 
-                opacity: 0.15, 
-                fontSize: '4vw', 
+                opacity: 0.25, 
+                fontSize: '6vw', 
                 color: '#fff',
                 zIndex: 10,
-                textShadow: '2px 2px 4px rgba(0,0,0,0.8)',
-                fontWeight: 'bold'
+                textShadow: '3px 3px 6px rgba(0,0,0,0.9)',
+                fontWeight: 'bold',
+                letterSpacing: '2px'
               }}>
                 {user?.email} — {new Date().toLocaleString()}
               </div>
               
-              {/* Additional Watermark */}
+              {/* Large Center Watermark */}
               <div style={{ 
                 position: 'absolute', 
-                top: '10%', 
-                right: '10%', 
+                top: '50%', 
+                left: '50%', 
+                transform: 'translate(-50%,-50%)',
                 pointerEvents: 'none', 
-                opacity: 0.1, 
-                fontSize: '2vw', 
+                opacity: 0.2, 
+                fontSize: '8vw', 
                 color: '#fff',
-                zIndex: 10,
-                transform: 'rotate(15deg)',
-                textShadow: '1px 1px 2px rgba(0,0,0,0.8)'
+                zIndex: 9,
+                textShadow: '4px 4px 8px rgba(0,0,0,0.9)',
+                fontWeight: 'bold',
+                textAlign: 'center'
               }}>
                 EXCLUSIVE CONTENT
               </div>
               
-              {/* Corner Watermark */}
+              {/* Corner Watermarks */}
               <div style={{ 
                 position: 'absolute', 
-                bottom: '10%', 
-                left: '10%', 
+                top: '5%', 
+                right: '5%', 
                 pointerEvents: 'none', 
-                opacity: 0.08, 
-                fontSize: '1.5vw', 
+                opacity: 0.3, 
+                fontSize: '3vw', 
+                color: '#fff',
+                zIndex: 10,
+                transform: 'rotate(15deg)',
+                textShadow: '2px 2px 4px rgba(0,0,0,0.9)',
+                fontWeight: 'bold'
+              }}>
+                EXCLUSIVE LEX
+              </div>
+              
+              <div style={{ 
+                position: 'absolute', 
+                bottom: '5%', 
+                left: '5%', 
+                pointerEvents: 'none', 
+                opacity: 0.25, 
+                fontSize: '2.5vw', 
                 color: '#fff',
                 zIndex: 10,
                 transform: 'rotate(-15deg)',
-                textShadow: '1px 1px 2px rgba(0,0,0,0.8)'
+                textShadow: '2px 2px 4px rgba(0,0,0,0.9)',
+                fontWeight: 'bold'
               }}>
                 {new Date().toLocaleDateString()}
+              </div>
+              
+              {/* Diagonal Watermarks */}
+              <div style={{ 
+                position: 'absolute', 
+                top: '20%', 
+                left: '10%', 
+                pointerEvents: 'none', 
+                opacity: 0.15, 
+                fontSize: '2vw', 
+                color: '#fff',
+                zIndex: 10,
+                transform: 'rotate(45deg)',
+                textShadow: '1px 1px 2px rgba(0,0,0,0.9)'
+              }}>
+                PRIVATE CONTENT
+              </div>
+              
+              <div style={{ 
+                position: 'absolute', 
+                bottom: '20%', 
+                right: '10%', 
+                pointerEvents: 'none', 
+                opacity: 0.15, 
+                fontSize: '2vw', 
+                color: '#fff',
+                zIndex: 10,
+                transform: 'rotate(-45deg)',
+                textShadow: '1px 1px 2px rgba(0,0,0,0.9)'
+              }}>
+                COPYRIGHT PROTECTED
               </div>
               
               {/* Screenshot Warning Overlay */}
@@ -582,6 +633,20 @@ function WatchPageContent() {
           <div className="flex items-center justify-between text-sm text-stone-500">
             <span>Purchased: {new Date(purchase.created_at).toLocaleDateString()}</span>
             <span>Duration: {Math.floor(purchase.CollectionVideo.price / 60)} minutes</span>
+          </div>
+          
+          {/* Screenshot Warning */}
+          <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <div className="flex items-center">
+              <div className="text-red-600 mr-3">⚠️</div>
+              <div>
+                <h3 className="text-red-800 font-semibold">Screenshot Protection Active</h3>
+                <p className="text-red-700 text-sm">
+                  This content is protected by multiple watermarks and monitoring systems. 
+                  Screenshot attempts will be detected and may result in access revocation.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
 

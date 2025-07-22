@@ -268,8 +268,28 @@ video::-webkit-media-controls-fullscreen-button {
   .screenshot-protected {
     position: relative;
     overflow: hidden;
-    filter: contrast(1.1) brightness(1.05) saturate(1.1) hue-rotate(1deg);
-    -webkit-filter: contrast(1.1) brightness(1.05) saturate(1.1) hue-rotate(1deg);
+    filter: contrast(1.15) brightness(1.08) saturate(1.15) hue-rotate(2deg);
+    -webkit-filter: contrast(1.15) brightness(1.08) saturate(1.15) hue-rotate(2deg);
+    animation: subtle-shift 10s infinite;
+  }
+  
+  @keyframes subtle-shift {
+    0%, 100% { 
+      filter: contrast(1.15) brightness(1.08) saturate(1.15) hue-rotate(2deg);
+      -webkit-filter: contrast(1.15) brightness(1.08) saturate(1.15) hue-rotate(2deg);
+    }
+    25% { 
+      filter: contrast(1.12) brightness(1.06) saturate(1.12) hue-rotate(1deg);
+      -webkit-filter: contrast(1.12) brightness(1.06) saturate(1.12) hue-rotate(1deg);
+    }
+    50% { 
+      filter: contrast(1.18) brightness(1.10) saturate(1.18) hue-rotate(3deg);
+      -webkit-filter: contrast(1.18) brightness(1.10) saturate(1.18) hue-rotate(3deg);
+    }
+    75% { 
+      filter: contrast(1.14) brightness(1.07) saturate(1.14) hue-rotate(1.5deg);
+      -webkit-filter: contrast(1.14) brightness(1.07) saturate(1.14) hue-rotate(1.5deg);
+    }
   }
   
   .screenshot-protected::before {
