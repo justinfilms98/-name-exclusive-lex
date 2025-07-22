@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Clock, AlertCircle, Play, Pause, Volume2, VolumeX } from 'lucide-react';
+import { getSignedUrl } from '@/lib/supabase';
 
 interface Purchase {
   id: string;
@@ -10,6 +11,14 @@ interface Purchase {
   collection_id: string;
   created_at: string;
   expires_at: string;
+  collection: {
+    id: string;
+    title: string;
+    description: string;
+    video_path: string;
+    thumbnail_path: string;
+    duration: number;
+  };
 }
 
 export default async function WatchPage({ params }: { params: Promise<{ id: string }> }) {
@@ -87,6 +96,14 @@ function WatchPageClient({ collectionId }: { collectionId: string }) {
       const now = new Date();
       const remaining = expiresAt.getTime() - now.getTime();
       setTimeRemaining(Math.max(0, remaining));
+
+      // Get signed URL for video
+      if (purchase.collection?.video_path) {
+        const { data: signedUrl } = await getSignedUrl('media', purchase.collection.video_path);
+        if (signedUrl) {
+          setVideoUrl(signedUrl.signedUrl);
+        }
+      }
 
     } catch (err: any) {
       console.error('Error loading purchase:', err);
