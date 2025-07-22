@@ -33,17 +33,16 @@ export default function SuccessClient() {
         return;
       }
 
-      // Find the purchase record
+      // First get the purchase record
       const { data: purchaseData, error } = await supabase
         .from('purchases')
         .select(`
-          *,
-          collections (
-            id,
-            title,
-            description,
-            duration
-          )
+          id,
+          user_id,
+          collection_video_id,
+          stripe_session_id,
+          created_at,
+          expires_at
         `)
         .eq('stripe_session_id', sessionId)
         .eq('user_id', session.user.id)
@@ -55,7 +54,26 @@ export default function SuccessClient() {
         return;
       }
 
-      setPurchase(purchaseData);
+      // Now get the collection video details
+      const { data: collectionVideo, error: videoError } = await supabase
+        .from('CollectionVideo')
+        .select('id, title, description, price')
+        .eq('id', purchaseData.collection_video_id)
+        .single();
+
+      if (videoError || !collectionVideo) {
+        setError('Collection video not found');
+        setLoading(false);
+        return;
+      }
+
+      // Combine the data
+      const purchaseWithVideo = {
+        ...purchaseData,
+        CollectionVideo: collectionVideo
+      };
+
+      setPurchase(purchaseWithVideo);
       setLoading(false);
     } catch (error) {
       console.error('Purchase verification error:', error);
@@ -120,7 +138,7 @@ export default function SuccessClient() {
     );
   }
 
-  const collection = purchase.collections;
+  const collection = purchase.CollectionVideo;
   const expiresAt = new Date(purchase.expires_at);
   const timeLeft = Math.floor((expiresAt.getTime() - new Date().getTime()) / 1000);
 
@@ -146,7 +164,7 @@ export default function SuccessClient() {
           <div className="flex items-center justify-center space-x-6 text-sm text-lex-brown">
             <div className="flex items-center">
               <Clock className="w-4 h-4 mr-2" />
-              <span>Duration: {formatDuration(collection.duration)}</span>
+              <span>Duration: {formatDuration(collection.price * 60)}</span>
             </div>
             <div className="flex items-center">
               <span>Access expires in: {Math.floor(timeLeft / 3600)}h {Math.floor((timeLeft % 3600) / 60)}m</span>
