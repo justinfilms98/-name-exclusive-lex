@@ -104,12 +104,29 @@ function WatchPageContent() {
 
     // Enhanced screen capture detection
     const onKey = (e: KeyboardEvent) => {
+      // Windows Snipping Tool shortcuts
       if (e.key === 'PrintScreen' || 
           (e.ctrlKey && e.shiftKey && e.key === 'I') || // DevTools
           (e.ctrlKey && e.shiftKey && e.key === 'C') || // DevTools
           (e.ctrlKey && e.shiftKey && e.key === 'J') || // DevTools
           (e.key === 'F12') || // F12
           (e.ctrlKey && e.key === 'U')) { // View source
+        e.preventDefault()
+        report()
+      }
+
+      // macOS screenshot shortcuts
+      if (navigator.platform.includes('Mac')) {
+        if ((e.metaKey && e.shiftKey && e.key === '3') || // Full screenshot
+            (e.metaKey && e.shiftKey && e.key === '4') || // Selection screenshot
+            (e.metaKey && e.shiftKey && e.key === '5')) { // Screenshot menu
+          e.preventDefault()
+          report()
+        }
+      }
+
+      // Windows Snipping Tool
+      if (e.key === 'S' && e.ctrlKey && e.shiftKey) {
         e.preventDefault()
         report()
       }
@@ -130,6 +147,13 @@ function WatchPageContent() {
     // Detect when window loses focus
     const onBlur = () => {
       report()
+    }
+
+    // Detect when user switches to other applications
+    const onFocusChange = () => {
+      if (!document.hasFocus()) {
+        report()
+      }
     }
 
     // Detect screen capture API usage
@@ -186,50 +210,34 @@ function WatchPageContent() {
           navigator.userAgent.includes('Streamlabs') ||
           navigator.userAgent.includes('XSplit') ||
           navigator.userAgent.includes('Bandicam') ||
-          navigator.userAgent.includes('Fraps')) {
+          navigator.userAgent.includes('Fraps') ||
+          navigator.userAgent.includes('SnippingTool') ||
+          navigator.userAgent.includes('Snip') ||
+          navigator.userAgent.includes('ShareX') ||
+          navigator.userAgent.includes('Greenshot') ||
+          navigator.userAgent.includes('Lightshot')) {
         report()
       }
     }
 
-    // Continuous monitoring for external capture attempts
-    let lastReportTime = 0
-    const monitorActivity = () => {
-      const now = Date.now()
-      if (now - lastReportTime > 2000) { // Prevent spam, 2 second cooldown
-        detectExternalCapture()
-        lastReportTime = now
-      }
-    }
-
-    // Monitor every 1 second
-    const monitorInterval = setInterval(monitorActivity, 1000)
-
-    // Detect when user switches to other applications
-    const onFocusChange = () => {
-      if (!document.hasFocus()) {
-        report()
-      }
-    }
-
-    // Detect when user tries to use screen sharing
-    const onScreenShare = () => {
-      if (navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) {
-        navigator.mediaDevices.getDisplayMedia()
-          .then(() => {
+    // Detect iPhone screenshot attempts
+    const detectIPhoneScreenshot = () => {
+      // iPhone screenshot detection via device orientation and screen size changes
+      if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
+        // Monitor for sudden screen size changes (iPhone screenshot behavior)
+        let lastScreenSize = window.innerWidth + 'x' + window.innerHeight
+        
+        const checkScreenSize = () => {
+          const currentSize = window.innerWidth + 'x' + window.innerHeight
+          if (currentSize !== lastScreenSize) {
+            // Screen size changed - possible screenshot
             report()
-          })
-          .catch(() => {
-            // User denied
-          })
-      }
-    }
-
-    // Override screen sharing APIs
-    if (navigator.mediaDevices) {
-      const originalGetDisplayMedia = navigator.mediaDevices.getDisplayMedia
-      navigator.mediaDevices.getDisplayMedia = function(...args) {
-        report()
-        return originalGetDisplayMedia.apply(this, args)
+          }
+          lastScreenSize = currentSize
+        }
+        
+        // Check every 100ms on iOS devices
+        setInterval(checkScreenSize, 100)
       }
     }
 
@@ -246,10 +254,89 @@ function WatchPageContent() {
           // Ignore errors
         }
       }
+
+      // Detect snipping tool window
+      if (window.name.includes('SnippingTool') || 
+          document.title.includes('Snipping Tool') ||
+          window.name.includes('Snip') ||
+          document.title.includes('Snip')) {
+        report()
+      }
     }
+
+    // Monitor for snipping tool processes (Windows)
+    const detectSnippingTools = () => {
+      // Check for common snipping tool indicators
+      const suspiciousElements = document.querySelectorAll('[class*="snipping"], [id*="snipping"], [class*="snip"], [id*="snip"]')
+      if (suspiciousElements.length > 0) {
+        report()
+      }
+
+      // Check for clipboard content that might be from snipping tools
+      if (navigator.clipboard) {
+        navigator.clipboard.readText().then(text => {
+          if (text.includes('Snipping Tool') || text.includes('Snip')) {
+            report()
+          }
+        }).catch(() => {
+          // Ignore permission errors
+        })
+      }
+    }
+
+    // Detect iOS screenshot gestures
+    const detectIOSGestures = () => {
+      if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
+        // Monitor for volume + power button combination (iPhone screenshot)
+        let volumeDownPressed = false
+        let powerPressed = false
+        
+        document.addEventListener('keydown', (e) => {
+          if (e.key === 'VolumeDown' || e.key === 'AudioVolumeDown') {
+            volumeDownPressed = true
+          }
+          if (e.key === 'Power' || e.key === 'PowerOff') {
+            powerPressed = true
+          }
+          
+          // If both are pressed simultaneously, it's likely a screenshot
+          if (volumeDownPressed && powerPressed) {
+            report()
+            volumeDownPressed = false
+            powerPressed = false
+          }
+        })
+
+        // Reset after a short delay
+        setTimeout(() => {
+          volumeDownPressed = false
+          powerPressed = false
+        }, 1000)
+      }
+    }
+
+    // Continuous monitoring for external capture attempts
+    let lastReportTime = 0
+    const monitorActivity = () => {
+      const now = Date.now()
+      if (now - lastReportTime > 2000) { // Prevent spam, 2 second cooldown
+        detectExternalCapture()
+        lastReportTime = now
+      }
+    }
+
+    // Monitor every 1 second
+    const monitorInterval = setInterval(monitorActivity, 1000)
 
     // Monitor for screen recording attempts
     const screenRecordingInterval = setInterval(detectScreenRecording, 2000)
+
+    // Monitor for snipping tool processes
+    const snippingToolInterval = setInterval(detectSnippingTools, 2000)
+
+    // Initialize platform-specific detection
+    detectIPhoneScreenshot()
+    detectIOSGestures()
 
     document.addEventListener('keydown', onKey)
     document.addEventListener('contextmenu', onCtx)
