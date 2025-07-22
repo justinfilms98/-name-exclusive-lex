@@ -268,6 +268,8 @@ video::-webkit-media-controls-fullscreen-button {
   .screenshot-protected {
     position: relative;
     overflow: hidden;
+    filter: contrast(1.1) brightness(1.05) saturate(1.1) hue-rotate(1deg);
+    -webkit-filter: contrast(1.1) brightness(1.05) saturate(1.1) hue-rotate(1deg);
   }
   
   .screenshot-protected::before {
@@ -278,25 +280,56 @@ video::-webkit-media-controls-fullscreen-button {
     right: 0;
     bottom: 0;
     background: 
-      radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
-      radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.3) 0%, transparent 50%),
-      radial-gradient(circle at 40% 40%, rgba(120, 219, 255, 0.3) 0%, transparent 50%);
+      radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.4) 0%, transparent 50%),
+      radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.4) 0%, transparent 50%),
+      radial-gradient(circle at 40% 40%, rgba(120, 219, 255, 0.4) 0%, transparent 50%),
+      radial-gradient(circle at 60% 60%, rgba(255, 219, 120, 0.3) 0%, transparent 50%);
     pointer-events: none;
     z-index: 1001;
-    animation: noise 0.2s infinite;
+    animation: noise 0.1s infinite;
   }
   
   @keyframes noise {
-    0%, 100% { transform: translate(0, 0); }
-    10% { transform: translate(-1px, -1px); }
-    20% { transform: translate(1px, -1px); }
-    30% { transform: translate(-1px, 1px); }
-    40% { transform: translate(1px, 1px); }
-    50% { transform: translate(-1px, -1px); }
-    60% { transform: translate(1px, -1px); }
-    70% { transform: translate(-1px, 1px); }
-    80% { transform: translate(1px, 1px); }
-    90% { transform: translate(-1px, -1px); }
+    0%, 100% { 
+      transform: translate(0, 0) rotate(0deg); 
+      opacity: 0.3;
+    }
+    10% { 
+      transform: translate(-1px, -1px) rotate(0.1deg); 
+      opacity: 0.4;
+    }
+    20% { 
+      transform: translate(1px, -1px) rotate(-0.1deg); 
+      opacity: 0.3;
+    }
+    30% { 
+      transform: translate(-1px, 1px) rotate(0.1deg); 
+      opacity: 0.4;
+    }
+    40% { 
+      transform: translate(1px, 1px) rotate(-0.1deg); 
+      opacity: 0.3;
+    }
+    50% { 
+      transform: translate(-1px, -1px) rotate(0.1deg); 
+      opacity: 0.4;
+    }
+    60% { 
+      transform: translate(1px, -1px) rotate(-0.1deg); 
+      opacity: 0.3;
+    }
+    70% { 
+      transform: translate(-1px, 1px) rotate(0.1deg); 
+      opacity: 0.4;
+    }
+    80% { 
+      transform: translate(1px, 1px) rotate(-0.1deg); 
+      opacity: 0.3;
+    }
+    90% { 
+      transform: translate(-1px, -1px) rotate(0.1deg); 
+      opacity: 0.4;
+    }
   }
   
   /* Make screenshots harder with CSS filters */

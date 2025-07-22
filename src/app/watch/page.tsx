@@ -126,31 +126,34 @@ function WatchPageContent() {
       report()
     }
 
-    // Anti-capture techniques
+    // Aggressive anti-capture techniques
     const addNoiseToDOM = () => {
       const videoContainer = document.querySelector('.screenshot-protected')
       if (videoContainer) {
-        // Add invisible elements that change frequently
-        const noise = document.createElement('div')
-        noise.style.cssText = `
-          position: absolute;
-          top: 0;
-          left: 0;
-          width: 1px;
-          height: 1px;
-          background: transparent;
-          z-index: 9999;
-          pointer-events: none;
-        `
-        noise.textContent = Math.random().toString(36)
-        videoContainer.appendChild(noise)
-        
-        // Remove after a short delay
-        setTimeout(() => {
-          if (noise.parentNode) {
-            noise.parentNode.removeChild(noise)
-          }
-        }, 100)
+        // Add multiple invisible elements that change frequently
+        for (let i = 0; i < 5; i++) {
+          const noise = document.createElement('div')
+          noise.style.cssText = `
+            position: absolute;
+            top: ${Math.random() * 100}%;
+            left: ${Math.random() * 100}%;
+            width: 1px;
+            height: 1px;
+            background: transparent;
+            z-index: 9999;
+            pointer-events: none;
+            opacity: 0;
+          `
+          noise.textContent = Math.random().toString(36)
+          videoContainer.appendChild(noise)
+          
+          // Remove after a short delay
+          setTimeout(() => {
+            if (noise.parentNode) {
+              noise.parentNode.removeChild(noise)
+            }
+          }, 50)
+        }
       }
     }
 
@@ -178,8 +181,8 @@ function WatchPageContent() {
       }
     }
 
-    // Monitor every 2 seconds
-    const monitorInterval = setInterval(monitorActivity, 2000)
+    // Monitor every 1 second (more frequent)
+    const monitorInterval = setInterval(monitorActivity, 1000)
 
     // Detect clipboard changes (screenshots often go to clipboard)
     const onClipboardChange = () => {
@@ -193,45 +196,52 @@ function WatchPageContent() {
       })
     }
 
-    // Add canvas overlay to make screenshots harder
-    const addCanvasOverlay = () => {
+    // Add multiple canvas overlays to make screenshots harder
+    const addCanvasOverlays = () => {
       const videoContainer = document.querySelector('.screenshot-protected')
       if (videoContainer) {
-        const canvas = document.createElement('canvas')
-        canvas.style.cssText = `
-          position: absolute;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100%;
-          pointer-events: none;
-          z-index: 1000;
-          opacity: 0.01;
-        `
-        videoContainer.appendChild(canvas)
+        // Remove existing canvases
+        const existingCanvases = videoContainer.querySelectorAll('canvas')
+        existingCanvases.forEach(canvas => canvas.remove())
         
-        // Draw random patterns
-        const ctx = canvas.getContext('2d')
-        if (ctx) {
-          canvas.width = videoContainer.clientWidth
-          canvas.height = videoContainer.clientHeight
+        // Add multiple canvas overlays
+        for (let i = 0; i < 3; i++) {
+          const canvas = document.createElement('canvas')
+          canvas.style.cssText = `
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: ${1000 + i};
+            opacity: 0.005;
+          `
+          videoContainer.appendChild(canvas)
           
-          // Draw random dots
-          for (let i = 0; i < 50; i++) {
-            ctx.fillStyle = `hsl(${Math.random() * 360}, 50%, 50%)`
-            ctx.fillRect(
-              Math.random() * canvas.width,
-              Math.random() * canvas.height,
-              1,
-              1
-            )
+          // Draw random patterns
+          const ctx = canvas.getContext('2d')
+          if (ctx) {
+            canvas.width = videoContainer.clientWidth
+            canvas.height = videoContainer.clientHeight
+            
+            // Draw random patterns
+            for (let j = 0; j < 100; j++) {
+              ctx.fillStyle = `hsl(${Math.random() * 360}, 50%, 50%)`
+              ctx.fillRect(
+                Math.random() * canvas.width,
+                Math.random() * canvas.height,
+                1,
+                1
+              )
+            }
           }
         }
       }
     }
 
-    // Add canvas overlay
-    addCanvasOverlay()
+    // Add canvas overlays
+    addCanvasOverlays()
 
     // Detect screen capture attempts
     const detectScreenCapture = () => {
@@ -255,6 +265,35 @@ function WatchPageContent() {
       }
     }
 
+    // Add frequent DOM changes to confuse screenshot tools
+    const addFrequentChanges = () => {
+      const videoContainer = document.querySelector('.screenshot-protected')
+      if (videoContainer) {
+        // Add and remove elements rapidly
+        const tempElement = document.createElement('div')
+        tempElement.style.cssText = `
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 1px;
+          height: 1px;
+          background: transparent;
+          z-index: 9998;
+          pointer-events: none;
+        `
+        videoContainer.appendChild(tempElement)
+        
+        setTimeout(() => {
+          if (tempElement.parentNode) {
+            tempElement.parentNode.removeChild(tempElement)
+          }
+        }, 100)
+      }
+    }
+
+    // Add frequent changes every 500ms
+    const frequentChangesInterval = setInterval(addFrequentChanges, 500)
+
     document.addEventListener('keydown', onKey)
     document.addEventListener('contextmenu', onCtx)
     document.addEventListener('visibilitychange', onVisibilityChange)
@@ -268,6 +307,7 @@ function WatchPageContent() {
       window.removeEventListener('blur', onBlur)
       document.removeEventListener('copy', onClipboardChange)
       clearInterval(monitorInterval)
+      clearInterval(frequentChangesInterval)
     }
   }, [sessionId, addToast])
 
@@ -431,8 +471,14 @@ function WatchPageContent() {
                   msUserSelect: 'none',
                   userSelect: 'none',
                   WebkitTouchCallout: 'none',
-                  pointerEvents: 'auto'
+                  pointerEvents: 'auto',
+                  filter: 'contrast(1.05) brightness(1.02) saturate(1.05)',
+                  WebkitFilter: 'contrast(1.05) brightness(1.02) saturate(1.05)',
+                  transform: 'translateZ(0)',
+                  WebkitTransform: 'translateZ(0)'
                 } as React.CSSProperties}
+                crossOrigin="anonymous"
+                preload="metadata"
               />
               {/* Dynamic Watermark */}
               <div style={{ 
@@ -441,12 +487,46 @@ function WatchPageContent() {
                 left: '50%', 
                 transform: 'translate(-50%,-50%) rotate(-30deg)',
                 pointerEvents: 'none', 
-                opacity: 0.1, 
-                fontSize: '5vw', 
+                opacity: 0.15, 
+                fontSize: '4vw', 
                 color: '#fff',
-                zIndex: 10
+                zIndex: 10,
+                textShadow: '2px 2px 4px rgba(0,0,0,0.8)',
+                fontWeight: 'bold'
               }}>
                 {user?.email} — {new Date().toLocaleString()}
+              </div>
+              
+              {/* Additional Watermark */}
+              <div style={{ 
+                position: 'absolute', 
+                top: '10%', 
+                right: '10%', 
+                pointerEvents: 'none', 
+                opacity: 0.1, 
+                fontSize: '2vw', 
+                color: '#fff',
+                zIndex: 10,
+                transform: 'rotate(15deg)',
+                textShadow: '1px 1px 2px rgba(0,0,0,0.8)'
+              }}>
+                EXCLUSIVE CONTENT
+              </div>
+              
+              {/* Corner Watermark */}
+              <div style={{ 
+                position: 'absolute', 
+                bottom: '10%', 
+                left: '10%', 
+                pointerEvents: 'none', 
+                opacity: 0.08, 
+                fontSize: '1.5vw', 
+                color: '#fff',
+                zIndex: 10,
+                transform: 'rotate(-15deg)',
+                textShadow: '1px 1px 2px rgba(0,0,0,0.8)'
+              }}>
+                {new Date().toLocaleDateString()}
               </div>
               
               {/* Screenshot Warning Overlay */}
