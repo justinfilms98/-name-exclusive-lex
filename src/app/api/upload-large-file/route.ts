@@ -19,10 +19,32 @@ export async function POST(request: NextRequest) {
 
     console.log(`Processing large file upload: ${file.name} (${file.size} bytes)`);
 
-    // For large files, we'll use a different approach
-    // Since Supabase client doesn't support multipart uploads directly,
-    // we'll use the regular upload but with better error handling
+    // Check file size (2GB limit)
+    const maxSize = 2 * 1024 * 1024 * 1024; // 2GB
+    if (file.size > maxSize) {
+      return NextResponse.json({ 
+        success: false, 
+        error: `File size ${(file.size / 1024 / 1024 / 1024).toFixed(2)}GB exceeds 2GB limit`
+      }, { status: 400 });
+    }
+
+    // Check if bucket exists and get its configuration
+    const { data: bucketData, error: bucketError } = await supabase.storage
+      .from(bucket)
+      .list('', { limit: 1 });
+
+    if (bucketError) {
+      console.error('Bucket access error:', bucketError);
+      return NextResponse.json({ 
+        success: false, 
+        error: `Storage bucket error: ${bucketError.message}`,
+        details: bucketError
+      }, { status: 500 });
+    }
+
+    console.log('Bucket accessible, proceeding with upload...');
     
+    // Upload the file
     const { data, error } = await supabase.storage
       .from(bucket)
       .upload(path, file, {
@@ -32,17 +54,31 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error('Upload error:', error);
+      
+      // Provide more specific error messages
+      let errorMessage = error.message;
+      if (error.message.includes('maximum allowed size')) {
+        errorMessage = 'File size exceeds storage limit. Please ensure the storage bucket is configured for 2GB files.';
+      } else if (error.message.includes('permission')) {
+        errorMessage = 'Permission denied. Please check your authentication and storage policies.';
+      }
+      
       return NextResponse.json({ 
         success: false, 
-        error: error.message,
-        details: error
+        error: errorMessage,
+        details: error,
+        fileSize: file.size,
+        fileSizeMB: (file.size / 1024 / 1024).toFixed(2)
       }, { status: 500 });
     }
 
+    console.log('Upload successful:', data);
     return NextResponse.json({ 
       success: true, 
       data: data,
-      message: 'File uploaded successfully'
+      message: 'File uploaded successfully',
+      fileSize: file.size,
+      fileSizeMB: (file.size / 1024 / 1024).toFixed(2)
     });
 
   } catch (err: any) {
