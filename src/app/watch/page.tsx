@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { supabase, getSignedUrl } from '@/lib/supabase';
 import { Clock, AlertCircle, Play, Pause, Volume2, VolumeX } from 'lucide-react';
+import { useToast } from '@/components/Toast';
 
 interface Purchase {
   id: string;
@@ -27,6 +28,7 @@ function WatchPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const sessionId = searchParams?.get('session_id');
+  const { addToast } = useToast();
   
   const [purchase, setPurchase] = useState<Purchase | null>(null);
   const [loading, setLoading] = useState(true);
@@ -36,6 +38,7 @@ function WatchPageContent() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [showControls, setShowControls] = useState(true);
+  const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
     if (!sessionId) {
@@ -45,6 +48,13 @@ function WatchPageContent() {
     }
 
     loadPurchase();
+    
+    // Get current user
+    const getSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUser(session?.user || null);
+    };
+    getSession();
   }, [sessionId]);
 
   useEffect(() => {
@@ -65,6 +75,37 @@ function WatchPageContent() {
 
     return () => clearInterval(timer);
   }, [timeRemaining, purchase]);
+
+  // Screenshot detection
+  useEffect(() => {
+    const report = async () => {
+      const res = await fetch('/api/report-strike', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_id: sessionId }),
+      })
+      const json = await res.json()
+      addToast(`Screenshot detected (${json.strike_count}/${json.threshold})`, 'error')
+      if (json.expired) {
+        setError('Access revoked due to repeated screenshot attempts')
+      }
+    }
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'PrintScreen') report()
+    }
+    const onCtx = (e: MouseEvent) => {
+      e.preventDefault()
+      report()
+    }
+
+    document.addEventListener('keydown', onKey)
+    document.addEventListener('contextmenu', onCtx)
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      document.removeEventListener('contextmenu', onCtx)
+    }
+  }, [sessionId, addToast])
 
   const loadPurchase = async () => {
     try {
@@ -210,16 +251,32 @@ function WatchPageContent() {
       <div className="max-w-7xl mx-auto p-4">
         <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
           {videoUrl ? (
-            <video
-              id="video-player"
-              src={videoUrl}
-              className="w-full h-full"
-              onEnded={handleVideoEnded}
-              onPlay={handleVideoPlay}
-              onPause={handleVideoPause}
-              onMouseMove={() => setShowControls(true)}
-              onMouseLeave={() => setShowControls(false)}
-            />
+            <>
+              <video
+                id="video-player"
+                src={videoUrl}
+                className="w-full h-full"
+                onEnded={handleVideoEnded}
+                onPlay={handleVideoPlay}
+                onPause={handleVideoPause}
+                onMouseMove={() => setShowControls(true)}
+                onMouseLeave={() => setShowControls(false)}
+              />
+              {/* Dynamic Watermark */}
+              <div style={{ 
+                position: 'absolute', 
+                top: '50%', 
+                left: '50%', 
+                transform: 'translate(-50%,-50%) rotate(-30deg)',
+                pointerEvents: 'none', 
+                opacity: 0.1, 
+                fontSize: '5vw', 
+                color: '#fff',
+                zIndex: 10
+              }}>
+                {user?.email} — {new Date().toLocaleString()}
+              </div>
+            </>
           ) : (
             <div className="w-full h-full flex items-center justify-center">
               <div className="text-center text-white">
