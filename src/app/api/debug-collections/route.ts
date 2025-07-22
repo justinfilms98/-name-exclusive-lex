@@ -10,9 +10,9 @@ export async function GET(request: NextRequest) {
   try {
     // Get all collection videos
     const { data: collectionVideos, error } = await supabase
-      .from('collection_videos')
+      .from('CollectionVideo')
       .select('*')
-      .order('created_at', { ascending: false })
+      .order('createdAt', { ascending: false })
       .limit(10);
 
     if (error) {

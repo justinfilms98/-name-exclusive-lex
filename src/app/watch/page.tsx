@@ -13,11 +13,11 @@ interface Purchase {
   created_at: string;
   expires_at: string;
   amount_paid: number;
-  collection_videos: {
+  CollectionVideo: {
     id: string;
     title: string;
     description: string;
-    video_url: string;
+    videoUrl: string;
     thumbnail: string;
     price: number;
   };
@@ -83,8 +83,8 @@ function WatchPageContent() {
       setTimeRemaining(Math.max(0, remaining));
 
       // Get signed URL for video
-      if (json.purchase.collection_videos?.video_url) {
-        setVideoUrl(json.purchase.collection_videos.video_url);
+      if (json.purchase.CollectionVideo?.videoUrl) {
+        setVideoUrl(json.purchase.CollectionVideo.videoUrl);
       }
 
     } catch (err: any) {
@@ -186,8 +186,8 @@ function WatchPageContent() {
       <div className="bg-stone-800 text-white p-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-semibold">{purchase.collection_videos.title}</h1>
-            <p className="text-stone-300 text-sm">{purchase.collection_videos.description}</p>
+            <h1 className="text-xl font-semibold">{purchase.CollectionVideo.title}</h1>
+            <p className="text-stone-300 text-sm">{purchase.CollectionVideo.description}</p>
           </div>
           
           <div className="flex items-center space-x-4">
@@ -254,13 +254,13 @@ function WatchPageContent() {
         {/* Content Info */}
         <div className="mt-6 bg-white rounded-lg p-6">
           <h2 className="text-2xl font-semibold text-stone-800 mb-2">
-            {purchase.collection_videos.title}
+            {purchase.CollectionVideo.title}
           </h2>
-          <p className="text-stone-600 mb-4">{purchase.collection_videos.description}</p>
+          <p className="text-stone-600 mb-4">{purchase.CollectionVideo.description}</p>
           
           <div className="flex items-center justify-between text-sm text-stone-500">
             <span>Purchased: {new Date(purchase.created_at).toLocaleDateString()}</span>
-            <span>Duration: {Math.floor(purchase.collection_videos.price / 60)} minutes</span>
+            <span>Duration: {Math.floor(purchase.CollectionVideo.price / 60)} minutes</span>
           </div>
         </div>
 

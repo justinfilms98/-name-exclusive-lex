@@ -23,11 +23,11 @@ export async function GET(request: NextRequest) {
       expires_at,
       amount_paid,
       stripe_session_id,
-      collection_videos (
+      CollectionVideo (
         id,
         title,
         description,
-        video_url,
+        videoUrl,
         thumbnail,
         price
       )

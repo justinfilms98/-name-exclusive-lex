@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     const purchasedAt = new Date();
     const expiresAt = new Date(purchasedAt.getTime() + parseInt(duration) * 1000);
 
-    // Create purchase record using correct column names (snake_case)
+    // Create purchase record using correct column names (snake_case for purchases table)
     const { data: purchase, error } = await supabase
       .from('purchases')
       .insert({
