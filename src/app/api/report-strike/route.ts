@@ -48,8 +48,12 @@ export async function POST(request: Request) {
   let expired = false
   let reason = ''
 
-  // Auto-revocation logic
-  if (newCount >= 3) {
+  // Immediate revocation for screen capture events
+  if (event_type === 'screen_capture_detected') {
+    updates.expires_at = new Date().toISOString()
+    expired = true
+    reason = 'Access immediately revoked due to screen capture detection'
+  } else if (newCount >= 3) {
     updates.expires_at = new Date().toISOString()
     expired = true
     reason = 'Access revoked due to repeated screenshot attempts'

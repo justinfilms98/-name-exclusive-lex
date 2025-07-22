@@ -80,23 +80,29 @@ function WatchPageContent() {
   // Screenshot detection
   useEffect(() => {
     const report = async () => {
-      // Temporarily blur content
-      setIsBlurred(true)
-      setTimeout(() => setIsBlurred(false), 3000) // Unblur after 3 seconds
-      
+      // Immediately expire access when screen capture detected
       const res = await fetch('/api/report-strike', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ session_id: sessionId }),
+        body: JSON.stringify({ 
+          session_id: sessionId,
+          event_type: 'screen_capture_detected'
+        }),
       })
       const json = await res.json()
-      addToast(`Screenshot detected (${json.strike_count}/${json.threshold})`, 'error')
+      
       if (json.expired) {
-        setError('Access revoked due to repeated screenshot attempts')
+        setError('Access revoked due to screen capture detection')
+        // Redirect to access denied page
+        setTimeout(() => {
+          router.push('/unauthorized?reason=screen_capture')
+        }, 2000)
+      } else {
+        addToast(`Screen capture detected (${json.strike_count}/${json.threshold})`, 'error')
       }
     }
 
-    // Enhanced screenshot detection
+    // Enhanced screen capture detection
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'PrintScreen' || 
           (e.ctrlKey && e.shiftKey && e.key === 'I') || // DevTools
@@ -126,124 +132,7 @@ function WatchPageContent() {
       report()
     }
 
-    // Aggressive anti-capture techniques
-    const addNoiseToDOM = () => {
-      const videoContainer = document.querySelector('.screenshot-protected')
-      if (videoContainer) {
-        // Add multiple invisible elements that change frequently
-        for (let i = 0; i < 5; i++) {
-          const noise = document.createElement('div')
-          noise.style.cssText = `
-            position: absolute;
-            top: ${Math.random() * 100}%;
-            left: ${Math.random() * 100}%;
-            width: 1px;
-            height: 1px;
-            background: transparent;
-            z-index: 9999;
-            pointer-events: none;
-            opacity: 0;
-          `
-          noise.textContent = Math.random().toString(36)
-          videoContainer.appendChild(noise)
-          
-          // Remove after a short delay
-          setTimeout(() => {
-            if (noise.parentNode) {
-              noise.parentNode.removeChild(noise)
-            }
-          }, 50)
-        }
-      }
-    }
-
-    // Continuous monitoring for suspicious activity
-    let lastReportTime = 0
-    const monitorActivity = () => {
-      const now = Date.now()
-      if (now - lastReportTime > 5000) { // Prevent spam, 5 second cooldown
-        // Check if dev tools are open (basic detection)
-        const devtools = {
-          open: false,
-          orientation: null
-        }
-        
-        const threshold = 160
-        if (window.outerHeight - window.innerHeight > threshold || 
-            window.outerWidth - window.innerWidth > threshold) {
-          devtools.open = true
-          report()
-          lastReportTime = now
-        }
-        
-        // Add noise to DOM every few seconds
-        addNoiseToDOM()
-      }
-    }
-
-    // Monitor every 1 second (more frequent)
-    const monitorInterval = setInterval(monitorActivity, 1000)
-
-    // Detect clipboard changes (screenshots often go to clipboard)
-    const onClipboardChange = () => {
-      report()
-    }
-
-    // Monitor clipboard for changes
-    if (navigator.clipboard) {
-      navigator.clipboard.readText().catch(() => {
-        // Ignore permission errors, but still monitor
-      })
-    }
-
-    // Add multiple canvas overlays to make screenshots harder
-    const addCanvasOverlays = () => {
-      const videoContainer = document.querySelector('.screenshot-protected')
-      if (videoContainer) {
-        // Remove existing canvases
-        const existingCanvases = videoContainer.querySelectorAll('canvas')
-        existingCanvases.forEach(canvas => canvas.remove())
-        
-        // Add multiple canvas overlays
-        for (let i = 0; i < 3; i++) {
-          const canvas = document.createElement('canvas')
-          canvas.style.cssText = `
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: ${1000 + i};
-            opacity: 0.005;
-          `
-          videoContainer.appendChild(canvas)
-          
-          // Draw random patterns
-          const ctx = canvas.getContext('2d')
-          if (ctx) {
-            canvas.width = videoContainer.clientWidth
-            canvas.height = videoContainer.clientHeight
-            
-            // Draw random patterns
-            for (let j = 0; j < 100; j++) {
-              ctx.fillStyle = `hsl(${Math.random() * 360}, 50%, 50%)`
-              ctx.fillRect(
-                Math.random() * canvas.width,
-                Math.random() * canvas.height,
-                1,
-                1
-              )
-            }
-          }
-        }
-      }
-    }
-
-    // Add canvas overlays
-    addCanvasOverlays()
-
-    // Detect screen capture attempts
+    // Detect screen capture API usage
     const detectScreenCapture = () => {
       if (navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) {
         navigator.mediaDevices.getDisplayMedia({ video: true })
@@ -265,39 +154,108 @@ function WatchPageContent() {
       }
     }
 
-    // Add frequent DOM changes to confuse screenshot tools
-    const addFrequentChanges = () => {
-      const videoContainer = document.querySelector('.screenshot-protected')
-      if (videoContainer) {
-        // Add and remove elements rapidly
-        const tempElement = document.createElement('div')
-        tempElement.style.cssText = `
-          position: absolute;
-          top: 0;
-          left: 0;
-          width: 1px;
-          height: 1px;
-          background: transparent;
-          z-index: 9998;
-          pointer-events: none;
-        `
-        videoContainer.appendChild(tempElement)
-        
-        setTimeout(() => {
-          if (tempElement.parentNode) {
-            tempElement.parentNode.removeChild(tempElement)
-          }
-        }, 100)
+    // Detect clipboard changes (screenshots often go to clipboard)
+    const onClipboardChange = () => {
+      report()
+    }
+
+    // Monitor clipboard for changes
+    if (navigator.clipboard) {
+      navigator.clipboard.readText().catch(() => {
+        // Ignore permission errors, but still monitor
+      })
+    }
+
+    // Detect when other software is trying to capture
+    const detectExternalCapture = () => {
+      // Check if dev tools are open
+      const devtools = {
+        open: false,
+        orientation: null
+      }
+      
+      const threshold = 160
+      if (window.outerHeight - window.innerHeight > threshold || 
+          window.outerWidth - window.innerWidth > threshold) {
+        devtools.open = true
+        report()
+      }
+
+      // Check for screen recording software
+      if (navigator.userAgent.includes('OBS') || 
+          navigator.userAgent.includes('Streamlabs') ||
+          navigator.userAgent.includes('XSplit') ||
+          navigator.userAgent.includes('Bandicam') ||
+          navigator.userAgent.includes('Fraps')) {
+        report()
       }
     }
 
-    // Add frequent changes every 500ms
-    const frequentChangesInterval = setInterval(addFrequentChanges, 500)
+    // Continuous monitoring for external capture attempts
+    let lastReportTime = 0
+    const monitorActivity = () => {
+      const now = Date.now()
+      if (now - lastReportTime > 2000) { // Prevent spam, 2 second cooldown
+        detectExternalCapture()
+        lastReportTime = now
+      }
+    }
+
+    // Monitor every 1 second
+    const monitorInterval = setInterval(monitorActivity, 1000)
+
+    // Detect when user switches to other applications
+    const onFocusChange = () => {
+      if (!document.hasFocus()) {
+        report()
+      }
+    }
+
+    // Detect when user tries to use screen sharing
+    const onScreenShare = () => {
+      if (navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) {
+        navigator.mediaDevices.getDisplayMedia()
+          .then(() => {
+            report()
+          })
+          .catch(() => {
+            // User denied
+          })
+      }
+    }
+
+    // Override screen sharing APIs
+    if (navigator.mediaDevices) {
+      const originalGetDisplayMedia = navigator.mediaDevices.getDisplayMedia
+      navigator.mediaDevices.getDisplayMedia = function(...args) {
+        report()
+        return originalGetDisplayMedia.apply(this, args)
+      }
+    }
+
+    // Detect when user tries to use screen recording
+    const detectScreenRecording = () => {
+      // Check for common screen recording indicators
+      if (window.screen && (window.screen as any).captureStream) {
+        try {
+          const stream = (window.screen as any).captureStream()
+          if (stream) {
+            report()
+          }
+        } catch (e) {
+          // Ignore errors
+        }
+      }
+    }
+
+    // Monitor for screen recording attempts
+    const screenRecordingInterval = setInterval(detectScreenRecording, 2000)
 
     document.addEventListener('keydown', onKey)
     document.addEventListener('contextmenu', onCtx)
     document.addEventListener('visibilitychange', onVisibilityChange)
     window.addEventListener('blur', onBlur)
+    window.addEventListener('focus', onFocusChange)
     document.addEventListener('copy', onClipboardChange)
     
     return () => {
@@ -305,11 +263,12 @@ function WatchPageContent() {
       document.removeEventListener('contextmenu', onCtx)
       document.removeEventListener('visibilitychange', onVisibilityChange)
       window.removeEventListener('blur', onBlur)
+      window.removeEventListener('focus', onFocusChange)
       document.removeEventListener('copy', onClipboardChange)
       clearInterval(monitorInterval)
-      clearInterval(frequentChangesInterval)
+      clearInterval(screenRecordingInterval)
     }
-  }, [sessionId, addToast])
+  }, [sessionId, addToast, router])
 
   const loadPurchase = async () => {
     try {
