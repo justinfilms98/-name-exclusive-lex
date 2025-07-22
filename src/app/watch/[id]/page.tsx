@@ -47,11 +47,10 @@ function WatchPageClient({ collectionId }: { collectionId: string }) {
   useEffect(() => {
     if (!sessionId) {
       setError('No session ID provided');
-      setLoading(false);
       return;
     }
 
-    // Add security features
+    // Add security features (prevent download, right-click, keyboard shortcuts)
     const preventDownload = (e: Event) => {
       e.preventDefault();
       return false;
@@ -63,144 +62,181 @@ function WatchPageClient({ collectionId }: { collectionId: string }) {
     };
 
     const preventKeyboardShortcuts = (e: KeyboardEvent) => {
-      // Prevent Ctrl+S, Ctrl+Shift+S, F12, PrintScreen, etc.
+      // Prevent common screenshot shortcuts
       if (
-        (e.ctrlKey && (e.key === 's' || e.key === 'S')) ||
-        (e.ctrlKey && e.shiftKey && (e.key === 's' || e.key === 'S')) ||
-        e.key === 'F12' ||
-        e.key === 'PrintScreen' ||
-        e.key === 'F11'
+        (e.ctrlKey && e.key === 's') || // Ctrl+S
+        (e.ctrlKey && e.key === 'p') || // Ctrl+P
+        (e.key === 'F12') || // F12
+        (e.key === 'PrintScreen') || // Print Screen
+        (e.key === 'F11') || // F11
+        (e.metaKey && e.key === 's') || // Cmd+S (Mac)
+        (e.metaKey && e.key === 'p') || // Cmd+P (Mac)
+        (e.altKey && e.key === 'PrintScreen') // Alt+PrintScreen
       ) {
         e.preventDefault();
+        blurMedia();
         return false;
       }
     };
 
-    // Create dynamic watermark
+    // Aggressive screenshot detection and prevention
+    const blurMedia = () => {
+      const mediaContainer = document.querySelector('.video-container') as HTMLElement;
+      if (mediaContainer) {
+        mediaContainer.style.filter = 'blur(20px)';
+        mediaContainer.style.transition = 'filter 0.3s ease';
+        
+        // Show warning
+        const warning = document.createElement('div');
+        warning.className = 'fixed inset-0 bg-red-900 bg-opacity-90 flex items-center justify-center z-50';
+        warning.innerHTML = `
+          <div class="text-center text-white p-8">
+            <h2 class="text-2xl font-bold mb-4">⚠️ SCREENSHOT DETECTED</h2>
+            <p class="text-lg">Screenshot attempts are not allowed for this private content.</p>
+            <p class="text-sm mt-2">Content has been blurred for security.</p>
+          </div>
+        `;
+        document.body.appendChild(warning);
+        
+        // Remove warning after 5 seconds
+        setTimeout(() => {
+          if (warning.parentNode) {
+            warning.parentNode.removeChild(warning);
+          }
+        }, 5000);
+        
+        // Unblur after 10 seconds
+        setTimeout(() => {
+          if (mediaContainer) {
+            mediaContainer.style.filter = 'none';
+          }
+        }, 10000);
+      }
+    };
+
+    // Enhanced screenshot detection
+    const detectScreenshotAttempts = () => {
+      let screenshotAttempts = 0;
+      let lastAttemptTime = 0;
+      
+      // Monitor for screenshot-related activities
+      const handleScreenshotAttempt = () => {
+        const now = Date.now();
+        if (now - lastAttemptTime < 1000) {
+          screenshotAttempts++;
+        } else {
+          screenshotAttempts = 1;
+        }
+        lastAttemptTime = now;
+        
+        if (screenshotAttempts >= 2) {
+          blurMedia();
+          screenshotAttempts = 0;
+        }
+      };
+
+      // Listen for various screenshot triggers
+      document.addEventListener('keydown', (e) => {
+        if (
+          e.key === 'PrintScreen' ||
+          (e.ctrlKey && e.key === 's') ||
+          (e.ctrlKey && e.key === 'p') ||
+          (e.metaKey && e.key === 's') ||
+          (e.metaKey && e.key === 'p') ||
+          e.key === 'F12' ||
+          e.key === 'F11'
+        ) {
+          e.preventDefault();
+          handleScreenshotAttempt();
+        }
+      });
+
+      // Monitor window focus/blur (indicates screenshot tools)
+      let focusTimeout: NodeJS.Timeout;
+      window.addEventListener('blur', () => {
+        focusTimeout = setTimeout(() => {
+          handleScreenshotAttempt();
+        }, 100);
+      });
+
+      window.addEventListener('focus', () => {
+        if (focusTimeout) {
+          clearTimeout(focusTimeout);
+        }
+      });
+
+      // Monitor for clipboard operations
+      document.addEventListener('copy', (e) => {
+        e.preventDefault();
+        handleScreenshotAttempt();
+      });
+
+      document.addEventListener('cut', (e) => {
+        e.preventDefault();
+        handleScreenshotAttempt();
+      });
+
+      // Monitor for right-click context menu
+      document.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        handleScreenshotAttempt();
+      });
+
+      // Monitor for selection (screenshot tools often select areas)
+      document.addEventListener('selectstart', (e) => {
+        e.preventDefault();
+        handleScreenshotAttempt();
+      });
+
+      // Monitor for drag operations
+      document.addEventListener('dragstart', (e) => {
+        e.preventDefault();
+        handleScreenshotAttempt();
+      });
+
+      // Monitor for mouse events that might indicate screenshot tools
+      let mouseDownTime = 0;
+      document.addEventListener('mousedown', () => {
+        mouseDownTime = Date.now();
+      });
+
+      document.addEventListener('mouseup', () => {
+        const duration = Date.now() - mouseDownTime;
+        if (duration > 2000) { // Long press might indicate screenshot tool
+          handleScreenshotAttempt();
+        }
+      });
+
+      // Monitor for touch events on mobile
+      let touchStartTime = 0;
+      document.addEventListener('touchstart', () => {
+        touchStartTime = Date.now();
+      });
+
+      document.addEventListener('touchend', () => {
+        const duration = Date.now() - touchStartTime;
+        if (duration > 2000) { // Long touch might indicate screenshot
+          handleScreenshotAttempt();
+        }
+      });
+    };
+
+    // Initialize screenshot detection
+    detectScreenshotAttempts();
+
+    // Create dynamic watermark (less visible but still present)
     const createWatermark = () => {
       const watermark = document.createElement('div');
       watermark.className = 'watermark-overlay';
       watermark.innerHTML = `
         <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
-                    color: rgba(255,0,0,0.8); font-size: 32px; font-weight: bold; 
-                    text-align: center; pointer-events: none; z-index: 10002; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">
-          EXCLUSIVE CONTENT<br>
-          ${new Date().toLocaleString()}<br>
-          UNAUTHORIZED COPYING PROHIBITED
+                    color: rgba(255,0,0,0.3); font-size: 16px; font-weight: bold; 
+                    text-align: center; pointer-events: none; z-index: 10002;">
+          PRIVATE CONTENT<br>
+          ${new Date().toLocaleString()}
         </div>
       `;
       document.body.appendChild(watermark);
-    };
-
-    // Screenshot protection
-    const preventScreenshot = () => {
-      // Disable dev tools
-      document.addEventListener('keydown', (e) => {
-        if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && e.key === 'I')) {
-          e.preventDefault();
-          return false;
-        }
-      });
-
-      // Disable print screen
-      document.addEventListener('keydown', (e) => {
-        if (e.key === 'PrintScreen') {
-          e.preventDefault();
-          return false;
-        }
-      });
-
-      // Disable right click
-      document.addEventListener('contextmenu', (e) => {
-        e.preventDefault();
-        return false;
-      });
-
-      // Disable text selection
-      document.addEventListener('selectstart', (e) => {
-        e.preventDefault();
-        return false;
-      });
-
-      // Disable drag and drop
-      document.addEventListener('dragstart', (e) => {
-        e.preventDefault();
-        return false;
-      });
-
-      // Screenshot detection
-      let screenshotAttempts = 0;
-      
-      // Detect screenshot attempts
-      const detectScreenshot = () => {
-        screenshotAttempts++;
-        if (screenshotAttempts > 2) {
-          // Blur the page if multiple screenshot attempts detected
-          document.body.style.filter = 'blur(10px)';
-          setTimeout(() => {
-            document.body.style.filter = 'none';
-          }, 3000);
-        }
-      };
-
-      // Monitor for screenshot-like activities
-      document.addEventListener('keydown', (e) => {
-        if (e.key === 'PrintScreen' || e.key === 'F12' || 
-            (e.ctrlKey && e.shiftKey && e.key === 'I') ||
-            (e.ctrlKey && e.key === 'S')) {
-          detectScreenshot();
-        }
-      });
-
-      // Monitor window focus/blur (screenshot tools often cause this)
-      let lastFocusTime = Date.now();
-      window.addEventListener('blur', () => {
-        const now = Date.now();
-        if (now - lastFocusTime < 100) {
-          detectScreenshot();
-        }
-        lastFocusTime = now;
-      });
-
-      // Disable clipboard access
-      document.addEventListener('copy', (e) => {
-        e.preventDefault();
-        return false;
-      });
-
-      // Disable cut
-      document.addEventListener('cut', (e) => {
-        e.preventDefault();
-        return false;
-      });
-
-      // Disable paste
-      document.addEventListener('paste', (e) => {
-        e.preventDefault();
-        return false;
-      });
-
-      // Add screenshot-protected class to body
-      document.body.classList.add('screenshot-protected');
-      
-      // Create dynamic watermark
-      createWatermark();
-      
-      // Update watermark every second
-      setInterval(() => {
-        const watermark = document.querySelector('.watermark-overlay');
-        if (watermark) {
-          watermark.innerHTML = `
-            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
-                        color: rgba(255,0,0,0.3); font-size: 24px; font-weight: bold; 
-                        text-align: center; pointer-events: none; z-index: 10002;">
-              EXCLUSIVE CONTENT<br>
-              ${new Date().toLocaleString()}<br>
-              UNAUTHORIZED COPYING PROHIBITED
-            </div>
-          `;
-        }
-      }, 1000);
     };
 
     // Add event listeners
@@ -209,17 +245,32 @@ function WatchPageClient({ collectionId }: { collectionId: string }) {
     document.addEventListener('selectstart', preventDownload);
     document.addEventListener('dragstart', preventDownload);
     
-    // Initialize screenshot protection
-    preventScreenshot();
+    // Initialize watermark
+    createWatermark();
+    
+    // Update watermark every second
+    const watermarkInterval = setInterval(() => {
+      const watermark = document.querySelector('.watermark-overlay');
+      if (watermark) {
+        watermark.innerHTML = `
+          <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+                      color: rgba(255,0,0,0.3); font-size: 16px; font-weight: bold; 
+                      text-align: center; pointer-events: none; z-index: 10002;">
+            PRIVATE CONTENT<br>
+            ${new Date().toLocaleString()}
+          </div>
+        `;
+      }
+    }, 1000);
 
     loadPurchase();
 
-    // Cleanup
     return () => {
       document.removeEventListener('contextmenu', preventRightClick);
       document.removeEventListener('keydown', preventKeyboardShortcuts);
       document.removeEventListener('selectstart', preventDownload);
       document.removeEventListener('dragstart', preventDownload);
+      clearInterval(watermarkInterval);
     };
   }, [sessionId]);
 

@@ -55,6 +55,146 @@ export default function MediaCarousel({ videoPath, photoPaths, onPlay, onPause }
     };
 
     loadMedia();
+
+    // Add screenshot protection
+    const blurMedia = () => {
+      const container = document.querySelector('.video-container') as HTMLElement;
+      if (container) {
+        container.style.filter = 'blur(20px)';
+        container.style.transition = 'filter 0.3s ease';
+        
+        // Show warning
+        const warning = document.createElement('div');
+        warning.className = 'fixed inset-0 bg-red-900 bg-opacity-90 flex items-center justify-center z-50';
+        warning.innerHTML = `
+          <div class="text-center text-white p-8">
+            <h2 class="text-2xl font-bold mb-4">⚠️ SCREENSHOT DETECTED</h2>
+            <p class="text-lg">Screenshot attempts are not allowed for this private content.</p>
+            <p class="text-sm mt-2">Content has been blurred for security.</p>
+          </div>
+        `;
+        document.body.appendChild(warning);
+        
+        // Remove warning after 5 seconds
+        setTimeout(() => {
+          if (warning.parentNode) {
+            warning.parentNode.removeChild(warning);
+          }
+        }, 5000);
+        
+        // Unblur after 10 seconds
+        setTimeout(() => {
+          if (container) {
+            container.style.filter = 'none';
+          }
+        }, 10000);
+      }
+    };
+
+    // Screenshot detection
+    const detectScreenshotAttempts = () => {
+      let screenshotAttempts = 0;
+      let lastAttemptTime = 0;
+      
+      const handleScreenshotAttempt = () => {
+        const now = Date.now();
+        if (now - lastAttemptTime < 1000) {
+          screenshotAttempts++;
+        } else {
+          screenshotAttempts = 1;
+        }
+        lastAttemptTime = now;
+        
+        if (screenshotAttempts >= 2) {
+          blurMedia();
+          screenshotAttempts = 0;
+        }
+      };
+
+      // Monitor for screenshot triggers
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (
+          e.key === 'PrintScreen' ||
+          (e.ctrlKey && e.key === 's') ||
+          (e.ctrlKey && e.key === 'p') ||
+          (e.metaKey && e.key === 's') ||
+          (e.metaKey && e.key === 'p') ||
+          e.key === 'F12' ||
+          e.key === 'F11'
+        ) {
+          e.preventDefault();
+          handleScreenshotAttempt();
+        }
+      };
+
+      // Monitor window focus/blur
+      let focusTimeout: NodeJS.Timeout;
+      const handleBlur = () => {
+        focusTimeout = setTimeout(() => {
+          handleScreenshotAttempt();
+        }, 100);
+      };
+
+      const handleFocus = () => {
+        if (focusTimeout) {
+          clearTimeout(focusTimeout);
+        }
+      };
+
+      // Monitor for clipboard operations
+      const handleCopy = (e: ClipboardEvent) => {
+        e.preventDefault();
+        handleScreenshotAttempt();
+      };
+
+      const handleCut = (e: ClipboardEvent) => {
+        e.preventDefault();
+        handleScreenshotAttempt();
+      };
+
+      // Monitor for context menu
+      const handleContextMenu = (e: MouseEvent) => {
+        e.preventDefault();
+        handleScreenshotAttempt();
+      };
+
+      // Monitor for selection
+      const handleSelectStart = (e: Event) => {
+        e.preventDefault();
+        handleScreenshotAttempt();
+      };
+
+      // Monitor for drag operations
+      const handleDragStart = (e: DragEvent) => {
+        e.preventDefault();
+        handleScreenshotAttempt();
+      };
+
+      // Add event listeners
+      document.addEventListener('keydown', handleKeyDown);
+      window.addEventListener('blur', handleBlur);
+      window.addEventListener('focus', handleFocus);
+      document.addEventListener('copy', handleCopy);
+      document.addEventListener('cut', handleCut);
+      document.addEventListener('contextmenu', handleContextMenu);
+      document.addEventListener('selectstart', handleSelectStart);
+      document.addEventListener('dragstart', handleDragStart);
+
+      // Cleanup function
+      return () => {
+        document.removeEventListener('keydown', handleKeyDown);
+        window.removeEventListener('blur', handleBlur);
+        window.removeEventListener('focus', handleFocus);
+        document.removeEventListener('copy', handleCopy);
+        document.removeEventListener('cut', handleCut);
+        document.removeEventListener('contextmenu', handleContextMenu);
+        document.removeEventListener('selectstart', handleSelectStart);
+        document.removeEventListener('dragstart', handleDragStart);
+      };
+    };
+
+    const cleanup = detectScreenshotAttempts();
+    return cleanup;
   }, [videoPath, photoPaths]);
 
   const nextSlide = () => {
