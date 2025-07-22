@@ -103,6 +103,99 @@ function WatchPageContent() {
   }
 
   useEffect(() => {
+    // Prevent screenshots with CSS
+    const preventScreenshots = () => {
+      // Add CSS to prevent screenshots
+      const style = document.createElement('style')
+      style.textContent = `
+        * {
+          -webkit-user-select: none !important;
+          -moz-user-select: none !important;
+          -ms-user-select: none !important;
+          user-select: none !important;
+          -webkit-touch-callout: none !important;
+          -webkit-user-drag: none !important;
+          -khtml-user-drag: none !important;
+          -moz-user-drag: none !important;
+          -o-user-drag: none !important;
+          user-drag: none !important;
+        }
+        
+        video, img {
+          pointer-events: none !important;
+          -webkit-user-select: none !important;
+          -moz-user-select: none !important;
+          -ms-user-select: none !important;
+          user-select: none !important;
+        }
+        
+        /* Prevent right-click */
+        * {
+          -webkit-touch-callout: none !important;
+          -webkit-user-select: none !important;
+          -khtml-user-select: none !important;
+          -moz-user-select: none !important;
+          -ms-user-select: none !important;
+          user-select: none !important;
+        }
+      `
+      document.head.appendChild(style)
+    }
+
+    // Add aggressive watermarks
+    const addWatermarks = () => {
+      const watermark = document.createElement('div')
+      watermark.id = 'aggressive-watermark'
+      watermark.style.cssText = `
+        position: fixed !important;
+        top: 50% !important;
+        left: 50% !important;
+        transform: translate(-50%, -50%) rotate(-30deg) !important;
+        font-size: 8vw !important;
+        color: rgba(255, 0, 0, 0.8) !important;
+        z-index: 9999 !important;
+        pointer-events: none !important;
+        font-weight: bold !important;
+        text-shadow: 3px 3px 6px rgba(0,0,0,0.9) !important;
+        font-family: Arial, sans-serif !important;
+        white-space: nowrap !important;
+        mix-blend-mode: multiply !important;
+      `
+      watermark.textContent = `${user?.email || 'USER'} - ${new Date().toLocaleString()} - DO NOT SCREENSHOT`
+      document.body.appendChild(watermark)
+
+      // Add multiple watermarks
+      const positions = [
+        { top: '10%', left: '10%', rotation: '-15deg' },
+        { top: '10%', right: '10%', rotation: '15deg' },
+        { bottom: '10%', left: '10%', rotation: '-45deg' },
+        { bottom: '10%', right: '10%', rotation: '45deg' },
+        { top: '50%', left: '5%', rotation: '90deg' },
+        { top: '50%', right: '5%', rotation: '-90deg' }
+      ]
+
+      positions.forEach((pos, index) => {
+        const wm = document.createElement('div')
+        wm.style.cssText = `
+          position: fixed !important;
+          top: ${pos.top} !important;
+          ${pos.left ? `left: ${pos.left} !important;` : ''}
+          ${pos.right ? `right: ${pos.right} !important;` : ''}
+          transform: rotate(${pos.rotation}) !important;
+          font-size: 4vw !important;
+          color: rgba(255, 0, 0, 0.6) !important;
+          z-index: 9998 !important;
+          pointer-events: none !important;
+          font-weight: bold !important;
+          text-shadow: 2px 2px 4px rgba(0,0,0,0.8) !important;
+          font-family: Arial, sans-serif !important;
+          white-space: nowrap !important;
+          mix-blend-mode: multiply !important;
+        `
+        wm.textContent = `EXCLUSIVE CONTENT - ${user?.email || 'PROTECTED'}`
+        document.body.appendChild(wm)
+      })
+    }
 
     // Enhanced screen capture detection
     const onKey = (e: KeyboardEvent) => {
@@ -114,7 +207,9 @@ function WatchPageContent() {
           (e.key === 'F12') || // F12
           (e.ctrlKey && e.key === 'U')) { // View source
         e.preventDefault()
+        e.stopPropagation()
         report()
+        return false
       }
 
       // macOS screenshot shortcuts
@@ -123,20 +218,26 @@ function WatchPageContent() {
             (e.metaKey && e.shiftKey && e.key === '4') || // Selection screenshot
             (e.metaKey && e.shiftKey && e.key === '5')) { // Screenshot menu
           e.preventDefault()
+          e.stopPropagation()
           report()
+          return false
         }
       }
 
       // Windows Snipping Tool
       if (e.key === 'S' && e.ctrlKey && e.shiftKey) {
         e.preventDefault()
+        e.stopPropagation()
         report()
+        return false
       }
     }
     
     const onCtx = (e: MouseEvent) => {
       e.preventDefault()
+      e.stopPropagation()
       report()
+      return false
     }
 
     // Detect when page loses focus (alt+tab, switching apps)
@@ -356,16 +457,20 @@ function WatchPageContent() {
     detectIPhoneScreenshot()
     detectIOSGestures()
 
-    document.addEventListener('keydown', onKey)
-    document.addEventListener('contextmenu', onCtx)
+    // Apply CSS protection and watermarks
+    preventScreenshots()
+    addWatermarks()
+
+    document.addEventListener('keydown', onKey, true)
+    document.addEventListener('contextmenu', onCtx, true)
     document.addEventListener('visibilitychange', onVisibilityChange)
     window.addEventListener('blur', onBlur)
     window.addEventListener('focus', onFocusChange)
     document.addEventListener('copy', onClipboardChange)
     
     return () => {
-      document.removeEventListener('keydown', onKey)
-      document.removeEventListener('contextmenu', onCtx)
+      document.removeEventListener('keydown', onKey, true)
+      document.removeEventListener('contextmenu', onCtx, true)
       document.removeEventListener('visibilitychange', onVisibilityChange)
       window.removeEventListener('blur', onBlur)
       window.removeEventListener('focus', onFocusChange)
@@ -374,8 +479,12 @@ function WatchPageContent() {
       clearInterval(screenRecordingInterval)
       clearInterval(snippingToolInterval)
       clearInterval(aggressiveMonitor)
+      
+      // Remove watermarks
+      const watermarks = document.querySelectorAll('#aggressive-watermark, [style*="position: fixed"]')
+      watermarks.forEach(wm => wm.remove())
     }
-  }, [sessionId, addToast, router])
+  }, [sessionId, addToast, router, user])
 
   const loadPurchase = async () => {
     try {
@@ -537,12 +646,28 @@ function WatchPageContent() {
                 onPause={handleVideoPause}
                 onMouseMove={() => setShowControls(true)}
                 onMouseLeave={() => setShowControls(false)}
+                onContextMenu={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  report()
+                  return false
+                }}
+                onDragStart={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  return false
+                }}
+
                 style={{
                   WebkitUserSelect: 'none',
                   MozUserSelect: 'none',
                   msUserSelect: 'none',
                   userSelect: 'none',
                   WebkitTouchCallout: 'none',
+                  WebkitUserDrag: 'none',
+                  MozUserDrag: 'none',
+                  msUserDrag: 'none',
+                  userDrag: 'none',
                   pointerEvents: 'auto',
                   filter: 'contrast(1.05) brightness(1.02) saturate(1.05)',
                   WebkitFilter: 'contrast(1.05) brightness(1.02) saturate(1.05)',
