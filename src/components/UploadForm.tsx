@@ -30,11 +30,11 @@ export default function UploadForm() {
   const [success, setSuccess] = useState(false);
 
   const validateFiles = () => {
-    // Video validation (max 500MB for Supabase)
+    // Video validation (max 2GB for client requirements)
     if (files.video) {
-      const maxSize = 500 * 1024 * 1024; // 500MB (Supabase limit)
+      const maxSize = 2 * 1024 * 1024 * 1024; // 2GB
       if (files.video.size > maxSize) {
-        setError('Video file must be under 500MB for upload. Please compress your video or use a smaller file.');
+        setError('Video file must be under 2GB for upload. Please compress your video or use a smaller file.');
         return false;
       }
     }
@@ -72,22 +72,49 @@ export default function UploadForm() {
   };
 
   const uploadFileWithProgress = async (file: File, bucket: string, path: string, progressKey: keyof UploadProgress) => {
-    // Simulate progress for now - Supabase doesn't have built-in progress
     setProgress(prev => ({ ...prev, [progressKey]: 0 }));
     
     try {
       console.log(`Starting upload for ${progressKey}:`, { file: file.name, size: file.size, bucket, path });
       
-      const { data, error } = await uploadFile(file, bucket, path);
+      // For large files (>100MB), use the server-side API
+      const LARGE_FILE_THRESHOLD = 100 * 1024 * 1024; // 100MB
       
-      if (error) {
-        console.error(`Upload error for ${progressKey}:`, error);
-        throw new Error(`Failed to upload ${progressKey}: ${error.message}`);
+      if (file.size > LARGE_FILE_THRESHOLD) {
+        console.log(`Using server-side upload for large file: ${file.name}`);
+        
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('bucket', bucket);
+        formData.append('path', path);
+        
+        const response = await fetch('/api/upload-large-file', {
+          method: 'POST',
+          body: formData
+        });
+        
+        const result = await response.json();
+        
+        if (!result.success) {
+          throw new Error(`Failed to upload ${progressKey}: ${result.error}`);
+        }
+        
+        console.log(`Large file upload successful for ${progressKey}:`, result.data);
+        setProgress(prev => ({ ...prev, [progressKey]: 100 }));
+        return result.data;
+      } else {
+        // Use regular client-side upload for smaller files
+        const { data, error } = await uploadFile(file, bucket, path);
+        
+        if (error) {
+          console.error(`Upload error for ${progressKey}:`, error);
+          throw new Error(`Failed to upload ${progressKey}: ${error.message}`);
+        }
+        
+        console.log(`Upload successful for ${progressKey}:`, data);
+        setProgress(prev => ({ ...prev, [progressKey]: 100 }));
+        return data;
       }
-      
-      console.log(`Upload successful for ${progressKey}:`, data);
-      setProgress(prev => ({ ...prev, [progressKey]: 100 }));
-      return data;
     } catch (err: any) {
       console.error(`Upload failed for ${progressKey}:`, err);
       throw err;
@@ -260,7 +287,7 @@ export default function UploadForm() {
       <div className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-stone-700 mb-1">
-            Video File (Max 500MB) *
+            Video File (Max 2GB) *
           </label>
           <input
             type="file"
