@@ -273,6 +273,41 @@ video::-webkit-media-controls-fullscreen-button {
     animation: subtle-shift 10s infinite;
   }
   
+  /* Force watermark visibility */
+  .screenshot-protected::before {
+    content: "EXCLUSIVE CONTENT - DO NOT SCREENSHOT";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-30deg);
+    font-size: 8vw;
+    color: white;
+    opacity: 0.4;
+    z-index: 1000;
+    pointer-events: none;
+    text-shadow: 3px 3px 6px rgba(0,0,0,0.9);
+    font-weight: bold;
+    font-family: Arial, sans-serif;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+  
+  .screenshot-protected::after {
+    content: "COPYRIGHT PROTECTED";
+    position: absolute;
+    top: 20%;
+    right: 10%;
+    transform: rotate(15deg);
+    font-size: 4vw;
+    color: white;
+    opacity: 0.5;
+    z-index: 1000;
+    pointer-events: none;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.9);
+    font-weight: bold;
+    font-family: Arial, sans-serif;
+  }
+  
   @keyframes subtle-shift {
     0%, 100% { 
       filter: contrast(1.15) brightness(1.08) saturate(1.15) hue-rotate(2deg);

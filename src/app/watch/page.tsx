@@ -511,15 +511,37 @@ function WatchPageContent() {
                 left: '50%', 
                 transform: 'translate(-50%,-50%)',
                 pointerEvents: 'none', 
-                opacity: 0.2, 
-                fontSize: '8vw', 
+                opacity: 0.4, 
+                fontSize: '12vw', 
                 color: '#fff',
                 zIndex: 9,
-                textShadow: '4px 4px 8px rgba(0,0,0,0.9)',
+                textShadow: '4px 4px 8px rgba(0,0,0,0.9), -2px -2px 4px rgba(0,0,0,0.9)',
                 fontWeight: 'bold',
-                textAlign: 'center'
+                textAlign: 'center',
+                fontFamily: 'Arial, sans-serif',
+                letterSpacing: '3px',
+                textTransform: 'uppercase'
               }}>
                 EXCLUSIVE CONTENT
+              </div>
+              
+              {/* Diagonal Watermark */}
+              <div style={{ 
+                position: 'absolute', 
+                top: '50%', 
+                left: '50%', 
+                transform: 'translate(-50%,-50%) rotate(-30deg)',
+                pointerEvents: 'none', 
+                opacity: 0.5, 
+                fontSize: '8vw', 
+                color: '#fff',
+                zIndex: 10,
+                textShadow: '3px 3px 6px rgba(0,0,0,0.9)',
+                fontWeight: 'bold',
+                letterSpacing: '2px',
+                fontFamily: 'Arial, sans-serif'
+              }}>
+                {user?.email} — {new Date().toLocaleString()}
               </div>
               
               {/* Corner Watermarks */}
@@ -528,13 +550,14 @@ function WatchPageContent() {
                 top: '5%', 
                 right: '5%', 
                 pointerEvents: 'none', 
-                opacity: 0.3, 
-                fontSize: '3vw', 
+                opacity: 0.6, 
+                fontSize: '4vw', 
                 color: '#fff',
                 zIndex: 10,
                 transform: 'rotate(15deg)',
                 textShadow: '2px 2px 4px rgba(0,0,0,0.9)',
-                fontWeight: 'bold'
+                fontWeight: 'bold',
+                fontFamily: 'Arial, sans-serif'
               }}>
                 EXCLUSIVE LEX
               </div>
@@ -544,13 +567,14 @@ function WatchPageContent() {
                 bottom: '5%', 
                 left: '5%', 
                 pointerEvents: 'none', 
-                opacity: 0.25, 
-                fontSize: '2.5vw', 
+                opacity: 0.5, 
+                fontSize: '3vw', 
                 color: '#fff',
                 zIndex: 10,
                 transform: 'rotate(-15deg)',
                 textShadow: '2px 2px 4px rgba(0,0,0,0.9)',
-                fontWeight: 'bold'
+                fontWeight: 'bold',
+                fontFamily: 'Arial, sans-serif'
               }}>
                 {new Date().toLocaleDateString()}
               </div>
@@ -561,12 +585,14 @@ function WatchPageContent() {
                 top: '20%', 
                 left: '10%', 
                 pointerEvents: 'none', 
-                opacity: 0.15, 
-                fontSize: '2vw', 
+                opacity: 0.4, 
+                fontSize: '3vw', 
                 color: '#fff',
                 zIndex: 10,
                 transform: 'rotate(45deg)',
-                textShadow: '1px 1px 2px rgba(0,0,0,0.9)'
+                textShadow: '2px 2px 4px rgba(0,0,0,0.9)',
+                fontWeight: 'bold',
+                fontFamily: 'Arial, sans-serif'
               }}>
                 PRIVATE CONTENT
               </div>
@@ -576,14 +602,53 @@ function WatchPageContent() {
                 bottom: '20%', 
                 right: '10%', 
                 pointerEvents: 'none', 
-                opacity: 0.15, 
-                fontSize: '2vw', 
+                opacity: 0.4, 
+                fontSize: '3vw', 
                 color: '#fff',
                 zIndex: 10,
                 transform: 'rotate(-45deg)',
-                textShadow: '1px 1px 2px rgba(0,0,0,0.9)'
+                textShadow: '2px 2px 4px rgba(0,0,0,0.9)',
+                fontWeight: 'bold',
+                fontFamily: 'Arial, sans-serif'
               }}>
                 COPYRIGHT PROTECTED
+              </div>
+              
+              {/* Additional Large Watermarks */}
+              <div style={{ 
+                position: 'absolute', 
+                top: '10%', 
+                left: '50%', 
+                transform: 'translateX(-50%)',
+                pointerEvents: 'none', 
+                opacity: 0.3, 
+                fontSize: '6vw', 
+                color: '#fff',
+                zIndex: 10,
+                textShadow: '3px 3px 6px rgba(0,0,0,0.9)',
+                fontWeight: 'bold',
+                fontFamily: 'Arial, sans-serif',
+                textAlign: 'center'
+              }}>
+                DO NOT DISTRIBUTE
+              </div>
+              
+              <div style={{ 
+                position: 'absolute', 
+                bottom: '10%', 
+                left: '50%', 
+                transform: 'translateX(-50%)',
+                pointerEvents: 'none', 
+                opacity: 0.3, 
+                fontSize: '5vw', 
+                color: '#fff',
+                zIndex: 10,
+                textShadow: '3px 3px 6px rgba(0,0,0,0.9)',
+                fontWeight: 'bold',
+                fontFamily: 'Arial, sans-serif',
+                textAlign: 'center'
+              }}>
+                EXCLUSIVE LEX CONTENT
               </div>
               
               {/* Screenshot Warning Overlay */}
@@ -597,6 +662,32 @@ function WatchPageContent() {
                   </div>
                 </div>
               )}
+              
+              {/* Permanent Warning Overlay */}
+              <div className="absolute inset-0 bg-gradient-to-br from-red-500/10 to-blue-500/10 pointer-events-none z-5"></div>
+              
+              {/* Floating Warning */}
+              <div style={{
+                position: 'absolute',
+                top: '15%',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                pointerEvents: 'none',
+                opacity: 0.7,
+                fontSize: '3vw',
+                color: '#ff0000',
+                zIndex: 15,
+                textShadow: '2px 2px 4px rgba(0,0,0,0.9)',
+                fontWeight: 'bold',
+                fontFamily: 'Arial, sans-serif',
+                textAlign: 'center',
+                backgroundColor: 'rgba(0,0,0,0.3)',
+                padding: '10px 20px',
+                borderRadius: '10px',
+                border: '2px solid #ff0000'
+              }}>
+                ⚠️ SCREENSHOT PROTECTION ACTIVE ⚠️
+              </div>
             </>
           ) : (
             <div className="w-full h-full flex items-center justify-center">
