@@ -58,7 +58,8 @@ function SuccessPageContent() {
 
   const handleStartWatching = () => {
     if (purchase) {
-      router.push(`/watch/${purchase.collection_id}`);
+      const sessionId = searchParams?.get('session_id');
+      router.push(`/watch/${purchase.collection_id}?session_id=${sessionId}`);
     }
   };
 

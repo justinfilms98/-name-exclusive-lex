@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { Clock, AlertCircle, Play, Pause, Volume2, VolumeX } from 'lucide-react';
 
 interface Purchase {
@@ -21,6 +21,8 @@ export default async function WatchPage({ params }: { params: Promise<{ id: stri
 
 function WatchPageClient({ collectionId }: { collectionId: string }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const sessionId = searchParams?.get('session_id');
   
   const [purchase, setPurchase] = useState<Purchase | null>(null);
   const [loading, setLoading] = useState(true);
@@ -32,17 +34,14 @@ function WatchPageClient({ collectionId }: { collectionId: string }) {
   const [showControls, setShowControls] = useState(true);
 
   useEffect(() => {
-    if (!collectionId) {
-      setError('No collection ID provided');
+    if (!sessionId) {
+      setError('No session ID provided');
       setLoading(false);
       return;
     }
 
-    // For now, we'll need to get the session ID from somewhere
-    // This is a simplified version - in practice you'd need to get the session ID
-    // from the URL params or from the user's active purchase
     loadPurchase();
-  }, [collectionId]);
+  }, [sessionId]);
 
   useEffect(() => {
     if (timeRemaining <= 0 && purchase) {
@@ -65,10 +64,30 @@ function WatchPageClient({ collectionId }: { collectionId: string }) {
 
   const loadPurchase = async () => {
     try {
-      // This is a simplified version - you'd need to get the session ID
-      // from the URL or from the user's active purchase for this collection
-      setError('Session ID required for purchase verification');
-      setLoading(false);
+      const res = await fetch(`/api/get-purchase?session_id=${sessionId}`);
+      const { purchase, error } = await res.json();
+      
+      if (error) {
+        setError(error);
+        setLoading(false);
+        return;
+      }
+
+      // Verify the purchase is for the correct collection
+      if (purchase.collection_id !== collectionId) {
+        setError('Purchase does not match this collection');
+        setLoading(false);
+        return;
+      }
+
+      setPurchase(purchase);
+
+      // Calculate time remaining
+      const expiresAt = new Date(purchase.expires_at);
+      const now = new Date();
+      const remaining = expiresAt.getTime() - now.getTime();
+      setTimeRemaining(Math.max(0, remaining));
+
     } catch (err: any) {
       console.error('Error loading purchase:', err);
       setError(err.message || 'Failed to load purchase');
