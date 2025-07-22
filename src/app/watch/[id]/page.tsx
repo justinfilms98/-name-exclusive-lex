@@ -74,11 +74,51 @@ function WatchPageClient({ collectionId }: { collectionId: string }) {
       }
     };
 
+    // Screenshot protection
+    const preventScreenshot = () => {
+      // Disable dev tools
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && e.key === 'I')) {
+          e.preventDefault();
+          return false;
+        }
+      });
+
+      // Disable print screen
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'PrintScreen') {
+          e.preventDefault();
+          return false;
+        }
+      });
+
+      // Disable right click
+      document.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        return false;
+      });
+
+      // Disable text selection
+      document.addEventListener('selectstart', (e) => {
+        e.preventDefault();
+        return false;
+      });
+
+      // Disable drag and drop
+      document.addEventListener('dragstart', (e) => {
+        e.preventDefault();
+        return false;
+      });
+    };
+
     // Add event listeners
     document.addEventListener('contextmenu', preventRightClick);
     document.addEventListener('keydown', preventKeyboardShortcuts);
     document.addEventListener('selectstart', preventDownload);
     document.addEventListener('dragstart', preventDownload);
+    
+    // Initialize screenshot protection
+    preventScreenshot();
 
     loadPurchase();
 
@@ -255,25 +295,39 @@ function WatchPageClient({ collectionId }: { collectionId: string }) {
 
       {/* Video Player */}
       <div className="max-w-7xl mx-auto p-4">
-        <div className="relative bg-stone-800 rounded-lg overflow-hidden">
+        <div className="relative bg-stone-800 rounded-lg overflow-hidden video-container">
           {videoUrl ? (
-            <video
-              ref={(video) => {
-                if (video) {
-                  video.muted = isMuted;
-                }
-              }}
-              className="w-full h-auto"
-              controls={false}
-              onPlay={handleVideoPlay}
-              onPause={handleVideoPause}
-              onEnded={handleVideoEnded}
-              onContextMenu={(e) => e.preventDefault()}
-              style={{ userSelect: 'none', WebkitUserSelect: 'none' }}
-            >
-              <source src={videoUrl} type="video/mp4" />
-              Your browser does not support the video tag.
-            </video>
+            <>
+              <video
+                ref={(video) => {
+                  if (video) {
+                    video.muted = isMuted;
+                  }
+                }}
+                className="w-full h-auto"
+                controls={false}
+                onPlay={handleVideoPlay}
+                onPause={handleVideoPause}
+                onEnded={handleVideoEnded}
+                onContextMenu={(e) => e.preventDefault()}
+                style={{ userSelect: 'none', WebkitUserSelect: 'none' }}
+                autoPlay
+                loop
+              >
+                <source src={videoUrl} type="video/mp4" />
+                Your browser does not support the video tag.
+              </video>
+              
+              {/* Custom Video Controls */}
+              <div className="video-overlay flex items-center justify-center">
+                <button
+                  onClick={handlePlayPause}
+                  className="bg-black bg-opacity-50 text-white p-4 rounded-full hover:bg-opacity-70 transition-all"
+                >
+                  {isPlaying ? <Pause className="w-8 h-8" /> : <Play className="w-8 h-8" />}
+                </button>
+              </div>
+            </>
           ) : (
             <div className="aspect-video bg-stone-700 flex items-center justify-center">
               <div className="text-center">

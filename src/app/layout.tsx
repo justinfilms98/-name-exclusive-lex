@@ -2,7 +2,8 @@ import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
 import { Providers } from './providers'
-import AgeVerificationWrapper from '@/components/AgeVerificationWrapper'
+import AgeVerificationWrapper from '../components/AgeVerificationWrapper'
+import Header from './Header'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -21,6 +22,7 @@ export default function RootLayout({
       <body className={inter.className}>
         <Providers>
           <AgeVerificationWrapper>
+            <Header />
             {children}
           </AgeVerificationWrapper>
         </Providers>
