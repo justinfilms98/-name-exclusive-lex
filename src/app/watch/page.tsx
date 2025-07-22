@@ -39,6 +39,7 @@ function WatchPageContent() {
   const [isMuted, setIsMuted] = useState(false);
   const [showControls, setShowControls] = useState(true);
   const [user, setUser] = useState<any>(null);
+  const [isBlurred, setIsBlurred] = useState(false);
 
   useEffect(() => {
     if (!sessionId) {
@@ -79,6 +80,10 @@ function WatchPageContent() {
   // Screenshot detection
   useEffect(() => {
     const report = async () => {
+      // Temporarily blur content
+      setIsBlurred(true)
+      setTimeout(() => setIsBlurred(false), 3000) // Unblur after 3 seconds
+      
       const res = await fetch('/api/report-strike', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -91,19 +96,85 @@ function WatchPageContent() {
       }
     }
 
+    // Enhanced screenshot detection
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'PrintScreen') report()
+      if (e.key === 'PrintScreen' || 
+          (e.ctrlKey && e.shiftKey && e.key === 'I') || // DevTools
+          (e.ctrlKey && e.shiftKey && e.key === 'C') || // DevTools
+          (e.ctrlKey && e.shiftKey && e.key === 'J') || // DevTools
+          (e.key === 'F12') || // F12
+          (e.ctrlKey && e.key === 'U')) { // View source
+        e.preventDefault()
+        report()
+      }
     }
+    
     const onCtx = (e: MouseEvent) => {
       e.preventDefault()
       report()
     }
 
+    // Detect when page loses focus (alt+tab, switching apps)
+    const onVisibilityChange = () => {
+      if (document.hidden) {
+        report()
+      }
+    }
+
+    // Detect when window loses focus
+    const onBlur = () => {
+      report()
+    }
+
+    // Continuous monitoring for suspicious activity
+    let lastReportTime = 0
+    const monitorActivity = () => {
+      const now = Date.now()
+      if (now - lastReportTime > 5000) { // Prevent spam, 5 second cooldown
+        // Check if dev tools are open (basic detection)
+        const devtools = {
+          open: false,
+          orientation: null
+        }
+        
+        const threshold = 160
+        if (window.outerHeight - window.innerHeight > threshold || 
+            window.outerWidth - window.innerWidth > threshold) {
+          devtools.open = true
+          report()
+          lastReportTime = now
+        }
+      }
+    }
+
+    // Monitor every 2 seconds
+    const monitorInterval = setInterval(monitorActivity, 2000)
+
+    // Detect clipboard changes (screenshots often go to clipboard)
+    const onClipboardChange = () => {
+      report()
+    }
+
+    // Monitor clipboard for changes
+    if (navigator.clipboard) {
+      navigator.clipboard.readText().catch(() => {
+        // Ignore permission errors, but still monitor
+      })
+    }
+
     document.addEventListener('keydown', onKey)
     document.addEventListener('contextmenu', onCtx)
+    document.addEventListener('visibilitychange', onVisibilityChange)
+    window.addEventListener('blur', onBlur)
+    document.addEventListener('copy', onClipboardChange)
+    
     return () => {
       document.removeEventListener('keydown', onKey)
       document.removeEventListener('contextmenu', onCtx)
+      document.removeEventListener('visibilitychange', onVisibilityChange)
+      window.removeEventListener('blur', onBlur)
+      document.removeEventListener('copy', onClipboardChange)
+      clearInterval(monitorInterval)
     }
   }, [sessionId, addToast])
 
@@ -249,13 +320,13 @@ function WatchPageContent() {
 
       {/* Video Player */}
       <div className="max-w-7xl mx-auto p-4">
-        <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
+        <div className="relative aspect-video bg-black rounded-lg overflow-hidden screenshot-protected">
           {videoUrl ? (
             <>
               <video
                 id="video-player"
                 src={videoUrl}
-                className="w-full h-full"
+                className={`w-full h-full ${isBlurred ? 'blur-md' : ''}`}
                 onEnded={handleVideoEnded}
                 onPlay={handleVideoPlay}
                 onPause={handleVideoPause}
@@ -276,6 +347,18 @@ function WatchPageContent() {
               }}>
                 {user?.email} — {new Date().toLocaleString()}
               </div>
+              
+              {/* Screenshot Warning Overlay */}
+              {isBlurred && (
+                <div className="absolute inset-0 bg-black bg-opacity-75 flex items-center justify-center z-20">
+                  <div className="text-center text-white p-6">
+                    <div className="text-6xl mb-4">⚠️</div>
+                    <h2 className="text-2xl font-bold mb-2">Screenshot Detected</h2>
+                    <p className="text-lg">Content has been temporarily blurred for security.</p>
+                    <p className="text-sm mt-2">Repeated attempts will result in access revocation.</p>
+                  </div>
+                </div>
+              )}
             </>
           ) : (
             <div className="w-full h-full flex items-center justify-center">
