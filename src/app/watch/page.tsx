@@ -78,29 +78,31 @@ function WatchPageContent() {
   }, [timeRemaining, purchase]);
 
   // Screenshot detection
-  useEffect(() => {
-    const report = async () => {
-      // Immediately expire access when screen capture detected
-      const res = await fetch('/api/report-strike', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          session_id: sessionId,
-          event_type: 'screen_capture_detected'
-        }),
-      })
-      const json = await res.json()
-      
-      if (json.expired) {
-        setError('Access revoked due to screen capture detection')
-        // Redirect to access denied page
-        setTimeout(() => {
-          router.push('/unauthorized?reason=screen_capture')
-        }, 2000)
-      } else {
-        addToast(`Screen capture detected (${json.strike_count}/${json.threshold})`, 'error')
-      }
+  const report = async () => {
+    console.log('🚨 SCREEN CAPTURE DETECTED!')
+    addToast('Screen capture detected - access will be revoked', 'error')
+    
+    // Immediately expire access when screen capture detected
+    const res = await fetch('/api/report-strike', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        session_id: sessionId,
+        event_type: 'screen_capture_detected'
+      }),
+    })
+    const json = await res.json()
+    
+    if (json.expired) {
+      setError('Access revoked due to screen capture detection')
+      // Redirect to access denied page immediately
+      router.push('/unauthorized?reason=screen_capture')
+    } else {
+      addToast(`Screen capture detected (${json.strike_count}/${json.threshold})`, 'error')
     }
+  }
+
+  useEffect(() => {
 
     // Enhanced screen capture detection
     const onKey = (e: KeyboardEvent) => {
@@ -325,14 +327,30 @@ function WatchPageContent() {
       }
     }
 
-    // Monitor every 1 second
-    const monitorInterval = setInterval(monitorActivity, 1000)
+    // Monitor every 500ms for more aggressive detection
+    const monitorInterval = setInterval(monitorActivity, 500)
 
-    // Monitor for screen recording attempts
-    const screenRecordingInterval = setInterval(detectScreenRecording, 2000)
+    // Monitor for screen recording attempts every second
+    const screenRecordingInterval = setInterval(detectScreenRecording, 1000)
 
-    // Monitor for snipping tool processes
-    const snippingToolInterval = setInterval(detectSnippingTools, 2000)
+    // Monitor for snipping tool processes every second
+    const snippingToolInterval = setInterval(detectSnippingTools, 1000)
+
+    // Additional aggressive monitoring
+    let lastScreenSize = window.innerWidth + 'x' + window.innerHeight
+    const aggressiveMonitor = setInterval(() => {
+      // Check for any suspicious activity
+      if (document.hidden || !document.hasFocus()) {
+        report()
+      }
+      
+      // Check for screen size changes (common in screenshots)
+      const currentSize = window.innerWidth + 'x' + window.innerHeight
+      if (lastScreenSize !== currentSize) {
+        report()
+      }
+      lastScreenSize = currentSize
+    }, 250) // Check every 250ms
 
     // Initialize platform-specific detection
     detectIPhoneScreenshot()
@@ -354,6 +372,8 @@ function WatchPageContent() {
       document.removeEventListener('copy', onClipboardChange)
       clearInterval(monitorInterval)
       clearInterval(screenRecordingInterval)
+      clearInterval(snippingToolInterval)
+      clearInterval(aggressiveMonitor)
     }
   }, [sessionId, addToast, router])
 
@@ -790,6 +810,12 @@ function WatchPageContent() {
                 </p>
               </div>
             </div>
+            <button 
+              onClick={() => report()} 
+              className="mt-3 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 text-sm"
+            >
+              Test Detection System
+            </button>
           </div>
         </div>
 
