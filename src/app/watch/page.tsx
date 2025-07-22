@@ -7,18 +7,19 @@ import { Clock, AlertCircle, Play, Pause, Volume2, VolumeX } from 'lucide-react'
 
 interface Purchase {
   id: string;
-  user_id: string;
-  collection_id: string;
-  stripe_session_id: string;
-  created_at: string;
-  expires_at: string;
-  collections: {
+  userId: string;
+  collectionVideoId: string;
+  stripeSessionId: string;
+  createdAt: string;
+  expiresAt: string;
+  amountPaid: number;
+  CollectionVideo: {
     id: string;
     title: string;
     description: string;
-    video_path: string;
-    thumbnail_path?: string;
-    duration: number;
+    videoUrl: string;
+    thumbnail: string;
+    price: number;
   };
 }
 
@@ -75,12 +76,15 @@ function WatchPageContent() {
       }
       setPurchase(json.purchase)
 
+      // Calculate time remaining
+      const expiresAt = new Date(json.purchase.expiresAt);
+      const now = new Date();
+      const remaining = expiresAt.getTime() - now.getTime();
+      setTimeRemaining(Math.max(0, remaining));
+
       // Get signed URL for video
-      if (json.purchase.collections.video_path) {
-        const { data: signedUrl } = await getSignedUrl('media', json.purchase.collections.video_path);
-        if (signedUrl) {
-          setVideoUrl(signedUrl.signedUrl);
-        }
+      if (json.purchase.CollectionVideo?.videoUrl) {
+        setVideoUrl(json.purchase.CollectionVideo.videoUrl);
       }
 
     } catch (err: any) {
@@ -182,8 +186,8 @@ function WatchPageContent() {
       <div className="bg-stone-800 text-white p-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-semibold">{purchase.collections.title}</h1>
-            <p className="text-stone-300 text-sm">{purchase.collections.description}</p>
+            <h1 className="text-xl font-semibold">{purchase.CollectionVideo.title}</h1>
+            <p className="text-stone-300 text-sm">{purchase.CollectionVideo.description}</p>
           </div>
           
           <div className="flex items-center space-x-4">
@@ -250,13 +254,13 @@ function WatchPageContent() {
         {/* Content Info */}
         <div className="mt-6 bg-white rounded-lg p-6">
           <h2 className="text-2xl font-semibold text-stone-800 mb-2">
-            {purchase.collections.title}
+            {purchase.CollectionVideo.title}
           </h2>
-          <p className="text-stone-600 mb-4">{purchase.collections.description}</p>
+          <p className="text-stone-600 mb-4">{purchase.CollectionVideo.description}</p>
           
           <div className="flex items-center justify-between text-sm text-stone-500">
-            <span>Purchased: {new Date(purchase.created_at).toLocaleDateString()}</span>
-            <span>Duration: {Math.floor(purchase.collections.duration / 60)} minutes</span>
+            <span>Purchased: {new Date(purchase.createdAt).toLocaleDateString()}</span>
+            <span>Duration: {Math.floor(purchase.CollectionVideo.price / 60)} minutes</span>
           </div>
         </div>
 

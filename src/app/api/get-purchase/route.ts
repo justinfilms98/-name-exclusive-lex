@@ -14,16 +14,32 @@ export async function GET(request: NextRequest) {
   }
 
   const { data: purchase, error } = await supabase
-    .from('purchases')
-    .select('id, user_id, collection_id, purchased_at, expires_at')
-    .eq('stripe_session_id', session_id)
+    .from('Purchase')
+    .select(`
+      id, 
+      userId, 
+      collectionVideoId, 
+      createdAt, 
+      expiresAt,
+      amountPaid,
+      stripeSessionId,
+      CollectionVideo (
+        id,
+        title,
+        description,
+        videoUrl,
+        thumbnail,
+        price
+      )
+    `)
+    .eq('stripeSessionId', session_id)
     .single()
 
   if (error || !purchase) {
     return NextResponse.json({ error: 'Purchase not found' }, { status: 404 })
   }
 
-  if (new Date(purchase.expires_at) < new Date()) {
+  if (new Date(purchase.expiresAt) < new Date()) {
     return NextResponse.json({ error: 'Access expired' }, { status: 403 })
   }
 

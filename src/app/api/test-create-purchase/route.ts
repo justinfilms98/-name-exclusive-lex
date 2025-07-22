@@ -21,16 +21,16 @@ export async function POST(request: NextRequest) {
     const purchasedAt = new Date();
     const expiresAt = new Date(purchasedAt.getTime() + parseInt(duration) * 1000);
 
-    // Create purchase record
+    // Create purchase record using correct column names (PascalCase)
     const { data: purchase, error } = await supabase
-      .from('purchases')
+      .from('Purchase')
       .insert({
-        user_id: userId,
-        collection_id: collectionId,
-        stripe_session_id: sessionId,
-        created_at: purchasedAt.toISOString(),
-        expires_at: expiresAt.toISOString(),
-        amount_paid: 29.99, // Default amount for testing
+        userId: userId,
+        collectionVideoId: collectionId,
+        stripeSessionId: sessionId,
+        createdAt: purchasedAt.toISOString(),
+        expiresAt: expiresAt.toISOString(),
+        amountPaid: 29.99, // Default amount for testing
       })
       .select()
       .single();
