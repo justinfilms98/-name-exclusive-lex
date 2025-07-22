@@ -109,6 +109,58 @@ function WatchPageClient({ collectionId }: { collectionId: string }) {
         e.preventDefault();
         return false;
       });
+
+      // Screenshot detection
+      let screenshotAttempts = 0;
+      
+      // Detect screenshot attempts
+      const detectScreenshot = () => {
+        screenshotAttempts++;
+        if (screenshotAttempts > 2) {
+          // Blur the page if multiple screenshot attempts detected
+          document.body.style.filter = 'blur(10px)';
+          setTimeout(() => {
+            document.body.style.filter = 'none';
+          }, 3000);
+        }
+      };
+
+      // Monitor for screenshot-like activities
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'PrintScreen' || e.key === 'F12' || 
+            (e.ctrlKey && e.shiftKey && e.key === 'I') ||
+            (e.ctrlKey && e.key === 'S')) {
+          detectScreenshot();
+        }
+      });
+
+      // Monitor window focus/blur (screenshot tools often cause this)
+      let lastFocusTime = Date.now();
+      window.addEventListener('blur', () => {
+        const now = Date.now();
+        if (now - lastFocusTime < 100) {
+          detectScreenshot();
+        }
+        lastFocusTime = now;
+      });
+
+      // Disable clipboard access
+      document.addEventListener('copy', (e) => {
+        e.preventDefault();
+        return false;
+      });
+
+      // Disable cut
+      document.addEventListener('cut', (e) => {
+        e.preventDefault();
+        return false;
+      });
+
+      // Disable paste
+      document.addEventListener('paste', (e) => {
+        e.preventDefault();
+        return false;
+      });
     };
 
     // Add event listeners
