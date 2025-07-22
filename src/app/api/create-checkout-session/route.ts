@@ -160,6 +160,31 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Insert purchase record with session ID
+    const purchasedAt = new Date();
+    const expiresAt = new Date(purchasedAt.getTime() + collection.duration * 1000);
+
+    const { data: purchase, error: purchaseError } = await supabase
+      .from('purchases')
+      .insert({
+        user_id: user.id,
+        collection_id: collectionId,
+        stripe_session_id: session.id,
+        created_at: purchasedAt.toISOString(),
+        expires_at: expiresAt.toISOString(),
+        amount: collection.price,
+        currency: 'usd',
+        status: 'pending'
+      })
+      .select()
+      .single();
+
+    if (purchaseError) {
+      console.error('Failed to create purchase record:', purchaseError);
+      // Don't fail the checkout if purchase record creation fails
+      // The webhook will handle it
+    }
+
     return NextResponse.json({ sessionId: session.id });
 
   } catch (error) {

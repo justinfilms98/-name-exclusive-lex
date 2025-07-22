@@ -2,23 +2,15 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
 import { CheckCircle, Play, Clock, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 
 interface Purchase {
   id: string;
   user_id: string;
-  collection_video_id: string;
-  stripe_session_id: string;
+  collection_id: string;
   created_at: string;
   expires_at: string;
-  CollectionVideo: {
-    id: string;
-    title: string;
-    description: string;
-    price: number;
-  };
 }
 
 function SuccessPageContent() {
@@ -41,63 +33,16 @@ function SuccessPageContent() {
 
   const verifyPurchase = async (sessionId: string) => {
     try {
-      // Get current user
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) {
-        router.push('/login');
-        return;
-      }
-
-      // First get the purchase record
-      const { data: purchaseData, error } = await supabase
-        .from('purchases')
-        .select(`
-          id,
-          user_id,
-          collection_video_id,
-          stripe_session_id,
-          created_at,
-          expires_at
-        `)
-        .eq('stripe_session_id', sessionId)
-        .single();
-
-      if (error || !purchaseData) {
-        setError('Purchase not found or access denied');
-        setLoading(false);
-        return;
-      }
-
-      // Check if purchase is still valid
-      const now = new Date();
-      const expiresAt = new Date(purchaseData.expires_at);
+      const res = await fetch(`/api/get-purchase?session_id=${sessionId}`);
+      const { purchase, error } = await res.json();
       
-      if (now >= expiresAt) {
-        setError('Purchase has expired');
+      if (error) {
+        setError(error);
         setLoading(false);
         return;
       }
 
-      // Now get the collection video details
-      const { data: collectionVideo, error: videoError } = await supabase
-        .from('CollectionVideo')
-        .select('id, title, description, price')
-        .eq('id', purchaseData.collection_video_id)
-        .single();
-
-      if (videoError || !collectionVideo) {
-        setError('Collection video not found');
-        setLoading(false);
-        return;
-      }
-
-      // Combine the data
-      const purchaseWithVideo = {
-        ...purchaseData,
-        CollectionVideo: collectionVideo
-      };
-
-      setPurchase(purchaseWithVideo);
+      setPurchase(purchase);
       setLoading(false);
     } catch (error) {
       console.error('Purchase verification error:', error);
@@ -113,7 +58,7 @@ function SuccessPageContent() {
 
   const handleStartWatching = () => {
     if (purchase) {
-      router.push(`/watch?session_id=${purchase.stripe_session_id}`);
+      router.push(`/watch/${purchase.collection_id}`);
     }
   };
 
@@ -184,18 +129,18 @@ function SuccessPageContent() {
           <div className="grid md:grid-cols-2 gap-8">
             <div>
               <h2 className="text-2xl font-semibold text-stone-800 mb-4">
-                {purchase.CollectionVideo.title}
+                Collection Access Granted
               </h2>
-              <p className="text-stone-600 mb-6">{purchase.CollectionVideo.description}</p>
+              <p className="text-stone-600 mb-6">Your exclusive content is now available for viewing.</p>
               
               <div className="space-y-3">
                 <div className="flex items-center text-stone-600">
                   <Clock className="w-5 h-5 mr-3" />
-                  <span>Duration: {formatDuration(purchase.CollectionVideo.price * 60)}</span>
+                  <span>Access: Limited Time</span>
                 </div>
                 <div className="flex items-center text-stone-600">
                   <CheckCircle className="w-5 h-5 mr-3" />
-                  <span>Access: Limited Time</span>
+                  <span>Status: Active</span>
                 </div>
               </div>
             </div>
