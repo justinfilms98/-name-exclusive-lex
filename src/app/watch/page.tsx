@@ -327,9 +327,15 @@ function WatchPageContent() {
       const remaining = expiresAt.getTime() - now.getTime();
       setTimeRemaining(Math.max(0, remaining));
 
-      // Get signed URL for video
-      if (json.purchase.CollectionVideo?.videoUrl) {
-        setVideoUrl(json.purchase.CollectionVideo.videoUrl);
+      // Get protected video URL
+      if (json.purchase.CollectionVideo?.id) {
+        const videoRes = await fetch(`/api/protected-video?session_id=${sessionId}&video_id=${json.purchase.CollectionVideo.id}`)
+        const videoJson = await videoRes.json()
+        if (videoRes.ok) {
+          setVideoUrl(videoJson.videoUrl);
+        } else {
+          setError(videoJson.error || 'Failed to load video');
+        }
       }
 
     } catch (err: any) {
