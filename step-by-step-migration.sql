@@ -1,9 +1,9 @@
--- Add IP binding and security features to purchases table
+-- Step 1: Add new columns to purchases table
 ALTER TABLE "purchases" ADD COLUMN "bound_ip" TEXT;
 ALTER TABLE "purchases" ADD COLUMN "last_access_at" TIMESTAMP WITH TIME ZONE;
 ALTER TABLE "purchases" ADD COLUMN "access_count" INTEGER DEFAULT 0;
 
--- Create security logs table
+-- Step 2: Create security_logs table
 CREATE TABLE "security_logs" (
     "id" SERIAL PRIMARY KEY,
     "purchase_id" UUID NOT NULL,
@@ -15,11 +15,11 @@ CREATE TABLE "security_logs" (
     "created_at" TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Create index for security logs
+-- Step 3: Create indexes
 CREATE INDEX "idx_security_logs_purchase_id" ON "security_logs" ("purchase_id");
 CREATE INDEX "idx_security_logs_event_type" ON "security_logs" ("event_type");
 CREATE INDEX "idx_security_logs_created_at" ON "security_logs" ("created_at");
 
--- Add foreign key constraint
+-- Step 4: Add foreign key constraint
 ALTER TABLE "security_logs" ADD CONSTRAINT "security_logs_purchase_id_fkey" 
     FOREIGN KEY ("purchase_id") REFERENCES "purchases"("id") ON DELETE CASCADE; 

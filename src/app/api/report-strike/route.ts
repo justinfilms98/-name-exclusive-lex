@@ -20,7 +20,7 @@ export async function POST(request: Request) {
 
   const { data: purchase, error } = await supabase
     .from('purchases')
-    .select('id, strike_count, bound_ip, user_id')
+    .select('id, strike_count, bound_ip, user_id, collection_video_id')
     .eq('stripe_session_id', session_id)
     .single()
 

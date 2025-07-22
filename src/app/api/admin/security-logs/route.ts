@@ -20,10 +20,12 @@ export async function GET(request: Request) {
       purchases (
         id,
         user_id,
+        collection_video_id,
         stripe_session_id,
         created_at,
         expires_at,
-        strike_count
+        strike_count,
+        bound_ip
       )
     `)
     .order('created_at', { ascending: false })

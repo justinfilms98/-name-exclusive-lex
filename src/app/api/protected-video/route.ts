@@ -65,7 +65,7 @@ export async function GET(request: Request) {
   // Verify purchase
   const { data: purchase, error } = await supabase
     .from('purchases')
-    .select('*')
+    .select('id, user_id, collection_video_id, stripe_session_id, created_at, expires_at, strike_count, bound_ip, last_access_at, access_count')
     .eq('stripe_session_id', sessionId)
     .eq('collection_video_id', videoId)
     .single()
