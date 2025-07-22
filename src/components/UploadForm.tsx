@@ -30,11 +30,11 @@ export default function UploadForm() {
   const [success, setSuccess] = useState(false);
 
   const validateFiles = () => {
-    // Video validation (max 2GB for client requirements)
+    // Video validation (max 50MB for Supabase free tier)
     if (files.video) {
-      const maxSize = 2 * 1024 * 1024 * 1024; // 2GB
+      const maxSize = 50 * 1024 * 1024; // 50MB (Supabase free tier limit)
       if (files.video.size > maxSize) {
-        setError('Video file must be under 2GB for upload. Please compress your video or use a smaller file.');
+        setError('Video file must be under 50MB for upload. Please compress your video or use a smaller file. For larger files, consider upgrading to Supabase Pro plan.');
         return false;
       }
     }
@@ -77,44 +77,25 @@ export default function UploadForm() {
     try {
       console.log(`Starting upload for ${progressKey}:`, { file: file.name, size: file.size, bucket, path });
       
-      // For large files (>100MB), use the server-side API
-      const LARGE_FILE_THRESHOLD = 100 * 1024 * 1024; // 100MB
+      // Supabase free tier limit is 50MB
+      const SUPABASE_LIMIT = 50 * 1024 * 1024; // 50MB
       
-      if (file.size > LARGE_FILE_THRESHOLD) {
-        console.log(`Using server-side upload for large file: ${file.name}`);
-        
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('bucket', bucket);
-        formData.append('path', path);
-        
-        const response = await fetch('/api/upload-large-file', {
-          method: 'POST',
-          body: formData
-        });
-        
-        const result = await response.json();
-        
-        if (!result.success) {
-          throw new Error(`Failed to upload ${progressKey}: ${result.error}`);
-        }
-        
-        console.log(`Large file upload successful for ${progressKey}:`, result.data);
-        setProgress(prev => ({ ...prev, [progressKey]: 100 }));
-        return result.data;
-      } else {
-        // Use regular client-side upload for smaller files
-        const { data, error } = await uploadFile(file, bucket, path);
-        
-        if (error) {
-          console.error(`Upload error for ${progressKey}:`, error);
-          throw new Error(`Failed to upload ${progressKey}: ${error.message}`);
-        }
-        
-        console.log(`Upload successful for ${progressKey}:`, data);
-        setProgress(prev => ({ ...prev, [progressKey]: 100 }));
-        return data;
+      if (file.size > SUPABASE_LIMIT) {
+        console.log(`File exceeds Supabase free tier limit (50MB): ${file.name}`);
+        throw new Error(`File size ${(file.size / 1024 / 1024).toFixed(1)}MB exceeds the 50MB limit for Supabase free tier. Please compress your video or upgrade to Supabase Pro plan for larger files.`);
       }
+      
+      // Use regular client-side upload for files under 50MB
+      const { data, error } = await uploadFile(file, bucket, path);
+      
+      if (error) {
+        console.error(`Upload error for ${progressKey}:`, error);
+        throw new Error(`Failed to upload ${progressKey}: ${error.message}`);
+      }
+      
+      console.log(`Upload successful for ${progressKey}:`, data);
+      setProgress(prev => ({ ...prev, [progressKey]: 100 }));
+      return data;
     } catch (err: any) {
       console.error(`Upload failed for ${progressKey}:`, err);
       throw err;
@@ -285,9 +266,25 @@ export default function UploadForm() {
       
       {/* File Uploads */}
       <div className="space-y-4">
+        {/* File Size Notice */}
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <h4 className="text-sm font-medium text-blue-800 mb-2">📁 File Size Limits</h4>
+          <p className="text-sm text-blue-700 mb-2">
+            Due to Supabase free tier limitations, file uploads are currently limited to:
+          </p>
+          <ul className="text-sm text-blue-700 space-y-1">
+            <li>• <strong>Video files:</strong> 50MB maximum</li>
+            <li>• <strong>Thumbnail images:</strong> 10MB maximum</li>
+            <li>• <strong>Additional photos:</strong> 10MB each maximum</li>
+          </ul>
+          <p className="text-xs text-blue-600 mt-2">
+            💡 <strong>Tip:</strong> Compress your videos to fit within the 50MB limit, or consider upgrading to Supabase Pro for larger file support.
+          </p>
+        </div>
+        
         <div>
           <label className="block text-sm font-medium text-stone-700 mb-1">
-            Video File (Max 2GB) *
+            Video File (Max 50MB) *
           </label>
           <input
             type="file"
