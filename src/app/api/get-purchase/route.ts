@@ -13,6 +13,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Missing session_id' }, { status: 400 })
   }
 
+  // First, let's check if the purchase exists
   const { data: purchase, error } = await supabase
     .from('purchases')
     .select(`
@@ -22,20 +23,13 @@ export async function GET(request: NextRequest) {
       created_at, 
       expires_at,
       amount_paid,
-      stripe_session_id,
-      CollectionVideo (
-        id,
-        title,
-        description,
-        videoUrl,
-        thumbnail,
-        price
-      )
+      stripe_session_id
     `)
     .eq('stripe_session_id', session_id)
     .single()
 
   if (error || !purchase) {
+    console.error('Purchase lookup error:', error)
     return NextResponse.json({ error: 'Purchase not found' }, { status: 404 })
   }
 
@@ -43,5 +37,23 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Access expired' }, { status: 403 })
   }
 
-  return NextResponse.json({ purchase }, { status: 200 })
+  // Now get the collection video details
+  const { data: collectionVideo, error: videoError } = await supabase
+    .from('CollectionVideo')
+    .select('id, title, description, videoUrl, thumbnail, price')
+    .eq('id', purchase.collection_video_id)
+    .single()
+
+  if (videoError || !collectionVideo) {
+    console.error('Collection video lookup error:', videoError)
+    return NextResponse.json({ error: 'Collection video not found' }, { status: 404 })
+  }
+
+  // Combine the data
+  const purchaseWithVideo = {
+    ...purchase,
+    CollectionVideo: collectionVideo
+  }
+
+  return NextResponse.json({ purchase: purchaseWithVideo }, { status: 200 })
 } 
