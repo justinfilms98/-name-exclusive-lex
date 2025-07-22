@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { uploadFile, createCollection } from '@/lib/supabase';
 import { requireAdmin } from '@/lib/auth';
+import QualityComparison from './QualityComparison';
 
 interface UploadProgress {
   video?: number;
@@ -266,6 +267,9 @@ export default function UploadForm() {
       
       {/* File Uploads */}
       <div className="space-y-4">
+        {/* Quality Comparison */}
+        <QualityComparison />
+        
         {/* File Size Notice */}
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
           <h4 className="text-sm font-medium text-blue-800 mb-2">📁 File Size Limits</h4>
@@ -278,7 +282,7 @@ export default function UploadForm() {
             <li>• <strong>Additional photos:</strong> 10MB each maximum</li>
           </ul>
           <p className="text-xs text-blue-600 mt-2">
-            💡 <strong>Tip:</strong> Compress your videos to fit within the 50MB limit, or consider upgrading to Supabase Pro for larger file support.
+            💡 <strong>Tip:</strong> Use H.265 (HEVC) encoding for better quality at smaller file sizes. See our compression guide for detailed settings.
           </p>
         </div>
         
@@ -288,7 +292,7 @@ export default function UploadForm() {
           </label>
           <input
             type="file"
-            accept="video/*"
+            accept="video/*,.mp4,.mov,.avi,.mkv"
             required
             onChange={(e) => setFiles(prev => ({ ...prev, video: e.target.files?.[0] || null }))}
             className="w-full border border-stone-300 rounded-md px-3 py-2"
