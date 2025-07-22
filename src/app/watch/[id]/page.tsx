@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Clock, AlertCircle, Play, Pause, Volume2, VolumeX } from 'lucide-react';
 import { getSignedUrl } from '@/lib/supabase';
+import MediaCarousel from '@/components/MediaCarousel';
 
 interface Purchase {
   id: string;
@@ -18,6 +19,7 @@ interface Purchase {
     video_path: string;
     thumbnail_path: string;
     duration: number;
+    photo_paths: string[];
   };
 }
 
@@ -80,8 +82,8 @@ function WatchPageClient({ collectionId }: { collectionId: string }) {
       watermark.className = 'watermark-overlay';
       watermark.innerHTML = `
         <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
-                    color: rgba(255,0,0,0.3); font-size: 24px; font-weight: bold; 
-                    text-align: center; pointer-events: none; z-index: 10002;">
+                    color: rgba(255,0,0,0.8); font-size: 32px; font-weight: bold; 
+                    text-align: center; pointer-events: none; z-index: 10002; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">
           EXCLUSIVE CONTENT<br>
           ${new Date().toLocaleString()}<br>
           UNAUTHORIZED COPYING PROHIBITED
@@ -383,52 +385,18 @@ function WatchPageClient({ collectionId }: { collectionId: string }) {
         </div>
       </div>
 
-      {/* Video Player */}
+      {/* Media Carousel */}
       <div className="max-w-7xl mx-auto p-4">
-        <div className="relative bg-stone-800 rounded-lg overflow-hidden video-container">
-          {videoUrl ? (
-            <>
-              <video
-                ref={(video) => {
-                  if (video) {
-                    video.muted = isMuted;
-                  }
-                }}
-                className="w-full h-auto"
-                controls={false}
-                onPlay={handleVideoPlay}
-                onPause={handleVideoPause}
-                onEnded={handleVideoEnded}
-                onContextMenu={(e) => e.preventDefault()}
-                style={{ userSelect: 'none', WebkitUserSelect: 'none' }}
-                autoPlay
-                loop
-              >
-                <source src={videoUrl} type="video/mp4" />
-                Your browser does not support the video tag.
-              </video>
-              
-              {/* Custom Video Controls */}
-              <div className="video-overlay flex items-center justify-center">
-                <button
-                  onClick={handlePlayPause}
-                  className="bg-black bg-opacity-50 text-white p-4 rounded-full hover:bg-opacity-70 transition-all"
-                >
-                  {isPlaying ? <Pause className="w-8 h-8" /> : <Play className="w-8 h-8" />}
-                </button>
-              </div>
-            </>
-          ) : (
-            <div className="aspect-video bg-stone-700 flex items-center justify-center">
-              <div className="text-center">
-                <Play className="w-16 h-16 text-stone-400 mx-auto mb-4" />
-                <p className="text-stone-300">Video loading...</p>
-              </div>
-            </div>
-          )}
-        </div>
+        <MediaCarousel
+          videoPath={purchase.collection.video_path}
+          photoPaths={purchase.collection.photo_paths || []}
+          onPlay={handleVideoPlay}
+          onPause={handleVideoPause}
+        />
+      </div>
 
-        {/* Video Info */}
+      {/* Video Info */}
+      <div className="max-w-7xl mx-auto p-4">
         <div className="mt-6 bg-white rounded-lg p-6">
           <h2 className="text-2xl font-semibold text-stone-800 mb-2">
             Collection Video
