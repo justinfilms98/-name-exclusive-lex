@@ -126,6 +126,34 @@ function WatchPageContent() {
       report()
     }
 
+    // Anti-capture techniques
+    const addNoiseToDOM = () => {
+      const videoContainer = document.querySelector('.screenshot-protected')
+      if (videoContainer) {
+        // Add invisible elements that change frequently
+        const noise = document.createElement('div')
+        noise.style.cssText = `
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 1px;
+          height: 1px;
+          background: transparent;
+          z-index: 9999;
+          pointer-events: none;
+        `
+        noise.textContent = Math.random().toString(36)
+        videoContainer.appendChild(noise)
+        
+        // Remove after a short delay
+        setTimeout(() => {
+          if (noise.parentNode) {
+            noise.parentNode.removeChild(noise)
+          }
+        }, 100)
+      }
+    }
+
     // Continuous monitoring for suspicious activity
     let lastReportTime = 0
     const monitorActivity = () => {
@@ -144,6 +172,9 @@ function WatchPageContent() {
           report()
           lastReportTime = now
         }
+        
+        // Add noise to DOM every few seconds
+        addNoiseToDOM()
       }
     }
 
@@ -160,6 +191,68 @@ function WatchPageContent() {
       navigator.clipboard.readText().catch(() => {
         // Ignore permission errors, but still monitor
       })
+    }
+
+    // Add canvas overlay to make screenshots harder
+    const addCanvasOverlay = () => {
+      const videoContainer = document.querySelector('.screenshot-protected')
+      if (videoContainer) {
+        const canvas = document.createElement('canvas')
+        canvas.style.cssText = `
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          pointer-events: none;
+          z-index: 1000;
+          opacity: 0.01;
+        `
+        videoContainer.appendChild(canvas)
+        
+        // Draw random patterns
+        const ctx = canvas.getContext('2d')
+        if (ctx) {
+          canvas.width = videoContainer.clientWidth
+          canvas.height = videoContainer.clientHeight
+          
+          // Draw random dots
+          for (let i = 0; i < 50; i++) {
+            ctx.fillStyle = `hsl(${Math.random() * 360}, 50%, 50%)`
+            ctx.fillRect(
+              Math.random() * canvas.width,
+              Math.random() * canvas.height,
+              1,
+              1
+            )
+          }
+        }
+      }
+    }
+
+    // Add canvas overlay
+    addCanvasOverlay()
+
+    // Detect screen capture attempts
+    const detectScreenCapture = () => {
+      if (navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) {
+        navigator.mediaDevices.getDisplayMedia({ video: true })
+          .then(() => {
+            report()
+          })
+          .catch(() => {
+            // User denied or cancelled
+          })
+      }
+    }
+
+    // Monitor for screen capture API usage
+    const originalGetDisplayMedia = navigator.mediaDevices?.getDisplayMedia
+    if (navigator.mediaDevices && originalGetDisplayMedia) {
+      navigator.mediaDevices.getDisplayMedia = function(...args) {
+        report()
+        return originalGetDisplayMedia.apply(this, args)
+      }
     }
 
     document.addEventListener('keydown', onKey)
@@ -332,6 +425,14 @@ function WatchPageContent() {
                 onPause={handleVideoPause}
                 onMouseMove={() => setShowControls(true)}
                 onMouseLeave={() => setShowControls(false)}
+                style={{
+                  WebkitUserSelect: 'none',
+                  MozUserSelect: 'none',
+                  msUserSelect: 'none',
+                  userSelect: 'none',
+                  WebkitTouchCallout: 'none',
+                  pointerEvents: 'auto'
+                } as React.CSSProperties}
               />
               {/* Dynamic Watermark */}
               <div style={{ 
