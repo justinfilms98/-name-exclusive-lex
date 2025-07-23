@@ -19,6 +19,7 @@ export const requireAdmin = async () => {
   return user
 }
 
+// Modified to allow admin users to make purchases like regular users
 export const checkAccess = async (userId: string, collectionId: string) => {
   const { data, error } = await supabase
     .from('purchases')
@@ -29,6 +30,15 @@ export const checkAccess = async (userId: string, collectionId: string) => {
     .single()
   
   return { hasAccess: !error && !!data, purchase: data }
+}
+
+// New function to check if user can make purchases (allows admin users)
+export const canMakePurchase = async (userId: string) => {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return false
+  
+  // Allow all authenticated users to make purchases, including admin
+  return true
 }
 
 export const getUserRole = (email: string) => {

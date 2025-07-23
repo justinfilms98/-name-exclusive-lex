@@ -39,6 +39,7 @@ export default function WatchPage() {
         }
 
         setCollection(collectionData);
+        console.log('Collection data:', collectionData);
 
         // Check if user has access
         const { data: accessData, error: accessError } = await checkAccess(session.user.id, id);
@@ -74,13 +75,30 @@ export default function WatchPage() {
 
         // Get signed URLs for photos if they exist
         if (collectionData.photo_paths && collectionData.photo_paths.length > 0) {
-          const photoPromises = collectionData.photo_paths.map(async (path: string) => {
-            const { data, error } = await getSignedUrl('media', path, 3600);
-            return error ? null : data?.signedUrl;
+          console.log('Loading photos from paths:', collectionData.photo_paths);
+          
+          const photoPromises = collectionData.photo_paths.map(async (path: string, index: number) => {
+            try {
+              console.log(`Loading photo ${index + 1}:`, path);
+              const { data, error } = await getSignedUrl('media', path, 3600);
+              if (error) {
+                console.error(`Failed to load photo ${index + 1}:`, error);
+                return null;
+              }
+              console.log(`Successfully loaded photo ${index + 1}:`, data?.signedUrl);
+              return data?.signedUrl;
+            } catch (err) {
+              console.error(`Error loading photo ${index + 1}:`, err);
+              return null;
+            }
           });
 
           const urls = await Promise.all(photoPromises);
-          setPhotoUrls(urls.filter(Boolean) as string[]);
+          const validUrls = urls.filter(Boolean) as string[];
+          console.log('Valid photo URLs loaded:', validUrls.length);
+          setPhotoUrls(validUrls);
+        } else {
+          console.log('No photo paths found in collection data');
         }
 
         // Log the watch activity
@@ -240,7 +258,9 @@ export default function WatchPage() {
         {/* Additional Photos */}
         {photoUrls.length > 0 && (
           <div className="p-8">
-            <h3 className="text-white text-xl font-semibold mb-4">Additional Content</h3>
+            <h3 className="text-white text-xl font-semibold mb-4">
+              Additional Content ({photoUrls.length} photos)
+            </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {photoUrls.map((url, index) => (
                 <div key={index} className="relative">
@@ -249,6 +269,10 @@ export default function WatchPage() {
                     alt={`Content ${index + 1}`}
                     className="w-full h-64 object-cover rounded-lg"
                     onContextMenu={(e) => e.preventDefault()}
+                    onError={(e) => {
+                      console.error(`Failed to load photo ${index + 1}:`, e);
+                      e.currentTarget.style.display = 'none';
+                    }}
                     style={{
                       WebkitUserSelect: 'none',
                       MozUserSelect: 'none',
@@ -259,6 +283,17 @@ export default function WatchPage() {
                 </div>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* Debug info for development */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="p-8 text-white text-sm">
+            <h4 className="font-semibold mb-2">Debug Info:</h4>
+            <p>Collection ID: {id}</p>
+            <p>Photo paths in collection: {collection?.photo_paths?.length || 0}</p>
+            <p>Photos loaded: {photoUrls.length}</p>
+            <p>User: {user?.email}</p>
           </div>
         )}
       </div>
