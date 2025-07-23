@@ -206,11 +206,19 @@ export default function MediaCarousel({ videoPath, photoPaths, onPlay, onPause }
   };
 
   const handlePlayPause = () => {
-    setIsPlaying(!isPlaying);
-    if (isPlaying) {
-      onPause?.();
-    } else {
-      onPlay?.();
+    const video = document.querySelector('video') as HTMLVideoElement;
+    if (video) {
+      if (video.paused) {
+        // Enable audio on first user interaction
+        video.muted = false;
+        video.play();
+        setIsPlaying(true);
+        onPlay?.();
+      } else {
+        video.pause();
+        setIsPlaying(false);
+        onPause?.();
+      }
     }
   };
 
@@ -245,7 +253,6 @@ export default function MediaCarousel({ videoPath, photoPaths, onPlay, onPause }
             controls={false}
             autoPlay={currentIndex === 0}
             loop
-            muted
             onPlay={() => setIsPlaying(true)}
             onPause={() => setIsPlaying(false)}
             onContextMenu={(e) => e.preventDefault()}
