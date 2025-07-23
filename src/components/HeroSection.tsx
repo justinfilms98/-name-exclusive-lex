@@ -20,10 +20,21 @@ export default function HeroSection() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
   const [user, setUser] = useState<any>(null);
+  const [videosLoaded, setVideosLoaded] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     loadHeroVideos();
     loadUser();
+    
+    // Detect mobile device
+    const checkMobile = () => {
+      const userAgent = navigator.userAgent.toLowerCase();
+      const isMobileDevice = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
+      setIsMobile(isMobileDevice);
+    };
+    
+    checkMobile();
   }, []);
 
   useEffect(() => {
@@ -84,6 +95,7 @@ export default function HeroSection() {
         })
       );
       setVideoUrls(urls.filter(url => url !== ''));
+      setVideosLoaded(true);
     } catch (err) {
       console.error('Failed to load video URLs:', err);
     }
@@ -98,6 +110,23 @@ export default function HeroSection() {
   const prevVideo = () => {
     if (heroVideos.length > 1) {
       setCurrentVideoIndex((prev) => (prev - 1 + heroVideos.length) % heroVideos.length);
+    }
+  };
+
+  const handleVideoLoad = (videoElement: HTMLVideoElement) => {
+    // For mobile devices, try to play on first user interaction
+    if (isMobile) {
+      const playVideo = () => {
+        videoElement.play().catch(() => {
+          // If autoplay fails, we'll handle it gracefully
+          console.log('Autoplay blocked on mobile');
+        });
+        document.removeEventListener('touchstart', playVideo);
+        document.removeEventListener('click', playVideo);
+      };
+      
+      document.addEventListener('touchstart', playVideo, { once: true });
+      document.addEventListener('click', playVideo, { once: true });
     }
   };
 
@@ -139,10 +168,12 @@ export default function HeroSection() {
           className={`absolute inset-0 w-full h-full object-cover hero-crossfade ${
             index === currentVideoIndex ? 'opacity-100' : 'opacity-0'
           }`}
-          autoPlay
+          autoPlay={!isMobile}
+          muted={isMobile}
           loop
           playsInline
           preload="metadata"
+          onLoadedData={(e) => handleVideoLoad(e.currentTarget)}
         >
           <source src={videoUrl} type="video/mp4" />
           <source src={videoUrl} type="video/webm" />
@@ -151,6 +182,28 @@ export default function HeroSection() {
 
       {/* Dark Overlay for Text Readability */}
       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
+
+      {/* Mobile Play Button Overlay */}
+      {isMobile && videosLoaded && (
+        <div className="absolute inset-0 flex items-center justify-center z-20">
+          <button
+            onClick={() => {
+              const videos = document.querySelectorAll('video');
+              videos.forEach(video => {
+                video.muted = false;
+                video.play().catch(() => {
+                  console.log('Playback failed');
+                });
+              });
+            }}
+            className="bg-black/50 text-white p-6 rounded-full backdrop-blur-sm hover:bg-black/70 transition-all"
+          >
+            <svg className="w-12 h-12" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M8 5v14l11-7z"/>
+            </svg>
+          </button>
+        </div>
+      )}
 
       {/* Content */}
       <div className="relative z-10 h-full flex items-center justify-center">
