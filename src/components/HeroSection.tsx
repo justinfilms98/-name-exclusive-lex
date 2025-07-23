@@ -36,7 +36,27 @@ export default function HeroSection() {
     };
     
     checkMobile();
-  }, []);
+    
+    // Force autoplay on mobile after a short delay
+    if (isMobile) {
+      setTimeout(() => {
+        const videos = document.querySelectorAll('video');
+        videos.forEach(video => {
+          video.muted = true;
+          video.playsInline = true;
+          video.play().then(() => {
+            setVideosPlaying(true);
+            // Try to unmute after successful play
+            setTimeout(() => {
+              video.muted = false;
+            }, 200);
+          }).catch(() => {
+            console.log('Autoplay failed, will wait for user interaction');
+          });
+        });
+      }, 500);
+    }
+  }, [isMobile]);
 
   useEffect(() => {
     if (heroVideos.length > 0) {
@@ -117,10 +137,17 @@ export default function HeroSection() {
   const handleVideoLoad = (videoElement: HTMLVideoElement) => {
     // For mobile devices, try to autoplay immediately
     if (isMobile) {
+      // Start muted for autoplay to work
+      videoElement.muted = true;
+      videoElement.playsInline = true;
+      
       // Try to play immediately
       videoElement.play().then(() => {
         setVideosPlaying(true);
-        videoElement.muted = false; // Enable audio after successful play
+        // Try to unmute after a short delay
+        setTimeout(() => {
+          videoElement.muted = false;
+        }, 100);
       }).catch(() => {
         // If autoplay fails, set up user interaction handlers
         console.log('Autoplay blocked on mobile, waiting for user interaction');
@@ -179,11 +206,11 @@ export default function HeroSection() {
           className={`absolute inset-0 w-full h-full object-cover hero-crossfade ${
             index === currentVideoIndex ? 'opacity-100' : 'opacity-0'
           }`}
-          autoPlay={!isMobile}
+          autoPlay={true}
           muted={isMobile}
           loop
           playsInline
-          preload="metadata"
+          preload="auto"
           onLoadedData={(e) => handleVideoLoad(e.currentTarget)}
           onPlay={() => setVideosPlaying(true)}
           onPause={() => setVideosPlaying(false)}
