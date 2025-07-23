@@ -171,6 +171,11 @@ export default function CartPage() {
 
     setCheckoutLoading(true);
 
+    // Log mobile detection for debugging
+    const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    console.log('Mobile device detected:', isMobileDevice);
+    console.log('User agent:', navigator.userAgent);
+
     try {
       // Get the user's session token
       const { data: { session } } = await supabase.auth.getSession();
@@ -200,14 +205,24 @@ export default function CartPage() {
       }
 
       if (data.sessionId) {
-        // Redirect to Stripe checkout
+        // Use direct URL redirect for better mobile compatibility
         const stripe = await loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
         if (stripe) {
-          const { error } = await stripe.redirectToCheckout({ sessionId: data.sessionId });
-          if (error) {
-            console.error('Stripe checkout error:', error);
-            alert('Failed to redirect to checkout. Please try again.');
+          try {
+            const { error } = await stripe.redirectToCheckout({ sessionId: data.sessionId });
+            if (error) {
+              console.error('Stripe checkout error:', error);
+              // Fallback to direct URL redirect
+              window.location.href = `https://checkout.stripe.com/pay/${data.sessionId}`;
+            }
+          } catch (redirectError) {
+            console.error('Redirect error:', redirectError);
+            // Fallback to direct URL redirect
+            window.location.href = `https://checkout.stripe.com/pay/${data.sessionId}`;
           }
+        } else {
+          // Fallback if Stripe fails to load
+          window.location.href = `https://checkout.stripe.com/pay/${data.sessionId}`;
         }
       }
     } catch (error) {

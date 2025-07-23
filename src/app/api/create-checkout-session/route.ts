@@ -141,7 +141,7 @@ export async function POST(request: NextRequest) {
       stripePriceId = price.id;
     }
 
-    // Create checkout session
+    // Create checkout session with mobile-friendly settings
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [
@@ -157,6 +157,12 @@ export async function POST(request: NextRequest) {
         collection_id: collectionId,
         user_id: user.id,
         duration: collection.duration.toString(),
+      },
+      // Mobile-friendly settings
+      billing_address_collection: 'auto',
+      allow_promotion_codes: true,
+      phone_number_collection: {
+        enabled: true,
       },
     });
 

@@ -58,13 +58,24 @@ export default function CollectionsClient({ collections, user }: CollectionsClie
 
       const { sessionId } = await response.json();
       if (sessionId) {
-        // Redirect to Stripe checkout
+        // Use direct URL redirect for better mobile compatibility
         const stripe = await loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
         if (stripe) {
-          const { error } = await stripe.redirectToCheckout({ sessionId });
-          if (error) {
-            console.error('Stripe checkout error:', error);
+          try {
+            const { error } = await stripe.redirectToCheckout({ sessionId });
+            if (error) {
+              console.error('Stripe checkout error:', error);
+              // Fallback to direct URL redirect
+              window.location.href = `https://checkout.stripe.com/pay/${sessionId}`;
+            }
+          } catch (redirectError) {
+            console.error('Redirect error:', redirectError);
+            // Fallback to direct URL redirect
+            window.location.href = `https://checkout.stripe.com/pay/${sessionId}`;
           }
+        } else {
+          // Fallback if Stripe fails to load
+          window.location.href = `https://checkout.stripe.com/pay/${sessionId}`;
         }
       }
     } catch (error) {
