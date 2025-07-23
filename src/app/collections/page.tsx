@@ -24,6 +24,7 @@ export default function CollectionsPage() {
   const [userPurchases, setUserPurchases] = useState<string[]>([]);
   const [thumbnailUrls, setThumbnailUrls] = useState<{[key: string]: string}>({});
   const [addingToCart, setAddingToCart] = useState<string | null>(null);
+  const [expandedDescriptions, setExpandedDescriptions] = useState<{[key: string]: boolean}>({});
   const router = useRouter();
 
   useEffect(() => {
@@ -134,6 +135,13 @@ export default function CollectionsPage() {
     return dollars.toFixed(2);
   };
 
+  const toggleDescription = (collectionId: string) => {
+    setExpandedDescriptions(prev => ({
+      ...prev,
+      [collectionId]: !prev[collectionId]
+    }));
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-almond pt-20 flex items-center justify-center">
@@ -219,9 +227,22 @@ export default function CollectionsPage() {
                         </h3>
                         
                         {/* Description */}
-                        <p className="text-blanket/90 text-sm mb-3 line-clamp-3 opacity-0 group-hover:opacity-100 transition-opacity duration-700 delay-100">
-                          {collection.description}
-                        </p>
+                        <div className="text-blanket/90 text-sm mb-3 opacity-0 group-hover:opacity-100 transition-opacity duration-700 delay-100">
+                          <p className={`${expandedDescriptions[collection.id] ? '' : 'line-clamp-3'}`}>
+                            {collection.description}
+                          </p>
+                          {collection.description.length > 150 && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleDescription(collection.id);
+                              }}
+                              className="text-blanc/80 hover:text-blanc text-xs mt-1 underline"
+                            >
+                              {expandedDescriptions[collection.id] ? 'Show Less' : 'Read More'}
+                            </button>
+                          )}
+                        </div>
 
                         {/* Metadata Row */}
                         <div className="flex items-center justify-between text-xs text-blanket/80 mb-4 opacity-0 group-hover:opacity-100 transition-opacity duration-700 delay-200">

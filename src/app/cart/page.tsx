@@ -34,6 +34,7 @@ export default function CartPage() {
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [thumbnailUrls, setThumbnailUrls] = useState<{[key: string]: string}>({});
   const [addingItems, setAddingItems] = useState<Set<string>>(new Set());
+  const [expandedDescriptions, setExpandedDescriptions] = useState<{[key: string]: boolean}>({});
 
   useEffect(() => {
     // Get user session
@@ -151,6 +152,13 @@ export default function CartPage() {
   const formatDuration = (seconds: number): string => {
     const minutes = Math.floor(seconds / 60);
     return `${minutes} min`;
+  };
+
+  const toggleDescription = (itemId: string) => {
+    setExpandedDescriptions(prev => ({
+      ...prev,
+      [itemId]: !prev[itemId]
+    }));
   };
 
   const handleCheckout = async () => {
@@ -311,9 +319,19 @@ export default function CartPage() {
                         <h3 className="text-xl font-serif text-earth mb-2">
                           {item.title}
                         </h3>
-                        <p className="text-sage text-sm mb-3 line-clamp-2">
-                          {item.description}
-                        </p>
+                        <div className="text-sage text-sm mb-3">
+                          <p className={`${expandedDescriptions[item.id] ? '' : 'line-clamp-2'}`}>
+                            {item.description}
+                          </p>
+                          {item.description.length > 100 && (
+                            <button
+                              onClick={() => toggleDescription(item.id)}
+                              className="text-khaki hover:text-earth text-xs mt-1 underline"
+                            >
+                              {expandedDescriptions[item.id] ? 'Show Less' : 'Read More'}
+                            </button>
+                          )}
+                        </div>
                         
                         <div className="flex items-center space-x-4 text-xs text-sage">
                           <div className="flex items-center">
@@ -466,9 +484,19 @@ export default function CartPage() {
                         {collection.title}
                       </h3>
                       
-                      <p className="text-sage text-sm mb-3 line-clamp-2">
-                        {collection.description}
-                      </p>
+                      <div className="text-sage text-sm mb-3">
+                        <p className={`${expandedDescriptions[collection.id] ? '' : 'line-clamp-2'}`}>
+                          {collection.description}
+                        </p>
+                        {collection.description.length > 100 && (
+                          <button
+                            onClick={() => toggleDescription(collection.id)}
+                            className="text-khaki hover:text-earth text-xs mt-1 underline"
+                          >
+                            {expandedDescriptions[collection.id] ? 'Show Less' : 'Read More'}
+                          </button>
+                        )}
+                      </div>
 
                       <div className="flex items-center justify-between mb-4">
                         <div className="text-xs text-sage">
