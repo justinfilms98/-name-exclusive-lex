@@ -22,6 +22,7 @@ export default function HeroSection() {
   const [user, setUser] = useState<any>(null);
   const [videosLoaded, setVideosLoaded] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [videosPlaying, setVideosPlaying] = useState(false);
 
   useEffect(() => {
     loadHeroVideos();
@@ -114,19 +115,29 @@ export default function HeroSection() {
   };
 
   const handleVideoLoad = (videoElement: HTMLVideoElement) => {
-    // For mobile devices, try to play on first user interaction
+    // For mobile devices, try to autoplay immediately
     if (isMobile) {
-      const playVideo = () => {
-        videoElement.play().catch(() => {
-          // If autoplay fails, we'll handle it gracefully
-          console.log('Autoplay blocked on mobile');
-        });
-        document.removeEventListener('touchstart', playVideo);
-        document.removeEventListener('click', playVideo);
-      };
-      
-      document.addEventListener('touchstart', playVideo, { once: true });
-      document.addEventListener('click', playVideo, { once: true });
+      // Try to play immediately
+      videoElement.play().then(() => {
+        setVideosPlaying(true);
+        videoElement.muted = false; // Enable audio after successful play
+      }).catch(() => {
+        // If autoplay fails, set up user interaction handlers
+        console.log('Autoplay blocked on mobile, waiting for user interaction');
+        const playVideo = () => {
+          videoElement.muted = false;
+          videoElement.play().then(() => {
+            setVideosPlaying(true);
+          }).catch(() => {
+            console.log('Playback failed');
+          });
+          document.removeEventListener('touchstart', playVideo);
+          document.removeEventListener('click', playVideo);
+        };
+        
+        document.addEventListener('touchstart', playVideo, { once: true });
+        document.addEventListener('click', playVideo, { once: true });
+      });
     }
   };
 
@@ -174,6 +185,8 @@ export default function HeroSection() {
           playsInline
           preload="metadata"
           onLoadedData={(e) => handleVideoLoad(e.currentTarget)}
+          onPlay={() => setVideosPlaying(true)}
+          onPause={() => setVideosPlaying(false)}
         >
           <source src={videoUrl} type="video/mp4" />
           <source src={videoUrl} type="video/webm" />
@@ -183,15 +196,17 @@ export default function HeroSection() {
       {/* Dark Overlay for Text Readability */}
       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
 
-      {/* Mobile Play Button Overlay */}
-      {isMobile && videosLoaded && (
+      {/* Mobile Play Button Overlay - Only show when videos are not playing */}
+      {isMobile && videosLoaded && !videosPlaying && (
         <div className="absolute inset-0 flex items-center justify-center z-20">
           <button
             onClick={() => {
               const videos = document.querySelectorAll('video');
               videos.forEach(video => {
                 video.muted = false;
-                video.play().catch(() => {
+                video.play().then(() => {
+                  setVideosPlaying(true);
+                }).catch(() => {
                   console.log('Playback failed');
                 });
               });
