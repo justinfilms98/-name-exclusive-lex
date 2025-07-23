@@ -166,7 +166,7 @@ export const deleteHeroVideo = async (id: string) => {
 // Database functions
 export const createCollection = async (collection: any) => {
   const { data, error } = await supabase
-    .from('Collection')
+    .from('collections')
     .insert([collection])
     .select()
   return { data, error }
@@ -174,7 +174,7 @@ export const createCollection = async (collection: any) => {
 
 export const getCollections = async () => {
   const { data, error } = await supabase
-    .from('Collection')
+    .from('collections')
     .select('*')
     .order('created_at', { ascending: false })
   return { data, error }
@@ -182,7 +182,7 @@ export const getCollections = async () => {
 
 export const getCollection = async (id: string) => {
   const { data, error } = await supabase
-    .from('Collection')
+    .from('collections')
     .select('*')
     .eq('id', id)
     .single()
