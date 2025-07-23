@@ -104,13 +104,22 @@ export async function POST(request: NextRequest) {
       }
       
       // Remove admin email restriction - allow all authenticated users to purchase
-      console.log('User authenticated:', user.id, 'Email:', user.email);
+      console.log('User authenticated:', authUser.id, 'Email:', authUser.email);
       
       user = authUser;
     } catch (authErr) {
       console.log('Auth exception:', authErr);
       return NextResponse.json(
         { error: 'Authentication failed' },
+        { status: 401 }
+      );
+    }
+
+    // Double-check user object exists and has required properties
+    if (!user || !user.id) {
+      console.log('Error: Invalid user object after authentication');
+      return NextResponse.json(
+        { error: 'Invalid user data' },
         { status: 401 }
       );
     }

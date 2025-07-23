@@ -178,20 +178,41 @@ export default function CartPage() {
 
     try {
       // Get the user's session token with better mobile handling
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) {
+        console.error('Session error:', sessionError);
+        alert('Authentication error. Please try logging in again.');
+        window.location.href = '/login';
+        return;
+      }
+      
       if (!session) {
         console.log('No session found, redirecting to login');
         window.location.href = '/login';
         return;
       }
+
+      console.log('Session found:', !!session);
+      console.log('Session user ID:', session.user?.id);
+      console.log('Session access token length:', session.access_token?.length);
       
       // Validate the session is still valid
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      if (userError || !user) {
-        console.log('Invalid session, redirecting to login');
+      const { data: { user: currentUser }, error: userError } = await supabase.auth.getUser();
+      if (userError) {
+        console.error('User validation error:', userError);
+        alert('Authentication validation failed. Please try logging in again.');
         window.location.href = '/login';
         return;
       }
+      
+      if (!currentUser) {
+        console.log('No current user found, redirecting to login');
+        window.location.href = '/login';
+        return;
+      }
+
+      console.log('Current user validated:', currentUser.id);
+      console.log('Current user email:', currentUser.email);
 
       const response = await fetch('/api/create-checkout-session', {
         method: 'POST',
@@ -202,7 +223,7 @@ export default function CartPage() {
         },
         body: JSON.stringify({
           items: cartItems,
-          userId: user.id,
+          userId: currentUser.id,
         }),
       });
 
