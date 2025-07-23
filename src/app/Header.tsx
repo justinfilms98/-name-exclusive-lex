@@ -52,9 +52,24 @@ export default function Header() {
   }, []);
 
   const handleSignIn = async () => {
-    const { error } = await signInWithGoogle();
-    if (error) {
-      console.error('Sign in error:', error);
+    try {
+      // Clear any existing auth data to force fresh login
+      if (typeof window !== 'undefined') {
+        // Clear any cached auth data
+        const keys = Object.keys(localStorage);
+        keys.forEach(key => {
+          if (key.includes('supabase') || key.includes('auth') || key.includes('google')) {
+            localStorage.removeItem(key);
+          }
+        });
+      }
+      
+      const { error } = await signInWithGoogle();
+      if (error) {
+        console.error('Sign in error:', error);
+      }
+    } catch (err) {
+      console.error('Sign in exception:', err);
     }
   };
 
@@ -82,6 +97,9 @@ export default function Header() {
         localStorage.setItem('cart', JSON.stringify([]));
         window.dispatchEvent(new Event('cartUpdated'));
       }
+      
+      // Show a brief message about account switching
+      console.log('Logout completed. You can now switch accounts on next login.');
       
       // Force a complete page reload to ensure clean state
       console.log('Redirecting to home page...');
@@ -197,6 +215,7 @@ export default function Header() {
                 <button
                   onClick={handleSignIn}
                   className="btn-secondary text-sm px-3 py-2 sm:px-4 whitespace-nowrap"
+                  title="Sign in with Google (you can switch accounts)"
                 >
                   <span className="hidden sm:inline">Sign In</span>
                   <span className="sm:hidden">Sign In</span>

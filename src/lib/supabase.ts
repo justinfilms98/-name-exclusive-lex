@@ -23,7 +23,10 @@ export const signInWithGoogle = async () => {
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: `${window.location.origin}/auth/callback`
+      redirectTo: `${window.location.origin}/auth/callback`,
+      queryParams: {
+        prompt: 'select_account' // Force account selection
+      }
     }
   })
   return { data, error }
@@ -49,6 +52,11 @@ export const signOut = async () => {
           localStorage.removeItem(key);
         }
       });
+      
+      // Clear Google OAuth session by redirecting to Google's logout
+      // This forces the user to choose an account on next login
+      const googleLogoutUrl = 'https://accounts.google.com/logout';
+      window.open(googleLogoutUrl, '_blank', 'width=1,height=1');
     }
     
     return { error }
