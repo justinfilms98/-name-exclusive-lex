@@ -21,6 +21,8 @@ export default function WatchPage() {
   useEffect(() => {
     const checkUserAccess = async () => {
       try {
+        console.log('Starting checkUserAccess for collection:', id);
+        
         // Get current user
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) {
@@ -38,8 +40,10 @@ export default function WatchPage() {
           return;
         }
 
+        console.log('Collection data loaded:', collectionData);
+        console.log('Collection photo_paths:', collectionData.photo_paths);
+
         setCollection(collectionData);
-        console.log('Collection data:', collectionData);
 
         // Check if user has access
         const { data: accessData, error: accessError } = await checkAccess(session.user.id, id);
