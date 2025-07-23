@@ -45,6 +45,7 @@ export default function CollectionsClient({ collections, user }: CollectionsClie
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session.access_token}`,
+          'User-Agent': navigator.userAgent,
         },
         body: JSON.stringify({
           collectionId,

@@ -189,6 +189,7 @@ export default function CartPage() {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session.access_token}`,
+          'User-Agent': navigator.userAgent,
         },
         body: JSON.stringify({
           items: cartItems,

@@ -68,6 +68,10 @@ export async function POST(request: NextRequest) {
     // Get the current user from auth header
     console.log('Checking authentication');
     const authHeader = request.headers.get('authorization');
+    const userAgent = request.headers.get('user-agent') || 'unknown';
+    console.log('User agent:', userAgent);
+    console.log('Auth header present:', !!authHeader);
+    
     if (!authHeader) {
       console.log('Error: No authorization header');
       return NextResponse.json(
@@ -78,20 +82,32 @@ export async function POST(request: NextRequest) {
 
     const token = authHeader.replace('Bearer ', '');
     console.log('Token length:', token.length);
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    
+    let user;
+    try {
+      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(token);
 
-    if (authError) {
-      console.log('Auth error:', authError);
-      return NextResponse.json(
-        { error: 'Invalid authentication' },
-        { status: 401 }
-      );
-    }
+      if (authError) {
+        console.log('Auth error:', authError);
+        return NextResponse.json(
+          { error: 'Invalid authentication' },
+          { status: 401 }
+        );
+      }
 
-    if (!user) {
-      console.log('Error: No user found');
+      if (!authUser) {
+        console.log('Error: No user found');
+        return NextResponse.json(
+          { error: 'Invalid authentication' },
+          { status: 401 }
+        );
+      }
+      
+      user = authUser;
+    } catch (authErr) {
+      console.log('Auth exception:', authErr);
       return NextResponse.json(
-        { error: 'Invalid authentication' },
+        { error: 'Authentication failed' },
         { status: 401 }
       );
     }

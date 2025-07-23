@@ -59,13 +59,28 @@ export default function Header() {
   };
 
   const handleSignOut = async () => {
-    const { error } = await signOut();
-    if (error) {
-      console.error('Sign out error:', error);
+    try {
+      const { error } = await signOut();
+      if (error) {
+        console.error('Sign out error:', error);
+      }
+      
+      // Clear cart on logout
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('cart', JSON.stringify([]));
+        window.dispatchEvent(new Event('cartUpdated'));
+      }
+      
+      // Force page reload to ensure clean state
+      window.location.href = '/';
+    } catch (err) {
+      console.error('Sign out exception:', err);
+      // Force logout even if there's an error
+      if (typeof window !== 'undefined') {
+        localStorage.clear();
+        window.location.href = '/';
+      }
     }
-    // Clear cart on logout
-    localStorage.setItem('cart', JSON.stringify([]));
-    window.dispatchEvent(new Event('cartUpdated'));
   };
 
   const closeMobileMenu = () => {
