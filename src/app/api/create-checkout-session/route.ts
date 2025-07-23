@@ -103,6 +103,21 @@ export async function POST(request: NextRequest) {
         );
       }
       
+      // Additional validation for mobile browsers
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+      if (isMobile) {
+        console.log('Mobile device detected, additional validation...');
+        // Try to get fresh session data
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError || !session) {
+          console.log('Mobile session validation failed');
+          return NextResponse.json(
+            { error: 'Mobile authentication failed - please try logging in again' },
+            { status: 401 }
+          );
+        }
+      }
+      
       user = authUser;
     } catch (authErr) {
       console.log('Auth exception:', authErr);

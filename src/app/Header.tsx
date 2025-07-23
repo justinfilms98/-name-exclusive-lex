@@ -60,25 +60,40 @@ export default function Header() {
 
   const handleSignOut = async () => {
     try {
+      console.log('Starting logout process...');
+      
+      // First, clear all storage
+      if (typeof window !== 'undefined') {
+        localStorage.clear();
+        sessionStorage.clear();
+        console.log('Storage cleared');
+      }
+      
+      // Then sign out from Supabase
       const { error } = await signOut();
       if (error) {
         console.error('Sign out error:', error);
       }
       
-      // Clear cart on logout
+      console.log('Supabase sign out completed');
+      
+      // Clear cart specifically
       if (typeof window !== 'undefined') {
         localStorage.setItem('cart', JSON.stringify([]));
         window.dispatchEvent(new Event('cartUpdated'));
       }
       
-      // Force page reload to ensure clean state
-      window.location.href = '/';
+      // Force a complete page reload to ensure clean state
+      console.log('Redirecting to home page...');
+      window.location.replace('/');
+      
     } catch (err) {
       console.error('Sign out exception:', err);
       // Force logout even if there's an error
       if (typeof window !== 'undefined') {
         localStorage.clear();
-        window.location.href = '/';
+        sessionStorage.clear();
+        window.location.replace('/');
       }
     }
   };

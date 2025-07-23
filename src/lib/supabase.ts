@@ -30,8 +30,32 @@ export const signInWithGoogle = async () => {
 }
 
 export const signOut = async () => {
-  const { error } = await supabase.auth.signOut()
-  return { error }
+  try {
+    // Clear all local storage and session storage
+    if (typeof window !== 'undefined') {
+      localStorage.clear();
+      sessionStorage.clear();
+    }
+    
+    // Sign out from Supabase
+    const { error } = await supabase.auth.signOut()
+    
+    // Additional cleanup for mobile browsers
+    if (typeof window !== 'undefined') {
+      // Clear any remaining auth data
+      const keys = Object.keys(localStorage);
+      keys.forEach(key => {
+        if (key.includes('supabase') || key.includes('auth')) {
+          localStorage.removeItem(key);
+        }
+      });
+    }
+    
+    return { error }
+  } catch (err) {
+    console.error('Sign out error:', err);
+    return { error: err }
+  }
 }
 
 export const getCurrentUser = async () => {
@@ -40,8 +64,21 @@ export const getCurrentUser = async () => {
 }
 
 export const getSession = async () => {
-  const { data: { session } } = await supabase.auth.getSession()
-  return session
+  try {
+    const { data: { session }, error } = await supabase.auth.getSession()
+    
+    // For mobile browsers, try to refresh the session if it's expired
+    if (!session && typeof window !== 'undefined') {
+      console.log('No session found, attempting to refresh...');
+      const { data: { session: refreshedSession } } = await supabase.auth.refreshSession();
+      return refreshedSession;
+    }
+    
+    return session
+  } catch (err) {
+    console.error('Get session error:', err);
+    return null
+  }
 }
 
 // Storage functions

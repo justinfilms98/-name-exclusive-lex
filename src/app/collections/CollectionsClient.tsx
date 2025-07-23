@@ -33,9 +33,18 @@ export default function CollectionsClient({ collections, user }: CollectionsClie
     }
 
     try {
-      // Get the user's session token
+      // Get the user's session token with better mobile handling
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
+        console.log('No session found, redirecting to login');
+        router.push('/login');
+        return;
+      }
+      
+      // Validate the session is still valid
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError || !user) {
+        console.log('Invalid session, redirecting to login');
         router.push('/login');
         return;
       }
