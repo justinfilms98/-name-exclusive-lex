@@ -240,17 +240,24 @@ export default function HeroSection() {
               </p>
             )}
 
-            {/* CTA Button - Only show when user is signed in */}
-            {user && (
-              <div className="animate-fade-in">
+            {/* CTA Button - Dynamic based on user authentication */}
+            <div className="animate-fade-in">
+              {user ? (
                 <Link
                   href="/collections"
                   className="inline-flex items-center btn-primary text-lg px-8 py-4 shadow-elegant hover:shadow-glass"
                 >
                   View Collections
                 </Link>
-              </div>
-            )}
+              ) : (
+                <Link
+                  href="/login"
+                  className="inline-flex items-center btn-primary text-lg px-8 py-4 shadow-elegant hover:shadow-glass"
+                >
+                  Login or Sign Up Now
+                </Link>
+              )}
+            </div>
           </div>
         </div>
       </div>
