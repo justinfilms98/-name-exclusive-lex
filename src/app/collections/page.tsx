@@ -331,7 +331,7 @@ export default function CollectionsPage() {
             {!user && (
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Link href="/login" className="btn-primary">
-                  Sign In with Google
+                  Sign Up / Sign In
                 </Link>
                 <Link href="/cart" className="btn-secondary">
                   View Cart

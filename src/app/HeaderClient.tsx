@@ -82,7 +82,7 @@ export default function HeaderClient() {
           onClick={handleSignIn}
           className="text-sm bg-stone-800 text-white px-4 py-2 rounded hover:bg-stone-900 transition-colors"
         >
-          Sign In with Google
+          Sign Up / Sign In
         </button>
       )}
     </div>

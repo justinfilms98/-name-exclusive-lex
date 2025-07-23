@@ -462,7 +462,7 @@ export default function CartPage() {
                       href="/login"
                       className="w-full btn-secondary text-center block"
                     >
-                      Sign In with Google
+                      Sign Up / Sign In
                     </Link>
                   </div>
                 )}
