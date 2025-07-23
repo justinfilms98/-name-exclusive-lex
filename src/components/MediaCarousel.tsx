@@ -23,6 +23,7 @@ export default function MediaCarousel({ videoPath, photoPaths, onPlay, onPause }
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isMuted, setIsMuted] = useState(true); // Start muted for autoplay
 
   useEffect(() => {
     const loadMedia = async () => {
@@ -211,6 +212,7 @@ export default function MediaCarousel({ videoPath, photoPaths, onPlay, onPause }
       if (video.paused) {
         // Enable audio on first user interaction
         video.muted = false;
+        setIsMuted(false);
         video.play();
         setIsPlaying(true);
         onPlay?.();
@@ -218,6 +220,17 @@ export default function MediaCarousel({ videoPath, photoPaths, onPlay, onPause }
         video.pause();
         setIsPlaying(false);
         onPause?.();
+      }
+    }
+  };
+
+  // Auto-unmute on first user interaction
+  const handleVideoInteraction = () => {
+    if (isMuted) {
+      const video = document.querySelector('video') as HTMLVideoElement;
+      if (video) {
+        video.muted = false;
+        setIsMuted(false);
       }
     }
   };
@@ -252,9 +265,12 @@ export default function MediaCarousel({ videoPath, photoPaths, onPlay, onPause }
             className="w-full h-full object-cover"
             controls={false}
             autoPlay={currentIndex === 0}
+            muted={isMuted}
             loop
+            playsInline
             onPlay={() => setIsPlaying(true)}
             onPause={() => setIsPlaying(false)}
+            onClick={handleVideoInteraction}
             onContextMenu={(e) => e.preventDefault()}
             style={{ userSelect: 'none', WebkitUserSelect: 'none' }}
           >
