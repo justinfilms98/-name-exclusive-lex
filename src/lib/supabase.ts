@@ -183,7 +183,7 @@ export const getCollections = async () => {
 export const getCollection = async (id: string) => {
   const { data, error } = await supabase
     .from('collections')
-    .select('*')
+    .select('*, photo_paths')
     .eq('id', id)
     .single()
   return { data, error }

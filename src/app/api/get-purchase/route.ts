@@ -25,7 +25,7 @@ export async function GET(request: Request) {
   // Now get the collection details
   const { data: collection, error: collectionError } = await supabase
     .from('collections')
-    .select('id, title, description, video_path, thumbnail_path, duration')
+    .select('id, title, description, video_path, thumbnail_path, duration, photo_paths')
     .eq('id', purchase.collection_id)
     .single()
 
