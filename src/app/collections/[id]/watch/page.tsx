@@ -76,13 +76,19 @@ export default function WatchPage() {
         // Get signed URLs for photos if they exist
         if (collectionData.photo_paths && collectionData.photo_paths.length > 0) {
           console.log('Loading photos from paths:', collectionData.photo_paths);
+          console.log('Photo paths type:', typeof collectionData.photo_paths);
+          console.log('Photo paths length:', collectionData.photo_paths.length);
           
           const photoPromises = collectionData.photo_paths.map(async (path: string, index: number) => {
             try {
               console.log(`Loading photo ${index + 1}:`, path);
+              console.log(`Photo path type:`, typeof path);
+              console.log(`Photo path length:`, path.length);
+              
               const { data, error } = await getSignedUrl('media', path, 3600);
               if (error) {
                 console.error(`Failed to load photo ${index + 1}:`, error);
+                console.error(`Error details:`, error.message);
                 return null;
               }
               console.log(`Successfully loaded photo ${index + 1}:`, data?.signedUrl);
@@ -96,9 +102,12 @@ export default function WatchPage() {
           const urls = await Promise.all(photoPromises);
           const validUrls = urls.filter(Boolean) as string[];
           console.log('Valid photo URLs loaded:', validUrls.length);
+          console.log('Valid URLs:', validUrls);
           setPhotoUrls(validUrls);
         } else {
           console.log('No photo paths found in collection data');
+          console.log('Collection data keys:', Object.keys(collectionData));
+          console.log('Photo paths value:', collectionData.photo_paths);
         }
 
         // Log the watch activity
