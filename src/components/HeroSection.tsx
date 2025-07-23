@@ -140,7 +140,6 @@ export default function HeroSection() {
             index === currentVideoIndex ? 'opacity-100' : 'opacity-0'
           }`}
           autoPlay
-          muted
           loop
           playsInline
           preload="metadata"
@@ -156,26 +155,35 @@ export default function HeroSection() {
       {/* Content */}
       <div className="relative z-10 h-full flex items-center justify-center">
         <div className="text-center text-blanc max-w-4xl mx-auto px-4">
-          <h1 className="text-5xl md:text-6xl lg:text-7xl font-serif mb-4 text-shadow-lg animate-fade-in">
-            {currentVideo.title}
-          </h1>
-          {currentVideo.subtitle && (
-            <p className="text-xl md:text-2xl lg:text-3xl text-blanket mb-8 text-shadow animate-fade-in">
-              {currentVideo.subtitle}
-            </p>
-          )}
+          <div className="hero-text-container bg-black/20 backdrop-blur-sm rounded-lg p-8 border border-amber-200/30 shadow-2xl">
+            <h1 
+              className="text-5xl md:text-6xl lg:text-7xl mb-4 text-shadow-lg animate-fade-in"
+              style={{ 
+                fontFamily: 'Vogue, serif',
+                fontWeight: 'normal',
+                letterSpacing: '0.05em'
+              }}
+            >
+              {currentVideo.title}
+            </h1>
+            {currentVideo.subtitle && (
+              <p className="text-xl md:text-2xl lg:text-3xl text-blanket mb-8 text-shadow animate-fade-in">
+                {currentVideo.subtitle}
+              </p>
+            )}
 
-          {/* CTA Button - Only show when user is signed in */}
-          {user && (
-            <div className="animate-fade-in">
-              <Link
-                href="/collections"
-                className="inline-flex items-center btn-primary text-lg px-8 py-4 shadow-elegant hover:shadow-glass"
-              >
-                View Collections
-              </Link>
-            </div>
-          )}
+            {/* CTA Button - Only show when user is signed in */}
+            {user && (
+              <div className="animate-fade-in">
+                <Link
+                  href="/collections"
+                  className="inline-flex items-center btn-primary text-lg px-8 py-4 shadow-elegant hover:shadow-glass"
+                >
+                  View Collections
+                </Link>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
