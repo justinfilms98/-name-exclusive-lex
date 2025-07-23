@@ -129,7 +129,9 @@ export default function CollectionsPage() {
   };
 
   const formatPrice = (price: number): string => {
-    return price.toFixed(2);
+    // Price is stored as cents, convert to dollars
+    const dollars = price / 100;
+    return dollars.toFixed(2);
   };
 
   if (loading) {

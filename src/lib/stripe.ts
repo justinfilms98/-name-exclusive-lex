@@ -93,10 +93,12 @@ export function constructWebhookEvent(
 
 // Helper function to format price for display
 export function formatPrice(price: number): string {
+  // Price is stored as cents, convert to dollars for display
+  const dollars = price / 100;
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
-  }).format(price);
+  }).format(dollars);
 }
 
 // Helper function to convert Stripe amount to dollars

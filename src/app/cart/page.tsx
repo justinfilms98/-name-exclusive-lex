@@ -141,7 +141,7 @@ export default function CartPage() {
   };
 
   const getTotalPrice = () => {
-    return cartItems.reduce((total, item) => total + item.price, 0);
+    return cartItems.reduce((total, item) => total + (item.price / 100), 0);
   };
 
   const getTotalDuration = () => {
@@ -330,7 +330,7 @@ export default function CartPage() {
                       {/* Price & Actions */}
                       <div className="flex flex-col items-end space-y-3">
                         <div className="text-2xl font-bold text-earth">
-                          ${item.price.toFixed(2)}
+                          ${(item.price / 100).toFixed(2)}
                         </div>
                         <button
                           onClick={() => removeFromCart(item.id)}
@@ -475,7 +475,7 @@ export default function CartPage() {
                           {collection.photo_paths?.length || 0} photos • {formatDuration(collection.duration)}
                         </div>
                         <div className="text-lg font-bold text-earth">
-                          ${collection.price.toFixed(2)}
+                          ${(collection.price / 100).toFixed(2)}
                         </div>
                       </div>
 

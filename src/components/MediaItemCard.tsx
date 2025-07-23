@@ -99,7 +99,7 @@ export const MediaItemCard: React.FC<MediaItemCardProps> = ({
           </p>
           
           <p className="text-brand-tan font-bold text-lg mb-2">
-            ${item.price.toFixed(2)}
+            ${(item.price / 100).toFixed(2)}
           </p>
           
           <p className="text-brand-earth text-xs mb-3">

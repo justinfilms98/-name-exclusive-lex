@@ -152,7 +152,7 @@ export default function UploadForm() {
         id: collectionId,
         title: formData.title,
         description: formData.description,
-        price: parseFloat(formData.price),
+        price: Math.round(parseFloat(formData.price) * 100), // Convert dollars to cents
         duration: parseInt(formData.duration),
         video_path: videoPath,
         thumbnail_path: thumbnailPath,
