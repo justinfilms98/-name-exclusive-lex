@@ -40,6 +40,7 @@ function WatchPageClient({ collectionId }: { collectionId: string }) {
   const [error, setError] = useState<string | null>(null);
   const [timeRemaining, setTimeRemaining] = useState<number>(0);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [photoUrls, setPhotoUrls] = useState<string[]>([]);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [showControls, setShowControls] = useState(true);
@@ -327,6 +328,34 @@ function WatchPageClient({ collectionId }: { collectionId: string }) {
         }
       }
 
+      // Get signed URLs for photos if they exist
+      if (purchase.collection?.photo_paths && purchase.collection.photo_paths.length > 0) {
+        console.log('Loading photos from paths:', purchase.collection.photo_paths);
+        
+        const photoPromises = purchase.collection.photo_paths.map(async (path: string, index: number) => {
+          try {
+            console.log(`Loading photo ${index + 1}:`, path);
+            const { data, error } = await getSignedUrl('media', path, 3600);
+            if (error) {
+              console.error(`Failed to load photo ${index + 1}:`, error);
+              return null;
+            }
+            console.log(`Successfully loaded photo ${index + 1}:`, data?.signedUrl);
+            return data?.signedUrl;
+          } catch (err) {
+            console.error(`Error loading photo ${index + 1}:`, err);
+            return null;
+          }
+        });
+
+        const urls = await Promise.all(photoPromises);
+        const validUrls = urls.filter(Boolean) as string[];
+        console.log('Valid photo URLs loaded:', validUrls.length);
+        setPhotoUrls(validUrls);
+      } else {
+        console.log('No photo paths found in collection data');
+      }
+
     } catch (err: any) {
       console.error('Error loading purchase:', err);
       setError(err.message || 'Failed to load purchase');
@@ -409,6 +438,9 @@ function WatchPageClient({ collectionId }: { collectionId: string }) {
       </div>
     );
   }
+
+  console.log('Watch page - purchase.collection:', purchase.collection);
+  console.log('Watch page - photo_paths:', purchase.collection.photo_paths);
 
   return (
     <div className="min-h-screen bg-stone-900">

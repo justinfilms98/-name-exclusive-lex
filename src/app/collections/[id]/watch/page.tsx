@@ -21,20 +21,25 @@ export default function WatchPage() {
   useEffect(() => {
     const checkUserAccess = async () => {
       try {
+        console.log('=== WATCH PAGE DEBUG START ===');
         console.log('Starting checkUserAccess for collection:', id);
         
         // Get current user
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) {
+          console.log('No session found, redirecting to login');
           router.push('/login');
           return;
         }
 
+        console.log('User session found:', session.user.email);
         setUser(session.user);
 
         // Get collection details
+        console.log('Fetching collection data for ID:', id);
         const { data: collectionData, error: collectionError } = await getCollection(id);
         if (collectionError || !collectionData) {
+          console.error('Collection error:', collectionError);
           setError('Collection not found');
           setLoading(false);
           return;
@@ -42,6 +47,8 @@ export default function WatchPage() {
 
         console.log('Collection data loaded:', collectionData);
         console.log('Collection photo_paths:', collectionData.photo_paths);
+        console.log('Photo paths type:', typeof collectionData.photo_paths);
+        console.log('Photo paths is array:', Array.isArray(collectionData.photo_paths));
 
         setCollection(collectionData);
 
@@ -224,6 +231,9 @@ export default function WatchPage() {
   if (!hasAccess || !videoUrl) {
     return null;
   }
+
+  console.log('Rendering watch page - photoUrls.length:', photoUrls.length);
+  console.log('Collection photo_paths:', collection?.photo_paths);
 
   return (
     <div className="min-h-screen bg-black">

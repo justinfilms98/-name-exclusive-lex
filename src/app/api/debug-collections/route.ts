@@ -8,23 +8,46 @@ const supabase = createClient(
 
 export async function GET(request: NextRequest) {
   try {
-    // Get all collection videos
-    const { data: collectionVideos, error } = await supabase
-      .from('CollectionVideo')
+    // Get all collections with photo_paths
+    const { data: collections, error } = await supabase
+      .from('collections')
       .select('*')
-      .order('createdAt', { ascending: false })
+      .order('created_at', { ascending: false })
       .limit(10);
 
     if (error) {
       return NextResponse.json({ 
-        error: 'Failed to fetch collection videos',
+        error: 'Failed to fetch collections',
         details: error.message 
       }, { status: 500 });
     }
 
+    // Also get collection videos for comparison
+    const { data: collectionVideos, error: cvError } = await supabase
+      .from('CollectionVideo')
+      .select('*')
+      .order('createdAt', { ascending: false })
+      .limit(5);
+
     return NextResponse.json({ 
-      collectionVideos,
-      count: collectionVideos?.length || 0
+      collections: collections?.map(c => ({
+        id: c.id,
+        title: c.title,
+        photo_paths: c.photo_paths,
+        photo_paths_type: typeof c.photo_paths,
+        photo_paths_length: Array.isArray(c.photo_paths) ? c.photo_paths.length : 'not array',
+        created_at: c.created_at
+      })),
+      collectionVideos: collectionVideos?.map(cv => ({
+        id: cv.id,
+        title: cv.title,
+        video_path: cv.video_path,
+        created_at: cv.createdAt
+      })),
+      counts: {
+        collections: collections?.length || 0,
+        collectionVideos: collectionVideos?.length || 0
+      }
     });
 
   } catch (error) {

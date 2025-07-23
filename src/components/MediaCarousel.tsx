@@ -27,11 +27,18 @@ export default function MediaCarousel({ videoPath, photoPaths, onPlay, onPause }
 
   useEffect(() => {
     const loadMedia = async () => {
+      console.log('MediaCarousel: Loading media');
+      console.log('Video path:', videoPath);
+      console.log('Photo paths:', photoPaths);
+      console.log('Photo paths length:', photoPaths.length);
+      
       const items: MediaItem[] = [];
       
       // Add video as first item
       if (videoPath) {
+        console.log('Loading video signed URL...');
         const { data: signedUrl } = await getSignedUrl('media', videoPath);
+        console.log('Video signed URL:', signedUrl?.signedUrl);
         items.push({
           id: 'video',
           type: 'video',
@@ -41,8 +48,11 @@ export default function MediaCarousel({ videoPath, photoPaths, onPlay, onPause }
       }
 
       // Add photos
+      console.log('Loading photos...');
       for (let i = 0; i < photoPaths.length; i++) {
+        console.log(`Loading photo ${i + 1}:`, photoPaths[i]);
         const { data: signedUrl } = await getSignedUrl('media', photoPaths[i]);
+        console.log(`Photo ${i + 1} signed URL:`, signedUrl?.signedUrl);
         items.push({
           id: `photo-${i}`,
           type: 'image',
@@ -51,6 +61,7 @@ export default function MediaCarousel({ videoPath, photoPaths, onPlay, onPause }
         });
       }
 
+      console.log('Final media items:', items);
       setMediaItems(items);
       setLoading(false);
     };
