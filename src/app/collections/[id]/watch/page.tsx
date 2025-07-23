@@ -257,31 +257,71 @@ export default function WatchPage() {
 
         {/* Additional Photos */}
         {photoUrls.length > 0 && (
-          <div className="p-8">
-            <h3 className="text-white text-xl font-semibold mb-4">
-              Additional Content ({photoUrls.length} photos)
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {photoUrls.map((url, index) => (
-                <div key={index} className="relative">
-                  <img
-                    src={url}
-                    alt={`Content ${index + 1}`}
-                    className="w-full h-64 object-cover rounded-lg"
-                    onContextMenu={(e) => e.preventDefault()}
-                    onError={(e) => {
-                      console.error(`Failed to load photo ${index + 1}:`, e);
-                      e.currentTarget.style.display = 'none';
-                    }}
-                    style={{
-                      WebkitUserSelect: 'none',
-                      MozUserSelect: 'none',
-                      msUserSelect: 'none',
-                      userSelect: 'none',
-                    }}
-                  />
+          <div className="bg-gray-900 p-8">
+            <div className="max-w-7xl mx-auto">
+              <h3 className="text-white text-2xl font-semibold mb-6 text-center">
+                Additional Content ({photoUrls.length} photos)
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {photoUrls.map((url, index) => (
+                  <div key={index} className="relative group">
+                    <div className="bg-white rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+                      <img
+                        src={url}
+                        alt={`Content ${index + 1}`}
+                        className="w-full h-64 object-cover"
+                        onContextMenu={(e) => e.preventDefault()}
+                        onError={(e) => {
+                          console.error(`Failed to load photo ${index + 1}:`, e);
+                          e.currentTarget.style.display = 'none';
+                        }}
+                        style={{
+                          WebkitUserSelect: 'none',
+                          MozUserSelect: 'none',
+                          msUserSelect: 'none',
+                          userSelect: 'none',
+                        }}
+                      />
+                      {/* Photo number overlay */}
+                      <div className="absolute top-2 right-2 bg-black bg-opacity-75 text-white px-2 py-1 rounded text-xs font-medium">
+                        Photo {index + 1}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              {/* Collection info card */}
+              <div className="mt-8 bg-white rounded-lg p-6 shadow-lg">
+                <h4 className="text-gray-800 text-lg font-semibold mb-2">Collection Video</h4>
+                <p className="text-gray-600 mb-2">Your exclusive content is now playing.</p>
+                <div className="flex justify-between items-center text-sm text-gray-500">
+                  <span>Purchased: {new Date().toLocaleDateString()}</span>
+                  <span>Time remaining: {formatTime(timeRemaining)}</span>
                 </div>
-              ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* No photos message */}
+        {photoUrls.length === 0 && collection?.photo_paths?.length > 0 && (
+          <div className="bg-gray-900 p-8">
+            <div className="max-w-7xl mx-auto text-center">
+              <h3 className="text-white text-2xl font-semibold mb-4">
+                Additional Content
+              </h3>
+              <p className="text-gray-300 mb-4">
+                {collection.photo_paths.length} photos available but failed to load
+              </p>
+              <div className="bg-white rounded-lg p-6 shadow-lg">
+                <h4 className="text-gray-800 text-lg font-semibold mb-2">Collection Video</h4>
+                <p className="text-gray-600 mb-2">Your exclusive content is now playing.</p>
+                <div className="flex justify-between items-center text-sm text-gray-500">
+                  <span>Purchased: {new Date().toLocaleDateString()}</span>
+                  <span>Time remaining: {formatTime(timeRemaining)}</span>
+                </div>
+              </div>
             </div>
           </div>
         )}
