@@ -217,8 +217,8 @@ export default function Header() {
                   className="btn-secondary text-sm px-3 py-2 sm:px-4 whitespace-nowrap"
                   title="Sign in with Google (you can switch accounts)"
                 >
-                  <span className="hidden sm:inline">Sign In</span>
-                  <span className="sm:hidden">Sign In</span>
+                  <span className="hidden sm:inline">Login or Sign Up</span>
+                  <span className="sm:hidden">Login or Sign Up</span>
                 </button>
               )}
             </div>
@@ -294,7 +294,7 @@ export default function Header() {
                       }}
                       className="block w-full btn-primary text-center py-3"
                     >
-                      Sign In with Google
+                      Login or Sign Up
                     </button>
                   )}
                 </div>
