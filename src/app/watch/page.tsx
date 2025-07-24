@@ -642,18 +642,29 @@ function WatchPageContent() {
   };
 
   const toggleFullscreen = () => {
+    console.log('🔍 DEBUG: toggleFullscreen called, isFullscreen:', isFullscreen);
     const videoContainer = document.querySelector('.video-container') as HTMLElement;
-    if (!videoContainer) return;
+    if (!videoContainer) {
+      console.error('❌ Video container not found');
+      return;
+    }
+    console.log('✅ Video container found:', videoContainer);
 
     if (!isFullscreen) {
+      console.log('🚀 Attempting to enter fullscreen...');
       if (videoContainer.requestFullscreen) {
-        videoContainer.requestFullscreen();
+        videoContainer.requestFullscreen().then(() => {
+          console.log('✅ Fullscreen entered successfully');
+        }).catch((err) => {
+          console.error('❌ Fullscreen request failed:', err);
+        });
       } else if ((videoContainer as any).webkitRequestFullscreen) {
         (videoContainer as any).webkitRequestFullscreen();
       } else if ((videoContainer as any).msRequestFullscreen) {
         (videoContainer as any).msRequestFullscreen();
       }
     } else {
+      console.log('🚪 Attempting to exit fullscreen...');
       if (document.exitFullscreen) {
         document.exitFullscreen();
       } else if ((document as any).webkitExitFullscreen) {
@@ -1006,6 +1017,7 @@ function WatchPageContent() {
                   onClick={toggleFullscreen}
                   className="absolute top-4 right-4 bg-black bg-opacity-75 text-white p-2 rounded-full hover:bg-opacity-100 transition-all duration-200 z-20"
                   title="Toggle Fullscreen"
+                  style={{ display: 'block !important' }}
                 >
                   {isFullscreen ? <Minimize2 className="w-6 h-6" /> : <Maximize2 className="w-6 h-6" />}
                 </button>

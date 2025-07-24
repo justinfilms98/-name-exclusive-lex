@@ -413,6 +413,15 @@ export default function MediaCarousel({ videoPath, photoPaths, onPlay, onPause }
         {currentItem.type === 'video' ? 'VIDEO' : 'PHOTO'} {currentIndex + 1}/{mediaItems.length}
       </div>
 
+      {/* Fullscreen Button */}
+      <button
+        onClick={() => handleMediaDoubleClick(currentItem)}
+        className="absolute top-4 left-4 bg-black bg-opacity-75 text-white p-2 rounded-full hover:bg-opacity-100 transition-all duration-200 z-20"
+        title="Fullscreen"
+      >
+        <Maximize2 className="w-5 h-5" />
+      </button>
+
       {/* Fullscreen Modal */}
       {fullscreenMedia && (
         <div 
