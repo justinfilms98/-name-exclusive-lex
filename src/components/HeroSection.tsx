@@ -52,23 +52,76 @@ export default function HeroSection() {
           console.log('Hero video autoplay successful');
         }).catch((error) => {
           console.log('Autoplay failed:', error);
-          // Try again with user interaction
-          const playButton = document.querySelector('.bg-black\\/50.text-white.p-4.rounded-full');
-          if (playButton) {
-            playButton.addEventListener('click', () => {
+          
+          // For mobile, try additional strategies
+          if (isMobile) {
+            // Try again after a delay
+            setTimeout(() => {
               video.play().then(() => {
                 setVideosPlaying(true);
-                // Only unmute after user interaction
-                setTimeout(() => {
-                  video.muted = false;
-                }, 1000);
+                console.log('Mobile autoplay successful on retry');
+              }).catch(() => {
+                console.log('Mobile autoplay still failed');
               });
-            });
+            }, 2000);
+            
+            // Try on any touch event
+            const playOnTouch = () => {
+              video.play().then(() => {
+                setVideosPlaying(true);
+                console.log('Mobile autoplay successful on touch');
+              });
+              document.removeEventListener('touchstart', playOnTouch);
+            };
+            document.addEventListener('touchstart', playOnTouch);
           }
         });
       });
     }, 1000);
   }, [isMobile]);
+
+  // Additional mobile autoplay strategy
+  useEffect(() => {
+    if (isMobile && videosLoaded) {
+      const forceMobileAutoplay = () => {
+        const videos = document.querySelectorAll('video');
+        videos.forEach(video => {
+          video.muted = true;
+          video.playsInline = true;
+          video.autoplay = true;
+          video.loop = true;
+          
+          video.play().then(() => {
+            setVideosPlaying(true);
+            console.log('Mobile autoplay successful');
+          }).catch(() => {
+            console.log('Mobile autoplay failed, will try on touch');
+          });
+        });
+      };
+      
+      // Try immediately
+      forceMobileAutoplay();
+      
+      // Try after delays
+      setTimeout(forceMobileAutoplay, 1000);
+      setTimeout(forceMobileAutoplay, 2000);
+      setTimeout(forceMobileAutoplay, 5000);
+      
+      // Try on any touch event
+      const playOnTouch = () => {
+        const videos = document.querySelectorAll('video');
+        videos.forEach(video => {
+          video.play().then(() => {
+            setVideosPlaying(true);
+            console.log('Mobile autoplay successful on touch');
+          });
+        });
+        document.removeEventListener('touchstart', playOnTouch);
+      };
+      document.addEventListener('touchstart', playOnTouch);
+    }
+  }, [isMobile, videosLoaded]);
 
   useEffect(() => {
     if (heroVideos.length > 0) {
@@ -174,6 +227,34 @@ export default function HeroSection() {
       }).catch((error) => {
         console.log('Hero video play failed:', error);
         setVideosPlaying(false);
+        
+        // For mobile, try additional strategies
+        if (isMobile) {
+          // Try again after delays
+          setTimeout(() => {
+            videoElement.play().then(() => {
+              setVideosPlaying(true);
+              console.log('Mobile video play successful on retry');
+            });
+          }, 1000);
+          
+          setTimeout(() => {
+            videoElement.play().then(() => {
+              setVideosPlaying(true);
+              console.log('Mobile video play successful on second retry');
+            });
+          }, 3000);
+          
+          // Try on any touch event
+          const playOnTouch = () => {
+            videoElement.play().then(() => {
+              setVideosPlaying(true);
+              console.log('Mobile video play successful on touch');
+            });
+            document.removeEventListener('touchstart', playOnTouch);
+          };
+          document.addEventListener('touchstart', playOnTouch);
+        }
       });
     };
     
@@ -184,6 +265,13 @@ export default function HeroSection() {
     setTimeout(playVideo, 100);
     setTimeout(playVideo, 500);
     setTimeout(playVideo, 1000);
+    
+    // For mobile, try more aggressively
+    if (isMobile) {
+      setTimeout(playVideo, 2000);
+      setTimeout(playVideo, 3000);
+      setTimeout(playVideo, 5000);
+    }
   };
 
   if (loading) {
