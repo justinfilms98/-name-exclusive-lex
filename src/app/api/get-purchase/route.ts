@@ -13,7 +13,7 @@ export async function GET(request: Request) {
   // First get the purchase
   const { data: purchase, error } = await supabase
     .from('purchases')
-    .select('id, user_id, collection_id, created_at, expires_at')
+    .select('id, user_id, collection_id, stripe_session_id, created_at, expires_at, amount_paid')
     .eq('stripe_session_id', session_id)
     .single()
 
@@ -25,7 +25,7 @@ export async function GET(request: Request) {
   // Now get the collection details
   const { data: collection, error: collectionError } = await supabase
     .from('collections')
-    .select('id, title, description, video_path, thumbnail_path, duration, photo_paths')
+    .select('id, title, description, video_path, thumbnail_path, photo_paths')
     .eq('id', purchase.collection_id)
     .single()
 
@@ -33,11 +33,25 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Collection not found' }, { status: 404 })
   }
 
-  // Combine purchase and collection data
-  const purchaseWithCollection = {
-    ...purchase,
-    collection
+  // Get the first collection video for this collection
+  const { data: collectionVideos, error: collectionVideosError } = await supabase
+    .from('CollectionVideo')
+    .select('id, title, description, videoUrl, thumbnail, price')
+    .eq('collection', collection.title)
+    .order('order', { ascending: true })
+    .limit(1)
+    .single()
+
+  if (collectionVideosError || !collectionVideos) {
+    return NextResponse.json({ error: 'Collection video not found' }, { status: 404 })
   }
 
-  return NextResponse.json({ purchase: purchaseWithCollection }, { status: 200 })
+  // Combine purchase and collection video data
+  const purchaseWithCollectionVideo = {
+    ...purchase,
+    collection_video_id: collectionVideos.id,
+    CollectionVideo: collectionVideos
+  }
+
+  return NextResponse.json({ purchase: purchaseWithCollectionVideo }, { status: 200 })
 } 
