@@ -141,7 +141,7 @@ export default function LoginPage() {
             ) : (
               <>
                 <LogIn className="w-5 h-5" />
-                <span>Login</span>
+                <span>Sign Up or Login with Google</span>
               </>
             )}
           </button>
