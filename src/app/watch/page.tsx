@@ -566,7 +566,7 @@ function WatchPageContent() {
 
       // Get protected video URL
       if (json.purchase.CollectionVideo?.id) {
-        const videoRes = await fetch(`/api/protected-video?session_id=${sessionId}&video_id=${json.purchase.CollectionVideo.id}`)
+        const videoRes = await fetch(`/api/protected-video?session_id=${sessionId}`)
         const videoJson = await videoRes.json()
         if (videoRes.ok) {
           setVideoUrl(videoJson.videoUrl);

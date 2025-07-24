@@ -45,10 +45,9 @@ function checkRateLimit(ip: string): boolean {
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const sessionId = searchParams.get('session_id')
-  const videoId = searchParams.get('video_id')
 
-  if (!sessionId || !videoId) {
-    return NextResponse.json({ error: 'Missing parameters' }, { status: 400 })
+  if (!sessionId) {
+    return NextResponse.json({ error: 'Missing session_id parameter' }, { status: 400 })
   }
 
   const headersList = await headers()
@@ -65,9 +64,8 @@ export async function GET(request: Request) {
   // Verify purchase
   const { data: purchase, error } = await supabase
     .from('purchases')
-    .select('id, user_id, collection_video_id, stripe_session_id, created_at, expires_at, strike_count, bound_ip, last_access_at, access_count')
+    .select('id, user_id, collection_id, stripe_session_id, created_at, expires_at, strike_count, bound_ip, last_access_at, access_count')
     .eq('stripe_session_id', sessionId)
-    .eq('collection_video_id', videoId)
     .single()
 
   if (error || !purchase) {
@@ -106,14 +104,14 @@ export async function GET(request: Request) {
       .eq('id', purchase.id)
   }
 
-  // Get video URL from Supabase storage
-  const { data: videoData } = await supabase
-    .from('CollectionVideo')
-    .select('videoUrl')
-    .eq('id', videoId)
+  // Get collection data to get video URL
+  const { data: collection, error: collectionError } = await supabase
+    .from('collections')
+    .select('video_path')
+    .eq('id', purchase.collection_id)
     .single()
 
-  if (!videoData?.videoUrl) {
+  if (collectionError || !collection?.video_path) {
     return NextResponse.json({ error: 'Video not found' }, { status: 404 })
   }
 
@@ -130,7 +128,7 @@ export async function GET(request: Request) {
 
   // Create response with security headers
   const response = NextResponse.json({ 
-    videoUrl: videoData.videoUrl,
+    videoUrl: collection.video_path,
     expiresAt: purchase.expires_at,
     boundIP: clientIP
   })
