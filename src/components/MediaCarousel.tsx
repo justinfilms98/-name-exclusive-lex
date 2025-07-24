@@ -25,6 +25,7 @@ export default function MediaCarousel({ videoPath, photoPaths, onPlay, onPause }
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(true); // Start muted for autoplay
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showMobileHint, setShowMobileHint] = useState(false);
 
   useEffect(() => {
     const loadMedia = async () => {
@@ -68,6 +69,14 @@ export default function MediaCarousel({ videoPath, photoPaths, onPlay, onPause }
     };
 
     loadMedia();
+
+    // Check if mobile and show hint
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    if (isMobile) {
+      setShowMobileHint(true);
+      // Hide hint after 5 seconds
+      setTimeout(() => setShowMobileHint(false), 5000);
+    }
 
     // Add screenshot protection
     const blurMedia = () => {
@@ -250,28 +259,67 @@ export default function MediaCarousel({ videoPath, photoPaths, onPlay, onPause }
   };
 
   const openFullscreen = (mediaItem: MediaItem) => {
+    // Check if we're on mobile
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    
     if (mediaItem.type === 'video') {
       // For videos, use native fullscreen API
       const videoElement = document.querySelector('video') as HTMLVideoElement;
       if (videoElement) {
-        if (videoElement.requestFullscreen) {
-          videoElement.requestFullscreen();
-        } else if ((videoElement as any).webkitRequestFullscreen) {
-          (videoElement as any).webkitRequestFullscreen();
-        } else if ((videoElement as any).msRequestFullscreen) {
-          (videoElement as any).msRequestFullscreen();
+        if (isMobile) {
+          // On mobile, try to use video element's fullscreen API
+          if (videoElement.requestFullscreen) {
+            videoElement.requestFullscreen().catch((err) => {
+              console.log('Mobile fullscreen failed, trying webkit:', err);
+              // Fallback to webkit for iOS
+              if ((videoElement as any).webkitRequestFullscreen) {
+                (videoElement as any).webkitRequestFullscreen();
+              }
+            });
+          } else if ((videoElement as any).webkitRequestFullscreen) {
+            (videoElement as any).webkitRequestFullscreen();
+          } else if ((videoElement as any).msRequestFullscreen) {
+            (videoElement as any).msRequestFullscreen();
+          }
+        } else {
+          // Desktop fullscreen
+          if (videoElement.requestFullscreen) {
+            videoElement.requestFullscreen();
+          } else if ((videoElement as any).webkitRequestFullscreen) {
+            (videoElement as any).webkitRequestFullscreen();
+          } else if ((videoElement as any).msRequestFullscreen) {
+            (videoElement as any).msRequestFullscreen();
+          }
         }
       }
     } else {
       // For photos, use native fullscreen API
       const imgElement = document.querySelector('img') as HTMLImageElement;
       if (imgElement) {
-        if (imgElement.requestFullscreen) {
-          imgElement.requestFullscreen();
-        } else if ((imgElement as any).webkitRequestFullscreen) {
-          (imgElement as any).webkitRequestFullscreen();
-        } else if ((imgElement as any).msRequestFullscreen) {
-          (imgElement as any).msRequestFullscreen();
+        if (isMobile) {
+          // On mobile, try to use image element's fullscreen API
+          if (imgElement.requestFullscreen) {
+            imgElement.requestFullscreen().catch((err) => {
+              console.log('Mobile photo fullscreen failed, trying webkit:', err);
+              // Fallback to webkit for iOS
+              if ((imgElement as any).webkitRequestFullscreen) {
+                (imgElement as any).webkitRequestFullscreen();
+              }
+            });
+          } else if ((imgElement as any).webkitRequestFullscreen) {
+            (imgElement as any).webkitRequestFullscreen();
+          } else if ((imgElement as any).msRequestFullscreen) {
+            (imgElement as any).msRequestFullscreen();
+          }
+        } else {
+          // Desktop fullscreen
+          if (imgElement.requestFullscreen) {
+            imgElement.requestFullscreen();
+          } else if ((imgElement as any).webkitRequestFullscreen) {
+            (imgElement as any).webkitRequestFullscreen();
+          } else if ((imgElement as any).msRequestFullscreen) {
+            (imgElement as any).msRequestFullscreen();
+          }
         }
       }
     }
@@ -458,11 +506,28 @@ export default function MediaCarousel({ videoPath, photoPaths, onPlay, onPause }
       {/* Fullscreen Button */}
       <button
         onClick={() => handleMediaDoubleClick(currentItem)}
-        className="absolute top-4 left-4 bg-black bg-opacity-75 text-white p-2 rounded-full hover:bg-opacity-100 transition-all duration-200 z-20"
+        className="absolute top-4 left-4 bg-black bg-opacity-75 text-white p-3 rounded-full hover:bg-opacity-100 transition-all duration-200 z-20 md:p-2"
         title="Fullscreen"
+        style={{ 
+          minWidth: '44px', 
+          minHeight: '44px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}
       >
-        <Maximize2 className="w-5 h-5" />
+        <Maximize2 className="w-6 h-6 md:w-5 md:h-5" />
       </button>
+
+      {/* Mobile Fullscreen Hint */}
+      {showMobileHint && (
+        <div className="absolute bottom-4 left-4 right-4 bg-black bg-opacity-80 text-white p-3 rounded-lg text-center text-sm z-30">
+          <div className="flex items-center justify-center space-x-2">
+            <Maximize2 className="w-4 h-4" />
+            <span>Tap the fullscreen button or double-tap media to view fullscreen</span>
+          </div>
+        </div>
+      )}
 
 
     </div>
