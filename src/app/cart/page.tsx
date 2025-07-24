@@ -125,6 +125,17 @@ export default function CartPage() {
     const isAlreadyInCart = cart.some((item: any) => item.id === collection.id);
     
     if (!isAlreadyInCart) {
+      // Check purchase limit (max 2 collections at a time)
+      if (cart.length >= 2) {
+        alert('Purchase limit reached! You can only have 2 collections active at a time. Please complete your current purchase before adding more.');
+        setAddingItems(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(collection.id);
+          return newSet;
+        });
+        return;
+      }
+      
       cart.push(collection);
       localStorage.setItem('cart', JSON.stringify(cart));
       setCartItems(cart);
@@ -315,6 +326,21 @@ export default function CartPage() {
           <p className="text-sage">
             {cartItems.length} {cartItems.length === 1 ? 'collection' : 'collections'} selected
           </p>
+          
+          {/* Purchase Limit Notice */}
+          <div className="mt-4 p-4 bg-khaki/10 border border-khaki/20 rounded-lg">
+            <div className="flex items-start space-x-3">
+              <div className="text-khaki mt-0.5">
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="text-sm text-sage">
+                <p className="font-medium text-earth mb-1">Purchase Limit Notice</p>
+                <p>You can only have <strong>2 collections active at a time</strong>. This helps ensure you can fully enjoy each collection before purchasing the next one. Complete your current purchase to add more collections.</p>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Cart Content */}
@@ -464,6 +490,18 @@ export default function CartPage() {
                     >
                       Sign Up or Login with Google
                     </Link>
+                  </div>
+                )}
+
+                {/* Cart Limit Indicator */}
+                {cartItems.length >= 2 && (
+                  <div className="mt-4 p-3 bg-khaki/10 border border-khaki/20 rounded-lg">
+                    <div className="flex items-center space-x-2 text-sm text-khaki">
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                      </svg>
+                      <span>Cart limit reached (2/2)</span>
+                    </div>
                   </div>
                 )}
 

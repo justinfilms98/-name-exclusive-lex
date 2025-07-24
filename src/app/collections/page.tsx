@@ -112,6 +112,13 @@ export default function CollectionsPage() {
     const isAlreadyInCart = cart.some((item: any) => item.id === collection.id);
     
     if (!isAlreadyInCart) {
+      // Check purchase limit (max 2 collections at a time)
+      if (cart.length >= 2) {
+        alert('Purchase limit reached! You can only have 2 collections active at a time. Please complete your current purchase before adding more.');
+        setAddingToCart(null);
+        return;
+      }
+      
       cart.push(collection);
       localStorage.setItem('cart', JSON.stringify(cart));
       window.dispatchEvent(new Event('cartUpdated'));
