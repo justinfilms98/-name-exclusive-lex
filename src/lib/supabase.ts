@@ -20,20 +20,35 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 
 // Auth functions
 export const signInWithGoogle = async () => {
-  const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: 'google',
-    options: {
-      redirectTo: `${window.location.origin}/auth/callback`,
-      queryParams: {
-        prompt: 'select_account' // Force account selection
+  try {
+    console.log('Attempting Google sign in...')
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+        queryParams: {
+          prompt: 'select_account' // Force account selection
+        }
       }
+    })
+    
+    if (error) {
+      console.error('Google sign in error:', error)
+    } else {
+      console.log('Google sign in initiated successfully')
     }
-  })
-  return { data, error }
+    
+    return { data, error }
+  } catch (err) {
+    console.error('Google sign in exception:', err)
+    return { data: null, error: err }
+  }
 }
 
 export const signOut = async () => {
   try {
+    console.log('Signing out...')
+    
     // Clear all local storage and session storage
     if (typeof window !== 'undefined') {
       localStorage.clear();
@@ -42,6 +57,12 @@ export const signOut = async () => {
     
     // Sign out from Supabase
     const { error } = await supabase.auth.signOut()
+    
+    if (error) {
+      console.error('Supabase sign out error:', error)
+    } else {
+      console.log('Sign out successful')
+    }
     
     // Additional cleanup for mobile browsers
     if (typeof window !== 'undefined') {
@@ -67,24 +88,41 @@ export const signOut = async () => {
 }
 
 export const getCurrentUser = async () => {
-  const { data: { user } } = await supabase.auth.getUser()
-  return user
+  try {
+    const { data: { user }, error } = await supabase.auth.getUser()
+    if (error) {
+      console.error('Get current user error:', error)
+      return null
+    }
+    return user
+  } catch (err) {
+    console.error('Get current user exception:', err)
+    return null
+  }
 }
 
 export const getSession = async () => {
   try {
     const { data: { session }, error } = await supabase.auth.getSession()
     
+    if (error) {
+      console.error('Get session error:', error)
+      return null
+    }
+    
     // For mobile browsers, try to refresh the session if it's expired
     if (!session && typeof window !== 'undefined') {
       console.log('No session found, attempting to refresh...');
-      const { data: { session: refreshedSession } } = await supabase.auth.refreshSession();
+      const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession();
+      if (refreshError) {
+        console.error('Session refresh error:', refreshError)
+      }
       return refreshedSession;
     }
     
     return session
   } catch (err) {
-    console.error('Get session error:', err);
+    console.error('Get session exception:', err);
     return null
   }
 }

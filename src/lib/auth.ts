@@ -7,8 +7,17 @@ export const isAdmin = (email: string | undefined | null) => {
 }
 
 export const requireAuth = async () => {
-  const { data: { session } } = await supabase.auth.getSession()
-  return session?.user || null
+  try {
+    const { data: { session }, error } = await supabase.auth.getSession()
+    if (error) {
+      console.error('Auth session error:', error)
+      return null
+    }
+    return session?.user || null
+  } catch (error) {
+    console.error('Auth error:', error)
+    return null
+  }
 }
 
 export const requireAdmin = async () => {
@@ -43,4 +52,25 @@ export const canMakePurchase = async (userId: string) => {
 
 export const getUserRole = (email: string) => {
   return isAdmin(email) ? 'admin' : 'user'
+}
+
+// New function to check if user can sign up (allows all Google users)
+export const canSignUp = async (email: string) => {
+  // Allow all Google users to sign up
+  return true
+}
+
+// New function to validate user authentication
+export const validateUserAuth = async () => {
+  try {
+    const { data: { user }, error } = await supabase.auth.getUser()
+    if (error) {
+      console.error('User validation error:', error)
+      return { user: null, error: error.message }
+    }
+    return { user, error: null }
+  } catch (error) {
+    console.error('User validation error:', error)
+    return { user: null, error: 'Authentication failed' }
+  }
 } 

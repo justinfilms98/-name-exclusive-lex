@@ -8,15 +8,21 @@ import { LogIn, Shield, Heart, Star } from 'lucide-react';
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
     // Check if user is already logged in
     const getSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        setUser(session.user);
-        router.push('/collections');
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          setUser(session.user);
+          router.push('/collections');
+        }
+      } catch (err) {
+        console.error('Session check error:', err);
+        setError('Failed to check user session');
       }
     };
 
@@ -25,10 +31,12 @@ export default function LoginPage() {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('Auth state changed:', event, session?.user?.email);
         if (session?.user) {
           setUser(session.user);
           router.push('/collections');
         }
+        setError(null);
       }
     );
 
@@ -37,15 +45,17 @@ export default function LoginPage() {
 
   const handleSignIn = async () => {
     setLoading(true);
+    setError(null);
+    
     try {
       const { error } = await signInWithGoogle();
       if (error) {
         console.error('Sign in error:', error);
-        alert('Failed to sign in. Please try again.');
+        setError('Failed to sign in. Please try again.');
       }
     } catch (error) {
-      console.error('Sign in error:', error);
-      alert('Failed to sign in. Please try again.');
+      console.error('Sign in exception:', error);
+      setError('Failed to sign in. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -83,6 +93,12 @@ export default function LoginPage() {
               Sign in with your Google account to access exclusive collections
             </p>
           </div>
+
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded text-red-700 text-sm">
+              {error}
+            </div>
+          )}
 
           <button
             onClick={handleSignIn}
