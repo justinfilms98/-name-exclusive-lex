@@ -22,10 +22,14 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 export const signInWithGoogle = async () => {
   try {
     console.log('Attempting Google sign in...')
+    
+    // Use the correct redirect URL that matches your domain
+    const redirectUrl = 'https://www.exclusivelex.com/auth/callback'
+    
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: redirectUrl,
         queryParams: {
           prompt: 'select_account' // Force account selection
         }
