@@ -72,21 +72,9 @@ export default function MediaCarousel({ videoPath, photoPaths, onPlay, onPause }
 
     loadMedia();
 
-    // Check if mobile and show hint
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    if (isMobile) {
-      setShowMobileHint(true);
-      // Hide hint after 5 seconds
-      setTimeout(() => setShowMobileHint(false), 5000);
-      
-      // Test fullscreen support
-      console.log('📱 Mobile device detected');
-      console.log('🔍 Fullscreen support test:');
-      console.log('- document.fullscreenEnabled:', document.fullscreenEnabled);
-      console.log('- document.webkitFullscreenEnabled:', (document as any).webkitFullscreenEnabled);
-      console.log('- document.msFullscreenEnabled:', (document as any).msFullscreenEnabled);
-      console.log('- User agent:', navigator.userAgent);
-    }
+    // Show fullscreen hint briefly
+    setShowMobileHint(true);
+    setTimeout(() => setShowMobileHint(false), 3000);
 
     // Add screenshot protection
     const blurMedia = () => {
@@ -269,74 +257,26 @@ export default function MediaCarousel({ videoPath, photoPaths, onPlay, onPause }
   };
 
   const openFullscreen = (mediaItem: MediaItem) => {
-    // Check if we're on mobile
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    console.log('🔍 DEBUG: openFullscreen called, mediaItem:', mediaItem.type, 'isMobile:', isMobile);
+    console.log('🔍 Fullscreen requested for:', mediaItem.type);
     
-    if (isMobile) {
-      // Mobile fullscreen approach - use CSS-based fullscreen
-      console.log('📱 Mobile detected - using CSS fullscreen');
-      setIsMobileFullscreen(true);
-      setFullscreenMedia(mediaItem);
-      
-      // Hide browser UI for mobile fullscreen experience
-      if (document.documentElement.requestFullscreen) {
-        document.documentElement.requestFullscreen().catch(() => {
-          console.log('📱 Browser fullscreen not available, using CSS fullscreen');
-        });
-      }
-      
-      // Prevent scrolling
-      document.body.style.overflow = 'hidden';
-      
-    } else {
-      // Desktop fullscreen - use native API
-      if (mediaItem.type === 'video') {
-        const videoElement = document.querySelector('video') as HTMLVideoElement;
-        if (videoElement) {
-          if (videoElement.requestFullscreen) {
-            videoElement.requestFullscreen();
-          } else if ((videoElement as any).webkitRequestFullscreen) {
-            (videoElement as any).webkitRequestFullscreen();
-          } else if ((videoElement as any).msRequestFullscreen) {
-            (videoElement as any).msRequestFullscreen();
-          }
-        }
-      } else {
-        const imgElement = document.querySelector('img') as HTMLImageElement;
-        if (imgElement) {
-          if (imgElement.requestFullscreen) {
-            imgElement.requestFullscreen();
-          } else if ((imgElement as any).webkitRequestFullscreen) {
-            (imgElement as any).webkitRequestFullscreen();
-          } else if ((imgElement as any).msRequestFullscreen) {
-            (imgElement as any).msRequestFullscreen();
-          }
-        }
-      }
-    }
+    // Always use modal fullscreen for consistency across devices
+    setFullscreenMedia(mediaItem);
+    setIsFullscreen(true);
+    
+    // Prevent scrolling when in fullscreen
+    document.body.style.overflow = 'hidden';
   };
 
   const closeFullscreen = () => {
-    // Check if we're in native fullscreen mode
-    if (document.fullscreenElement || (document as any).webkitFullscreenElement || (document as any).msFullscreenElement) {
-      // Exit native fullscreen mode
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
-      } else if ((document as any).webkitExitFullscreen) {
-        (document as any).webkitExitFullscreen();
-      } else if ((document as any).msExitFullscreen) {
-        (document as any).msExitFullscreen();
-      }
-    } else {
-      // Close modal fullscreen
-      setFullscreenMedia(null);
-      setIsFullscreen(false);
-      setIsMobileFullscreen(false);
-      
-      // Restore scrolling
-      document.body.style.overflow = '';
-    }
+    console.log('🔍 Closing fullscreen');
+    
+    // Close modal fullscreen
+    setFullscreenMedia(null);
+    setIsFullscreen(false);
+    setIsMobileFullscreen(false);
+    
+    // Restore scrolling
+    document.body.style.overflow = '';
   };
 
   const handleMediaClick = (mediaItem: MediaItem) => {
@@ -376,10 +316,10 @@ export default function MediaCarousel({ videoPath, photoPaths, onPlay, onPause }
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [mediaItems.length]);
 
-  // Fullscreen keyboard support and state tracking
+  // Fullscreen keyboard support
   useEffect(() => {
     const handleFullscreenKeyDown = (e: KeyboardEvent) => {
-      if (document.fullscreenElement || fullscreenMedia) {
+      if (fullscreenMedia) {
         if (e.key === 'Escape') {
           e.preventDefault();
           closeFullscreen();
@@ -387,25 +327,8 @@ export default function MediaCarousel({ videoPath, photoPaths, onPlay, onPause }
       }
     };
 
-    const handleFullscreenChange = () => {
-      const isInFullscreen = !!(document.fullscreenElement || (document as any).webkitFullscreenElement || (document as any).msFullscreenElement);
-      setIsFullscreen(isInFullscreen);
-      if (!isInFullscreen) {
-        setFullscreenMedia(null);
-      }
-    };
-
     document.addEventListener('keydown', handleFullscreenKeyDown);
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
-    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
-    document.addEventListener('msfullscreenchange', handleFullscreenChange);
-    
-    return () => {
-      document.removeEventListener('keydown', handleFullscreenKeyDown);
-      document.removeEventListener('fullscreenchange', handleFullscreenChange);
-      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
-      document.removeEventListener('msfullscreenchange', handleFullscreenChange);
-    };
+    return () => document.removeEventListener('keydown', handleFullscreenKeyDown);
   }, [fullscreenMedia]);
 
   if (loading) {
@@ -534,32 +457,21 @@ export default function MediaCarousel({ videoPath, photoPaths, onPlay, onPause }
         <Maximize2 className="w-6 h-6 md:w-5 md:h-5" />
       </button>
 
-      {/* Mobile Fullscreen Hint */}
+      {/* Fullscreen Hint */}
       {showMobileHint && (
         <div className="absolute bottom-4 left-4 right-4 bg-black bg-opacity-80 text-white p-3 rounded-lg text-center text-sm z-30">
           <div className="flex items-center justify-center space-x-2">
             <Maximize2 className="w-4 h-4" />
-            <span>Tap the fullscreen button or double-tap media to view fullscreen</span>
+            <span>Tap the fullscreen button to view in fullscreen</span>
           </div>
         </div>
       )}
 
-      {/* Mobile Fullscreen Modal */}
+      {/* Fullscreen Modal */}
       {fullscreenMedia && (
         <div 
-          className={`fixed inset-0 bg-black z-50 flex items-center justify-center ${
-            isMobileFullscreen ? 'bg-opacity-100' : 'bg-opacity-95'
-          }`}
+          className="fixed inset-0 bg-black bg-opacity-95 z-[9999] flex items-center justify-center"
           onClick={closeFullscreen}
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            zIndex: 9999,
-            backgroundColor: 'rgba(0, 0, 0, 0.95)',
-          }}
         >
           <div className="relative w-full h-full flex items-center justify-center p-2">
             {fullscreenMedia.type === 'video' ? (
@@ -600,11 +512,10 @@ export default function MediaCarousel({ videoPath, photoPaths, onPlay, onPause }
             {/* Close button */}
             <button
               onClick={closeFullscreen}
-              className="absolute top-4 right-4 bg-black bg-opacity-75 text-white p-4 rounded-full hover:bg-opacity-100 transition-all duration-200"
+              className="absolute top-4 right-4 bg-black bg-opacity-75 text-white p-4 rounded-full hover:bg-opacity-100 transition-all duration-200 z-[10000]"
               style={{ 
                 minWidth: '48px', 
                 minHeight: '48px',
-                zIndex: 10000,
               }}
             >
               <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
