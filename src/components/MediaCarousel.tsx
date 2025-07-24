@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Play, Pause } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Play, Pause, Maximize2, Minimize2 } from 'lucide-react';
 import { getSignedUrl } from '@/lib/supabase';
 
 interface MediaItem {
@@ -24,6 +24,8 @@ export default function MediaCarousel({ videoPath, photoPaths, onPlay, onPause }
   const [loading, setLoading] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(true); // Start muted for autoplay
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [fullscreenMedia, setFullscreenMedia] = useState<MediaItem | null>(null);
 
   useEffect(() => {
     const loadMedia = async () => {
@@ -248,6 +250,28 @@ export default function MediaCarousel({ videoPath, photoPaths, onPlay, onPause }
     }
   };
 
+  const openFullscreen = (mediaItem: MediaItem) => {
+    setFullscreenMedia(mediaItem);
+    setIsFullscreen(true);
+  };
+
+  const closeFullscreen = () => {
+    setFullscreenMedia(null);
+    setIsFullscreen(false);
+  };
+
+  const handleMediaClick = (mediaItem: MediaItem) => {
+    if (mediaItem.type === 'video') {
+      handlePlayPause();
+    } else {
+      openFullscreen(mediaItem);
+    }
+  };
+
+  const handleMediaDoubleClick = (mediaItem: MediaItem) => {
+    openFullscreen(mediaItem);
+  };
+
   // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -265,6 +289,21 @@ export default function MediaCarousel({ videoPath, photoPaths, onPlay, onPause }
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [mediaItems.length]);
+
+  // Fullscreen keyboard support
+  useEffect(() => {
+    const handleFullscreenKeyDown = (e: KeyboardEvent) => {
+      if (fullscreenMedia) {
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          closeFullscreen();
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleFullscreenKeyDown);
+    return () => document.removeEventListener('keydown', handleFullscreenKeyDown);
+  }, [fullscreenMedia]);
 
   if (loading) {
     return (
@@ -293,7 +332,7 @@ export default function MediaCarousel({ videoPath, photoPaths, onPlay, onPause }
       <div className="relative aspect-video">
         {currentItem.type === 'video' ? (
           <video
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover cursor-pointer"
             controls={false}
             autoPlay={currentIndex === 0}
             muted={isMuted}
@@ -301,7 +340,8 @@ export default function MediaCarousel({ videoPath, photoPaths, onPlay, onPause }
             playsInline
             onPlay={() => setIsPlaying(true)}
             onPause={() => setIsPlaying(false)}
-            onClick={handleVideoInteraction}
+            onClick={() => handleMediaClick(currentItem)}
+            onDoubleClick={() => handleMediaDoubleClick(currentItem)}
             onContextMenu={(e) => e.preventDefault()}
             style={{ userSelect: 'none', WebkitUserSelect: 'none' }}
           >
@@ -312,7 +352,9 @@ export default function MediaCarousel({ videoPath, photoPaths, onPlay, onPause }
           <img
             src={currentItem.signedUrl}
             alt="Collection photo"
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover cursor-pointer"
+            onClick={() => handleMediaClick(currentItem)}
+            onDoubleClick={() => handleMediaDoubleClick(currentItem)}
             onContextMenu={(e) => e.preventDefault()}
             style={{ userSelect: 'none', WebkitUserSelect: 'none' }}
           />
@@ -370,6 +412,61 @@ export default function MediaCarousel({ videoPath, photoPaths, onPlay, onPause }
       <div className="absolute top-4 right-4 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-sm">
         {currentItem.type === 'video' ? 'VIDEO' : 'PHOTO'} {currentIndex + 1}/{mediaItems.length}
       </div>
+
+      {/* Fullscreen Modal */}
+      {fullscreenMedia && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-95 z-50 flex items-center justify-center"
+          onClick={closeFullscreen}
+        >
+          <div className="relative max-w-full max-h-full p-4">
+            {fullscreenMedia.type === 'video' ? (
+              <video
+                src={fullscreenMedia.signedUrl}
+                className="max-w-full max-h-full object-contain"
+                controls
+                autoPlay
+                muted={isMuted}
+                onContextMenu={(e) => e.preventDefault()}
+                style={{
+                  WebkitUserSelect: 'none',
+                  MozUserSelect: 'none',
+                  msUserSelect: 'none',
+                  userSelect: 'none',
+                }}
+              />
+            ) : (
+              <img
+                src={fullscreenMedia.signedUrl}
+                alt="Fullscreen content"
+                className="max-w-full max-h-full object-contain"
+                onContextMenu={(e) => e.preventDefault()}
+                style={{
+                  WebkitUserSelect: 'none',
+                  MozUserSelect: 'none',
+                  msUserSelect: 'none',
+                  userSelect: 'none',
+                }}
+              />
+            )}
+            
+            {/* Close button */}
+            <button
+              onClick={closeFullscreen}
+              className="absolute top-4 right-4 bg-black bg-opacity-75 text-white p-2 rounded-full hover:bg-opacity-100 transition-all duration-200"
+            >
+              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+              </svg>
+            </button>
+            
+            {/* Watermark */}
+            <div className="absolute bottom-4 left-4 text-white text-opacity-50 text-sm">
+              Exclusive Content
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 } 
