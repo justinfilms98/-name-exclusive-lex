@@ -30,6 +30,8 @@ function WatchPageContent() {
   const sessionId = searchParams?.get('session_id');
   const { addToast } = useToast();
   
+  console.log('🔍 DEBUG: WatchPageContent loaded with sessionId:', sessionId);
+  
   const [purchase, setPurchase] = useState<Purchase | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
