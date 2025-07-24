@@ -13,6 +13,10 @@ export default function WatchPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
   const [timeRemaining, setTimeRemaining] = useState<number>(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [showPlayButton, setShowPlayButton] = useState(true);
+  const [videoLoaded, setVideoLoaded] = useState(false);
+  const [timerStarted, setTimerStarted] = useState(false);
   const router = useRouter();
   const params = useParams();
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -143,9 +147,9 @@ export default function WatchPage() {
     }
   }, [id, router]);
 
-  // Timer countdown
+  // Timer countdown - only start when user starts watching
   useEffect(() => {
-    if (timeRemaining > 0) {
+    if (timeRemaining > 0 && timerStarted) {
       const timer = setInterval(() => {
         setTimeRemaining(prev => {
           if (prev <= 1) {
@@ -158,7 +162,35 @@ export default function WatchPage() {
 
       return () => clearInterval(timer);
     }
-  }, [timeRemaining]);
+  }, [timeRemaining, timerStarted]);
+
+  // Handle video events
+  const handleVideoLoad = () => {
+    setVideoLoaded(true);
+  };
+
+  const handlePlay = () => {
+    setIsPlaying(true);
+    setShowPlayButton(false);
+    if (!timerStarted) {
+      setTimerStarted(true);
+    }
+  };
+
+  const handlePause = () => {
+    setIsPlaying(false);
+    setShowPlayButton(true);
+  };
+
+  const handleVideoClick = () => {
+    if (videoRef.current) {
+      if (isPlaying) {
+        videoRef.current.pause();
+      } else {
+        videoRef.current.play();
+      }
+    }
+  };
 
   // Prevent right-click and other protection
   useEffect(() => {
@@ -257,10 +289,12 @@ export default function WatchPage() {
             ref={videoRef}
             src={videoUrl}
             controls
-            autoPlay
             className="w-full h-screen object-contain"
             controlsList="nodownload"
             onContextMenu={(e) => e.preventDefault()}
+            onLoadedData={handleVideoLoad}
+            onPlay={handlePlay}
+            onPause={handlePause}
             style={{
               // Prevent highlighting/selection
               WebkitUserSelect: 'none',
@@ -271,6 +305,34 @@ export default function WatchPage() {
           >
             Your browser does not support the video tag.
           </video>
+          
+          {/* Custom Play Button Overlay */}
+          {showPlayButton && videoLoaded && (
+            <div 
+              className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 cursor-pointer z-10"
+              onClick={handleVideoClick}
+            >
+              <div className="bg-white bg-opacity-20 backdrop-blur-sm rounded-full p-8 hover:bg-opacity-30 transition-all duration-300 transform hover:scale-110">
+                <svg 
+                  className="w-16 h-16 text-white" 
+                  fill="currentColor" 
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M8 5v14l11-7z"/>
+                </svg>
+              </div>
+            </div>
+          )}
+
+          {/* Loading overlay */}
+          {!videoLoaded && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-75 z-10">
+              <div className="text-center text-white">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white mx-auto mb-4"></div>
+                <p>Loading video...</p>
+              </div>
+            </div>
+          )}
           
           {/* Watermark overlay */}
           <div className="absolute top-4 left-4 text-white text-opacity-50 text-sm pointer-events-none">
@@ -357,6 +419,9 @@ export default function WatchPage() {
             <p>Photo paths in collection: {collection?.photo_paths?.length || 0}</p>
             <p>Photos loaded: {photoUrls.length}</p>
             <p>User: {user?.email}</p>
+            <p>Video loaded: {videoLoaded ? 'Yes' : 'No'}</p>
+            <p>Timer started: {timerStarted ? 'Yes' : 'No'}</p>
+            <p>Is playing: {isPlaying ? 'Yes' : 'No'}</p>
           </div>
         )}
       </div>
