@@ -462,7 +462,7 @@ export default function CartPage() {
                       href="/login"
                       className="w-full btn-secondary text-center block"
                     >
-                      Sign Up / Sign In
+                      Login
                     </Link>
                   </div>
                 )}
