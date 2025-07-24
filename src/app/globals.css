@@ -86,6 +86,58 @@ video::-webkit-media-controls-fullscreen-button {
   display: none !important;
 }
 
+/* FORCE REMOVE ALL OVERLAY PLAY BUTTONS */
+video::-webkit-media-controls-overlay-play-button {
+  display: none !important;
+}
+
+/* Hide any overlay play buttons */
+.video-overlay,
+[class*="play-button"],
+[class*="playButton"],
+[class*="play_overlay"],
+[class*="play-overlay"] {
+  display: none !important;
+}
+
+/* Hide any elements with play/pause icons */
+svg[class*="play"],
+svg[class*="pause"],
+button[class*="play"],
+button[class*="pause"] {
+  display: none !important;
+}
+
+/* Hide any circular play buttons */
+[class*="rounded-full"][class*="play"],
+[class*="rounded-full"][class*="pause"] {
+  display: none !important;
+}
+
+/* Nuclear option - hide any element that looks like a play button */
+div[style*="play"],
+div[style*="pause"],
+div[style*="center"] {
+  display: none !important;
+}
+
+/* AGGRESSIVE OVERLAY REMOVAL */
+.absolute.inset-0.flex.items-center.justify-center,
+.absolute.inset-0.flex.items-center.justify-center * {
+  display: none !important;
+}
+
+/* Hide any white circular buttons */
+.bg-white.bg-opacity-20.backdrop-blur-sm.rounded-full,
+.bg-white.bg-opacity-20.backdrop-blur-sm.rounded-full * {
+  display: none !important;
+}
+
+/* Hide any play/pause button overlays */
+[class*="absolute"][class*="inset-0"][class*="flex"][class*="items-center"][class*="justify-center"] {
+  display: none !important;
+}
+
 /* Custom video controls */
 .video-container {
   position: relative;

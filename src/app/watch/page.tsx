@@ -60,6 +60,34 @@ function WatchPageContent() {
       setUser(session?.user || null);
     };
     getSession();
+
+    // FORCE REMOVE ANY OVERLAY PLAY BUTTONS
+    const removeOverlays = () => {
+      // Remove any elements that look like play button overlays
+      const overlays = document.querySelectorAll('.absolute.inset-0.flex.items-center.justify-center');
+      overlays.forEach(overlay => {
+        if (overlay.innerHTML.includes('play') || overlay.innerHTML.includes('pause')) {
+          overlay.remove();
+        }
+      });
+
+      // Remove any white circular buttons
+      const whiteButtons = document.querySelectorAll('.bg-white.bg-opacity-20.backdrop-blur-sm.rounded-full');
+      whiteButtons.forEach(button => button.remove());
+
+      // Remove any elements with play/pause icons
+      const playIcons = document.querySelectorAll('svg[class*="play"], svg[class*="pause"]');
+      playIcons.forEach(icon => {
+        const parent = icon.closest('.absolute');
+        if (parent) parent.remove();
+      });
+    };
+
+    // Run immediately and then every second
+    removeOverlays();
+    const interval = setInterval(removeOverlays, 1000);
+
+    return () => clearInterval(interval);
   }, [sessionId]);
 
   useEffect(() => {
