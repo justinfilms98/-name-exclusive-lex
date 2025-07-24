@@ -121,20 +121,26 @@ div[style*="center"] {
   display: none !important;
 }
 
-/* AGGRESSIVE OVERLAY REMOVAL */
-.absolute.inset-0.flex.items-center.justify-center,
-.absolute.inset-0.flex.items-center.justify-center * {
+/* AGGRESSIVE OVERLAY REMOVAL - EXCLUDE HERO SECTION */
+.absolute.inset-0.flex.items-center.justify-center:not([class*="hero"]),
+.absolute.inset-0.flex.items-center.justify-center:not([class*="hero"]) * {
   display: none !important;
 }
 
-/* Hide any white circular buttons */
-.bg-white.bg-opacity-20.backdrop-blur-sm.rounded-full,
-.bg-white.bg-opacity-20.backdrop-blur-sm.rounded-full * {
+/* Hide any white circular buttons - EXCLUDE HERO SECTION */
+.bg-white.bg-opacity-20.backdrop-blur-sm.rounded-full:not([class*="hero"]),
+.bg-white.bg-opacity-20.backdrop-blur-sm.rounded-full:not([class*="hero"]) * {
   display: none !important;
 }
 
-/* Hide any play/pause button overlays */
-[class*="absolute"][class*="inset-0"][class*="flex"][class*="items-center"][class*="justify-center"] {
+/* Hide any play/pause button overlays - EXCLUDE HERO SECTION */
+[class*="absolute"][class*="inset-0"][class*="flex"][class*="items-center"][class*="justify-center"]:not([class*="hero"]) {
+  display: none !important;
+}
+
+/* SPECIFICALLY TARGET WATCH PAGE OVERLAYS */
+.watch-page .absolute.inset-0.flex.items-center.justify-center,
+.watch-page .bg-white.bg-opacity-20.backdrop-blur-sm.rounded-full {
   display: none !important;
 }
 

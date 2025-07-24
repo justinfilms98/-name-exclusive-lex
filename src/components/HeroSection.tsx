@@ -37,25 +37,26 @@ export default function HeroSection() {
     
     checkMobile();
     
-    // Force autoplay on mobile after a short delay
-    if (isMobile) {
-      setTimeout(() => {
-        const videos = document.querySelectorAll('video');
-        videos.forEach(video => {
-          video.muted = true;
-          video.playsInline = true;
-          video.play().then(() => {
-            setVideosPlaying(true);
-            // Try to unmute after successful play
-            setTimeout(() => {
-              video.muted = false;
-            }, 200);
-          }).catch(() => {
-            console.log('Autoplay failed, will wait for user interaction');
-          });
+    // Force autoplay on both mobile and desktop
+    setTimeout(() => {
+      const videos = document.querySelectorAll('video');
+      videos.forEach(video => {
+        video.muted = true;
+        video.playsInline = true;
+        video.autoplay = true;
+        video.loop = true;
+        
+        video.play().then(() => {
+          setVideosPlaying(true);
+          // Try to unmute after successful play
+          setTimeout(() => {
+            video.muted = false;
+          }, 200);
+        }).catch(() => {
+          console.log('Autoplay failed, will wait for user interaction');
         });
-      }, 500);
-    }
+      });
+    }, 500);
   }, [isMobile]);
 
   useEffect(() => {

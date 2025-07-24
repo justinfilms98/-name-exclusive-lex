@@ -61,11 +61,17 @@ function WatchPageContent() {
     };
     getSession();
 
-    // FORCE REMOVE ANY OVERLAY PLAY BUTTONS
+    // FORCE REMOVE ANY OVERLAY PLAY BUTTONS (EXCLUDE HERO SECTION)
     const removeOverlays = () => {
+      // Only run on watch pages, not hero section
+      if (!window.location.pathname.includes('/watch')) return;
+      
       // Remove any elements that look like play button overlays
       const overlays = document.querySelectorAll('.absolute.inset-0.flex.items-center.justify-center');
       overlays.forEach(overlay => {
+        // Skip if it's in the hero section
+        if (overlay.closest('[class*="hero"]')) return;
+        
         if (overlay.innerHTML.includes('play') || overlay.innerHTML.includes('pause')) {
           overlay.remove();
         }
@@ -73,11 +79,18 @@ function WatchPageContent() {
 
       // Remove any white circular buttons
       const whiteButtons = document.querySelectorAll('.bg-white.bg-opacity-20.backdrop-blur-sm.rounded-full');
-      whiteButtons.forEach(button => button.remove());
+      whiteButtons.forEach(button => {
+        // Skip if it's in the hero section
+        if (button.closest('[class*="hero"]')) return;
+        button.remove();
+      });
 
       // Remove any elements with play/pause icons
       const playIcons = document.querySelectorAll('svg[class*="play"], svg[class*="pause"]');
       playIcons.forEach(icon => {
+        // Skip if it's in the hero section
+        if (icon.closest('[class*="hero"]')) return;
+        
         const parent = icon.closest('.absolute');
         if (parent) parent.remove();
       });
