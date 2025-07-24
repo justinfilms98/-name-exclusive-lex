@@ -46,17 +46,28 @@ export default function HeroSection() {
         video.autoplay = true;
         video.loop = true;
         
+        // Keep muted for autoplay to work
         video.play().then(() => {
           setVideosPlaying(true);
-          // Try to unmute after successful play
-          setTimeout(() => {
-            video.muted = false;
-          }, 200);
-        }).catch(() => {
-          console.log('Autoplay failed, will wait for user interaction');
+          console.log('Hero video autoplay successful');
+        }).catch((error) => {
+          console.log('Autoplay failed:', error);
+          // Try again with user interaction
+          const playButton = document.querySelector('.bg-black\\/50.text-white.p-4.rounded-full');
+          if (playButton) {
+            playButton.addEventListener('click', () => {
+              video.play().then(() => {
+                setVideosPlaying(true);
+                // Only unmute after user interaction
+                setTimeout(() => {
+                  video.muted = false;
+                }, 1000);
+              });
+            });
+          }
         });
       });
-    }, 500);
+    }, 1000);
   }, [isMobile]);
 
   useEffect(() => {
@@ -136,37 +147,43 @@ export default function HeroSection() {
   };
 
   const handleVideoLoad = (videoElement: HTMLVideoElement) => {
-    // For mobile devices, try to autoplay immediately
-    if (isMobile) {
-      // Start muted for autoplay to work
-      videoElement.muted = true;
-      videoElement.playsInline = true;
-      
-      // Try to play immediately
+    // Set video properties for autoplay compliance
+    videoElement.muted = true;
+    videoElement.playsInline = true;
+    videoElement.autoplay = true;
+    videoElement.loop = true;
+    
+    // Try to play the video
+    const playVideo = () => {
       videoElement.play().then(() => {
         setVideosPlaying(true);
-        // Try to unmute after a short delay
-        setTimeout(() => {
-          videoElement.muted = false;
-        }, 100);
-      }).catch(() => {
-        // If autoplay fails, set up user interaction handlers
-        console.log('Autoplay blocked on mobile, waiting for user interaction');
-        const playVideo = () => {
-          videoElement.muted = false;
-          videoElement.play().then(() => {
-            setVideosPlaying(true);
-          }).catch(() => {
-            console.log('Playback failed');
-          });
-          document.removeEventListener('touchstart', playVideo);
-          document.removeEventListener('click', playVideo);
+        console.log('Hero video playing successfully');
+        
+        // Keep muted for autoplay compliance
+        // Only unmute after user interaction
+        const unmuteAfterInteraction = () => {
+          setTimeout(() => {
+            videoElement.muted = false;
+          }, 2000);
         };
         
-        document.addEventListener('touchstart', playVideo, { once: true });
-        document.addEventListener('click', playVideo, { once: true });
+        // Listen for any user interaction
+        document.addEventListener('click', unmuteAfterInteraction, { once: true });
+        document.addEventListener('touchstart', unmuteAfterInteraction, { once: true });
+        
+      }).catch((error) => {
+        console.log('Hero video play failed:', error);
+        setVideosPlaying(false);
       });
-    }
+    };
+    
+    // Try to play immediately
+    playVideo();
+    
+    // Also try after delays to handle different browser behaviors
+    setTimeout(playVideo, 100);
+    setTimeout(playVideo, 500);
+    setTimeout(playVideo, 1000);
   };
 
   if (loading) {
@@ -208,7 +225,7 @@ export default function HeroSection() {
             index === currentVideoIndex ? 'opacity-100' : 'opacity-0'
           }`}
           autoPlay={true}
-          muted={isMobile}
+          muted={true}
           loop
           playsInline
           preload="auto"
