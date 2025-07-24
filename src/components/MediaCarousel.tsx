@@ -251,13 +251,40 @@ export default function MediaCarousel({ videoPath, photoPaths, onPlay, onPause }
   };
 
   const openFullscreen = (mediaItem: MediaItem) => {
-    setFullscreenMedia(mediaItem);
-    setIsFullscreen(true);
+    if (mediaItem.type === 'video') {
+      // For videos, use native fullscreen API
+      const videoElement = document.querySelector('video') as HTMLVideoElement;
+      if (videoElement) {
+        if (videoElement.requestFullscreen) {
+          videoElement.requestFullscreen();
+        } else if ((videoElement as any).webkitRequestFullscreen) {
+          (videoElement as any).webkitRequestFullscreen();
+        } else if ((videoElement as any).msRequestFullscreen) {
+          (videoElement as any).msRequestFullscreen();
+        }
+      }
+    } else {
+      // For photos, use modal fullscreen
+      setFullscreenMedia(mediaItem);
+      setIsFullscreen(true);
+    }
   };
 
   const closeFullscreen = () => {
-    setFullscreenMedia(null);
-    setIsFullscreen(false);
+    // Check if we're in native fullscreen mode
+    if (document.fullscreenElement || (document as any).webkitFullscreenElement || (document as any).msFullscreenElement) {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      } else if ((document as any).webkitExitFullscreen) {
+        (document as any).webkitExitFullscreen();
+      } else if ((document as any).msExitFullscreen) {
+        (document as any).msExitFullscreen();
+      }
+    } else {
+      // Close modal fullscreen
+      setFullscreenMedia(null);
+      setIsFullscreen(false);
+    }
   };
 
   const handleMediaClick = (mediaItem: MediaItem) => {
@@ -290,10 +317,10 @@ export default function MediaCarousel({ videoPath, photoPaths, onPlay, onPause }
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [mediaItems.length]);
 
-  // Fullscreen keyboard support
+  // Fullscreen keyboard support and state tracking
   useEffect(() => {
     const handleFullscreenKeyDown = (e: KeyboardEvent) => {
-      if (fullscreenMedia) {
+      if (fullscreenMedia || document.fullscreenElement) {
         if (e.key === 'Escape') {
           e.preventDefault();
           closeFullscreen();
@@ -301,8 +328,25 @@ export default function MediaCarousel({ videoPath, photoPaths, onPlay, onPause }
       }
     };
 
+    const handleFullscreenChange = () => {
+      const isInFullscreen = !!(document.fullscreenElement || (document as any).webkitFullscreenElement || (document as any).msFullscreenElement);
+      setIsFullscreen(isInFullscreen);
+      if (!isInFullscreen) {
+        setFullscreenMedia(null);
+      }
+    };
+
     document.addEventListener('keydown', handleFullscreenKeyDown);
-    return () => document.removeEventListener('keydown', handleFullscreenKeyDown);
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    document.addEventListener('msfullscreenchange', handleFullscreenChange);
+    
+    return () => {
+      document.removeEventListener('keydown', handleFullscreenKeyDown);
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('msfullscreenchange', handleFullscreenChange);
+    };
   }, [fullscreenMedia]);
 
   if (loading) {

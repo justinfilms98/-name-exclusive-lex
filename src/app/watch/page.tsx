@@ -643,25 +643,25 @@ function WatchPageContent() {
 
   const toggleFullscreen = () => {
     console.log('🔍 DEBUG: toggleFullscreen called, isFullscreen:', isFullscreen);
-    const videoContainer = document.querySelector('.video-container') as HTMLElement;
-    if (!videoContainer) {
-      console.error('❌ Video container not found');
+    const videoElement = document.getElementById('video-player') as HTMLVideoElement;
+    if (!videoElement) {
+      console.error('❌ Video element not found');
       return;
     }
-    console.log('✅ Video container found:', videoContainer);
+    console.log('✅ Video element found:', videoElement);
 
     if (!isFullscreen) {
       console.log('🚀 Attempting to enter fullscreen...');
-      if (videoContainer.requestFullscreen) {
-        videoContainer.requestFullscreen().then(() => {
+      if (videoElement.requestFullscreen) {
+        videoElement.requestFullscreen().then(() => {
           console.log('✅ Fullscreen entered successfully');
         }).catch((err) => {
           console.error('❌ Fullscreen request failed:', err);
         });
-      } else if ((videoContainer as any).webkitRequestFullscreen) {
-        (videoContainer as any).webkitRequestFullscreen();
-      } else if ((videoContainer as any).msRequestFullscreen) {
-        (videoContainer as any).msRequestFullscreen();
+      } else if ((videoElement as any).webkitRequestFullscreen) {
+        (videoElement as any).webkitRequestFullscreen();
+      } else if ((videoElement as any).msRequestFullscreen) {
+        (videoElement as any).msRequestFullscreen();
       }
     } else {
       console.log('🚪 Attempting to exit fullscreen...');
