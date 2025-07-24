@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { supabase, getSignedUrl } from '@/lib/supabase';
-import { Clock, AlertCircle, Play, Pause, Volume2, VolumeX } from 'lucide-react';
+import { Clock, AlertCircle, Play, Pause, Volume2, VolumeX, Maximize2, Minimize2 } from 'lucide-react';
 import { useToast } from '@/components/Toast';
 
 interface Purchase {
@@ -44,6 +44,7 @@ function WatchPageContent() {
   const [isBlurred, setIsBlurred] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
     if (!sessionId) {
@@ -100,7 +101,17 @@ function WatchPageContent() {
     removeOverlays();
     const interval = setInterval(removeOverlays, 1000);
 
-    return () => clearInterval(interval);
+    // Add fullscreen change listener
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    document.addEventListener('msfullscreenchange', handleFullscreenChange);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('msfullscreenchange', handleFullscreenChange);
+    };
   }, [sessionId]);
 
   useEffect(() => {
@@ -624,6 +635,33 @@ function WatchPageContent() {
     }
   };
 
+  const toggleFullscreen = () => {
+    const videoContainer = document.querySelector('.video-container') as HTMLElement;
+    if (!videoContainer) return;
+
+    if (!isFullscreen) {
+      if (videoContainer.requestFullscreen) {
+        videoContainer.requestFullscreen();
+      } else if ((videoContainer as any).webkitRequestFullscreen) {
+        (videoContainer as any).webkitRequestFullscreen();
+      } else if ((videoContainer as any).msRequestFullscreen) {
+        (videoContainer as any).msRequestFullscreen();
+      }
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      } else if ((document as any).webkitExitFullscreen) {
+        (document as any).webkitExitFullscreen();
+      } else if ((document as any).msExitFullscreen) {
+        (document as any).msExitFullscreen();
+      }
+    }
+  };
+
+  const handleFullscreenChange = () => {
+    setIsFullscreen(!!document.fullscreenElement);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-stone-50 flex items-center justify-center">
@@ -698,7 +736,7 @@ function WatchPageContent() {
 
       {/* Video Player */}
       <div className="max-w-7xl mx-auto p-4">
-        <div className="relative aspect-video bg-black rounded-lg overflow-hidden screenshot-protected">
+        <div className="relative aspect-video bg-black rounded-lg overflow-hidden screenshot-protected video-container">
           {videoUrl ? (
             <>
               <video
@@ -712,6 +750,7 @@ function WatchPageContent() {
                 onLoadedMetadata={handleTimeUpdate}
                 onMouseMove={() => setShowControls(true)}
                 onMouseLeave={() => setShowControls(false)}
+                onDoubleClick={toggleFullscreen}
                 onContextMenu={(e) => {
                   e.preventDefault()
                   e.stopPropagation()
@@ -996,9 +1035,19 @@ function WatchPageContent() {
                   </div>
                 </div>
 
-                {/* Watermark */}
-                <div className="text-white text-opacity-50 text-sm">
-                  {user?.email} • Exclusive Access
+                <div className="flex items-center space-x-4">
+                  {/* Fullscreen Button */}
+                  <button
+                    onClick={toggleFullscreen}
+                    className="text-white hover:text-gray-300 transition-colors"
+                  >
+                    {isFullscreen ? <Minimize2 className="w-6 h-6" /> : <Maximize2 className="w-6 h-6" />}
+                  </button>
+
+                  {/* Watermark */}
+                  <div className="text-white text-opacity-50 text-sm">
+                    {user?.email} • Exclusive Access
+                  </div>
                 </div>
               </div>
             </div>
