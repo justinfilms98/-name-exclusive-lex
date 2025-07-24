@@ -77,6 +77,14 @@ export default function MediaCarousel({ videoPath, photoPaths, onPlay, onPause }
       setShowMobileHint(true);
       // Hide hint after 5 seconds
       setTimeout(() => setShowMobileHint(false), 5000);
+      
+      // Test fullscreen support
+      console.log('📱 Mobile device detected');
+      console.log('🔍 Fullscreen support test:');
+      console.log('- document.fullscreenEnabled:', document.fullscreenEnabled);
+      console.log('- document.webkitFullscreenEnabled:', (document as any).webkitFullscreenEnabled);
+      console.log('- document.msFullscreenEnabled:', (document as any).msFullscreenEnabled);
+      console.log('- User agent:', navigator.userAgent);
     }
 
     // Add screenshot protection
@@ -262,37 +270,70 @@ export default function MediaCarousel({ videoPath, photoPaths, onPlay, onPause }
   const openFullscreen = (mediaItem: MediaItem) => {
     // Check if we're on mobile
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    console.log('🔍 DEBUG: openFullscreen called, mediaItem:', mediaItem.type, 'isMobile:', isMobile);
     
     if (mediaItem.type === 'video') {
       // For videos, use native fullscreen API
       const videoElement = document.querySelector('video') as HTMLVideoElement;
+      console.log('🔍 DEBUG: Video element found:', !!videoElement);
+      
       if (videoElement) {
         if (isMobile) {
           // On mobile, try to use video element's fullscreen API
-          console.log('Attempting mobile video fullscreen...');
-          if (videoElement.requestFullscreen) {
-            videoElement.requestFullscreen().catch((err) => {
-              console.log('Mobile video fullscreen failed, trying webkit:', err);
-              // Fallback to webkit for iOS
-              if ((videoElement as any).webkitRequestFullscreen) {
-                (videoElement as any).webkitRequestFullscreen().catch((webkitErr) => {
-                  console.log('Webkit fullscreen also failed:', webkitErr);
-                  // Try to play video in fullscreen mode
-                  videoElement.play().then(() => {
-                    console.log('Video playing in fullscreen mode');
-                  }).catch((playErr) => {
-                    console.log('Video play failed:', playErr);
+          console.log('📱 Attempting mobile video fullscreen...');
+          
+          // First, ensure video is loaded and ready
+          if (videoElement.readyState >= 2) {
+            console.log('✅ Video is ready, attempting fullscreen...');
+            
+            // Try standard fullscreen first
+            if (videoElement.requestFullscreen) {
+              console.log('🔄 Trying standard fullscreen...');
+              videoElement.requestFullscreen().then(() => {
+                console.log('✅ Standard fullscreen successful!');
+              }).catch((err) => {
+                console.log('❌ Standard fullscreen failed:', err);
+                
+                // Try webkit fullscreen
+                if ((videoElement as any).webkitRequestFullscreen) {
+                  console.log('🔄 Trying webkit fullscreen...');
+                  (videoElement as any).webkitRequestFullscreen().then(() => {
+                    console.log('✅ Webkit fullscreen successful!');
+                  }).catch((webkitErr) => {
+                    console.log('❌ Webkit fullscreen failed:', webkitErr);
+                    
+                    // Try to play video in fullscreen mode as last resort
+                    console.log('🔄 Trying to play video...');
+                    videoElement.play().then(() => {
+                      console.log('✅ Video playing successfully');
+                    }).catch((playErr) => {
+                      console.log('❌ Video play failed:', playErr);
+                      // Last resort: open in new tab
+                      console.log('🔄 Opening video in new tab as fallback...');
+                      window.open(mediaItem.signedUrl, '_blank');
+                    });
                   });
-                });
-              }
+                }
+              });
+            } else if ((videoElement as any).webkitRequestFullscreen) {
+              console.log('🔄 Trying webkit fullscreen directly...');
+              (videoElement as any).webkitRequestFullscreen();
+            } else if ((videoElement as any).msRequestFullscreen) {
+              console.log('🔄 Trying MS fullscreen...');
+              (videoElement as any).msRequestFullscreen();
+            } else {
+              console.log('❌ No fullscreen API available');
+            }
+          } else {
+            console.log('⏳ Video not ready yet, waiting...');
+            videoElement.addEventListener('loadeddata', () => {
+              console.log('✅ Video loaded, retrying fullscreen...');
+              openFullscreen(mediaItem);
             });
-          } else if ((videoElement as any).webkitRequestFullscreen) {
-            (videoElement as any).webkitRequestFullscreen();
-          } else if ((videoElement as any).msRequestFullscreen) {
-            (videoElement as any).msRequestFullscreen();
           }
         } else {
           // Desktop fullscreen
+          console.log('🖥️ Desktop fullscreen...');
           if (videoElement.requestFullscreen) {
             videoElement.requestFullscreen();
           } else if ((videoElement as any).webkitRequestFullscreen) {
@@ -301,14 +342,18 @@ export default function MediaCarousel({ videoPath, photoPaths, onPlay, onPause }
             (videoElement as any).msRequestFullscreen();
           }
         }
+      } else {
+        console.log('❌ Video element not found');
       }
     } else {
       // For photos on mobile, use a different approach since mobile browsers don't support image fullscreen well
       if (isMobile) {
+        console.log('📱 Mobile photo - using modal fullscreen');
         // Create a modal fullscreen for photos on mobile
         setFullscreenMedia(mediaItem);
         setIsFullscreen(true);
       } else {
+        console.log('🖥️ Desktop photo fullscreen...');
         // Desktop photo fullscreen
         const imgElement = document.querySelector('img') as HTMLImageElement;
         if (imgElement) {
