@@ -225,7 +225,7 @@ export default function HeroSection() {
 
       {/* Mobile Play Button Overlay - Only show when videos are not playing */}
       {isMobile && videosLoaded && !videosPlaying && (
-        <div className="absolute inset-0 flex items-center justify-center z-20">
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-20 pointer-events-none">
           <button
             onClick={() => {
               const videos = document.querySelectorAll('video');
@@ -238,9 +238,9 @@ export default function HeroSection() {
                 });
               });
             }}
-            className="bg-black/50 text-white p-6 rounded-full backdrop-blur-sm hover:bg-black/70 transition-all"
+            className="bg-black/50 text-white p-4 rounded-full backdrop-blur-sm hover:bg-black/70 transition-all pointer-events-auto"
           >
-            <svg className="w-12 h-12" fill="currentColor" viewBox="0 0 24 24">
+            <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
               <path d="M8 5v14l11-7z"/>
             </svg>
           </button>
@@ -281,7 +281,7 @@ export default function HeroSection() {
                   href="/login"
                   className="inline-flex items-center btn-primary text-lg px-8 py-4 shadow-elegant hover:shadow-glass"
                 >
-                  Login or Sign Up Now
+                  Login or Sign Up
                 </Link>
               )}
             </div>

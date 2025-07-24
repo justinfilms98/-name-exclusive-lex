@@ -111,7 +111,7 @@ export default function HeaderClient() {
             disabled={signInLoading}
             className="text-sm bg-stone-800 text-white px-4 py-2 rounded hover:bg-stone-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {signInLoading ? 'Signing in...' : 'Sign Up / Sign In'}
+            {signInLoading ? 'Signing in...' : 'Login or Sign Up'}
           </button>
           {error && (
             <span className="text-xs text-red-600 max-w-xs text-right">
