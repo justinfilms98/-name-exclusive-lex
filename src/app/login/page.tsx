@@ -9,20 +9,32 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const [sessionChecked, setSessionChecked] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
     // Check if user is already logged in
     const getSession = async () => {
       try {
+        console.log('Login page: Checking session...');
         const { data: { session } } = await supabase.auth.getSession();
+        
+        console.log('Login page: Session check result:', { 
+          hasSession: !!session, 
+          userId: session?.user?.id,
+          email: session?.user?.email 
+        });
+        
         if (session?.user) {
           setUser(session.user);
-          router.push('/collections');
+          console.log('Login page: User found, redirecting to home');
+          router.push('/');
         }
       } catch (err) {
         console.error('Session check error:', err);
         setError('Failed to check user session');
+      } finally {
+        setSessionChecked(true);
       }
     };
 
@@ -31,10 +43,11 @@ export default function LoginPage() {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('Auth state changed:', event, session?.user?.email);
+        console.log('Login page: Auth state changed:', event, session?.user?.email);
         if (session?.user) {
           setUser(session.user);
-          router.push('/collections');
+          console.log('Login page: Auth state change - redirecting to home');
+          router.push('/');
         }
         setError(null);
       }
@@ -48,10 +61,13 @@ export default function LoginPage() {
     setError(null);
     
     try {
+      console.log('Login page: Starting Google sign in...');
       const { error } = await signInWithGoogle();
       if (error) {
         console.error('Sign in error:', error);
         setError('Failed to sign in. Please try again.');
+      } else {
+        console.log('Login page: Google sign in initiated successfully');
       }
     } catch (error) {
       console.error('Sign in exception:', error);
@@ -61,12 +77,24 @@ export default function LoginPage() {
     }
   };
 
+  // Don't render until session is checked
+  if (!sessionChecked) {
+    return (
+      <div className="min-h-screen bg-almond pt-20 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 spinner mx-auto mb-4"></div>
+          <p className="text-sage text-lg">Checking session...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (user) {
     return (
       <div className="min-h-screen bg-almond pt-20 flex items-center justify-center">
         <div className="text-center">
           <div className="w-12 h-12 spinner mx-auto mb-4"></div>
-          <p className="text-sage text-lg">Redirecting to collections...</p>
+          <p className="text-sage text-lg">Redirecting to home...</p>
         </div>
       </div>
     );
