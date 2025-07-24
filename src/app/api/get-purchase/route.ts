@@ -33,24 +33,22 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Collection not found' }, { status: 404 })
   }
 
-  // Get the first collection video for this collection
-  const { data: collectionVideos, error: collectionVideosError } = await supabase
-    .from('CollectionVideo')
-    .select('id, title, description, videoUrl, thumbnail, price')
-    .eq('collection', collection.title)
-    .order('order', { ascending: true })
-    .limit(1)
-    .single()
-
-  if (collectionVideosError || !collectionVideos) {
-    return NextResponse.json({ error: 'Collection video not found' }, { status: 404 })
+  // Create a mock CollectionVideo from the collection data
+  // This maintains compatibility with the frontend while using collection data
+  const mockCollectionVideo = {
+    id: collection.id,
+    title: collection.title,
+    description: collection.description,
+    videoUrl: collection.video_path || '',
+    thumbnail: collection.thumbnail_path || '',
+    price: 0 // Default price, can be updated later
   }
 
   // Combine purchase and collection video data
   const purchaseWithCollectionVideo = {
     ...purchase,
-    collection_video_id: collectionVideos.id,
-    CollectionVideo: collectionVideos
+    collection_video_id: collection.id,
+    CollectionVideo: mockCollectionVideo
   }
 
   return NextResponse.json({ purchase: purchaseWithCollectionVideo }, { status: 200 })
