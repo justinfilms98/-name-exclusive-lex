@@ -14,12 +14,15 @@ export default function WatchPage() {
   const [error, setError] = useState<string>('');
   const [timeRemaining, setTimeRemaining] = useState<number>(0);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [showPlayButton, setShowPlayButton] = useState(true);
   const [videoLoaded, setVideoLoaded] = useState(false);
   const [timerStarted, setTimerStarted] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [showControls, setShowControls] = useState(true);
   const router = useRouter();
   const params = useParams();
   const videoRef = useRef<HTMLVideoElement>(null);
+  const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const id = params?.id as string;
 
   useEffect(() => {
@@ -164,22 +167,6 @@ export default function WatchPage() {
     }
   }, [timeRemaining, timerStarted]);
 
-  // Monitor video playing state
-  useEffect(() => {
-    const checkVideoState = () => {
-      if (videoRef.current) {
-        const isVideoPlaying = !videoRef.current.paused && !videoRef.current.ended;
-        if (isVideoPlaying !== isPlaying) {
-          console.log('Video state changed:', isVideoPlaying ? 'playing' : 'paused');
-          setIsPlaying(isVideoPlaying);
-        }
-      }
-    };
-
-    const interval = setInterval(checkVideoState, 1000);
-    return () => clearInterval(interval);
-  }, [isPlaying]);
-
   // Handle video events
   const handleVideoLoad = () => {
     setVideoLoaded(true);
@@ -188,7 +175,6 @@ export default function WatchPage() {
   const handlePlay = () => {
     console.log('Video play event triggered');
     setIsPlaying(true);
-    setShowPlayButton(false);
     if (!timerStarted) {
       setTimerStarted(true);
     }
@@ -197,7 +183,18 @@ export default function WatchPage() {
   const handlePause = () => {
     console.log('Video pause event triggered');
     setIsPlaying(false);
-    setShowPlayButton(true);
+  };
+
+  const handleTimeUpdate = () => {
+    if (videoRef.current) {
+      setCurrentTime(videoRef.current.currentTime);
+    }
+  };
+
+  const handleLoadedMetadata = () => {
+    if (videoRef.current) {
+      setDuration(videoRef.current.duration);
+    }
   };
 
   const handleVideoClick = () => {
@@ -208,6 +205,50 @@ export default function WatchPage() {
         videoRef.current.play();
       }
     }
+  };
+
+  const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (videoRef.current && duration > 0) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      const percentage = clickX / rect.width;
+      const newTime = percentage * duration;
+      videoRef.current.currentTime = newTime;
+    }
+  };
+
+  const handleMouseMove = () => {
+    setShowControls(true);
+    if (controlsTimeoutRef.current) {
+      clearTimeout(controlsTimeoutRef.current);
+    }
+    controlsTimeoutRef.current = setTimeout(() => {
+      if (isPlaying) {
+        setShowControls(false);
+      }
+    }, 3000);
+  };
+
+  const formatTime = (seconds: number) => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = Math.floor(seconds % 60);
+    
+    if (hours > 0) {
+      return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+    return `${minutes}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const formatRemainingTime = (seconds: number) => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    
+    if (hours > 0) {
+      return `${hours}h ${minutes}m ${secs}s`;
+    }
+    return `${minutes}m ${secs}s`;
   };
 
   // Prevent right-click and other protection
@@ -233,17 +274,6 @@ export default function WatchPage() {
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, []);
-
-  const formatTime = (seconds: number) => {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
-    
-    if (hours > 0) {
-      return `${hours}h ${minutes}m ${secs}s`;
-    }
-    return `${minutes}m ${secs}s`;
-  };
 
   if (loading) {
     return (
@@ -295,27 +325,34 @@ export default function WatchPage() {
         </div>
         <div className="text-right">
           <p className="text-sm text-gray-300">Time Remaining</p>
-          <p className="text-lg font-mono text-red-400">{formatTime(timeRemaining)}</p>
+          <p className="text-lg font-mono text-red-400">{formatRemainingTime(timeRemaining)}</p>
         </div>
       </div>
 
       {/* Main Content */}
       <div className="pt-20">
         {/* Video Player */}
-        <div className="relative">
+        <div 
+          className="relative bg-black"
+          onMouseMove={handleMouseMove}
+          onMouseLeave={() => {
+            if (isPlaying) {
+              setShowControls(false);
+            }
+          }}
+        >
           <video
             ref={videoRef}
             src={videoUrl}
-            controls
             className="w-full h-screen object-contain"
-            controlsList="nodownload"
             onContextMenu={(e) => e.preventDefault()}
             onLoadedData={handleVideoLoad}
             onPlay={handlePlay}
             onPause={handlePause}
+            onTimeUpdate={handleTimeUpdate}
+            onLoadedMetadata={handleLoadedMetadata}
             onEnded={() => setIsPlaying(false)}
             style={{
-              // Prevent highlighting/selection
               WebkitUserSelect: 'none',
               MozUserSelect: 'none',
               msUserSelect: 'none',
@@ -324,24 +361,6 @@ export default function WatchPage() {
           >
             Your browser does not support the video tag.
           </video>
-          
-          {/* Custom Play Button Overlay */}
-          {!isPlaying && videoLoaded && (
-            <div 
-              className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 cursor-pointer z-10"
-              onClick={handleVideoClick}
-            >
-              <div className="bg-white bg-opacity-20 backdrop-blur-sm rounded-full p-8 hover:bg-opacity-30 transition-all duration-300 transform hover:scale-110">
-                <svg 
-                  className="w-16 h-16 text-white" 
-                  fill="currentColor" 
-                  viewBox="0 0 24 24"
-                >
-                  <path d="M8 5v14l11-7z"/>
-                </svg>
-              </div>
-            </div>
-          )}
 
           {/* Loading overlay */}
           {!videoLoaded && (
@@ -352,10 +371,52 @@ export default function WatchPage() {
               </div>
             </div>
           )}
-          
-          {/* Watermark overlay */}
-          <div className="absolute top-4 left-4 text-white text-opacity-50 text-sm pointer-events-none">
-            {user?.email} • Exclusive Access
+
+          {/* Custom Video Controls */}
+          <div className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/50 to-transparent p-4 transition-opacity duration-300 ${showControls ? 'opacity-100' : 'opacity-0'}`}>
+            {/* Progress Bar */}
+            <div 
+              className="w-full h-1 bg-gray-600 rounded-full cursor-pointer mb-4"
+              onClick={handleProgressClick}
+            >
+              <div 
+                className="h-full bg-red-500 rounded-full relative"
+                style={{ width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
+              >
+                <div className="absolute right-0 top-1/2 transform -translate-y-1/2 w-3 h-3 bg-red-500 rounded-full shadow-lg"></div>
+              </div>
+            </div>
+
+            {/* Controls */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                {/* Play/Pause Button */}
+                <button
+                  onClick={handleVideoClick}
+                  className="text-white hover:text-gray-300 transition-colors"
+                >
+                  {isPlaying ? (
+                    <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/>
+                    </svg>
+                  ) : (
+                    <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M8 5v14l11-7z"/>
+                    </svg>
+                  )}
+                </button>
+
+                {/* Time Display */}
+                <div className="text-white text-sm">
+                  {formatTime(currentTime)} / {formatTime(duration)}
+                </div>
+              </div>
+
+              {/* Watermark */}
+              <div className="text-white text-opacity-50 text-sm">
+                {user?.email} • Exclusive Access
+              </div>
+            </div>
           </div>
         </div>
 
@@ -401,7 +462,7 @@ export default function WatchPage() {
                 <p className="text-gray-600 mb-2">Your exclusive content is now playing.</p>
                 <div className="flex justify-between items-center text-sm text-gray-500">
                   <span>Purchased: {new Date().toLocaleDateString()}</span>
-                  <span>Time remaining: {formatTime(timeRemaining)}</span>
+                  <span>Time remaining: {formatRemainingTime(timeRemaining)}</span>
                 </div>
               </div>
             </div>
@@ -423,7 +484,7 @@ export default function WatchPage() {
                 <p className="text-gray-600 mb-2">Your exclusive content is now playing.</p>
                 <div className="flex justify-between items-center text-sm text-gray-500">
                   <span>Purchased: {new Date().toLocaleDateString()}</span>
-                  <span>Time remaining: {formatTime(timeRemaining)}</span>
+                  <span>Time remaining: {formatRemainingTime(timeRemaining)}</span>
                 </div>
               </div>
             </div>
@@ -441,6 +502,8 @@ export default function WatchPage() {
             <p>Video loaded: {videoLoaded ? 'Yes' : 'No'}</p>
             <p>Timer started: {timerStarted ? 'Yes' : 'No'}</p>
             <p>Is playing: {isPlaying ? 'Yes' : 'No'}</p>
+            <p>Current time: {formatTime(currentTime)}</p>
+            <p>Duration: {formatTime(duration)}</p>
           </div>
         )}
       </div>
