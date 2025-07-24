@@ -48,7 +48,8 @@ export async function GET(request: Request) {
   const purchaseWithCollectionVideo = {
     ...purchase,
     collection_video_id: collection.id,
-    CollectionVideo: mockCollectionVideo
+    CollectionVideo: mockCollectionVideo,
+    collection: collection // Add collection data for compatibility
   }
 
   return NextResponse.json({ purchase: purchaseWithCollectionVideo }, { status: 200 })
