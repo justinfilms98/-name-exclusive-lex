@@ -40,6 +40,8 @@ function WatchPageContent() {
   const [showControls, setShowControls] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [isBlurred, setIsBlurred] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
 
   useEffect(() => {
     if (!sessionId) {
@@ -560,6 +562,25 @@ function WatchPageContent() {
     setIsPlaying(false);
   };
 
+  const handleTimeUpdate = () => {
+    const video = document.getElementById('video-player') as HTMLVideoElement;
+    if (video) {
+      setCurrentTime(video.currentTime);
+      setDuration(video.duration);
+    }
+  };
+
+  const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const video = document.getElementById('video-player') as HTMLVideoElement;
+    if (video && duration > 0) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      const percentage = clickX / rect.width;
+      const newTime = percentage * duration;
+      video.currentTime = newTime;
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-stone-50 flex items-center justify-center">
@@ -644,6 +665,8 @@ function WatchPageContent() {
                 onEnded={handleVideoEnded}
                 onPlay={handleVideoPlay}
                 onPause={handleVideoPause}
+                onTimeUpdate={handleTimeUpdate}
+                onLoadedMetadata={handleTimeUpdate}
                 onMouseMove={() => setShowControls(true)}
                 onMouseLeave={() => setShowControls(false)}
                 onContextMenu={(e) => {
@@ -889,23 +912,51 @@ function WatchPageContent() {
             </div>
           )}
 
-          {/* Video Controls Overlay */}
+          {/* Custom Video Controls */}
           {showControls && videoUrl && (
-            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
-              <div className="flex items-center justify-center space-x-4">
-                <button
-                  onClick={handlePlayPause}
-                  className="text-white hover:text-stone-300 transition-colors"
+            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/50 to-transparent p-4 transition-opacity duration-300">
+              {/* Progress Bar */}
+              <div 
+                className="w-full h-1 bg-gray-600 rounded-full cursor-pointer mb-4"
+                onClick={handleProgressClick}
+              >
+                <div 
+                  className="h-full bg-red-500 rounded-full relative"
+                  style={{ width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
                 >
-                  {isPlaying ? <Pause className="w-8 h-8" /> : <Play className="w-8 h-8" />}
-                </button>
-                
-                <button
-                  onClick={handleMuteToggle}
-                  className="text-white hover:text-stone-300 transition-colors"
-                >
-                  {isMuted ? <VolumeX className="w-6 h-6" /> : <Volume2 className="w-6 h-6" />}
-                </button>
+                  <div className="absolute right-0 top-1/2 transform -translate-y-1/2 w-3 h-3 bg-red-500 rounded-full shadow-lg"></div>
+                </div>
+              </div>
+
+              {/* Controls */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  {/* Play/Pause Button */}
+                  <button
+                    onClick={handlePlayPause}
+                    className="text-white hover:text-gray-300 transition-colors"
+                  >
+                    {isPlaying ? <Pause className="w-8 h-8" /> : <Play className="w-8 h-8" />}
+                  </button>
+
+                  {/* Volume Button */}
+                  <button
+                    onClick={handleMuteToggle}
+                    className="text-white hover:text-gray-300 transition-colors"
+                  >
+                    {isMuted ? <VolumeX className="w-6 h-6" /> : <Volume2 className="w-6 h-6" />}
+                  </button>
+
+                  {/* Time Display */}
+                  <div className="text-white text-sm">
+                    {formatTime(currentTime * 1000)} / {formatTime(duration * 1000)}
+                  </div>
+                </div>
+
+                {/* Watermark */}
+                <div className="text-white text-opacity-50 text-sm">
+                  {user?.email} • Exclusive Access
+                </div>
               </div>
             </div>
           )}
