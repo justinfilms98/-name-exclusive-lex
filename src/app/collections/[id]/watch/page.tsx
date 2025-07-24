@@ -19,6 +19,8 @@ export default function WatchPage() {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [showControls, setShowControls] = useState(true);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [fullscreenPhoto, setFullscreenPhoto] = useState<string | null>(null);
   const router = useRouter();
   const params = useParams();
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -229,6 +231,24 @@ export default function WatchPage() {
     }, 3000);
   };
 
+  const openPhotoFullscreen = (photoUrl: string) => {
+    setFullscreenPhoto(photoUrl);
+    setIsFullscreen(true);
+  };
+
+  const closePhotoFullscreen = () => {
+    setFullscreenPhoto(null);
+    setIsFullscreen(false);
+  };
+
+  const handlePhotoClick = (photoUrl: string) => {
+    openPhotoFullscreen(photoUrl);
+  };
+
+  const handlePhotoDoubleClick = (photoUrl: string) => {
+    openPhotoFullscreen(photoUrl);
+  };
+
   const formatTime = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
@@ -264,6 +284,11 @@ export default function WatchPage() {
       ) {
         e.preventDefault();
       }
+      
+      // Close fullscreen photo on Escape
+      if (e.key === 'Escape' && fullscreenPhoto) {
+        closePhotoFullscreen();
+      }
     };
 
     document.addEventListener('contextmenu', handleContextMenu);
@@ -273,7 +298,7 @@ export default function WatchPage() {
       document.removeEventListener('contextmenu', handleContextMenu);
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, []);
+  }, [fullscreenPhoto]);
 
   if (loading) {
     return (
@@ -430,12 +455,14 @@ export default function WatchPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {photoUrls.map((url, index) => (
                   <div key={index} className="relative group">
-                    <div className="bg-white rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+                    <div className="bg-white rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 cursor-pointer">
                       <img
                         src={url}
                         alt={`Content ${index + 1}`}
                         className="w-full h-64 object-cover"
                         onContextMenu={(e) => e.preventDefault()}
+                        onClick={() => handlePhotoClick(url)}
+                        onDoubleClick={() => handlePhotoDoubleClick(url)}
                         onError={(e) => {
                           console.error(`Failed to load photo ${index + 1}:`, e);
                           e.currentTarget.style.display = 'none';
@@ -450,6 +477,13 @@ export default function WatchPage() {
                       {/* Photo number overlay */}
                       <div className="absolute top-2 right-2 bg-black bg-opacity-75 text-white px-2 py-1 rounded text-xs font-medium">
                         Photo {index + 1}
+                      </div>
+                      
+                      {/* Fullscreen button overlay */}
+                      <div className="absolute top-2 left-2 bg-black bg-opacity-75 text-white p-1 rounded text-xs opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>
+                        </svg>
                       </div>
                     </div>
                   </div>
@@ -504,6 +538,44 @@ export default function WatchPage() {
             <p>Is playing: {isPlaying ? 'Yes' : 'No'}</p>
             <p>Current time: {formatTime(currentTime)}</p>
             <p>Duration: {formatTime(duration)}</p>
+          </div>
+        )}
+
+        {/* Fullscreen Photo Modal */}
+        {fullscreenPhoto && (
+          <div 
+            className="fixed inset-0 bg-black bg-opacity-95 z-50 flex items-center justify-center"
+            onClick={closePhotoFullscreen}
+          >
+            <div className="relative max-w-full max-h-full p-4">
+              <img
+                src={fullscreenPhoto}
+                alt="Fullscreen content"
+                className="max-w-full max-h-full object-contain"
+                onContextMenu={(e) => e.preventDefault()}
+                style={{
+                  WebkitUserSelect: 'none',
+                  MozUserSelect: 'none',
+                  msUserSelect: 'none',
+                  userSelect: 'none',
+                }}
+              />
+              
+              {/* Close button */}
+              <button
+                onClick={closePhotoFullscreen}
+                className="absolute top-4 right-4 bg-black bg-opacity-75 text-white p-2 rounded-full hover:bg-opacity-100 transition-all duration-200"
+              >
+                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                </svg>
+              </button>
+              
+              {/* Watermark */}
+              <div className="absolute bottom-4 left-4 text-white text-opacity-50 text-sm">
+                {user?.email} • Exclusive Access
+              </div>
+            </div>
           </div>
         )}
       </div>
