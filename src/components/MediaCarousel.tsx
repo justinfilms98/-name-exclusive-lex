@@ -351,6 +351,13 @@ export default function MediaCarousel({ videoPath, photoPaths, onPlay, onPause }
     openFullscreen(mediaItem);
   };
 
+  const handleFullscreenButtonClick = (e: React.MouseEvent, mediaItem: MediaItem) => {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log('🔍 Fullscreen button clicked for:', mediaItem.type);
+    openFullscreen(mediaItem);
+  };
+
   // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -511,15 +518,17 @@ export default function MediaCarousel({ videoPath, photoPaths, onPlay, onPause }
 
       {/* Fullscreen Button */}
       <button
-        onClick={() => handleMediaDoubleClick(currentItem)}
-        className="absolute top-4 left-4 bg-black bg-opacity-75 text-white p-3 rounded-full hover:bg-opacity-100 transition-all duration-200 z-20 md:p-2"
+        onClick={(e) => handleFullscreenButtonClick(e, currentItem)}
+        className="absolute top-4 left-4 bg-black bg-opacity-75 text-white p-3 rounded-full hover:bg-opacity-100 transition-all duration-200 z-50 md:p-2"
         title="Fullscreen"
         style={{ 
-          minWidth: '44px', 
-          minHeight: '44px',
+          minWidth: '48px', 
+          minHeight: '48px',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'center'
+          justifyContent: 'center',
+          pointerEvents: 'auto',
+          touchAction: 'manipulation',
         }}
       >
         <Maximize2 className="w-6 h-6 md:w-5 md:h-5" />
