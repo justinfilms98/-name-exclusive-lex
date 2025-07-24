@@ -164,12 +164,29 @@ export default function WatchPage() {
     }
   }, [timeRemaining, timerStarted]);
 
+  // Monitor video playing state
+  useEffect(() => {
+    const checkVideoState = () => {
+      if (videoRef.current) {
+        const isVideoPlaying = !videoRef.current.paused && !videoRef.current.ended;
+        if (isVideoPlaying !== isPlaying) {
+          console.log('Video state changed:', isVideoPlaying ? 'playing' : 'paused');
+          setIsPlaying(isVideoPlaying);
+        }
+      }
+    };
+
+    const interval = setInterval(checkVideoState, 1000);
+    return () => clearInterval(interval);
+  }, [isPlaying]);
+
   // Handle video events
   const handleVideoLoad = () => {
     setVideoLoaded(true);
   };
 
   const handlePlay = () => {
+    console.log('Video play event triggered');
     setIsPlaying(true);
     setShowPlayButton(false);
     if (!timerStarted) {
@@ -178,6 +195,7 @@ export default function WatchPage() {
   };
 
   const handlePause = () => {
+    console.log('Video pause event triggered');
     setIsPlaying(false);
     setShowPlayButton(true);
   };
@@ -295,6 +313,7 @@ export default function WatchPage() {
             onLoadedData={handleVideoLoad}
             onPlay={handlePlay}
             onPause={handlePause}
+            onEnded={() => setIsPlaying(false)}
             style={{
               // Prevent highlighting/selection
               WebkitUserSelect: 'none',
@@ -307,7 +326,7 @@ export default function WatchPage() {
           </video>
           
           {/* Custom Play Button Overlay */}
-          {showPlayButton && videoLoaded && (
+          {!isPlaying && videoLoaded && (
             <div 
               className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 cursor-pointer z-10"
               onClick={handleVideoClick}
