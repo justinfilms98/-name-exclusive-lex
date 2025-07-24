@@ -149,7 +149,7 @@ export default function Header() {
 
             {/* Center - Site Name */}
             <div className="absolute left-1/2 transform -translate-x-1/2 px-16 sm:px-20">
-              <Link href="/" className="text-xl sm:text-2xl font-serif text-earth hover:text-khaki transition-colors">
+              <Link href="/" className="text-xl sm:text-2xl font-serif text-earth hover:text-khaki transition-colors whitespace-nowrap">
                 Exclusive Lex
               </Link>
             </div>

@@ -259,12 +259,22 @@ export default function MediaCarousel({ videoPath, photoPaths, onPlay, onPause }
   const openFullscreen = (mediaItem: MediaItem) => {
     console.log('🔍 Fullscreen requested for:', mediaItem.type);
     
-    // Always use modal fullscreen for consistency across devices
-    setFullscreenMedia(mediaItem);
-    setIsFullscreen(true);
+    // Check if we're on mobile
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     
-    // Prevent scrolling when in fullscreen
-    document.body.style.overflow = 'hidden';
+    if (isMobile) {
+      // Mobile approach: open in new tab for better fullscreen experience
+      console.log('📱 Mobile detected - opening in new tab');
+      if (mediaItem.signedUrl) {
+        window.open(mediaItem.signedUrl, '_blank');
+      }
+    } else {
+      // Desktop approach: use modal fullscreen
+      console.log('🖥️ Desktop detected - using modal fullscreen');
+      setFullscreenMedia(mediaItem);
+      setIsFullscreen(true);
+      document.body.style.overflow = 'hidden';
+    }
   };
 
   const closeFullscreen = () => {
@@ -455,6 +465,10 @@ export default function MediaCarousel({ videoPath, photoPaths, onPlay, onPause }
         }}
       >
         <Maximize2 className="w-6 h-6 md:w-5 md:h-5" />
+        {/* Mobile indicator */}
+        <div className="absolute -bottom-1 -right-1 bg-blue-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center sm:hidden">
+          ↗
+        </div>
       </button>
 
       {/* Fullscreen Hint */}
@@ -462,7 +476,8 @@ export default function MediaCarousel({ videoPath, photoPaths, onPlay, onPause }
         <div className="absolute bottom-4 left-4 right-4 bg-black bg-opacity-80 text-white p-3 rounded-lg text-center text-sm z-30">
           <div className="flex items-center justify-center space-x-2">
             <Maximize2 className="w-4 h-4" />
-            <span>Tap the fullscreen button to view in fullscreen</span>
+            <span className="hidden sm:inline">Tap the fullscreen button to view in fullscreen</span>
+            <span className="sm:hidden">Tap the fullscreen button to open in new tab</span>
           </div>
         </div>
       )}
