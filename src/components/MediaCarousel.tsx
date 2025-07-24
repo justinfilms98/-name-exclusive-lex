@@ -25,7 +25,6 @@ export default function MediaCarousel({ videoPath, photoPaths, onPlay, onPause }
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(true); // Start muted for autoplay
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [fullscreenMedia, setFullscreenMedia] = useState<MediaItem | null>(null);
 
   useEffect(() => {
     const loadMedia = async () => {
@@ -264,26 +263,28 @@ export default function MediaCarousel({ videoPath, photoPaths, onPlay, onPause }
         }
       }
     } else {
-      // For photos, use modal fullscreen
-      setFullscreenMedia(mediaItem);
-      setIsFullscreen(true);
+      // For photos, use native fullscreen API
+      const imgElement = document.querySelector('img') as HTMLImageElement;
+      if (imgElement) {
+        if (imgElement.requestFullscreen) {
+          imgElement.requestFullscreen();
+        } else if ((imgElement as any).webkitRequestFullscreen) {
+          (imgElement as any).webkitRequestFullscreen();
+        } else if ((imgElement as any).msRequestFullscreen) {
+          (imgElement as any).msRequestFullscreen();
+        }
+      }
     }
   };
 
   const closeFullscreen = () => {
-    // Check if we're in native fullscreen mode
-    if (document.fullscreenElement || (document as any).webkitFullscreenElement || (document as any).msFullscreenElement) {
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
-      } else if ((document as any).webkitExitFullscreen) {
-        (document as any).webkitExitFullscreen();
-      } else if ((document as any).msExitFullscreen) {
-        (document as any).msExitFullscreen();
-      }
-    } else {
-      // Close modal fullscreen
-      setFullscreenMedia(null);
-      setIsFullscreen(false);
+    // Exit native fullscreen mode
+    if (document.exitFullscreen) {
+      document.exitFullscreen();
+    } else if ((document as any).webkitExitFullscreen) {
+      (document as any).webkitExitFullscreen();
+    } else if ((document as any).msExitFullscreen) {
+      (document as any).msExitFullscreen();
     }
   };
 
@@ -320,7 +321,7 @@ export default function MediaCarousel({ videoPath, photoPaths, onPlay, onPause }
   // Fullscreen keyboard support and state tracking
   useEffect(() => {
     const handleFullscreenKeyDown = (e: KeyboardEvent) => {
-      if (fullscreenMedia || document.fullscreenElement) {
+      if (document.fullscreenElement) {
         if (e.key === 'Escape') {
           e.preventDefault();
           closeFullscreen();
@@ -331,9 +332,6 @@ export default function MediaCarousel({ videoPath, photoPaths, onPlay, onPause }
     const handleFullscreenChange = () => {
       const isInFullscreen = !!(document.fullscreenElement || (document as any).webkitFullscreenElement || (document as any).msFullscreenElement);
       setIsFullscreen(isInFullscreen);
-      if (!isInFullscreen) {
-        setFullscreenMedia(null);
-      }
     };
 
     document.addEventListener('keydown', handleFullscreenKeyDown);
@@ -347,7 +345,7 @@ export default function MediaCarousel({ videoPath, photoPaths, onPlay, onPause }
       document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
       document.removeEventListener('msfullscreenchange', handleFullscreenChange);
     };
-  }, [fullscreenMedia]);
+  }, []);
 
   if (loading) {
     return (
@@ -466,60 +464,7 @@ export default function MediaCarousel({ videoPath, photoPaths, onPlay, onPause }
         <Maximize2 className="w-5 h-5" />
       </button>
 
-      {/* Fullscreen Modal */}
-      {fullscreenMedia && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-95 z-50 flex items-center justify-center"
-          onClick={closeFullscreen}
-        >
-          <div className="relative max-w-full max-h-full p-4">
-            {fullscreenMedia.type === 'video' ? (
-              <video
-                src={fullscreenMedia.signedUrl}
-                className="max-w-full max-h-full object-contain"
-                controls
-                autoPlay
-                muted={isMuted}
-                onContextMenu={(e) => e.preventDefault()}
-                style={{
-                  WebkitUserSelect: 'none',
-                  MozUserSelect: 'none',
-                  msUserSelect: 'none',
-                  userSelect: 'none',
-                }}
-              />
-            ) : (
-              <img
-                src={fullscreenMedia.signedUrl}
-                alt="Fullscreen content"
-                className="max-w-full max-h-full object-contain"
-                onContextMenu={(e) => e.preventDefault()}
-                style={{
-                  WebkitUserSelect: 'none',
-                  MozUserSelect: 'none',
-                  msUserSelect: 'none',
-                  userSelect: 'none',
-                }}
-              />
-            )}
-            
-            {/* Close button */}
-            <button
-              onClick={closeFullscreen}
-              className="absolute top-4 right-4 bg-black bg-opacity-75 text-white p-2 rounded-full hover:bg-opacity-100 transition-all duration-200"
-            >
-              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
-              </svg>
-            </button>
-            
-            {/* Watermark */}
-            <div className="absolute bottom-4 left-4 text-white text-opacity-50 text-sm">
-              Exclusive Content
-            </div>
-          </div>
-        </div>
-      )}
+
     </div>
   );
 } 
