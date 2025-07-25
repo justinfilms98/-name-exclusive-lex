@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Play, Pause, Maximize2, Minimize2 } from 'lucide-react';
 import { getSignedUrl } from '@/lib/supabase';
+import ProtectedContentWrapper from './ProtectedContentWrapper';
 
 interface MediaItem {
   id: string;
@@ -363,9 +364,10 @@ export default function MediaCarousel({ videoPath, photoPaths, onPlay, onPause }
   const currentItem = mediaItems[currentIndex];
 
   return (
-    <div className="relative bg-stone-800 rounded-lg overflow-hidden video-container">
-      {/* Media Display */}
-      <div className="relative aspect-video">
+    <ProtectedContentWrapper>
+      <div className="relative bg-stone-800 rounded-lg overflow-hidden video-container">
+        {/* Media Display */}
+        <div className="relative aspect-video">
         {currentItem.type === 'video' ? (
           <video
             className="w-full h-full object-cover cursor-pointer"
@@ -546,6 +548,7 @@ export default function MediaCarousel({ videoPath, photoPaths, onPlay, onPause }
         </div>
       )}
 
-    </div>
+      </div>
+    </ProtectedContentWrapper>
   );
 } 
