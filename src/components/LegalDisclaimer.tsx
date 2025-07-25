@@ -14,6 +14,9 @@ export default function LegalDisclaimer({ onAccept, onDecline }: LegalDisclaimer
 
   const allAccepted = hasReadTerms && hasReadDMCA && hasReadMonitoring;
 
+  // Debug logging
+  console.log('Checkbox states:', { hasReadTerms, hasReadDMCA, hasReadMonitoring, allAccepted });
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 p-4">
       <div className="bg-gradient-to-br from-red-50 to-white rounded-xl max-w-4xl max-h-[90vh] overflow-y-auto p-8 shadow-2xl border-2 border-red-200">
@@ -59,10 +62,15 @@ export default function LegalDisclaimer({ onAccept, onDecline }: LegalDisclaimer
               <input
                 type="checkbox"
                 checked={hasReadTerms}
-                onChange={(e) => setHasReadTerms(e.target.checked)}
-                className="w-5 h-5 text-red-600 border-red-300 rounded focus:ring-red-500"
+                onChange={(e) => {
+                  console.log('Terms checkbox clicked:', e.target.checked);
+                  setHasReadTerms(e.target.checked);
+                }}
+                className="w-6 h-6 text-red-600 border-2 border-red-300 rounded focus:ring-red-500 focus:ring-2"
               />
-              <span className="text-sm font-medium text-gray-700 ml-3">✓ I have read and understand the Terms and Conditions</span>
+              <span className="text-sm font-medium text-gray-700 ml-3">
+                {hasReadTerms ? '✓ ' : '☐ '}I have read and understand the Terms and Conditions
+              </span>
             </label>
           </div>
 
@@ -87,10 +95,15 @@ export default function LegalDisclaimer({ onAccept, onDecline }: LegalDisclaimer
               <input
                 type="checkbox"
                 checked={hasReadDMCA}
-                onChange={(e) => setHasReadDMCA(e.target.checked)}
-                className="w-5 h-5 text-red-600 border-red-300 rounded focus:ring-red-500"
+                onChange={(e) => {
+                  console.log('DMCA checkbox clicked:', e.target.checked);
+                  setHasReadDMCA(e.target.checked);
+                }}
+                className="w-6 h-6 text-red-600 border-2 border-red-300 rounded focus:ring-red-500 focus:ring-2"
               />
-              <span className="text-sm font-medium text-gray-700 ml-3">✓ I understand the DMCA copyright protection notice</span>
+              <span className="text-sm font-medium text-gray-700 ml-3">
+                {hasReadDMCA ? '✓ ' : '☐ '}I understand the DMCA copyright protection notice
+              </span>
             </label>
           </div>
 
@@ -121,10 +134,15 @@ export default function LegalDisclaimer({ onAccept, onDecline }: LegalDisclaimer
               <input
                 type="checkbox"
                 checked={hasReadMonitoring}
-                onChange={(e) => setHasReadMonitoring(e.target.checked)}
-                className="w-5 h-5 text-red-600 border-red-300 rounded focus:ring-red-500"
+                onChange={(e) => {
+                  console.log('Monitoring checkbox clicked:', e.target.checked);
+                  setHasReadMonitoring(e.target.checked);
+                }}
+                className="w-6 h-6 text-red-600 border-2 border-red-300 rounded focus:ring-red-500 focus:ring-2"
               />
-              <span className="text-sm font-medium text-gray-700 ml-3">✓ I understand that my activity is monitored and violations will result in legal action</span>
+              <span className="text-sm font-medium text-gray-700 ml-3">
+                {hasReadMonitoring ? '✓ ' : '☐ '}I understand that my activity is monitored and violations will result in legal action
+              </span>
             </label>
           </div>
         </div>
