@@ -11,7 +11,8 @@ interface CartItem {
   title: string;
   description: string;
   price: number;
-  duration: number;
+  duration: number; // access duration
+  video_duration: number; // actual video length
   thumbnail_path: string;
   photo_paths: string[];
 }
@@ -21,7 +22,8 @@ interface Collection {
   title: string;
   description: string;
   price: number;
-  duration: number;
+  duration: number; // access duration
+  video_duration: number; // actual video length
   thumbnail_path: string;
   photo_paths: string[];
 }
@@ -156,8 +158,8 @@ export default function CartPage() {
     return cartItems.reduce((total, item) => total + (item.price / 100), 0);
   };
 
-  const getTotalDuration = () => {
-    return cartItems.reduce((total, item) => total + item.duration, 0);
+  const getTotalVideoDuration = () => {
+    return cartItems.reduce((total, item) => total + (item.video_duration || 300), 0);
   };
 
   const formatDuration = (seconds: number): string => {
@@ -167,6 +169,11 @@ export default function CartPage() {
 
   const formatAccessTime = (): string => {
     return "30 min access";
+  };
+
+  const formatVideoDuration = (seconds: number): string => {
+    const minutes = Math.floor(seconds / 60);
+    return `${minutes} min`;
   };
 
   const toggleDescription = (itemId: string) => {
@@ -412,7 +419,7 @@ export default function CartPage() {
                         <div className="flex items-center space-x-4 text-xs text-sage">
                           <div className="flex items-center">
                             <Clock className="w-3 h-3 mr-1" />
-                            <span>Video: {formatDuration(item.duration)}</span>
+                            <span>Video: {formatVideoDuration(item.video_duration || 300)}</span>
                           </div>
                           <div className="flex items-center">
                             <ImageIcon className="w-3 h-3 mr-1" />
@@ -461,7 +468,7 @@ export default function CartPage() {
                   
                   <div className="flex justify-between text-sage">
                     <span>Total Video Content</span>
-                    <span>{formatDuration(getTotalDuration())}</span>
+                    <span>{formatVideoDuration(getTotalVideoDuration())}</span>
                   </div>
                   
                   <div className="flex justify-between text-sage">

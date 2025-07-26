@@ -9,7 +9,8 @@ interface Collection {
   title: string;
   description: string;
   price: number;
-  duration: number;
+  duration: number; // access duration
+  video_duration: number; // actual video length
   video_path: string;
   thumbnail_path?: string;
   stripe_price_id?: string;
@@ -29,7 +30,8 @@ export default function AdminCollectionsPage() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState<number>(29.99);
-  const [duration, setDuration] = useState<number>(1800); // 30 minutes default
+  const [duration, setDuration] = useState<number>(1800); // 30 minutes default access time
+  const [videoDuration, setVideoDuration] = useState<number>(300); // 5 minutes default video length
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [photoFiles, setPhotoFiles] = useState<FileList | null>(null);
@@ -69,7 +71,11 @@ export default function AdminCollectionsPage() {
     }
 
     if (duration <= 0) {
-      errors.push('Duration must be greater than 0');
+      errors.push('Access duration must be greater than 0');
+    }
+
+    if (videoDuration <= 0) {
+      errors.push('Video duration must be greater than 0');
     }
 
     if (!videoFile) {
@@ -212,7 +218,8 @@ export default function AdminCollectionsPage() {
             title: title.trim(),
             description: description.trim(),
             price: Math.round(parseFloat(price.toString()) * 100), // Convert to cents
-            duration: duration,
+            duration: duration, // access duration
+            video_duration: videoDuration, // actual video length
             video_path: videoFilename,
             thumbnail_path: thumbnailFilename,
             stripe_price_id: null, // Will be set when Stripe price is created
@@ -234,6 +241,7 @@ export default function AdminCollectionsPage() {
       setDescription('');
       setPrice(29.99);
       setDuration(1800);
+      setVideoDuration(300);
       setVideoFile(null);
       setThumbnailFile(null);
       setPhotoFiles(null);
@@ -309,7 +317,12 @@ export default function AdminCollectionsPage() {
 
   const formatDuration = (seconds: number): string => {
     const minutes = Math.floor(seconds / 60);
-    return `${minutes} minutes`;
+    return `${minutes} min`;
+  };
+
+  const formatVideoDuration = (seconds: number): string => {
+    const minutes = Math.floor(seconds / 60);
+    return `${minutes} min`;
   };
 
   const formatFileSize = (bytes: number): string => {
@@ -416,7 +429,7 @@ export default function AdminCollectionsPage() {
 
             <div>
               <label className="block text-earth text-sm font-medium mb-2">
-                Duration (Minutes) <span className="text-red-500">*</span>
+                Access Duration (Minutes) <span className="text-red-500">*</span>
               </label>
               <input
                 type="number"
@@ -425,6 +438,23 @@ export default function AdminCollectionsPage() {
                 onChange={(e) => {
                   setDuration((parseInt(e.target.value) || 30) * 60);
                   setValidationErrors(prev => prev.filter(error => !error.includes('Duration')));
+                }}
+                className="input"
+                disabled={uploading}
+              />
+            </div>
+
+            <div>
+              <label className="block text-earth text-sm font-medium mb-2">
+                Video Duration (Minutes) <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="number"
+                min="1"
+                value={videoDuration / 60}
+                onChange={(e) => {
+                  setVideoDuration((parseInt(e.target.value) || 5) * 60);
+                  setValidationErrors(prev => prev.filter(error => !error.includes('Video Duration')));
                 }}
                 className="input"
                 disabled={uploading}
@@ -557,6 +587,9 @@ export default function AdminCollectionsPage() {
                         </div>
                         <div className="flex items-center">
                           <span>{formatDuration(collection.duration)}</span>
+                        </div>
+                        <div className="flex items-center">
+                          <span>{formatVideoDuration(collection.video_duration)}</span>
                         </div>
                         <div className="flex items-center">
                           <span>{collection.photo_paths.length} photos</span>

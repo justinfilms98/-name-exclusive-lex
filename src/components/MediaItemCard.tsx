@@ -8,7 +8,8 @@ interface MediaItem {
   thumbnailPath?: string;
   description?: string;
   price: number;
-  duration?: number;
+  duration?: number; // access duration
+  video_duration?: number; // actual video length
   createdAt: string;
   collection: {
     name: string;
@@ -61,6 +62,11 @@ export const MediaItemCard: React.FC<MediaItemCardProps> = ({
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
+  const formatVideoDuration = (seconds: number): string => {
+    const minutes = Math.floor(seconds / 60);
+    return `${minutes} min`;
+  };
+
   const getThumbnailUrl = () => {
     // In a real implementation, you'd get the public URL from Supabase
     // For now, we'll use a placeholder or the file path
@@ -82,9 +88,9 @@ export const MediaItemCard: React.FC<MediaItemCardProps> = ({
           <div className="absolute top-2 right-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-xs">
             {item.mediaType.toUpperCase()}
           </div>
-          {item.duration && (
+          {item.video_duration && (
             <div className="absolute bottom-2 right-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-xs">
-              Video: {formatDuration(item.duration)}
+              Video: {formatVideoDuration(item.video_duration)}
             </div>
           )}
         </div>

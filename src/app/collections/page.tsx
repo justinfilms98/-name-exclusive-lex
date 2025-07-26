@@ -11,7 +11,8 @@ interface Collection {
   title: string;
   description: string;
   price: number;
-  duration: number;
+  duration: number; // access duration
+  video_duration: number; // actual video length
   thumbnail_path: string;
   photo_paths: string[];
   created_at: string;
@@ -132,6 +133,11 @@ export default function CollectionsPage() {
   };
 
   const formatDuration = (seconds: number): string => {
+    const minutes = Math.floor(seconds / 60);
+    return `${minutes} min`;
+  };
+
+  const formatVideoDuration = (seconds: number): string => {
     const minutes = Math.floor(seconds / 60);
     return `${minutes} min`;
   };
@@ -258,7 +264,7 @@ export default function CollectionsPage() {
                           <div className="flex items-center space-x-3">
                             <div className="flex items-center">
                               <Clock className="w-3 h-3 mr-1" />
-                              <span>Video: {formatDuration(collection.duration)}</span>
+                              <span>Video: {formatVideoDuration(collection.video_duration || 300)}</span>
                             </div>
                             <div className="flex items-center">
                               <ImageIcon className="w-3 h-3 mr-1" />
@@ -320,7 +326,7 @@ export default function CollectionsPage() {
                       {collection.title}
                     </h3>
                     <div className="flex items-center justify-between">
-                      <span className="text-sage text-sm">{photoCount} photos • Video: {formatDuration(collection.duration)}</span>
+                      <span className="text-sage text-sm">{photoCount} photos • Video: {formatVideoDuration(collection.video_duration || 300)}</span>
                       <span className="text-earth font-bold">${formatPrice(collection.price)}</span>
                     </div>
                     {/* Access Time Notice */}
