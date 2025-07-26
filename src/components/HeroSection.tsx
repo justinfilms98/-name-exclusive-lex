@@ -123,6 +123,50 @@ export default function HeroSection() {
     }
   }, [isMobile, videosLoaded]);
 
+  // Enhanced mobile autoplay after user authentication
+  useEffect(() => {
+    if (user && isMobile && videosLoaded) {
+      const forceAutoplayAfterAuth = () => {
+        const videos = document.querySelectorAll('video');
+        videos.forEach(video => {
+          video.muted = true;
+          video.playsInline = true;
+          video.autoplay = true;
+          video.loop = true;
+          
+          video.play().then(() => {
+            setVideosPlaying(true);
+            console.log('Mobile autoplay successful after auth');
+          }).catch(() => {
+            console.log('Mobile autoplay failed after auth');
+          });
+        });
+      };
+      
+      // Try multiple times after user authentication
+      forceAutoplayAfterAuth();
+      setTimeout(forceAutoplayAfterAuth, 500);
+      setTimeout(forceAutoplayAfterAuth, 1000);
+      setTimeout(forceAutoplayAfterAuth, 2000);
+      setTimeout(forceAutoplayAfterAuth, 5000);
+      
+      // Try on any user interaction after auth
+      const playOnInteraction = () => {
+        const videos = document.querySelectorAll('video');
+        videos.forEach(video => {
+          video.play().then(() => {
+            setVideosPlaying(true);
+            console.log('Mobile autoplay successful on interaction after auth');
+          });
+        });
+      };
+      
+      document.addEventListener('click', playOnInteraction, { once: true });
+      document.addEventListener('touchstart', playOnInteraction, { once: true });
+      document.addEventListener('scroll', playOnInteraction, { once: true });
+    }
+  }, [user, isMobile, videosLoaded]);
+
   useEffect(() => {
     if (heroVideos.length > 0) {
       loadAllVideoUrls();
@@ -271,6 +315,20 @@ export default function HeroSection() {
       setTimeout(playVideo, 2000);
       setTimeout(playVideo, 3000);
       setTimeout(playVideo, 5000);
+      
+      // Additional mobile-specific attempts
+      setTimeout(playVideo, 10000);
+      setTimeout(playVideo, 15000);
+    }
+    
+    // If user is authenticated, try even more aggressively
+    if (user && isMobile) {
+      setTimeout(playVideo, 500);
+      setTimeout(playVideo, 1000);
+      setTimeout(playVideo, 2000);
+      setTimeout(playVideo, 3000);
+      setTimeout(playVideo, 5000);
+      setTimeout(playVideo, 10000);
     }
   };
 
@@ -331,7 +389,7 @@ export default function HeroSection() {
 
       {/* Mobile Play Button Overlay - Only show when videos are not playing */}
       {isMobile && videosLoaded && !videosPlaying && (
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-20 pointer-events-none">
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-5 pointer-events-none">
           <button
             onClick={() => {
               const videos = document.querySelectorAll('video');
