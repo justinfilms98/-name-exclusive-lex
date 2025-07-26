@@ -165,6 +165,10 @@ export default function CartPage() {
     return `${minutes} min`;
   };
 
+  const formatAccessTime = (): string => {
+    return "30 min access";
+  };
+
   const toggleDescription = (itemId: string) => {
     setExpandedDescriptions(prev => ({
       ...prev,
@@ -408,11 +412,19 @@ export default function CartPage() {
                         <div className="flex items-center space-x-4 text-xs text-sage">
                           <div className="flex items-center">
                             <Clock className="w-3 h-3 mr-1" />
-                            {formatDuration(item.duration)}
+                            <span>Video: {formatDuration(item.duration)}</span>
                           </div>
                           <div className="flex items-center">
                             <ImageIcon className="w-3 h-3 mr-1" />
                             {item.photo_paths?.length || 0} photos
+                          </div>
+                        </div>
+                        
+                        {/* Access Time Notice */}
+                        <div className="mt-2 p-2 bg-khaki/10 border border-khaki/20 rounded text-xs text-khaki">
+                          <div className="flex items-center">
+                            <Clock className="w-3 h-3 mr-1" />
+                            <span>30-minute access window to watch</span>
                           </div>
                         </div>
                       </div>
@@ -448,14 +460,34 @@ export default function CartPage() {
                   </div>
                   
                   <div className="flex justify-between text-sage">
-                    <span>Total Access Time</span>
+                    <span>Total Video Content</span>
                     <span>{formatDuration(getTotalDuration())}</span>
+                  </div>
+                  
+                  <div className="flex justify-between text-sage">
+                    <span>Access Window</span>
+                    <span>{formatAccessTime()}</span>
                   </div>
                   
                   <div className="border-t border-mushroom/30 pt-4">
                     <div className="flex justify-between text-xl font-bold text-earth">
                       <span>Total</span>
                       <span>${getTotalPrice().toFixed(2)}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Access Time Warning */}
+                <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <div className="flex items-start space-x-3">
+                    <div className="text-yellow-600 mt-0.5">
+                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div className="text-sm text-yellow-800">
+                      <p className="font-medium mb-1">Important Access Information</p>
+                      <p>You'll have <strong>30 minutes</strong> to watch your purchased content once you start. Make sure you have uninterrupted time to enjoy your exclusive collection.</p>
                     </div>
                   </div>
                 </div>

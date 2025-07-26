@@ -137,9 +137,11 @@ export default function CollectionsPage() {
   };
 
   const formatPrice = (price: number): string => {
-    // Price is stored as cents, convert to dollars
-    const dollars = price / 100;
-    return dollars.toFixed(2);
+    return (price / 100).toFixed(2);
+  };
+
+  const formatAccessTime = (): string => {
+    return "30 min access";
   };
 
   const toggleDescription = (collectionId: string) => {
@@ -256,7 +258,7 @@ export default function CollectionsPage() {
                           <div className="flex items-center space-x-3">
                             <div className="flex items-center">
                               <Clock className="w-3 h-3 mr-1" />
-                              {formatDuration(collection.duration)}
+                              <span>Video: {formatDuration(collection.duration)}</span>
                             </div>
                             <div className="flex items-center">
                               <ImageIcon className="w-3 h-3 mr-1" />
@@ -318,8 +320,15 @@ export default function CollectionsPage() {
                       {collection.title}
                     </h3>
                     <div className="flex items-center justify-between">
-                      <span className="text-sage text-sm">{photoCount} photos • {formatDuration(collection.duration)}</span>
+                      <span className="text-sage text-sm">{photoCount} photos • Video: {formatDuration(collection.duration)}</span>
                       <span className="text-earth font-bold">${formatPrice(collection.price)}</span>
+                    </div>
+                    {/* Access Time Notice */}
+                    <div className="mt-2 p-2 bg-khaki/10 border border-khaki/20 rounded text-xs text-khaki">
+                      <div className="flex items-center">
+                        <Clock className="w-3 h-3 mr-1" />
+                        <span>30-minute access window to watch</span>
+                      </div>
                     </div>
                   </div>
                 </div>
