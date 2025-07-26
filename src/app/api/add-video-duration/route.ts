@@ -8,39 +8,59 @@ const supabase = createClient(
 
 export async function POST(request: NextRequest) {
   try {
-    // Add video_duration column to collections table
-    const { error: videoDurationError } = await supabase.rpc('exec_sql', {
-      sql: 'ALTER TABLE "Collection" ADD COLUMN IF NOT EXISTS "video_duration" INTEGER;'
-    });
+    // First, let's check if the video_duration column already exists
+    // by trying to select it from a collection
+    const { data: testData, error: testError } = await supabase
+      .from('Collection')
+      .select('video_duration')
+      .limit(1);
 
-    // Update existing collections to have a default video duration
-    const { error: updateError } = await supabase.rpc('exec_sql', {
-      sql: 'UPDATE "Collection" SET "video_duration" = 300 WHERE "video_duration" IS NULL;'
-    });
+    if (testError && testError.message.includes('column "video_duration" does not exist')) {
+      // The column doesn't exist, we need to add it
+      // Since we can't use ALTER TABLE directly, we'll handle this differently
+      return NextResponse.json({ 
+        success: false,
+        error: 'video_duration column does not exist. Please run the SQL migration manually.',
+        instructions: 'Run the SQL in add-video-duration-field.sql file in your Supabase SQL editor'
+      });
+    }
 
-    // Make the field required after setting defaults
-    const { error: notNullError } = await supabase.rpc('exec_sql', {
-      sql: 'ALTER TABLE "Collection" ALTER COLUMN "video_duration" SET NOT NULL;'
-    });
+    // If we get here, the column exists, so let's update existing records
+    const { data: collections, error: fetchError } = await supabase
+      .from('Collection')
+      .select('id, video_duration')
+      .or('video_duration.is.null,video_duration.eq.300');
 
-    // Add comment to clarify the difference
-    const { error: commentError } = await supabase.rpc('exec_sql', {
-      sql: 'COMMENT ON COLUMN "Collection"."duration" IS \'Access duration in seconds (how long user has to watch)\';'
-    });
+    if (fetchError) {
+      return NextResponse.json({ 
+        success: false,
+        error: `Failed to fetch collections: ${fetchError.message}`
+      });
+    }
 
-    const { error: comment2Error } = await supabase.rpc('exec_sql', {
-      sql: 'COMMENT ON COLUMN "Collection"."video_duration" IS \'Actual video length in seconds\';'
-    });
+    if (!collections || collections.length === 0) {
+      return NextResponse.json({ 
+        success: true,
+        message: 'No collections need video_duration updates'
+      });
+    }
+
+    // Update collections that have null or default video_duration
+    const updatePromises = collections.map(collection => 
+      supabase
+        .from('Collection')
+        .update({ video_duration: 300 }) // Default to 5 minutes
+        .eq('id', collection.id)
+    );
+
+    const results = await Promise.all(updatePromises);
+    const errors = results.filter(result => result.error).map(result => result.error?.message);
+    const successful = results.filter(result => !result.error).length;
 
     return NextResponse.json({ 
       success: true,
-      errors: {
-        videoDuration: videoDurationError?.message,
-        update: updateError?.message,
-        notNull: notNullError?.message,
-        comment: commentError?.message,
-        comment2: comment2Error?.message
-      }
+      message: `Updated ${successful} collections with default video duration`,
+      errors: errors.length > 0 ? errors : undefined
     });
 
   } catch (error) {

@@ -16,6 +16,20 @@ interface ExtractionResult {
 
 export async function POST(request: NextRequest) {
   try {
+    // First check if video_duration column exists
+    const { data: testData, error: testError } = await supabase
+      .from('Collection')
+      .select('video_duration')
+      .limit(1);
+
+    if (testError && testError.message.includes('column "video_duration" does not exist')) {
+      return NextResponse.json({ 
+        success: false,
+        error: 'video_duration column does not exist. Please run the database migration first.',
+        instructions: 'Run the SQL in add-video-duration-field.sql file in your Supabase SQL editor'
+      });
+    }
+
     // Get all collections that don't have video_duration set or have default values
     const { data: collections, error: fetchError } = await supabase
       .from('Collection')
@@ -23,7 +37,10 @@ export async function POST(request: NextRequest) {
       .or('video_duration.is.null,video_duration.eq.300');
 
     if (fetchError) {
-      throw new Error(`Failed to fetch collections: ${fetchError.message}`);
+      return NextResponse.json({ 
+        success: false,
+        error: `Failed to fetch collections: ${fetchError.message}`
+      });
     }
 
     if (!collections || collections.length === 0) {
@@ -37,6 +54,17 @@ export async function POST(request: NextRequest) {
     
     for (const collection of collections) {
       try {
+        // Skip if no video_path
+        if (!collection.video_path) {
+          results.push({
+            id: collection.id,
+            title: collection.title,
+            success: false,
+            error: 'No video path found'
+          });
+          continue;
+        }
+
         // Get signed URL for the video
         const { data: signedUrlData, error: urlError } = await supabase.storage
           .from('media')
