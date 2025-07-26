@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { getCollections, uploadFile, supabase } from '@/lib/supabase';
+import { getCollections, uploadFile, supabase, createCollection } from '@/lib/supabase';
 import { Upload, Trash2, Edit, Save, X, Image as ImageIcon, Video, Plus, AlertCircle } from 'lucide-react';
 
 interface Collection {
@@ -37,6 +37,8 @@ export default function AdminCollectionsPage() {
   const [photoFiles, setPhotoFiles] = useState<FileList | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [extractingDurations, setExtractingDurations] = useState(false);
+  const [extractionResults, setExtractionResults] = useState<any>(null);
 
   useEffect(() => {
     loadCollections();
@@ -108,7 +110,28 @@ export default function AdminCollectionsPage() {
       
       setVideoFile(file);
       setValidationErrors(prev => prev.filter(error => !error.includes('Video')));
+      
+      // Extract video duration
+      extractVideoDuration(file);
     }
+  };
+
+  const extractVideoDuration = (file: File) => {
+    const video = document.createElement('video');
+    video.preload = 'metadata';
+    
+    video.onloadedmetadata = () => {
+      const duration = Math.round(video.duration);
+      setVideoDuration(duration);
+      console.log(`Video duration extracted: ${duration} seconds (${Math.floor(duration / 60)} minutes)`);
+    };
+    
+    video.onerror = () => {
+      console.warn('Could not extract video duration, using default');
+      setVideoDuration(300); // Default to 5 minutes
+    };
+    
+    video.src = URL.createObjectURL(file);
   };
 
   const handleThumbnailFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -177,61 +200,55 @@ export default function AdminCollectionsPage() {
 
       // Upload thumbnail (required)
       const thumbnailFilename = `collections/${collectionSlug}_${timestamp}/thumbnail.${thumbnailFile!.name.split('.').pop()}`;
-      const { data: thumbUpload, error: thumbError } = await uploadFile(
+      const { data: thumbnailUpload, error: thumbnailError } = await uploadFile(
         thumbnailFile!,
         'media',
         thumbnailFilename
       );
 
-      if (thumbError) {
-        throw new Error(`Thumbnail upload failed: ${thumbError.message}`);
+      if (thumbnailError) {
+        throw new Error(`Thumbnail upload failed: ${thumbnailError.message}`);
       }
 
-      setUploadProgress(60);
+      setUploadProgress(50);
 
       // Upload photos (optional)
       const photoPaths: string[] = [];
-      if (photoFiles && photoFiles.length > 0) {
+      if (photoFiles) {
         for (let i = 0; i < photoFiles.length; i++) {
           const file = photoFiles[i];
-          const photoFilename = `collections/${collectionSlug}_${timestamp}/photo_${i + 1}.${file.name.split('.').pop()}`;
-          
+          const photoFilename = `collections/${collectionSlug}_${timestamp}/photo_${i}.${file.name.split('.').pop()}`;
           const { data: photoUpload, error: photoError } = await uploadFile(
             file,
             'media',
             photoFilename
           );
 
-          if (!photoError) {
-            photoPaths.push(photoFilename);
+          if (photoError) {
+            throw new Error(`Photo upload failed: ${photoError.message}`);
           }
+
+          photoPaths.push(photoFilename);
         }
       }
 
-      setUploadProgress(80);
+      setUploadProgress(70);
 
-      // Insert collection record with proper price conversion to cents
-      const { data, error } = await supabase
-        .from('collections')
-        .insert([
-          {
-            title: title.trim(),
-            description: description.trim(),
-            price: Math.round(parseFloat(price.toString()) * 100), // Convert to cents
-            duration: duration, // access duration
-            video_duration: videoDuration, // actual video length
-            video_path: videoFilename,
-            thumbnail_path: thumbnailFilename,
-            stripe_price_id: null, // Will be set when Stripe price is created
-            videos: [], // Initialize empty videos array
-            photo_paths: photoPaths,
-          }
-        ])
-        .select('*')
-        .single();
+      // Create collection record with extracted video duration
+      const collectionData = {
+        title: title.trim(),
+        description: description.trim(),
+        price: Math.round(parseFloat(price.toString()) * 100), // Convert to cents
+        duration: duration, // access duration
+        video_duration: videoDuration, // actual video length (extracted from file)
+        video_path: videoFilename,
+        thumbnail_path: thumbnailFilename,
+        photo_paths: photoPaths,
+      };
 
-      if (error) {
-        throw new Error(`Database error: ${error.message}`);
+      const { data: createData, error: createError } = await createCollection(collectionData);
+      if (createError) {
+        throw new Error(`Collection creation failed: ${createError.message}`);
       }
 
       setUploadProgress(100);
@@ -246,29 +263,14 @@ export default function AdminCollectionsPage() {
       setThumbnailFile(null);
       setPhotoFiles(null);
       setValidationErrors([]);
-      
-      // Clear file inputs
-      const videoInput = document.getElementById('video-input') as HTMLInputElement;
-      const thumbnailInput = document.getElementById('thumbnail-input') as HTMLInputElement;
-      const photosInput = document.getElementById('photos-input') as HTMLInputElement;
-      if (videoInput) videoInput.value = '';
-      if (thumbnailInput) thumbnailInput.value = '';
-      if (photosInput) photosInput.value = '';
-      
-      // Reload collections immediately
-      await loadCollections();
-      
-      // Clear any cached data and trigger revalidation
-      if (typeof window !== 'undefined' && window.location) {
-        // Force a page refresh to clear any cached data
-        window.location.reload();
-      }
-      
-      alert('Collection uploaded successfully!');
 
-    } catch (error: any) {
+      // Reload collections
+      await loadCollections();
+
+      alert('Collection created successfully!');
+    } catch (error) {
       console.error('Upload error:', error);
-      alert(`Upload failed: ${error.message}`);
+      alert(`Upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setUploading(false);
       setUploadProgress(0);
@@ -315,6 +317,31 @@ export default function AdminCollectionsPage() {
     }
   };
 
+  const handleExtractVideoDurations = async () => {
+    setExtractingDurations(true);
+    try {
+      const response = await fetch('/api/extract-video-durations', {
+        method: 'POST',
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        setExtractionResults(result);
+        alert(`Video duration extraction completed! Processed ${result.totalProcessed} collections, ${result.successful} successful.`);
+        // Reload collections to show updated durations
+        await loadCollections();
+      } else {
+        alert(`Extraction failed: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Extraction error:', error);
+      alert('Failed to extract video durations');
+    } finally {
+      setExtractingDurations(false);
+    }
+  };
+
   const formatDuration = (seconds: number): string => {
     const minutes = Math.floor(seconds / 60);
     return `${minutes} min`;
@@ -346,10 +373,54 @@ export default function AdminCollectionsPage() {
       <div className="max-w-7xl mx-auto">
         
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="heading-1 mb-2">Manage Collections</h1>
-          <p className="text-sage">Upload and manage exclusive collections with videos and photos</p>
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="heading-1 mb-2">Manage Collections</h1>
+            <p className="text-sage">Upload and manage exclusive content collections</p>
+          </div>
+          
+          <div className="flex space-x-4">
+            <button
+              onClick={handleExtractVideoDurations}
+              disabled={extractingDurations}
+              className="btn-secondary flex items-center space-x-2 disabled:opacity-50"
+            >
+              {extractingDurations ? (
+                <>
+                  <div className="w-4 h-4 spinner"></div>
+                  <span>Extracting...</span>
+                </>
+              ) : (
+                <>
+                  <Video className="w-4 h-4" />
+                  <span>Extract Video Durations</span>
+                </>
+              )}
+            </button>
+          </div>
         </div>
+
+        {/* Extraction Results */}
+        {extractionResults && (
+          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <h3 className="font-bold text-blue-800 mb-2">Video Duration Extraction Results</h3>
+            <p className="text-blue-700 mb-2">
+              Processed {extractionResults.totalProcessed} collections, {extractionResults.successful} successful
+            </p>
+            {extractionResults.results && extractionResults.results.length > 0 && (
+              <div className="max-h-40 overflow-y-auto">
+                {extractionResults.results.map((result: any, index: number) => (
+                  <div key={index} className="text-sm text-blue-700">
+                    <span className="font-medium">{result.title}:</span> {result.success ? 
+                      `Updated to ${Math.floor((result.estimatedDuration || 0) / 60)} minutes` : 
+                      `Failed - ${result.error}`
+                    }
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Upload Form */}
         <div className="card-glass p-8 mb-8">
