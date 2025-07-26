@@ -21,12 +21,17 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+      </head>
       <body className={inter.className}>
         <Providers>
           <LegalProvider>
             <AgeVerificationWrapper>
               <Header />
-              {children}
+              <main className="pt-14 sm:pt-16">
+                {children}
+              </main>
               <LegalDisclaimerWrapper />
             </AgeVerificationWrapper>
           </LegalProvider>

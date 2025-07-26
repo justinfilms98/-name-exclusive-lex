@@ -304,7 +304,7 @@ export default function HeroSection() {
   const currentVideo = heroVideos[currentVideoIndex];
 
   return (
-    <div className="relative h-screen bg-black overflow-hidden hero-container group">
+    <div className="relative h-screen bg-black overflow-hidden hero-container group" style={{ marginTop: '-3.5rem' }}>
       {/* Background Videos with Crossfade */}
       {videoUrls.map((videoUrl, index) => (
         <video
@@ -354,11 +354,11 @@ export default function HeroSection() {
       )}
 
       {/* Content */}
-      <div className="relative z-10 h-full flex items-center justify-center">
+      <div className="relative z-10 h-full flex items-center justify-center pt-14 sm:pt-16">
         <div className="text-center text-blanc max-w-4xl mx-auto px-4">
-          <div className="hero-text-container bg-black/20 backdrop-blur-sm rounded-lg p-8 border border-amber-200/30 shadow-2xl">
+          <div className="hero-text-container bg-black/20 backdrop-blur-sm rounded-lg p-6 sm:p-8 border border-amber-200/30 shadow-2xl">
             <h1 
-              className="text-5xl md:text-6xl lg:text-7xl mb-4 text-shadow-lg animate-fade-in"
+              className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl mb-4 text-shadow-lg animate-fade-in"
               style={{ 
                 fontFamily: 'Vogue, serif',
                 fontWeight: 'normal',
@@ -368,7 +368,7 @@ export default function HeroSection() {
               {currentVideo.title}
             </h1>
             {currentVideo.subtitle && (
-              <p className="text-xl md:text-2xl lg:text-3xl text-blanket mb-8 text-shadow animate-fade-in">
+              <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl text-blanket mb-6 sm:mb-8 text-shadow animate-fade-in">
                 {currentVideo.subtitle}
               </p>
             )}
@@ -378,14 +378,14 @@ export default function HeroSection() {
               {user ? (
                 <Link
                   href="/collections"
-                  className="inline-flex items-center btn-primary text-lg px-8 py-4 shadow-elegant hover:shadow-glass"
+                  className="inline-flex items-center btn-primary text-base sm:text-lg px-6 sm:px-8 py-3 sm:py-4 shadow-elegant hover:shadow-glass"
                 >
                   View Collections
                 </Link>
               ) : (
                 <Link
                   href="/login"
-                  className="inline-flex items-center btn-primary text-lg px-8 py-4 shadow-elegant hover:shadow-glass"
+                  className="inline-flex items-center btn-primary text-base sm:text-lg px-6 sm:px-8 py-3 sm:py-4 shadow-elegant hover:shadow-glass"
                 >
                   Login or Sign Up
                 </Link>
@@ -400,28 +400,28 @@ export default function HeroSection() {
         <>
           <button
             onClick={prevVideo}
-            className="hero-controls absolute left-6 top-1/2 transform -translate-y-1/2 z-20 bg-black/30 hover:bg-black/50 text-blanc p-4 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-110"
+            className="hero-controls absolute left-3 sm:left-6 top-1/2 transform -translate-y-1/2 z-20 bg-black/30 hover:bg-black/50 text-blanc p-3 sm:p-4 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-110"
           >
-            <ChevronLeft className="w-6 h-6" />
+            <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6" />
           </button>
           
           <button
             onClick={nextVideo}
-            className="hero-controls absolute right-6 top-1/2 transform -translate-y-1/2 z-20 bg-black/30 hover:bg-black/50 text-blanc p-4 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-110"
+            className="hero-controls absolute right-3 sm:right-6 top-1/2 transform -translate-y-1/2 z-20 bg-black/30 hover:bg-black/50 text-blanc p-3 sm:p-4 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-110"
           >
-            <ChevronRight className="w-6 h-6" />
+            <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6" />
           </button>
         </>
       )}
 
       {/* Dots Indicator */}
       {heroVideos.length > 1 && (
-        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-20 flex space-x-3">
+        <div className="absolute bottom-6 sm:bottom-8 left-1/2 transform -translate-x-1/2 z-20 flex space-x-2 sm:space-x-3">
           {heroVideos.map((_, index) => (
             <button
               key={index}
               onClick={() => setCurrentVideoIndex(index)}
-              className={`w-3 h-3 rounded-full transition-all duration-300 ${
+              className={`w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full transition-all duration-300 ${
                 index === currentVideoIndex 
                   ? 'bg-blanc scale-125 shadow-lg' 
                   : 'bg-blanc/50 hover:bg-blanc/75'

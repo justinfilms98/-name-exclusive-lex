@@ -122,9 +122,9 @@ export default function Header() {
 
   return (
     <>
-      <header className="bg-blanc/90 backdrop-blur-md border-b border-mushroom/30 fixed top-0 left-0 right-0 z-50 shadow-soft">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
+      <header className="bg-blanc/90 backdrop-blur-md border-b border-mushroom/30 fixed top-0 left-0 right-0 z-50 shadow-soft safe-top">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-14 sm:h-16">
             
             {/* Left Side - Navigation (Desktop) */}
             <div className="hidden md:flex items-center space-x-8">
@@ -148,27 +148,27 @@ export default function Header() {
             </button>
 
             {/* Center - Site Name */}
-            <div className="absolute left-1/2 transform -translate-x-1/2 px-16 sm:px-20">
-              <Link href="/" className="text-xl sm:text-2xl font-serif text-earth hover:text-khaki transition-colors whitespace-nowrap">
+            <div className="absolute left-1/2 transform -translate-x-1/2 px-12 sm:px-16 md:px-20">
+              <Link href="/" className="text-lg sm:text-xl md:text-2xl font-serif text-earth hover:text-khaki transition-colors whitespace-nowrap">
                 Exclusive Lex
               </Link>
             </div>
 
             {/* Right Side - User Actions */}
-            <div className="flex items-center space-x-2 sm:space-x-4">
+            <div className="flex items-center space-x-1 sm:space-x-2 md:space-x-4">
               {loading ? (
-                <div className="w-6 h-6 spinner"></div>
+                <div className="w-5 h-5 sm:w-6 sm:h-6 spinner"></div>
               ) : user ? (
                 <>
                   {/* Cart Icon */}
                   <Link 
                     href="/cart" 
-                    className="relative p-2 text-earth hover:text-sage transition-colors group"
+                    className="relative p-1.5 sm:p-2 text-earth hover:text-sage transition-colors group"
                     title="Cart"
                   >
-                    <ShoppingCart className="w-5 h-5" />
+                    <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5" />
                     {cartCount > 0 && (
-                      <span className="absolute -top-1 -right-1 bg-sage text-blanc text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium min-w-[20px]">
+                      <span className="absolute -top-0.5 -right-0.5 sm:-top-1 sm:-right-1 bg-sage text-blanc text-xs rounded-full h-4 w-4 sm:h-5 sm:w-5 flex items-center justify-center font-medium min-w-[16px] sm:min-w-[20px]">
                         {cartCount > 99 ? '99+' : cartCount}
                       </span>
                     )}
@@ -186,10 +186,10 @@ export default function Header() {
                   {/* Account Icon Only (Mobile) */}
                   <Link 
                     href="/account" 
-                    className="sm:hidden p-2 text-earth hover:text-khaki transition-colors"
+                    className="sm:hidden p-1.5 sm:p-2 text-earth hover:text-khaki transition-colors"
                     title="My Account"
                   >
-                    <User className="w-5 h-5" />
+                    <User className="w-4 h-4 sm:w-5 sm:h-5" />
                   </Link>
 
                   {/* Logout (Hidden on Mobile) */}
@@ -205,20 +205,20 @@ export default function Header() {
                   {/* Logout Icon Only (Mobile) */}
                   <button
                     onClick={handleSignOut}
-                    className="sm:hidden p-2 text-earth hover:text-sage transition-colors"
+                    className="sm:hidden p-1.5 sm:p-2 text-earth hover:text-sage transition-colors"
                     title="Sign Out"
                   >
-                    <LogOut className="w-5 h-5" />
+                    <LogOut className="w-4 h-4 sm:w-5 sm:h-5" />
                   </button>
                 </>
               ) : (
                 <button
                   onClick={handleSignIn}
-                  className="btn-secondary text-sm px-3 py-2 sm:px-4 whitespace-nowrap"
+                  className="btn-secondary text-xs sm:text-sm px-2 py-1.5 sm:px-3 sm:py-2 md:px-4 whitespace-nowrap"
                   title="Sign in with Google (you can switch accounts)"
                 >
                   <span className="hidden sm:inline">Login or Sign Up</span>
-                  <span className="sm:hidden">Login or Sign Up</span>
+                  <span className="sm:hidden">Login</span>
                 </button>
               )}
             </div>

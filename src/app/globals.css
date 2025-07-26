@@ -11,6 +11,42 @@
   font-display: swap;
 }
 
+/* Safe Area Utilities for Mobile */
+.safe-top {
+  padding-top: env(safe-area-inset-top);
+}
+
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.safe-left {
+  padding-left: env(safe-area-inset-left);
+}
+
+.safe-right {
+  padding-right: env(safe-area-inset-right);
+}
+
+/* Mobile-specific safe area handling */
+@supports (padding: max(0px)) {
+  .safe-top {
+    padding-top: max(env(safe-area-inset-top), 0px);
+  }
+  
+  .safe-bottom {
+    padding-bottom: max(env(safe-area-inset-bottom), 0px);
+  }
+  
+  .safe-left {
+    padding-left: max(env(safe-area-inset-left), 0px);
+  }
+  
+  .safe-right {
+    padding-right: max(env(safe-area-inset-right), 0px);
+  }
+}
+
 /* Screenshot protection */
 @media print {
   * {
