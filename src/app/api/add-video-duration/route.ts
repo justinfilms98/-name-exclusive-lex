@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
     // First, let's check if the video_duration column already exists
     // by trying to select it from a collection
     const { data: testData, error: testError } = await supabase
-      .from('Collection')
+      .from('collections')
       .select('video_duration')
       .limit(1);
 
@@ -21,13 +21,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ 
         success: false,
         error: 'video_duration column does not exist. Please run the SQL migration manually.',
-        instructions: 'Run the SQL in add-video-duration-field.sql file in your Supabase SQL editor'
+        instructions: 'Run the SQL in manual-migration.sql file in your Supabase SQL editor'
       });
     }
 
     // If we get here, the column exists, so let's update existing records
     const { data: collections, error: fetchError } = await supabase
-      .from('Collection')
+      .from('collections')
       .select('id, video_duration')
       .or('video_duration.is.null,video_duration.eq.300');
 
@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
     // Update collections that have null or default video_duration
     const updatePromises = collections.map(collection => 
       supabase
-        .from('Collection')
+        .from('collections')
         .update({ video_duration: 300 }) // Default to 5 minutes
         .eq('id', collection.id)
     );

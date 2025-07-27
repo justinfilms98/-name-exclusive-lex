@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
   try {
     // First check if video_duration column exists
     const { data: testData, error: testError } = await supabase
-      .from('Collection')
+      .from('collections')
       .select('video_duration')
       .limit(1);
 
@@ -26,13 +26,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ 
         success: false,
         error: 'video_duration column does not exist. Please run the database migration first.',
-        instructions: 'Run the SQL in add-video-duration-field.sql file in your Supabase SQL editor'
+        instructions: 'Run the SQL in manual-migration.sql file in your Supabase SQL editor'
       });
     }
 
     // Get all collections that don't have video_duration set or have default values
     const { data: collections, error: fetchError } = await supabase
-      .from('Collection')
+      .from('collections')
       .select('id, title, video_path, video_duration')
       .or('video_duration.is.null,video_duration.eq.300');
 
@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
         
         // Update the collection with the estimated duration
         const { error: updateError } = await supabase
-          .from('Collection')
+          .from('collections')
           .update({ video_duration: estimatedDuration })
           .eq('id', collection.id);
 
