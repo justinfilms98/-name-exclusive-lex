@@ -328,11 +328,10 @@ export default function AdminCollectionsPage() {
   const handleExtractVideoDurations = async () => {
     setExtractingDurations(true);
     try {
-      // First, get all collections that need duration extraction
+      // First, get all collections to re-extract durations for accuracy
       const { data: collections, error: fetchError } = await supabase
         .from('collections')
-        .select('id, title, video_path, video_duration')
-        .or('video_duration.is.null,video_duration.eq.300');
+        .select('id, title, video_path, video_duration');
 
       if (fetchError) {
         alert(`Failed to fetch collections: ${fetchError.message}`);
@@ -340,9 +339,11 @@ export default function AdminCollectionsPage() {
       }
 
       if (!collections || collections.length === 0) {
-        alert('No collections need video duration extraction');
+        alert('No collections found to process');
         return;
       }
+
+      alert(`Found ${collections.length} collections. Starting video duration extraction...`);
 
       const results: ExtractionResult[] = [];
       
@@ -509,6 +510,25 @@ export default function AdminCollectionsPage() {
                 <>
                   <Video className="w-4 h-4" />
                   <span>Extract Video Durations</span>
+                </>
+              )}
+            </button>
+            
+            <button
+              onClick={handleExtractVideoDurations}
+              disabled={extractingDurations}
+              className="btn-secondary flex items-center space-x-2 disabled:opacity-50"
+              title="Force re-extraction of all video durations"
+            >
+              {extractingDurations ? (
+                <>
+                  <div className="w-4 h-4 spinner"></div>
+                  <span>Extracting...</span>
+                </>
+              ) : (
+                <>
+                  <Video className="w-4 h-4" />
+                  <span>Re-extract All Durations</span>
                 </>
               )}
             </button>
