@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { CheckCircle, Play, ArrowRight, Clock } from 'lucide-react';
+import { CheckCircle, Play, ArrowRight, Clock, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import PurchaseDisclaimer, { TimeLimitedAccessDisclaimer } from '@/components/PurchaseDisclaimer';
 
@@ -11,6 +11,7 @@ export default function SuccessClient() {
   const [loading, setLoading] = useState(true);
   const [purchase, setPurchase] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const [startingTimer, setStartingTimer] = useState(false);
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -44,7 +45,8 @@ export default function SuccessClient() {
           stripe_session_id,
           created_at,
           expires_at,
-          is_active
+          is_active,
+          timer_started
         `)
         .eq('stripe_session_id', sessionId)
         .eq('user_id', session.user.id)
@@ -82,6 +84,38 @@ export default function SuccessClient() {
       console.error('Purchase verification error:', error);
       setError('Failed to verify purchase');
       setLoading(false);
+    }
+  };
+
+  const startTimer = async () => {
+    if (!purchase) return;
+    
+    setStartingTimer(true);
+    
+    try {
+      // Update the purchase to start the timer
+      const { error } = await supabase
+        .from('purchases')
+        .update({
+          timer_started: true,
+          timer_started_at: new Date().toISOString()
+        })
+        .eq('id', purchase.id);
+
+      if (error) {
+        console.error('Failed to start timer:', error);
+        alert('Failed to start timer. Please try again.');
+        return;
+      }
+
+      // Redirect to watch page with timer started
+      router.push(`/watch/${purchase.CollectionVideo.id}?session_id=${purchase.stripe_session_id}&timer_started=true`);
+      
+    } catch (error) {
+      console.error('Error starting timer:', error);
+      alert('Failed to start timer. Please try again.');
+    } finally {
+      setStartingTimer(false);
     }
   };
 
@@ -146,8 +180,6 @@ export default function SuccessClient() {
   }
 
   const collection = purchase.CollectionVideo;
-  const expiresAt = new Date(purchase.expires_at);
-  const timeLeft = Math.floor((expiresAt.getTime() - new Date().getTime()) / 1000);
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
@@ -177,23 +209,44 @@ export default function SuccessClient() {
               <span>Video Duration: {formatDuration(collection.price * 60)}</span>
             </div>
             <div className="flex items-center">
-              <span>Access expires in: {Math.floor(timeLeft / 3600)}h {Math.floor((timeLeft % 3600) / 60)}m</span>
+              <span>Access Window: {formatAccessTime()}</span>
             </div>
           </div>
         </div>
 
-        {/* Access Time Warning */}
-        <TimeLimitedAccessDisclaimer />
+        {/* Timer Start Warning */}
+        <div className="mb-8 p-6 bg-amber-50 border border-amber-200 rounded-lg">
+          <div className="flex items-start space-x-4">
+            <div className="text-amber-600 mt-1">
+              <AlertTriangle className="w-6 h-6" />
+            </div>
+            <div className="text-amber-800">
+              <h3 className="font-bold text-lg mb-2">Ready to Start Your Timer?</h3>
+              <p className="mb-2">Your 30-minute timer will start when you press "Start Watching".</p>
+              <p className="text-sm">Make sure you have uninterrupted time to enjoy your exclusive collection before the timer expires.</p>
+            </div>
+          </div>
+        </div>
 
         {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
-          <Link
-            href={`/watch/${collection.id}`}
-            className="inline-flex items-center justify-center bg-lex-brown text-white px-8 py-3 rounded-lg hover:bg-lex-warmGray transition-colors font-medium"
+        <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
+          <button
+            onClick={startTimer}
+            disabled={startingTimer}
+            className="inline-flex items-center justify-center bg-lex-brown text-white px-8 py-3 rounded-lg hover:bg-lex-warmGray transition-colors font-medium disabled:opacity-50"
           >
-            <Play className="w-5 h-5 mr-2" />
-            Watch Now
-          </Link>
+            {startingTimer ? (
+              <>
+                <div className="w-5 h-5 spinner mr-2"></div>
+                <span>Starting Timer...</span>
+              </>
+            ) : (
+              <>
+                <Play className="w-5 h-5 mr-2" />
+                <span>Start Watching</span>
+              </>
+            )}
+          </button>
           
           <Link
             href="/collections"
@@ -207,7 +260,7 @@ export default function SuccessClient() {
         {/* Important Notice */}
         <div className="mt-8 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
           <p className="text-yellow-800 text-sm">
-            <strong>Reminder:</strong> Your access is time-limited to {formatAccessTime()}. Make sure to watch the content before it expires.
+            <strong>Important:</strong> Your timer will start when you press "Start Watching". The timer continues running even when you exit, so make sure you're ready before starting.
           </p>
         </div>
       </div>

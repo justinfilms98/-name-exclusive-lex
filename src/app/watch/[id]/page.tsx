@@ -15,6 +15,8 @@ interface Purchase {
   expires_at: string;
   is_active: boolean;
   deactivated_at: string | null;
+  timer_started: boolean;
+  timer_started_at: string | null;
   collection: {
     id: string;
     title: string;
@@ -37,6 +39,7 @@ function WatchPageClient({ collectionId }: { collectionId: string }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const sessionId = searchParams?.get('session_id');
+  const timerStarted = searchParams?.get('timer_started') === 'true';
   
   const [purchase, setPurchase] = useState<Purchase | null>(null);
   const [loading, setLoading] = useState(true);
@@ -280,7 +283,7 @@ function WatchPageClient({ collectionId }: { collectionId: string }) {
   }, [sessionId]);
 
   useEffect(() => {
-    if (timeRemaining <= 0 && purchase) {
+    if (timeRemaining <= 0 && purchase && purchase.timer_started) {
       setError('Access has expired');
       return;
     }
@@ -323,13 +326,22 @@ function WatchPageClient({ collectionId }: { collectionId: string }) {
         return;
       }
 
+      // Check if timer has been started
+      if (!purchase.timer_started && !timerStarted) {
+        setError('Timer has not been started. Please go back to the success page and press "Start Watching".');
+        setLoading(false);
+        return;
+      }
+
       setPurchase(purchase);
 
-      // Calculate time remaining
-      const expiresAt = new Date(purchase.expires_at);
-      const now = new Date();
-      const remaining = expiresAt.getTime() - now.getTime();
-      setTimeRemaining(Math.max(0, remaining));
+      // Calculate time remaining only if timer has been started
+      if (purchase.timer_started) {
+        const expiresAt = new Date(purchase.expires_at);
+        const now = new Date();
+        const remaining = expiresAt.getTime() - now.getTime();
+        setTimeRemaining(Math.max(0, remaining));
+      }
 
       // Get signed URL for video
       if (purchase.collection?.video_path) {
@@ -464,10 +476,12 @@ function WatchPageClient({ collectionId }: { collectionId: string }) {
           </div>
           
           <div className="flex items-center space-x-4">
-            <div className="flex items-center text-stone-300">
-              <Clock className="w-4 h-4 mr-2" />
-              <span className="text-sm">{formatTime(timeRemaining)}</span>
-            </div>
+            {purchase.timer_started && (
+              <div className="flex items-center text-stone-300">
+                <Clock className="w-4 h-4 mr-2" />
+                <span className="text-sm">{formatTime(timeRemaining)}</span>
+              </div>
+            )}
             
             <button
               onClick={() => router.push('/collections')}
@@ -514,7 +528,9 @@ function WatchPageClient({ collectionId }: { collectionId: string }) {
           
           <div className="flex items-center justify-between text-sm text-stone-500">
             <span>Purchased: {new Date(purchase.created_at).toLocaleDateString()}</span>
-            <span>Time remaining: {formatTime(timeRemaining)}</span>
+            {purchase.timer_started && (
+              <span>Time remaining: {formatTime(timeRemaining)}</span>
+            )}
           </div>
         </div>
       </div>
