@@ -15,10 +15,10 @@ export default function PurchaseDisclaimer({ variant = 'checkout', className = '
           icon: <AlertTriangle className="w-5 h-5 text-amber-600" />,
           title: "Important Purchase Information",
           content: [
-            "When you make a new purchase, any previous active purchases will be automatically deactivated.",
-            "You can only have one active purchase at a time.",
-            "To access a different collection, simply make a new purchase from the collections page.",
-            "There is no way to reactivate older purchases once a new one is made."
+            "You can purchase multiple collections and access them all.",
+            "Each purchase has its own 30-minute timer that starts when you begin watching.",
+            "You can exit and return to any active purchase from your account page.",
+            "Timers continue running even when you're not watching, so plan your viewing time wisely."
           ],
           bgColor: "bg-amber-50 border-amber-200",
           textColor: "text-amber-800"
@@ -29,10 +29,10 @@ export default function PurchaseDisclaimer({ variant = 'checkout', className = '
           icon: <Info className="w-5 h-5 text-blue-600" />,
           title: "Current Active Purchase",
           content: [
-            "You are currently viewing your active purchase.",
-            "If you want to watch a different collection, exit this page and make a new purchase.",
-            "Making a new purchase will deactivate this current access.",
-            "Previous purchases cannot be reactivated once deactivated."
+            "You are currently viewing one of your active purchases.",
+            "You can exit and purchase other collections - your timers will continue running.",
+            "Access all your active purchases from your account page.",
+            "Each purchase has its own 30-minute timer that starts when you begin watching."
           ],
           bgColor: "bg-blue-50 border-blue-200",
           textColor: "text-blue-800"
@@ -43,10 +43,10 @@ export default function PurchaseDisclaimer({ variant = 'checkout', className = '
           icon: <RefreshCw className="w-5 h-5 text-green-600" />,
           title: "Purchase Successfully Activated",
           content: [
-            "Your new purchase is now active and any previous purchases have been deactivated.",
-            "You can only access one collection at a time.",
-            "To switch to a different collection, make a new purchase from the collections page.",
-            "Enjoy your exclusive content!"
+            "Your new purchase is now active and ready to watch!",
+            "You can purchase multiple collections and access them all.",
+            "Each purchase has its own 30-minute timer that starts when you begin watching.",
+            "Access all your active purchases from your account page."
           ],
           bgColor: "bg-green-50 border-green-200",
           textColor: "text-green-800"
@@ -57,8 +57,8 @@ export default function PurchaseDisclaimer({ variant = 'checkout', className = '
           icon: <Info className="w-5 h-5 text-gray-600" />,
           title: "Purchase Information",
           content: [
-            "Only one purchase can be active at a time.",
-            "New purchases automatically deactivate previous ones."
+            "You can have multiple active purchases at the same time.",
+            "Each purchase has its own timer that starts when you begin watching."
           ],
           bgColor: "bg-gray-50 border-gray-200",
           textColor: "text-gray-800"
@@ -104,7 +104,7 @@ export function TimeLimitedAccessDisclaimer() {
             Time-Limited Access
           </h3>
           <p className="text-sm text-yellow-800">
-            Your access is limited to 30 minutes once you start viewing. Make sure you have uninterrupted time to enjoy your exclusive content before it expires.
+            Your access is limited to 30 minutes once you start viewing. The timer continues running even when you exit, so make sure you have uninterrupted time to enjoy your exclusive content before it expires.
           </p>
         </div>
       </div>

@@ -70,21 +70,6 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
   const purchasedAt = new Date();
   const expiresAt = new Date(purchasedAt.getTime() + parseInt(duration) * 1000); // duration is in seconds
 
-  // First, deactivate all existing active purchases for this user
-  const { error: deactivateError } = await supabase
-    .from('purchases')
-    .update({ 
-      is_active: false,
-      deactivated_at: new Date().toISOString()
-    })
-    .eq('user_id', user_id)
-    .eq('is_active', true);
-
-  if (deactivateError) {
-    console.error('Failed to deactivate existing purchases:', deactivateError);
-    // Continue with new purchase creation even if deactivation fails
-  }
-
   // Create new purchase record with active status
   const { error } = await supabase
     .from('purchases')
@@ -104,5 +89,5 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
   }
 
   console.log(`New active purchase created for user ${user_id}, collection ${collection_id}`);
-  console.log(`Previous purchases for user ${user_id} have been deactivated`);
+  console.log(`User ${user_id} now has multiple active purchases available`);
 } 

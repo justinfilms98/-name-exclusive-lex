@@ -10,7 +10,7 @@ export async function GET(request: Request) {
   const session_id = new URL(request.url).searchParams.get('session_id')
   if (!session_id) return NextResponse.json({ error: 'Missing session_id' }, { status: 400 })
 
-  // First get the purchase - only active purchases
+  // Get the purchase - only active purchases
   const { data: purchase, error } = await supabase
     .from('purchases')
     .select('id, user_id, collection_id, stripe_session_id, created_at, expires_at, amount_paid, is_active, deactivated_at')
@@ -22,7 +22,7 @@ export async function GET(request: Request) {
   
   // Check if purchase is active
   if (!purchase.is_active) {
-    return NextResponse.json({ error: 'Purchase has been deactivated. A newer purchase is now active.' }, { status: 403 })
+    return NextResponse.json({ error: 'Purchase has been deactivated.' }, { status: 403 })
   }
   
   if (new Date(purchase.expires_at) < new Date()) {
