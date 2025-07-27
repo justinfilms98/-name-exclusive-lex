@@ -14,6 +14,26 @@ interface ExtractionResult {
   estimatedDuration?: number;
 }
 
+// Helper function to extract video duration from video URL
+async function getVideoDuration(videoUrl: string): Promise<number> {
+  return new Promise((resolve, reject) => {
+    // Create a temporary video element to get duration
+    const video = document.createElement('video');
+    video.preload = 'metadata';
+    
+    video.onloadedmetadata = () => {
+      const duration = Math.round(video.duration);
+      resolve(duration);
+    };
+    
+    video.onerror = () => {
+      reject(new Error('Could not load video metadata'));
+    };
+    
+    video.src = videoUrl;
+  });
+}
+
 export async function POST(request: NextRequest) {
   try {
     // First check if video_duration column exists
@@ -81,7 +101,8 @@ export async function POST(request: NextRequest) {
           continue;
         }
 
-        // Extract duration using a head request to get metadata
+        // For server-side extraction, we'll use a more conservative estimate
+        // based on file size but with better heuristics
         const response = await fetch(signedUrlData.signedUrl, { method: 'HEAD' });
         if (!response.ok) {
           console.warn(`Could not access video for ${collection.title}`);
@@ -94,14 +115,24 @@ export async function POST(request: NextRequest) {
           continue;
         }
 
-        // For now, we'll use a reasonable estimate based on file size
-        // In a production environment, you'd want to use a proper video processing service
-        // like AWS MediaConvert, FFmpeg, or similar
         const contentLength = response.headers.get('content-length');
         const fileSize = contentLength ? parseInt(contentLength) : 0;
         
-        // Rough estimate: 1MB per minute for typical video compression
-        const estimatedDuration = Math.max(60, Math.round(fileSize / (1024 * 1024) * 60));
+        // Better estimation based on typical video compression ratios
+        // For web-optimized videos, we can estimate more accurately
+        let estimatedDuration: number;
+        
+        if (fileSize > 0) {
+          // More conservative estimate: 2MB per minute for typical web video
+          estimatedDuration = Math.max(30, Math.round(fileSize / (2 * 1024 * 1024) * 60));
+          
+          // Cap at reasonable maximum (e.g., 10 minutes) unless file is very large
+          if (estimatedDuration > 600 && fileSize < 100 * 1024 * 1024) { // Less than 100MB
+            estimatedDuration = 300; // Default to 5 minutes for smaller files
+          }
+        } else {
+          estimatedDuration = 300; // Default 5 minutes if we can't get file size
+        }
         
         // Update the collection with the estimated duration
         const { error: updateError } = await supabase

@@ -20,6 +20,14 @@ interface Collection {
   updated_at: string;
 }
 
+interface ExtractionResult {
+  id: string;
+  title: string;
+  success: boolean;
+  error?: string;
+  estimatedDuration?: number;
+}
+
 export default function AdminCollectionsPage() {
   const [collections, setCollections] = useState<Collection[]>([]);
   const [loading, setLoading] = useState(true);
@@ -320,26 +328,133 @@ export default function AdminCollectionsPage() {
   const handleExtractVideoDurations = async () => {
     setExtractingDurations(true);
     try {
-      const response = await fetch('/api/extract-video-durations', {
-        method: 'POST',
-      });
-      
-      const result = await response.json();
-      
-      if (result.success) {
-        setExtractionResults(result);
-        alert(`Video duration extraction completed! Processed ${result.totalProcessed} collections, ${result.successful} successful.`);
-        // Reload collections to show updated durations
-        await loadCollections();
-      } else {
-        alert(`Extraction failed: ${result.error}`);
+      // First, get all collections that need duration extraction
+      const { data: collections, error: fetchError } = await supabase
+        .from('collections')
+        .select('id, title, video_path, video_duration')
+        .or('video_duration.is.null,video_duration.eq.300');
+
+      if (fetchError) {
+        alert(`Failed to fetch collections: ${fetchError.message}`);
+        return;
       }
+
+      if (!collections || collections.length === 0) {
+        alert('No collections need video duration extraction');
+        return;
+      }
+
+      const results: ExtractionResult[] = [];
+      
+      for (const collection of collections) {
+        try {
+          if (!collection.video_path) {
+            results.push({
+              id: collection.id,
+              title: collection.title,
+              success: false,
+              error: 'No video path found'
+            });
+            continue;
+          }
+
+          // Get signed URL for the video
+          const { data: signedUrlData, error: urlError } = await supabase.storage
+            .from('media')
+            .createSignedUrl(collection.video_path, 60);
+
+          if (urlError || !signedUrlData?.signedUrl) {
+            results.push({
+              id: collection.id,
+              title: collection.title,
+              success: false,
+              error: 'Could not get video URL'
+            });
+            continue;
+          }
+
+          // Extract duration using client-side video element
+          const duration = await extractDurationFromVideo(signedUrlData.signedUrl);
+          
+          if (duration > 0) {
+            // Update the collection with the extracted duration
+            const { error: updateError } = await supabase
+              .from('collections')
+              .update({ video_duration: duration })
+              .eq('id', collection.id);
+
+            if (updateError) {
+              results.push({
+                id: collection.id,
+                title: collection.title,
+                success: false,
+                error: updateError.message
+              });
+            } else {
+              results.push({
+                id: collection.id,
+                title: collection.title,
+                success: true,
+                estimatedDuration: duration
+              });
+            }
+          } else {
+            results.push({
+              id: collection.id,
+              title: collection.title,
+              success: false,
+              error: 'Could not extract video duration'
+            });
+          }
+
+        } catch (error) {
+          results.push({
+            id: collection.id,
+            title: collection.title,
+            success: false,
+            error: error instanceof Error ? error.message : 'Unknown error'
+          });
+        }
+      }
+
+      const successful = results.filter(r => r.success).length;
+      setExtractionResults({
+        results,
+        totalProcessed: collections.length,
+        successful
+      });
+
+      alert(`Video duration extraction completed! Processed ${collections.length} collections, ${successful} successful.`);
+      
+      // Reload collections to show updated durations
+      await loadCollections();
+
     } catch (error) {
       console.error('Extraction error:', error);
       alert('Failed to extract video durations');
     } finally {
       setExtractingDurations(false);
     }
+  };
+
+  const extractDurationFromVideo = (videoUrl: string): Promise<number> => {
+    return new Promise((resolve) => {
+      const video = document.createElement('video');
+      video.preload = 'metadata';
+      
+      video.onloadedmetadata = () => {
+        const duration = Math.round(video.duration);
+        console.log(`Extracted duration: ${duration} seconds (${Math.floor(duration / 60)} minutes)`);
+        resolve(duration);
+      };
+      
+      video.onerror = () => {
+        console.warn('Could not extract video duration');
+        resolve(0);
+      };
+      
+      video.src = videoUrl;
+    });
   };
 
   const formatDuration = (seconds: number): string => {
@@ -409,7 +524,7 @@ export default function AdminCollectionsPage() {
             </p>
             {extractionResults.results && extractionResults.results.length > 0 && (
               <div className="max-h-40 overflow-y-auto">
-                {extractionResults.results.map((result: any, index: number) => (
+                {extractionResults.results.map((result: ExtractionResult, index: number) => (
                   <div key={index} className="text-sm text-blue-700">
                     <span className="font-medium">{result.title}:</span> {result.success ? 
                       `Updated to ${Math.floor((result.estimatedDuration || 0) / 60)} minutes` : 
