@@ -1,11 +1,12 @@
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
-import { Heart, PlayCircle, Lock } from 'lucide-react';
+import { Heart, PlayCircle, Lock, X, AlertTriangle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { loadStripe } from '@stripe/stripe-js';
 import { supabase } from '@/lib/supabase';
+import PurchaseDisclaimer from '@/components/PurchaseDisclaimer';
 
 interface Collection {
   id: string;
@@ -25,13 +26,25 @@ interface CollectionsClientProps {
 
 export default function CollectionsClient({ collections, user }: CollectionsClientProps) {
   const router = useRouter();
+  const [showPurchaseModal, setShowPurchaseModal] = useState(false);
+  const [selectedCollection, setSelectedCollection] = useState<Collection | null>(null);
+  const [purchaseLoading, setPurchaseLoading] = useState(false);
 
-  const handlePurchase = async (collectionId: string) => {
+  const handlePurchaseClick = (collection: Collection) => {
     if (!user) {
       router.push('/login');
       return;
     }
+    
+    setSelectedCollection(collection);
+    setShowPurchaseModal(true);
+  };
 
+  const handleConfirmPurchase = async () => {
+    if (!selectedCollection) return;
+    
+    setPurchaseLoading(true);
+    
     try {
       // Get the user's session token with better mobile handling
       const { data: { session } } = await supabase.auth.getSession();
@@ -57,7 +70,7 @@ export default function CollectionsClient({ collections, user }: CollectionsClie
           'User-Agent': navigator.userAgent,
         },
         body: JSON.stringify({
-          collectionId,
+          collectionId: selectedCollection.id,
         }),
       });
 
@@ -91,6 +104,10 @@ export default function CollectionsClient({ collections, user }: CollectionsClie
     } catch (error) {
       console.error('Error creating checkout session:', error);
       alert('Failed to start checkout process. Please try again.');
+    } finally {
+      setPurchaseLoading(false);
+      setShowPurchaseModal(false);
+      setSelectedCollection(null);
     }
   };
 
@@ -179,7 +196,7 @@ export default function CollectionsClient({ collections, user }: CollectionsClie
                   </div>
                   
                   <button
-                    onClick={() => handlePurchase(collection.id)}
+                    onClick={() => handlePurchaseClick(collection)}
                     className="bg-stone-800 text-white px-6 py-2 rounded hover:bg-stone-900 transition-colors font-medium"
                   >
                     {user ? 'Purchase' : 'Sign In to Purchase'}
@@ -208,6 +225,59 @@ export default function CollectionsClient({ collections, user }: CollectionsClie
           </div>
         </div>
       </div>
+
+      {/* Purchase Confirmation Modal */}
+      {showPurchaseModal && selectedCollection && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold text-stone-800">Confirm Purchase</h2>
+                <button
+                  onClick={() => setShowPurchaseModal(false)}
+                  className="text-stone-400 hover:text-stone-600"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="mb-6">
+                <h3 className="text-lg font-medium text-stone-800 mb-2">
+                  {selectedCollection.title}
+                </h3>
+                <p className="text-stone-600 text-sm mb-4">
+                  {selectedCollection.description}
+                </p>
+                <div className="flex items-center justify-between text-sm text-stone-500">
+                  <span>Duration: {formatDuration(selectedCollection.duration)}</span>
+                  <span className="text-lg font-bold text-stone-800">
+                    ${(selectedCollection.price / 100).toFixed(2)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Purchase Disclaimer */}
+              <PurchaseDisclaimer variant="checkout" className="mb-6" />
+
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => setShowPurchaseModal(false)}
+                  className="flex-1 px-4 py-2 border border-stone-300 text-stone-700 rounded hover:bg-stone-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConfirmPurchase}
+                  disabled={purchaseLoading}
+                  className="flex-1 px-4 py-2 bg-stone-800 text-white rounded hover:bg-stone-900 transition-colors disabled:opacity-50"
+                >
+                  {purchaseLoading ? 'Processing...' : 'Confirm Purchase'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 } 

@@ -64,12 +64,18 @@ export async function GET(request: Request) {
   // Verify purchase
   const { data: purchase, error } = await supabase
     .from('purchases')
-    .select('id, user_id, collection_id, stripe_session_id, created_at, expires_at, strike_count, bound_ip, last_access_at, access_count')
+    .select('id, user_id, collection_id, stripe_session_id, created_at, expires_at, strike_count, bound_ip, last_access_at, access_count, is_active, deactivated_at')
     .eq('stripe_session_id', sessionId)
+    .eq('is_active', true)
     .single()
 
   if (error || !purchase) {
-    return NextResponse.json({ error: 'Purchase not found' }, { status: 404 })
+    return NextResponse.json({ error: 'Purchase not found or inactive' }, { status: 404 })
+  }
+
+  // Check if purchase is active
+  if (!purchase.is_active) {
+    return NextResponse.json({ error: 'Purchase has been deactivated. A newer purchase is now active.' }, { status: 403 })
   }
 
   // Check if access has expired

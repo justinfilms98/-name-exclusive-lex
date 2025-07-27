@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { Clock, AlertCircle, Play, Pause, Volume2, VolumeX } from 'lucide-react';
 import { getSignedUrl } from '@/lib/supabase';
 import MediaCarousel from '@/components/MediaCarousel';
+import PurchaseDisclaimer from '@/components/PurchaseDisclaimer';
 
 interface Purchase {
   id: string;
@@ -12,6 +13,8 @@ interface Purchase {
   collection_id: string;
   created_at: string;
   expires_at: string;
+  is_active: boolean;
+  deactivated_at: string | null;
   collection: {
     id: string;
     title: string;
@@ -44,6 +47,7 @@ function WatchPageClient({ collectionId }: { collectionId: string }) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [showControls, setShowControls] = useState(true);
+  const [showDisclaimer, setShowDisclaimer] = useState(true);
 
   useEffect(() => {
     if (!sessionId) {
@@ -312,6 +316,13 @@ function WatchPageClient({ collectionId }: { collectionId: string }) {
         return;
       }
 
+      // Check if purchase is active
+      if (!purchase.is_active) {
+        setError('This purchase has been deactivated. A newer purchase is now active.');
+        setLoading(false);
+        return;
+      }
+
       setPurchase(purchase);
 
       // Calculate time remaining
@@ -467,6 +478,21 @@ function WatchPageClient({ collectionId }: { collectionId: string }) {
           </div>
         </div>
       </div>
+
+      {/* Disclaimer Banner */}
+      {showDisclaimer && (
+        <div className="bg-stone-800 border-b border-stone-700">
+          <div className="max-w-7xl mx-auto p-4">
+            <PurchaseDisclaimer variant="watch" />
+            <button
+              onClick={() => setShowDisclaimer(false)}
+              className="mt-2 text-stone-400 hover:text-stone-300 text-sm"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Media Carousel */}
       <div className="max-w-7xl mx-auto p-4">

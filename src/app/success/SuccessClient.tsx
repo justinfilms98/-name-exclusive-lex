@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { CheckCircle, Play, ArrowRight, Clock } from 'lucide-react';
 import Link from 'next/link';
+import PurchaseDisclaimer, { TimeLimitedAccessDisclaimer } from '@/components/PurchaseDisclaimer';
 
 export default function SuccessClient() {
   const [loading, setLoading] = useState(true);
@@ -42,10 +43,12 @@ export default function SuccessClient() {
           collection_video_id,
           stripe_session_id,
           created_at,
-          expires_at
+          expires_at,
+          is_active
         `)
         .eq('stripe_session_id', sessionId)
         .eq('user_id', session.user.id)
+        .eq('is_active', true)
         .single();
 
       if (error || !purchaseData) {
@@ -160,6 +163,9 @@ export default function SuccessClient() {
           You now have access to <strong>{collection.title}</strong>
         </p>
 
+        {/* Purchase Success Disclaimer */}
+        <PurchaseDisclaimer variant="success" className="mb-8" />
+
         {/* Collection Details */}
         <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
           <h2 className="text-xl font-serif text-lex-brown mb-4">{collection.title}</h2>
@@ -177,23 +183,10 @@ export default function SuccessClient() {
         </div>
 
         {/* Access Time Warning */}
-        <div className="mb-8 p-6 bg-yellow-50 border border-yellow-200 rounded-lg">
-          <div className="flex items-start space-x-4">
-            <div className="text-yellow-600 mt-1">
-              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-              </svg>
-            </div>
-            <div className="text-yellow-800">
-              <h3 className="font-bold text-lg mb-2">Important: Time-Limited Access</h3>
-              <p className="mb-2">You have <strong>{formatAccessTime()}</strong> to watch your purchased content once you start viewing.</p>
-              <p className="text-sm">Make sure you have uninterrupted time to enjoy your exclusive collection before the access expires.</p>
-            </div>
-          </div>
-        </div>
+        <TimeLimitedAccessDisclaimer />
 
         {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+        <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
           <Link
             href={`/watch/${collection.id}`}
             className="inline-flex items-center justify-center bg-lex-brown text-white px-8 py-3 rounded-lg hover:bg-lex-warmGray transition-colors font-medium"
