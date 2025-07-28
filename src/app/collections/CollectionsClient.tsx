@@ -257,7 +257,7 @@ export default function CollectionsClient({ collections, user }: CollectionsClie
               </div>
 
               {/* Purchase Disclaimer */}
-              <PurchaseDisclaimer variant="checkout" className="mb-6" />
+              <PurchaseDisclaimer variant="checkout" className="mb-6" duration={selectedCollection.duration} />
 
               <div className="flex space-x-3">
                 <button

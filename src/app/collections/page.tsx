@@ -146,8 +146,9 @@ export default function CollectionsPage() {
     return (price / 100).toFixed(2);
   };
 
-  const formatAccessTime = (): string => {
-    return "30 min access";
+  const formatAccessTime = (duration: number): string => {
+    const minutes = Math.floor(duration / 60);
+    return `${minutes} min access`;
   };
 
   const toggleDescription = (collectionId: string) => {
@@ -333,7 +334,7 @@ export default function CollectionsPage() {
                     <div className="mt-2 p-2 bg-khaki/10 border border-khaki/20 rounded text-xs text-khaki">
                       <div className="flex items-center">
                         <Clock className="w-3 h-3 mr-1" />
-                        <span>30-minute access window to watch</span>
+                        <span>{formatDuration(collection.duration)} access window to watch</span>
                       </div>
                     </div>
                   </div>

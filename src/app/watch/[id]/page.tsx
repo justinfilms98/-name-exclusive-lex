@@ -478,7 +478,7 @@ function WatchPageClient({ collectionId }: { collectionId: string }) {
       {showDisclaimer && (
         <div className="bg-stone-800 border-b border-stone-700">
           <div className="max-w-7xl mx-auto p-4">
-            <PurchaseDisclaimer variant="watch" />
+            <PurchaseDisclaimer variant="watch" duration={purchase.collection.duration} />
             <button
               onClick={() => setShowDisclaimer(false)}
               className="mt-2 text-stone-400 hover:text-stone-300 text-sm"

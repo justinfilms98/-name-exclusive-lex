@@ -151,13 +151,18 @@ export default function CartPage() {
     return cartItems.reduce((total, item) => total + (item.video_duration || 300), 0);
   };
 
+  const getTotalAccessDuration = () => {
+    return cartItems.reduce((total, item) => total + (item.duration || 0), 0);
+  };
+
   const formatDuration = (seconds: number): string => {
     const minutes = Math.floor(seconds / 60);
     return `${minutes} min`;
   };
 
-  const formatAccessTime = (): string => {
-    return "30 min access";
+  const formatAccessTime = (duration: number): string => {
+    const minutes = Math.floor(duration / 60);
+    return `${minutes} min access`;
   };
 
   const formatVideoDuration = (seconds: number): string => {
@@ -337,7 +342,7 @@ export default function CartPage() {
               </div>
               <div className="text-sm text-sage">
                 <p className="font-medium text-earth mb-1">Purchase Information</p>
-                <p>Purchases are completed one collection at a time. After payment, you'll get a "Start Watching" button. <strong>Only press this button when you're ready to begin your 30-minute timer</strong>. You can purchase more collections after each transaction, but timers only start when you press "Start Watching".</p>
+                <p>Purchases are completed one collection at a time. After payment, you'll get a "Start Watching" button. <strong>Only press this button when you're ready to begin your timer</strong>. You can purchase more collections after each transaction, but timers only start when you press "Start Watching".</p>
               </div>
             </div>
           </div>
@@ -420,7 +425,7 @@ export default function CartPage() {
                         <div className="mt-2 p-2 bg-khaki/10 border border-khaki/20 rounded text-xs text-khaki">
                           <div className="flex items-center">
                             <Clock className="w-3 h-3 mr-1" />
-                            <span>30-minute timer starts when you press "Start Watching"</span>
+                            <span>{formatDuration(item.duration)} timer starts when you press "Start Watching"</span>
                           </div>
                         </div>
                       </div>
@@ -462,7 +467,7 @@ export default function CartPage() {
                   
                   <div className="flex justify-between text-sage">
                     <span>Access Window</span>
-                    <span>{formatAccessTime()}</span>
+                    <span>{formatAccessTime(getTotalAccessDuration())}</span>
                   </div>
                   
                   <div className="border-t border-mushroom/30 pt-4">
@@ -483,7 +488,7 @@ export default function CartPage() {
                     </div>
                     <div className="text-sm text-yellow-800">
                       <p className="font-medium mb-1">Important Access Information</p>
-                      <p>After payment, you'll get a "Start Watching" button. <strong>Only press this when you're ready to begin your 30-minute timer</strong>. The timer continues running even when you exit, so plan your viewing time wisely.</p>
+                      <p>After payment, you'll get a "Start Watching" button. <strong>Only press this when you're ready to begin your timer</strong>. The timer continues running even when you exit, so plan your viewing time wisely.</p>
                     </div>
                   </div>
                 </div>

@@ -124,8 +124,9 @@ export default function SuccessClient() {
     return `${minutes} minutes`;
   };
 
-  const formatAccessTime = (): string => {
-    return "30 minutes";
+  const formatAccessTime = (duration: number): string => {
+    const minutes = Math.floor(duration / 60);
+    return `${minutes} minutes`;
   };
 
   if (loading) {
@@ -196,7 +197,7 @@ export default function SuccessClient() {
         </p>
 
         {/* Purchase Success Disclaimer */}
-        <PurchaseDisclaimer variant="success" className="mb-8" />
+        <PurchaseDisclaimer variant="success" className="mb-8" duration={collection.duration} />
 
         {/* Collection Details */}
         <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
@@ -209,7 +210,7 @@ export default function SuccessClient() {
               <span>Video Duration: {formatDuration(collection.price * 60)}</span>
             </div>
             <div className="flex items-center">
-              <span>Access Window: {formatAccessTime()}</span>
+              <span>Access Window: {formatAccessTime(collection.duration)}</span>
             </div>
           </div>
         </div>
@@ -222,7 +223,7 @@ export default function SuccessClient() {
             </div>
             <div className="text-amber-800">
               <h3 className="font-bold text-lg mb-2">Ready to Start Your Timer?</h3>
-              <p className="mb-2">Your 30-minute timer will start when you press "Start Watching".</p>
+              <p className="mb-2">Your timer will start when you press "Start Watching".</p>
               <p className="text-sm">Make sure you have uninterrupted time to enjoy your exclusive collection before the timer expires.</p>
             </div>
           </div>

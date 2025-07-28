@@ -5,9 +5,15 @@ import { AlertTriangle, Info, Clock, RefreshCw } from 'lucide-react';
 interface PurchaseDisclaimerProps {
   variant?: 'checkout' | 'watch' | 'success';
   className?: string;
+  duration?: number; // access duration in seconds
 }
 
-export default function PurchaseDisclaimer({ variant = 'checkout', className = '' }: PurchaseDisclaimerProps) {
+export default function PurchaseDisclaimer({ variant = 'checkout', className = '', duration = 1800 }: PurchaseDisclaimerProps) {
+  const formatDuration = (seconds: number): string => {
+    const minutes = Math.floor(seconds / 60);
+    return `${minutes}-minute`;
+  };
+
   const getDisclaimerContent = () => {
     switch (variant) {
       case 'checkout':
@@ -16,7 +22,7 @@ export default function PurchaseDisclaimer({ variant = 'checkout', className = '
           title: "Important Purchase Information",
           content: [
             "You can purchase multiple collections and access them all.",
-            "Each purchase has its own 30-minute timer that starts when you begin watching.",
+            `Each purchase has its own ${formatDuration(duration)} timer that starts when you begin watching.`,
             "You can exit and return to any active purchase from your account page.",
             "Timers continue running even when you're not watching, so plan your viewing time wisely."
           ],
@@ -32,7 +38,7 @@ export default function PurchaseDisclaimer({ variant = 'checkout', className = '
             "You are currently viewing one of your active purchases.",
             "You can exit and purchase other collections - your timers will continue running.",
             "Access all your active purchases from your account page.",
-            "Each purchase has its own 30-minute timer that starts when you begin watching."
+            `Each purchase has its own ${formatDuration(duration)} timer that starts when you begin watching.`
           ],
           bgColor: "bg-blue-50 border-blue-200",
           textColor: "text-blue-800"
@@ -45,7 +51,7 @@ export default function PurchaseDisclaimer({ variant = 'checkout', className = '
           content: [
             "Your new purchase is now active and ready to watch!",
             "You can purchase multiple collections and access them all.",
-            "Each purchase has its own 30-minute timer that starts when you begin watching.",
+            `Each purchase has its own ${formatDuration(duration)} timer that starts when you begin watching.`,
             "Access all your active purchases from your account page."
           ],
           bgColor: "bg-green-50 border-green-200",
@@ -92,7 +98,12 @@ export default function PurchaseDisclaimer({ variant = 'checkout', className = '
   );
 }
 
-export function TimeLimitedAccessDisclaimer() {
+export function TimeLimitedAccessDisclaimer({ duration = 1800 }: { duration?: number }) {
+  const formatDuration = (seconds: number): string => {
+    const minutes = Math.floor(seconds / 60);
+    return `${minutes} minutes`;
+  };
+
   return (
     <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4">
       <div className="flex items-start space-x-3">
@@ -104,7 +115,7 @@ export function TimeLimitedAccessDisclaimer() {
             Time-Limited Access
           </h3>
           <p className="text-sm text-yellow-800">
-            Your access is limited to 30 minutes once you start viewing. The timer continues running even when you exit, so make sure you have uninterrupted time to enjoy your exclusive content before it expires.
+            Your access is limited to {formatDuration(duration)} once you start viewing. The timer continues running even when you exit, so make sure you have uninterrupted time to enjoy your exclusive content before it expires.
           </p>
         </div>
       </div>
