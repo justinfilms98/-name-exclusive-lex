@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { supabase, getCollection, checkAccess, getSignedUrl, logWatchActivity } from '@/lib/supabase';
+import PurchaseLegalDisclaimer from '@/components/PurchaseLegalDisclaimer';
 
 export default function WatchPage() {
   const [user, setUser] = useState<any>(null);
@@ -21,6 +22,8 @@ export default function WatchPage() {
   const [showControls, setShowControls] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [fullscreenPhoto, setFullscreenPhoto] = useState<string | null>(null);
+  const [showLegalDisclaimer, setShowLegalDisclaimer] = useState(false);
+  const [contentReady, setContentReady] = useState(false);
   const router = useRouter();
   const params = useParams();
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -137,6 +140,15 @@ export default function WatchPage() {
           purchase_id: accessData.id,
           created_at: new Date().toISOString(),
         });
+
+        // Check if user has accepted purchase terms
+        const hasAcceptedPurchaseTerms = localStorage.getItem('exclusive-lex-purchase-terms-accepted') === 'true';
+        
+        if (!hasAcceptedPurchaseTerms) {
+          setShowLegalDisclaimer(true);
+        } else {
+          setContentReady(true);
+        }
 
         setLoading(false);
 
@@ -271,6 +283,16 @@ export default function WatchPage() {
     return `${minutes}m ${secs}s`;
   };
 
+  const handleLegalAccept = () => {
+    setShowLegalDisclaimer(false);
+    setContentReady(true);
+  };
+
+  const handleLegalDecline = () => {
+    setShowLegalDisclaimer(false);
+    // User will be redirected by the component
+  };
+
   // Prevent right-click and other protection
   useEffect(() => {
     const handleContextMenu = (e: MouseEvent) => e.preventDefault();
@@ -335,6 +357,28 @@ export default function WatchPage() {
 
   if (!hasAccess || !videoUrl) {
     return null;
+  }
+
+  // Show legal disclaimer if needed
+  if (showLegalDisclaimer) {
+    return (
+      <PurchaseLegalDisclaimer
+        onAccept={handleLegalAccept}
+        onDecline={handleLegalDecline}
+      />
+    );
+  }
+
+  // Only show content when ready
+  if (!contentReady) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-center text-white">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white mx-auto mb-4"></div>
+          <p>Preparing your content...</p>
+        </div>
+      </div>
+    );
   }
 
   console.log('Rendering watch page - photoUrls.length:', photoUrls.length);

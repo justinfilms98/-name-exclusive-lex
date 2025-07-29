@@ -4,8 +4,6 @@ import './globals.css'
 import { Providers } from './providers'
 import AgeVerificationWrapper from '../components/AgeVerificationWrapper'
 import Header from './Header'
-import { LegalProvider } from '../context/LegalContext'
-import LegalDisclaimerWrapper from '../components/LegalDisclaimerWrapper'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -26,15 +24,12 @@ export default function RootLayout({
       </head>
       <body className={inter.className}>
         <Providers>
-          <LegalProvider>
-            <AgeVerificationWrapper>
-              <Header />
-              <main className="pt-14 sm:pt-16">
-                {children}
-              </main>
-              <LegalDisclaimerWrapper />
-            </AgeVerificationWrapper>
-          </LegalProvider>
+          <AgeVerificationWrapper>
+            <Header />
+            <main className="pt-14 sm:pt-16">
+              {children}
+            </main>
+          </AgeVerificationWrapper>
         </Providers>
       </body>
     </html>
