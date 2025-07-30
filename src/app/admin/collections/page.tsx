@@ -9,7 +9,6 @@ interface Collection {
   title: string;
   description: string;
   price: number;
-  duration: number; // access duration
   video_duration: number; // actual video length
   video_path: string;
   thumbnail_path?: string;
@@ -38,7 +37,6 @@ export default function AdminCollectionsPage() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState<number>(29.99);
-  const [duration, setDuration] = useState<number>(1800); // 30 minutes default access time
   const [videoDuration, setVideoDuration] = useState<number>(300); // 5 minutes default video length
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
@@ -78,10 +76,6 @@ export default function AdminCollectionsPage() {
 
     if (price <= 0) {
       errors.push('Price must be greater than 0');
-    }
-
-    if (duration <= 0) {
-      errors.push('Access duration must be greater than 0');
     }
 
     if (videoDuration <= 0) {
@@ -247,7 +241,6 @@ export default function AdminCollectionsPage() {
         title: title.trim(),
         description: description.trim(),
         price: Math.round(parseFloat(price.toString()) * 100), // Convert to cents
-        duration: duration, // access duration
         video_duration: videoDuration, // actual video length (extracted from file)
         video_path: videoFilename,
         thumbnail_path: thumbnailFilename,
@@ -265,7 +258,6 @@ export default function AdminCollectionsPage() {
       setTitle('');
       setDescription('');
       setPrice(29.99);
-      setDuration(1800);
       setVideoDuration(300);
       setVideoFile(null);
       setThumbnailFile(null);
@@ -458,11 +450,6 @@ export default function AdminCollectionsPage() {
     });
   };
 
-  const formatDuration = (seconds: number): string => {
-    const minutes = Math.floor(seconds / 60);
-    return `${minutes} min`;
-  };
-
   const formatVideoDuration = (seconds: number): string => {
     const minutes = Math.floor(seconds / 60);
     return `${minutes} min`;
@@ -635,23 +622,6 @@ export default function AdminCollectionsPage() {
 
             <div>
               <label className="block text-earth text-sm font-medium mb-2">
-                Access Duration (Minutes) <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="number"
-                min="1"
-                value={duration / 60}
-                onChange={(e) => {
-                  setDuration((parseInt(e.target.value) || 30) * 60);
-                  setValidationErrors(prev => prev.filter(error => !error.includes('Duration')));
-                }}
-                className="input"
-                disabled={uploading}
-              />
-            </div>
-
-            <div>
-              <label className="block text-earth text-sm font-medium mb-2">
                 Video Duration (Minutes) <span className="text-red-500">*</span>
               </label>
               <input
@@ -792,7 +762,7 @@ export default function AdminCollectionsPage() {
                           <span className="font-medium text-earth">${(collection.price / 100).toFixed(2)}</span>
                         </div>
                         <div className="flex items-center">
-                          <span>{formatDuration(collection.duration)}</span>
+                          <span>Permanent Access</span>
                         </div>
                         <div className="flex items-center">
                           <span>{formatVideoDuration(collection.video_duration)}</span>
@@ -830,8 +800,8 @@ export default function AdminCollectionsPage() {
             <li>• <strong>Thumbnail:</strong> Required - JPG/PNG formats, up to 10MB</li>
             <li>• <strong>Photos:</strong> Optional - JPG/PNG formats, up to 10MB each</li>
             <li>• <strong>Title & Description:</strong> Required for all collections</li>
-            <li>• <strong>Price & Duration:</strong> Must be greater than 0</li>
-            <li>• All files are stored securely with time-limited access</li>
+            <li>• <strong>Price:</strong> Must be greater than 0</li>
+            <li>• All files are stored securely with permanent access</li>
           </ul>
         </div>
       </div>
