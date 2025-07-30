@@ -13,7 +13,6 @@ interface Collection {
   title: string;
   description: string;
   price: number;
-  duration: number;
   thumbnail_path: string;
   photo_paths: string[];
   created_at: string;
@@ -111,11 +110,6 @@ export default function CollectionsClient({ collections, user }: CollectionsClie
     }
   };
 
-  const formatDuration = (seconds: number): string => {
-    const minutes = Math.floor(seconds / 60);
-    return `${minutes} min access`;
-  };
-
   if (collections.length === 0) {
     return (
       <div className="min-h-screen bg-stone-50 pt-20">
@@ -146,7 +140,7 @@ export default function CollectionsClient({ collections, user }: CollectionsClie
         <div className="text-center mb-12">
           <h1 className="text-4xl font-serif text-stone-800 mb-4">Exclusive Collections</h1>
           <p className="text-xl text-stone-600 max-w-2xl mx-auto">
-            Premium video content with limited-time access. Each collection offers exclusive behind-the-scenes content.
+            Premium video content with permanent access. Each collection offers exclusive behind-the-scenes content.
           </p>
         </div>
 
@@ -184,7 +178,7 @@ export default function CollectionsClient({ collections, user }: CollectionsClie
                 <div className="flex items-center justify-between text-sm text-stone-500 mb-4">
                   <span className="flex items-center">
                     <Lock className="w-4 h-4 mr-1" />
-                    {formatDuration(collection.duration)}
+                    Permanent Access
                   </span>
                   <span>{collection.photo_paths?.length || 0} photos</span>
                 </div>
@@ -249,7 +243,7 @@ export default function CollectionsClient({ collections, user }: CollectionsClie
                   {selectedCollection.description}
                 </p>
                 <div className="flex items-center justify-between text-sm text-stone-500">
-                  <span>Duration: {formatDuration(selectedCollection.duration)}</span>
+                  <span>Permanent Access</span>
                   <span className="text-lg font-bold text-stone-800">
                     ${(selectedCollection.price / 100).toFixed(2)}
                   </span>
@@ -257,7 +251,7 @@ export default function CollectionsClient({ collections, user }: CollectionsClie
               </div>
 
               {/* Purchase Disclaimer */}
-              <PurchaseDisclaimer variant="checkout" className="mb-6" duration={selectedCollection.duration} />
+              <PurchaseDisclaimer variant="checkout" className="mb-6" />
 
               <div className="flex space-x-3">
                 <button

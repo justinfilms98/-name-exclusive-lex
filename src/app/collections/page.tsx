@@ -11,7 +11,6 @@ interface Collection {
   title: string;
   description: string;
   price: number;
-  duration: number; // access duration
   video_duration: number; // actual video length
   thumbnail_path: string;
   photo_paths: string[];
@@ -48,7 +47,7 @@ export default function CollectionsPage() {
           .from('purchases')
           .select('collection_id')
           .eq('user_id', session.user.id)
-          .gt('expires_at', new Date().toISOString());
+          .eq('is_active', true);
         
         if (purchases) {
           setUserPurchases(purchases.map(p => p.collection_id));
@@ -132,11 +131,6 @@ export default function CollectionsPage() {
     }, 800);
   };
 
-  const formatDuration = (seconds: number): string => {
-    const minutes = Math.floor(seconds / 60);
-    return `${minutes} min`;
-  };
-
   const formatVideoDuration = (seconds: number): string => {
     const minutes = Math.floor(seconds / 60);
     return `${minutes} min`;
@@ -144,11 +138,6 @@ export default function CollectionsPage() {
 
   const formatPrice = (price: number): string => {
     return (price / 100).toFixed(2);
-  };
-
-  const formatAccessTime = (duration: number): string => {
-    const minutes = Math.floor(duration / 60);
-    return `${minutes} min access`;
   };
 
   const toggleDescription = (collectionId: string) => {
@@ -192,7 +181,7 @@ export default function CollectionsPage() {
         <div className="text-center mb-12">
           <h1 className="heading-1 mb-4">Exclusive Collections</h1>
           <p className="body-large text-sage max-w-2xl mx-auto">
-            Premium exclusive content with limited-time access. Each collection offers behind-the-scenes experiences.
+            Premium exclusive content with permanent access. Each collection offers behind-the-scenes experiences.
           </p>
         </div>
 
@@ -330,11 +319,11 @@ export default function CollectionsPage() {
                       <span className="text-sage text-sm">{photoCount} photos • Video: {formatVideoDuration(collection.video_duration || 300)}</span>
                       <span className="text-earth font-bold">${formatPrice(collection.price)}</span>
                     </div>
-                    {/* Access Time Notice */}
+                    {/* Access Notice */}
                     <div className="mt-2 p-2 bg-khaki/10 border border-khaki/20 rounded text-xs text-khaki">
                       <div className="flex items-center">
                         <Clock className="w-3 h-3 mr-1" />
-                        <span>{formatDuration(collection.duration)} access window to watch</span>
+                        <span>Permanent Access</span>
                       </div>
                     </div>
                   </div>
@@ -349,7 +338,7 @@ export default function CollectionsPage() {
           <div className="card-glass max-w-2xl mx-auto p-8">
             <h2 className="heading-3 mb-4">Ready for Exclusive Access?</h2>
             <p className="text-sage mb-6">
-              Each collection offers premium behind-the-scenes content with time-limited access.
+              Each collection offers premium behind-the-scenes content with permanent access.
             </p>
             {!user && (
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
