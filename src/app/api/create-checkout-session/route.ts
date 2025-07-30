@@ -132,19 +132,14 @@ export async function POST(request: NextRequest) {
       .select('*')
       .eq('user_id', user.id)
       .eq('collection_id', collectionId)
+      .eq('is_active', true)
       .single();
 
     if (existingPurchase) {
-      // Check if purchase is still valid
-      const now = new Date();
-      const expiresAt = new Date(existingPurchase.expires_at);
-      
-      if (now < expiresAt) {
-        return NextResponse.json(
-          { error: 'You already own this collection and it is still active' },
-          { status: 400 }
-        );
-      }
+      return NextResponse.json(
+        { error: 'You already own this collection' },
+        { status: 400 }
+      );
     }
 
     // Create or get Stripe price
@@ -184,7 +179,6 @@ export async function POST(request: NextRequest) {
       metadata: {
         collection_id: collectionId,
         user_id: user.id,
-        duration: collection.duration.toString(),
       },
       // Mobile-friendly settings
       billing_address_collection: 'auto',
@@ -195,17 +189,13 @@ export async function POST(request: NextRequest) {
     });
 
     // Insert purchase record with session ID
-    const purchasedAt = new Date();
-    const expiresAt = new Date(purchasedAt.getTime() + collection.duration * 1000);
-
     const { data: purchase, error: purchaseError } = await supabase
       .from('purchases')
       .insert({
         user_id: user.id,
         collection_id: collectionId,
         stripe_session_id: session.id,
-        created_at: purchasedAt.toISOString(),
-        expires_at: expiresAt.toISOString(),
+        created_at: new Date().toISOString(),
         amount: collection.price,
         currency: 'usd',
         status: 'pending'

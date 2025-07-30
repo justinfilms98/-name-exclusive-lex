@@ -3,15 +3,14 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { CheckCircle, Play, ArrowRight, Clock, AlertTriangle } from 'lucide-react';
+import { CheckCircle, Play, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
-import PurchaseDisclaimer, { TimeLimitedAccessDisclaimer } from '@/components/PurchaseDisclaimer';
+import PurchaseDisclaimer from '@/components/PurchaseDisclaimer';
 
 export default function SuccessClient() {
   const [loading, setLoading] = useState(true);
   const [purchase, setPurchase] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
-  const [startingTimer, setStartingTimer] = useState(false);
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -44,9 +43,7 @@ export default function SuccessClient() {
           collection_video_id,
           stripe_session_id,
           created_at,
-          expires_at,
-          is_active,
-          timer_started
+          is_active
         `)
         .eq('stripe_session_id', sessionId)
         .eq('user_id', session.user.id)
@@ -87,46 +84,11 @@ export default function SuccessClient() {
     }
   };
 
-  const startTimer = async () => {
+  const startWatching = () => {
     if (!purchase) return;
     
-    setStartingTimer(true);
-    
-    try {
-      // Update the purchase to start the timer
-      const { error } = await supabase
-        .from('purchases')
-        .update({
-          timer_started: true,
-          timer_started_at: new Date().toISOString()
-        })
-        .eq('id', purchase.id);
-
-      if (error) {
-        console.error('Failed to start timer:', error);
-        alert('Failed to start timer. Please try again.');
-        return;
-      }
-
-      // Redirect to watch page with timer started
-      router.push(`/watch/${purchase.CollectionVideo.id}?session_id=${purchase.stripe_session_id}&timer_started=true`);
-      
-    } catch (error) {
-      console.error('Error starting timer:', error);
-      alert('Failed to start timer. Please try again.');
-    } finally {
-      setStartingTimer(false);
-    }
-  };
-
-  const formatDuration = (seconds: number): string => {
-    const minutes = Math.floor(seconds / 60);
-    return `${minutes} minutes`;
-  };
-
-  const formatAccessTime = (duration: number): string => {
-    const minutes = Math.floor(duration / 60);
-    return `${minutes} minutes`;
+    // Redirect to watch page with permanent access
+    router.push(`/watch/${purchase.CollectionVideo.id}?session_id=${purchase.stripe_session_id}`);
   };
 
   if (loading) {
@@ -193,11 +155,11 @@ export default function SuccessClient() {
         {/* Success Message */}
         <h1 className="text-3xl font-serif text-lex-brown mb-4">Purchase Successful!</h1>
         <p className="text-lex-brown text-lg mb-8">
-          You now have access to <strong>{collection.title}</strong>
+          You now have permanent access to <strong>{collection.title}</strong>
         </p>
 
         {/* Purchase Success Disclaimer */}
-        <PurchaseDisclaimer variant="success" className="mb-8" duration={collection.duration} />
+        <PurchaseDisclaimer variant="success" className="mb-8" />
 
         {/* Collection Details */}
         <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
@@ -206,25 +168,10 @@ export default function SuccessClient() {
           
           <div className="flex items-center justify-center space-x-6 text-sm text-lex-brown">
             <div className="flex items-center">
-              <Clock className="w-4 h-4 mr-2" />
-              <span>Video Duration: {formatDuration(collection.price * 60)}</span>
+              <span>Permanent Access</span>
             </div>
             <div className="flex items-center">
-              <span>Access Window: {formatAccessTime(collection.duration)}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Timer Start Warning */}
-        <div className="mb-8 p-6 bg-amber-50 border border-amber-200 rounded-lg">
-          <div className="flex items-start space-x-4">
-            <div className="text-amber-600 mt-1">
-              <AlertTriangle className="w-6 h-6" />
-            </div>
-            <div className="text-amber-800">
-              <h3 className="font-bold text-lg mb-2">Ready to Start Your Timer?</h3>
-              <p className="mb-2">Your timer will start when you press "Start Watching".</p>
-              <p className="text-sm">Make sure you have uninterrupted time to enjoy your exclusive collection before the timer expires.</p>
+              <span>Unlimited Viewing</span>
             </div>
           </div>
         </div>
@@ -232,21 +179,11 @@ export default function SuccessClient() {
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
           <button
-            onClick={startTimer}
-            disabled={startingTimer}
-            className="inline-flex items-center justify-center bg-lex-brown text-white px-8 py-3 rounded-lg hover:bg-lex-warmGray transition-colors font-medium disabled:opacity-50"
+            onClick={startWatching}
+            className="inline-flex items-center justify-center bg-lex-brown text-white px-8 py-3 rounded-lg hover:bg-lex-warmGray transition-colors font-medium"
           >
-            {startingTimer ? (
-              <>
-                <div className="w-5 h-5 spinner mr-2"></div>
-                <span>Starting Timer...</span>
-              </>
-            ) : (
-              <>
-                <Play className="w-5 h-5 mr-2" />
-                <span>Start Watching</span>
-              </>
-            )}
+            <Play className="w-5 h-5 mr-2" />
+            <span>Start Watching</span>
           </button>
           
           <Link
@@ -259,9 +196,9 @@ export default function SuccessClient() {
         </div>
 
         {/* Important Notice */}
-        <div className="mt-8 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-          <p className="text-yellow-800 text-sm">
-            <strong>Important:</strong> Your timer will start when you press "Start Watching". The timer continues running even when you exit, so make sure you're ready before starting.
+        <div className="mt-8 p-4 bg-green-50 border border-green-200 rounded-lg">
+          <p className="text-green-800 text-sm">
+            <strong>Great news!</strong> You now have permanent access to this collection. You can watch it anytime, anywhere, with no time limits.
           </p>
         </div>
       </div>

@@ -61,10 +61,10 @@ export async function GET(request: Request) {
     }, { status: 429 })
   }
 
-  // Verify purchase
+  // Verify purchase (removed expiration check)
   const { data: purchase, error } = await supabase
     .from('purchases')
-    .select('id, user_id, collection_id, stripe_session_id, created_at, expires_at, strike_count, bound_ip, last_access_at, access_count, is_active, deactivated_at')
+    .select('id, user_id, collection_id, stripe_session_id, created_at, strike_count, bound_ip, last_access_at, access_count, is_active, deactivated_at')
     .eq('stripe_session_id', sessionId)
     .eq('is_active', true)
     .single()
@@ -76,11 +76,6 @@ export async function GET(request: Request) {
   // Check if purchase is active
   if (!purchase.is_active) {
     return NextResponse.json({ error: 'Purchase has been deactivated. A newer purchase is now active.' }, { status: 403 })
-  }
-
-  // Check if access has expired
-  if (new Date(purchase.expires_at) < new Date()) {
-    return NextResponse.json({ error: 'Access expired' }, { status: 403 })
   }
 
   // IP binding check
@@ -135,7 +130,6 @@ export async function GET(request: Request) {
   // Create response with security headers
   const response = NextResponse.json({ 
     videoUrl: collection.video_path,
-    expiresAt: purchase.expires_at,
     boundIP: clientIP
   })
 

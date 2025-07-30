@@ -8,7 +8,7 @@ if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('STRIPE_SECRET_KEY is not set in environment variables');
 }
 
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-05-28.basil',
   typescript: true,
 });
@@ -38,7 +38,7 @@ export async function createCheckoutSession({
           currency: 'usd',
           product_data: {
             name: title,
-            description: `Access to ${title}`,
+            description: `Permanent access to ${title}`,
           },
           unit_amount: Math.round(price * 100), // Convert to cents
         },
@@ -60,9 +60,7 @@ export async function createCheckoutSession({
 
 // Helper function to retrieve a checkout session
 export async function getCheckoutSession(sessionId: string): Promise<Stripe.Checkout.Session> {
-  return await stripe.checkout.sessions.retrieve(sessionId, {
-    expand: ['line_items', 'payment_intent'],
-  });
+  return await stripe.checkout.sessions.retrieve(sessionId);
 }
 
 // Helper function to create a payment intent (for custom payment flows)

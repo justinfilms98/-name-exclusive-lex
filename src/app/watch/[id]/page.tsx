@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Clock, AlertCircle, Play, Pause, Volume2, VolumeX } from 'lucide-react';
+import { AlertCircle, Play, Pause, Volume2, VolumeX } from 'lucide-react';
 import { getSignedUrl } from '@/lib/supabase';
 import MediaCarousel from '@/components/MediaCarousel';
 import PurchaseDisclaimer from '@/components/PurchaseDisclaimer';
@@ -12,7 +12,6 @@ interface Purchase {
   user_id: string;
   collection_id: string;
   created_at: string;
-  expires_at: string;
   is_active: boolean;
   deactivated_at: string | null;
   collection: {
@@ -21,7 +20,6 @@ interface Purchase {
     description: string;
     video_path: string;
     thumbnail_path: string;
-    duration: number;
     photo_paths: string[];
   };
 }
@@ -41,7 +39,6 @@ function WatchPageClient({ collectionId }: { collectionId: string }) {
   const [purchase, setPurchase] = useState<Purchase | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [timeRemaining, setTimeRemaining] = useState<number>(0);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [photoUrls, setPhotoUrls] = useState<string[]>([]);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -279,20 +276,6 @@ function WatchPageClient({ collectionId }: { collectionId: string }) {
     };
   }, [sessionId]);
 
-  useEffect(() => {
-    if (timeRemaining <= 0 && purchase) {
-      setError('Access has expired');
-      return;
-    }
-
-    if (timeRemaining > 0) {
-      const timer = setTimeout(() => {
-        setTimeRemaining(prev => Math.max(0, prev - 1000));
-      }, 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [timeRemaining, purchase]);
-
   const loadPurchase = async () => {
     try {
       const res = await fetch(`/api/get-purchase?session_id=${sessionId}`);
@@ -319,12 +302,6 @@ function WatchPageClient({ collectionId }: { collectionId: string }) {
       }
 
       setPurchase(purchase);
-
-      // Calculate time remaining
-      const expiresAt = new Date(purchase.expires_at);
-      const now = new Date();
-      const remaining = expiresAt.getTime() - now.getTime();
-      setTimeRemaining(Math.max(0, remaining));
 
       // Get signed URL for video
       if (purchase.collection?.video_path) {
@@ -368,13 +345,6 @@ function WatchPageClient({ collectionId }: { collectionId: string }) {
     } finally {
       setLoading(false);
     }
-  };
-
-  const formatTime = (ms: number): string => {
-    const totalSeconds = Math.floor(ms / 1000);
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
   const handlePlayPause = () => {
@@ -455,13 +425,12 @@ function WatchPageClient({ collectionId }: { collectionId: string }) {
         <div className="max-w-7xl mx-auto flex items-center justify-between p-4">
           <div>
             <h1 className="text-xl font-semibold text-stone-100">Exclusive Content</h1>
-            <p className="text-stone-300 text-sm">Limited time access</p>
+            <p className="text-stone-300 text-sm">Permanent access</p>
           </div>
           
           <div className="flex items-center space-x-4">
             <div className="flex items-center text-stone-300">
-              <Clock className="w-4 h-4 mr-2" />
-              <span className="text-sm">{formatTime(timeRemaining)}</span>
+              <span className="text-sm">Permanent Access</span>
             </div>
             
             <button
@@ -478,7 +447,7 @@ function WatchPageClient({ collectionId }: { collectionId: string }) {
       {showDisclaimer && (
         <div className="bg-stone-800 border-b border-stone-700">
           <div className="max-w-7xl mx-auto p-4">
-            <PurchaseDisclaimer variant="watch" duration={purchase.collection.duration} />
+            <PurchaseDisclaimer variant="watch" />
             <button
               onClick={() => setShowDisclaimer(false)}
               className="mt-2 text-stone-400 hover:text-stone-300 text-sm"
@@ -509,7 +478,7 @@ function WatchPageClient({ collectionId }: { collectionId: string }) {
           
           <div className="flex items-center justify-between text-sm text-stone-500">
             <span>Purchased: {new Date(purchase.created_at).toLocaleDateString()}</span>
-            <span>Time remaining: {formatTime(timeRemaining)}</span>
+            <span>Permanent Access</span>
           </div>
         </div>
       </div>

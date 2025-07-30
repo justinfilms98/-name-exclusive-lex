@@ -257,7 +257,7 @@ export const checkAccess = async (userId: string, collectionId: string) => {
     .select('*')
     .eq('user_id', userId)
     .eq('collection_id', collectionId)
-    .gt('expires_at', new Date().toISOString())
+    .eq('is_active', true)
     .single()
   return { data, error }
 }

@@ -59,26 +59,21 @@ export async function POST(request: NextRequest) {
 }
 
 async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) {
-  const { collection_id, user_id, duration } = session.metadata || {};
+  const { collection_id, user_id } = session.metadata || {};
   
-  if (!collection_id || !user_id || !duration) {
+  if (!collection_id || !user_id) {
     console.error('Missing metadata in checkout session:', session.id);
     return;
   }
 
-  // Calculate expiration time
-  const purchasedAt = new Date();
-  const expiresAt = new Date(purchasedAt.getTime() + parseInt(duration) * 1000); // duration is in seconds
-
-  // Create new purchase record with active status
+  // Create new purchase record with active status (no expiration)
   const { error } = await supabase
     .from('purchases')
     .insert({
       user_id: user_id,
       collection_id: collection_id,
       stripe_session_id: session.id,
-      created_at: purchasedAt.toISOString(),
-      expires_at: expiresAt.toISOString(),
+      created_at: new Date().toISOString(),
       is_active: true,
       deactivated_at: null
     });
@@ -89,5 +84,5 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
   }
 
   console.log(`New active purchase created for user ${user_id}, collection ${collection_id}`);
-  console.log(`User ${user_id} now has multiple active purchases available`);
+  console.log(`User ${user_id} now has permanent access to this collection`);
 } 

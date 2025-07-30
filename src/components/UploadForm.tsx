@@ -16,7 +16,6 @@ export default function UploadForm() {
     title: '',
     description: '',
     price: '',
-    duration: '1800', // 30 minutes default
   });
   
   const [files, setFiles] = useState({
@@ -153,7 +152,6 @@ export default function UploadForm() {
         title: formData.title,
         description: formData.description,
         price: Math.round(parseFloat(formData.price) * 100), // Convert dollars to cents
-        duration: parseInt(formData.duration),
         video_path: videoPath,
         thumbnail_path: thumbnailPath,
         photo_paths: photoPaths,
@@ -172,7 +170,7 @@ export default function UploadForm() {
       setSuccess(true);
       
       // Reset form
-      setFormData({ title: '', description: '', price: '', duration: '1800' });
+      setFormData({ title: '', description: '', price: '' });
       setFiles({ video: null, photos: [], thumbnail: null });
       setProgress({});
       
@@ -249,20 +247,6 @@ export default function UploadForm() {
           className="w-full border border-stone-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-stone-500"
           rows={3}
         />
-      </div>
-      
-      <div>
-        <label className="block text-sm font-medium text-stone-700 mb-1">Access Duration (seconds)</label>
-        <select
-          value={formData.duration}
-          onChange={(e) => setFormData(prev => ({ ...prev, duration: e.target.value }))}
-          className="w-full border border-stone-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-stone-500"
-        >
-          <option value="900">15 minutes</option>
-          <option value="1800">30 minutes</option>
-          <option value="3600">1 hour</option>
-          <option value="7200">2 hours</option>
-        </select>
       </div>
       
       {/* File Uploads */}
