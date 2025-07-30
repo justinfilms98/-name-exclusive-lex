@@ -1,40 +1,70 @@
 -- Remove Timer and Duration Functionality
 -- This migration removes all timer-related fields and duration limits from the system
 
--- 1. Remove timer-related columns from purchases table
-ALTER TABLE purchases DROP COLUMN IF EXISTS expires_at;
-ALTER TABLE purchases DROP COLUMN IF EXISTS timer_started;
-ALTER TABLE purchases DROP COLUMN IF EXISTS timer_started_at;
+-- 1. Remove timer-related columns from purchases table (only if they exist)
+DO $$
+BEGIN
+    -- Remove expires_at column if it exists
+    IF EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'purchases' AND column_name = 'expires_at') THEN
+        ALTER TABLE purchases DROP COLUMN expires_at;
+        RAISE NOTICE 'Removed expires_at column from purchases table';
+    ELSE
+        RAISE NOTICE 'expires_at column does not exist in purchases table - skipping';
+    END IF;
+    
+    -- Remove timer_started column if it exists
+    IF EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'purchases' AND column_name = 'timer_started') THEN
+        ALTER TABLE purchases DROP COLUMN timer_started;
+        RAISE NOTICE 'Removed timer_started column from purchases table';
+    ELSE
+        RAISE NOTICE 'timer_started column does not exist in purchases table - skipping';
+    END IF;
+    
+    -- Remove timer_started_at column if it exists
+    IF EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'purchases' AND column_name = 'timer_started_at') THEN
+        ALTER TABLE purchases DROP COLUMN timer_started_at;
+        RAISE NOTICE 'Removed timer_started_at column from purchases table';
+    ELSE
+        RAISE NOTICE 'timer_started_at column does not exist in purchases table - skipping';
+    END IF;
+END $$;
 
 -- 2. Remove duration column from collections table (if it exists)
-ALTER TABLE collections DROP COLUMN IF EXISTS duration;
+DO $$
+BEGIN
+    IF EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'collections' AND column_name = 'duration') THEN
+        ALTER TABLE collections DROP COLUMN duration;
+        RAISE NOTICE 'Removed duration column from collections table';
+    ELSE
+        RAISE NOTICE 'duration column does not exist in collections table - skipping';
+    END IF;
+END $$;
 
 -- 3. Remove duration column from CollectionVideo table (if it exists)
--- First check if the table exists before trying to modify it
 DO $$
 BEGIN
     IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'CollectionVideo') THEN
-        ALTER TABLE "CollectionVideo" DROP COLUMN IF EXISTS duration;
+        IF EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'CollectionVideo' AND column_name = 'duration') THEN
+            ALTER TABLE "CollectionVideo" DROP COLUMN duration;
+            RAISE NOTICE 'Removed duration column from CollectionVideo table';
+        ELSE
+            RAISE NOTICE 'duration column does not exist in CollectionVideo table - skipping';
+        END IF;
+    ELSE
+        RAISE NOTICE 'CollectionVideo table does not exist - skipping';
     END IF;
 END $$;
 
 -- 4. Remove any indexes related to expiration
 DROP INDEX IF EXISTS idx_purchases_expires_at;
 
--- 5. Update any existing purchases to remove expiration dates
--- (This will make all existing purchases permanent)
-UPDATE purchases SET expires_at = NULL WHERE expires_at IS NOT NULL;
-
--- 6. Update RLS policies to remove expiration checks
+-- 5. Update RLS policies to remove expiration checks
 -- First, let's see what policies exist
 SELECT schemaname, tablename, policyname, permissive, roles, cmd, qual 
 FROM pg_policies 
 WHERE tablename = 'purchases';
 
--- 7. Create new simplified policies without expiration checks
--- (This will be done in the application code)
-
--- 8. Verify the changes
+-- 6. Verify the changes
 SELECT 
     column_name, 
     data_type, 
@@ -69,7 +99,7 @@ BEGIN
     END IF;
 END $$;
 
--- 9. Show current purchase records (without expiration)
+-- 7. Show current purchase records
 SELECT 
     id,
     user_id,
