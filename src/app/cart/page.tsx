@@ -343,9 +343,6 @@ export default function CartPage() {
               <div className="text-sm text-sage">
                 <p className="font-medium text-earth mb-1">Purchase Information</p>
                 <p>Purchases are completed one collection at a time. After payment, you'll get a "Start Watching" button. <strong>Only press this button when you're ready to begin your timer</strong>. You can purchase more collections after each transaction, but timers only start when you press "Start Watching".</p>
-                <p className="mt-2 text-xs text-khaki">
-                  <strong>Legal Notice:</strong> Before viewing content, you'll be required to accept our DMCA copyright protection terms and conditions. This is a mandatory step to ensure content protection compliance.
-                </p>
               </div>
             </div>
           </div>
@@ -492,9 +489,6 @@ export default function CartPage() {
                     <div className="text-sm text-yellow-800">
                       <p className="font-medium mb-1">Important Access Information</p>
                       <p>After payment, you'll get a "Start Watching" button. <strong>Only press this when you're ready to begin your timer</strong>. The timer continues running even when you exit, so plan your viewing time wisely.</p>
-                      <p className="mt-2 text-xs text-yellow-700">
-                        <strong>Legal Notice:</strong> Before viewing content, you'll be required to accept our DMCA copyright protection terms and conditions. This is a mandatory step to ensure content protection compliance.
-                      </p>
                     </div>
                   </div>
                 </div>
