@@ -342,7 +342,10 @@ export default function CartPage() {
               </div>
               <div className="text-sm text-sage">
                 <p className="font-medium text-earth mb-1">Purchase Information</p>
-                <p>Purchases are completed one collection at a time. After payment, you'll get a "Start Watching" button. <strong>Only press this button when you're ready to begin your timer</strong>. You can purchase more collections after each transaction, but timers only start when you press "Start Watching".</p>
+                <p>Purchases are completed one collection at a time. After payment, you'll get a "Start Watching" button. You can purchase more collections after each transaction.</p>
+                <p className="mt-2 text-xs text-khaki">
+                  <strong>Legal Notice:</strong> Before viewing content, you'll be required to accept our DMCA copyright protection terms and conditions. This is a mandatory step to ensure content protection compliance.
+                </p>
               </div>
             </div>
           </div>
@@ -421,13 +424,15 @@ export default function CartPage() {
                           </div>
                         </div>
                         
-                        {/* Access Time Notice */}
-                        <div className="mt-2 p-2 bg-khaki/10 border border-khaki/20 rounded text-xs text-khaki">
-                          <div className="flex items-center">
-                            <Clock className="w-3 h-3 mr-1" />
-                            <span>{formatDuration(item.duration)} timer starts when you press "Start Watching"</span>
-                          </div>
-                        </div>
+                                                 {/* Legal Notice */}
+                         <div className="mt-2 p-2 bg-khaki/10 border border-khaki/20 rounded text-xs text-khaki">
+                           <div className="flex items-center">
+                             <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                               <path fillRule="evenodd" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" clipRule="evenodd" />
+                             </svg>
+                             <span>DMCA protection required before viewing</span>
+                           </div>
+                         </div>
                       </div>
 
                       {/* Price & Actions */}
@@ -478,7 +483,7 @@ export default function CartPage() {
                   </div>
                 </div>
 
-                {/* Access Time Warning */}
+                {/* Legal Notice */}
                 <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                   <div className="flex items-start space-x-3">
                     <div className="text-yellow-600 mt-0.5">
@@ -487,8 +492,8 @@ export default function CartPage() {
                       </svg>
                     </div>
                     <div className="text-sm text-yellow-800">
-                      <p className="font-medium mb-1">Important Access Information</p>
-                      <p>After payment, you'll get a "Start Watching" button. <strong>Only press this when you're ready to begin your timer</strong>. The timer continues running even when you exit, so plan your viewing time wisely.</p>
+                      <p className="font-medium mb-1">Legal Notice</p>
+                      <p>Before viewing content, you'll be required to accept our DMCA copyright protection terms and conditions. This is a mandatory step to ensure content protection compliance.</p>
                     </div>
                   </div>
                 </div>
@@ -539,10 +544,10 @@ export default function CartPage() {
                     <div className="w-2 h-2 bg-sage rounded-full mr-2"></div>
                     <span>Instant access after payment</span>
                   </div>
-                  <div className="flex items-center">
-                    <div className="w-2 h-2 bg-sage rounded-full mr-2"></div>
-                    <span>Timer starts when you're ready</span>
-                  </div>
+                                     <div className="flex items-center">
+                     <div className="w-2 h-2 bg-sage rounded-full mr-2"></div>
+                     <span>DMCA protection required</span>
+                   </div>
                   <div className="flex items-center">
                     <div className="w-2 h-2 bg-sage rounded-full mr-2"></div>
                     <span>HD quality videos & photos</span>
