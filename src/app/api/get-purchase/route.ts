@@ -10,18 +10,26 @@ export async function GET(request: Request) {
   const session_id = new URL(request.url).searchParams.get('session_id')
   if (!session_id) return NextResponse.json({ error: 'Missing session_id' }, { status: 400 })
 
-  // Get the purchase - only active purchases
-  const { data: purchase, error } = await supabase
+  console.log('Looking for purchase with session_id:', session_id);
+
+  // First try to find any purchase with this session_id (without expiration filter)
+  const { data: anyPurchase, error: anyError } = await supabase
     .from('purchases')
     .select('id, user_id, collection_id, stripe_session_id, created_at, expires_at, amount_paid')
     .eq('stripe_session_id', session_id)
-    .gte('expires_at', new Date().toISOString())
     .single()
 
-  if (error) return NextResponse.json({ error: purchase ? 'Multiple rows returned' : 'Purchase not found or inactive' }, { status: 404 })
-  
+  if (anyError) {
+    console.error('No purchase found with session_id:', session_id);
+    console.error('Error details:', anyError);
+    return NextResponse.json({ error: 'Purchase not found' }, { status: 404 })
+  }
+
+  console.log('Found purchase:', anyPurchase.id);
+
   // Check if purchase is expired
-  if (new Date(purchase.expires_at) < new Date()) {
+  if (new Date(anyPurchase.expires_at) < new Date()) {
+    console.log('Purchase is expired:', anyPurchase.expires_at);
     return NextResponse.json({ error: 'Access expired' }, { status: 403 })
   }
 
@@ -29,12 +37,15 @@ export async function GET(request: Request) {
   const { data: collection, error: collectionError } = await supabase
     .from('collections')
     .select('id, title, description, video_path, thumbnail_path, photo_paths')
-    .eq('id', purchase.collection_id)
+    .eq('id', anyPurchase.collection_id)
     .single()
 
   if (collectionError || !collection) {
+    console.error('Collection not found for ID:', anyPurchase.collection_id);
     return NextResponse.json({ error: 'Collection not found' }, { status: 404 })
   }
+
+  console.log('Found collection:', collection.title);
 
   // Create a mock CollectionVideo from the collection data
   // This maintains compatibility with the frontend while using collection data
@@ -49,11 +60,12 @@ export async function GET(request: Request) {
 
   // Combine purchase and collection video data
   const purchaseWithCollectionVideo = {
-    ...purchase,
+    ...anyPurchase,
     collection_video_id: collection.id,
     CollectionVideo: mockCollectionVideo,
     collection: collection // Add collection data for compatibility
   }
 
+  console.log('Returning purchase with collection data');
   return NextResponse.json({ purchase: purchaseWithCollectionVideo }, { status: 200 })
 } 

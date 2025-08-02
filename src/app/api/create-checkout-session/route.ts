@@ -268,8 +268,15 @@ export async function POST(request: NextRequest) {
 
     if (purchaseError) {
       console.error('Failed to create purchase record:', purchaseError);
+      console.error('Purchase error details:', {
+        code: purchaseError.code,
+        message: purchaseError.message,
+        details: purchaseError.details
+      });
       // Don't fail the checkout if purchase record creation fails
       // The webhook will handle it
+    } else {
+      console.log('Purchase record created successfully:', purchase.id);
     }
 
     return NextResponse.json({ sessionId: session.id });
