@@ -40,14 +40,14 @@ export default function SuccessClient() {
         .select(`
           id,
           user_id,
-          collection_video_id,
+          collection_id,
           stripe_session_id,
           created_at,
-          is_active
+          expires_at
         `)
         .eq('stripe_session_id', sessionId)
         .eq('user_id', session.user.id)
-        .eq('is_active', true)
+        .gte('expires_at', new Date().toISOString())
         .single();
 
       if (error || !purchaseData) {
@@ -56,26 +56,26 @@ export default function SuccessClient() {
         return;
       }
 
-      // Now get the collection video details
-      const { data: collectionVideo, error: videoError } = await supabase
-        .from('CollectionVideo')
+      // Now get the collection details
+      const { data: collection, error: collectionError } = await supabase
+        .from('collections')
         .select('id, title, description, price')
-        .eq('id', purchaseData.collection_video_id)
+        .eq('id', purchaseData.collection_id)
         .single();
 
-      if (videoError || !collectionVideo) {
-        setError('Collection video not found');
+      if (collectionError || !collection) {
+        setError('Collection not found');
         setLoading(false);
         return;
       }
 
       // Combine the data
-      const purchaseWithVideo = {
+      const purchaseWithCollection = {
         ...purchaseData,
-        CollectionVideo: collectionVideo
+        collection: collection
       };
 
-      setPurchase(purchaseWithVideo);
+      setPurchase(purchaseWithCollection);
       setLoading(false);
     } catch (error) {
       console.error('Purchase verification error:', error);
@@ -88,7 +88,7 @@ export default function SuccessClient() {
     if (!purchase) return;
     
     // Redirect to watch page with permanent access
-    router.push(`/watch/${purchase.CollectionVideo.id}?session_id=${purchase.stripe_session_id}`);
+    router.push(`/watch/${purchase.collection.id}?session_id=${purchase.stripe_session_id}`);
   };
 
   if (loading) {
@@ -142,7 +142,7 @@ export default function SuccessClient() {
     );
   }
 
-  const collection = purchase.CollectionVideo;
+  const collection = purchase.collection;
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">

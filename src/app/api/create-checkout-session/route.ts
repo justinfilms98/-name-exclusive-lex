@@ -132,7 +132,7 @@ export async function POST(request: NextRequest) {
       .select('*')
       .eq('user_id', user.id)
       .eq('collection_id', collectionId)
-      .eq('is_active', true)
+      .gte('expires_at', new Date().toISOString())
       .single();
 
     if (existingPurchase) {
@@ -143,7 +143,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create or get Stripe price
-    let stripePriceId = collection.stripe_price_id;
+    let stripePriceId = collection.stripe_product_id;
     
     if (!stripePriceId) {
       // Create a new price in Stripe
@@ -158,7 +158,7 @@ export async function POST(request: NextRequest) {
       // Update the collection with the Stripe price ID
       await supabase
         .from('collections')
-        .update({ stripe_price_id: price.id })
+        .update({ stripe_product_id: price.id })
         .eq('id', collectionId);
 
       stripePriceId = price.id;
@@ -196,9 +196,8 @@ export async function POST(request: NextRequest) {
         collection_id: collectionId,
         stripe_session_id: session.id,
         created_at: new Date().toISOString(),
-        amount: collection.price,
-        currency: 'usd',
-        status: 'pending'
+        amount_paid: collection.price,
+        expires_at: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString() // 1 year from now
       })
       .select()
       .single();

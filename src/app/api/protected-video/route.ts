@@ -64,45 +64,18 @@ export async function GET(request: Request) {
   // Verify purchase (removed expiration check)
   const { data: purchase, error } = await supabase
     .from('purchases')
-    .select('id, user_id, collection_id, stripe_session_id, created_at, strike_count, bound_ip, last_access_at, access_count, is_active, deactivated_at')
+    .select('id, user_id, collection_id, stripe_session_id, created_at, expires_at, amount_paid')
     .eq('stripe_session_id', sessionId)
-    .eq('is_active', true)
+    .gte('expires_at', new Date().toISOString())
     .single()
 
   if (error || !purchase) {
     return NextResponse.json({ error: 'Purchase not found or inactive' }, { status: 404 })
   }
 
-  // Check if purchase is active
-  if (!purchase.is_active) {
-    return NextResponse.json({ error: 'Purchase has been deactivated. A newer purchase is now active.' }, { status: 403 })
-  }
-
-  // IP binding check
-  if (purchase.bound_ip && purchase.bound_ip !== clientIP) {
-    // Log suspicious activity
-    await supabase
-      .from('security_logs')
-      .insert({
-        purchase_id: purchase.id,
-        event_type: 'ip_mismatch',
-        ip_address: clientIP,
-        user_agent: userAgent,
-        original_ip: purchase.bound_ip,
-        created_at: new Date().toISOString()
-      })
-
-    return NextResponse.json({ 
-      error: 'Access denied: IP address mismatch' 
-    }, { status: 403 })
-  }
-
-  // Bind IP if not already bound
-  if (!purchase.bound_ip) {
-    await supabase
-      .from('purchases')
-      .update({ bound_ip: clientIP })
-      .eq('id', purchase.id)
+  // Check if purchase is expired
+  if (new Date(purchase.expires_at) < new Date()) {
+    return NextResponse.json({ error: 'Purchase has expired.' }, { status: 403 })
   }
 
   // Get collection data to get video URL
@@ -116,21 +89,9 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Video not found' }, { status: 404 })
   }
 
-  // Log successful access
-  await supabase
-    .from('security_logs')
-    .insert({
-      purchase_id: purchase.id,
-      event_type: 'video_access',
-      ip_address: clientIP,
-      user_agent: userAgent,
-      created_at: new Date().toISOString()
-    })
-
   // Create response with security headers
   const response = NextResponse.json({ 
-    videoUrl: collection.video_path,
-    boundIP: clientIP
+    videoUrl: collection.video_path
   })
 
   // Add security headers

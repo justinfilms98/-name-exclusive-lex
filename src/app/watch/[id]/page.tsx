@@ -294,9 +294,9 @@ function WatchPageClient({ collectionId }: { collectionId: string }) {
         return;
       }
 
-      // Check if purchase is active
-      if (!purchase.is_active) {
-        setError('This purchase has been deactivated. A newer purchase is now active.');
+      // Check if purchase is expired
+      if (new Date(purchase.expires_at) < new Date()) {
+        setError('This purchase has expired.');
         setLoading(false);
         return;
       }

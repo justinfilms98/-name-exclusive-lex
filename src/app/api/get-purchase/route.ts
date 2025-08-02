@@ -13,18 +13,14 @@ export async function GET(request: Request) {
   // Get the purchase - only active purchases
   const { data: purchase, error } = await supabase
     .from('purchases')
-    .select('id, user_id, collection_id, stripe_session_id, created_at, expires_at, amount_paid, is_active, deactivated_at')
+    .select('id, user_id, collection_id, stripe_session_id, created_at, expires_at, amount_paid')
     .eq('stripe_session_id', session_id)
-    .eq('is_active', true)
+    .gte('expires_at', new Date().toISOString())
     .single()
 
   if (error) return NextResponse.json({ error: purchase ? 'Multiple rows returned' : 'Purchase not found or inactive' }, { status: 404 })
   
-  // Check if purchase is active
-  if (!purchase.is_active) {
-    return NextResponse.json({ error: 'Purchase has been deactivated.' }, { status: 403 })
-  }
-  
+  // Check if purchase is expired
   if (new Date(purchase.expires_at) < new Date()) {
     return NextResponse.json({ error: 'Access expired' }, { status: 403 })
   }

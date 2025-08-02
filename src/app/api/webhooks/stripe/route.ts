@@ -74,8 +74,8 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
       collection_id: collection_id,
       stripe_session_id: session.id,
       created_at: new Date().toISOString(),
-      is_active: true,
-      deactivated_at: null
+      amount_paid: session.amount_total ? session.amount_total / 100 : 0,
+      expires_at: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString() // 1 year from now
     });
 
   if (error) {

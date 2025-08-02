@@ -47,7 +47,7 @@ export default function CollectionsPage() {
           .from('purchases')
           .select('collection_id')
           .eq('user_id', session.user.id)
-          .eq('is_active', true);
+          .gte('expires_at', new Date().toISOString());
         
         if (purchases) {
           setUserPurchases(purchases.map(p => p.collection_id));
