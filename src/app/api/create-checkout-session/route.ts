@@ -15,6 +15,15 @@ export async function POST(request: NextRequest) {
   try {
     console.log('Checkout session creation started');
     
+    // Check if Stripe key is configured
+    if (!process.env.STRIPE_SECRET_KEY) {
+      console.error('Stripe secret key not configured');
+      return NextResponse.json(
+        { error: 'Payment processing not configured' },
+        { status: 500 }
+      );
+    }
+    
     const body = await request.json();
     console.log('Request body:', JSON.stringify(body, null, 2));
     
@@ -64,6 +73,10 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('Collection found:', collection.title);
+    console.log('Collection price:', collection.price);
+    console.log('Collection price type:', typeof collection.price);
+    console.log('Collection stripe_product_id:', collection.stripe_product_id);
+    console.log('Price in cents:', Math.round(collection.price * 100));
 
     // Get the current user from auth header
     console.log('Checking authentication');
@@ -146,25 +159,74 @@ export async function POST(request: NextRequest) {
     let stripePriceId = collection.stripe_product_id;
     
     if (!stripePriceId) {
-      // Create a new price in Stripe
-      const price = await stripe.prices.create({
-        unit_amount: collection.price, // Already in cents
-        currency: 'usd',
-        product_data: {
-          name: collection.title,
-        },
+      // Create a new product and price in Stripe
+      const product = await stripe.products.create({
+        name: collection.title,
+        description: collection.description,
       });
 
-      // Update the collection with the Stripe price ID
+      const price = await stripe.prices.create({
+        unit_amount: Math.round(collection.price * 100), // Convert to cents
+        currency: 'usd',
+        product: product.id,
+      });
+
+      // Update the collection with the Stripe product ID
       await supabase
         .from('collections')
-        .update({ stripe_product_id: price.id })
+        .update({ stripe_product_id: product.id })
         .eq('id', collectionId);
 
       stripePriceId = price.id;
+    } else {
+      // If we have a product ID, we need to create a price for it
+      try {
+        // Check if this product already has a price
+        const prices = await stripe.prices.list({
+          product: stripePriceId,
+          active: true,
+          limit: 1,
+        });
+
+        if (prices.data.length > 0) {
+          stripePriceId = prices.data[0].id;
+        } else {
+          // Create a new price for the existing product
+          const price = await stripe.prices.create({
+            unit_amount: Math.round(collection.price * 100), // Convert to cents
+            currency: 'usd',
+            product: stripePriceId,
+          });
+          stripePriceId = price.id;
+        }
+      } catch (stripeError) {
+        console.error('Stripe price creation error:', stripeError);
+        // Create a new product and price if there's an issue
+        const product = await stripe.products.create({
+          name: collection.title,
+          description: collection.description,
+        });
+
+        const price = await stripe.prices.create({
+          unit_amount: Math.round(collection.price * 100), // Convert to cents
+          currency: 'usd',
+          product: product.id,
+        });
+
+        // Update the collection with the new Stripe product ID
+        await supabase
+          .from('collections')
+          .update({ stripe_product_id: product.id })
+          .eq('id', collectionId);
+
+        stripePriceId = price.id;
+      }
     }
 
+    console.log('Using Stripe price ID:', stripePriceId);
+
     // Create checkout session with mobile-friendly settings
+    console.log('Creating Stripe checkout session...');
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [
@@ -187,6 +249,8 @@ export async function POST(request: NextRequest) {
         enabled: true,
       },
     });
+
+    console.log('Stripe session created successfully:', session.id);
 
     // Insert purchase record with session ID
     const { data: purchase, error: purchaseError } = await supabase
