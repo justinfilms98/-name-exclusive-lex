@@ -202,14 +202,29 @@ export default function SuccessClient() {
             </div>
 
             <div className="border-t pt-6">
-              <label className="flex items-start space-x-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={agreedToTerms}
-                  onChange={(e) => setAgreedToTerms(e.target.checked)}
-                  className="mt-1 h-4 w-4 text-lex-brown border-gray-300 rounded focus:ring-lex-brown"
-                />
-                <span className="text-sm text-lex-brown">
+              <label className="flex items-start space-x-4 cursor-pointer group">
+                <div className="relative">
+                  <input
+                    type="checkbox"
+                    checked={agreedToTerms}
+                    onChange={(e) => setAgreedToTerms(e.target.checked)}
+                    className="sr-only"
+                  />
+                  <div className={`
+                    w-6 h-6 border-2 rounded-md flex items-center justify-center transition-all duration-200
+                    ${agreedToTerms 
+                      ? 'bg-lex-brown border-lex-brown' 
+                      : 'border-gray-300 group-hover:border-lex-brown'
+                    }
+                  `}>
+                    {agreedToTerms && (
+                      <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    )}
+                  </div>
+                </div>
+                <span className="text-sm text-lex-brown leading-relaxed">
                   I have read, understood, and agree to all terms and conditions above. 
                   I confirm that I am 18 years or older and will use this content responsibly.
                 </span>
@@ -230,7 +245,7 @@ export default function SuccessClient() {
               }
             `}
           >
-            {agreedToTerms ? 'Start Watching Now' : 'Agree to Terms to Continue'}
+            {agreedToTerms ? '✓ Start Watching Now' : '☐ Accept Terms to Continue'}
           </button>
           
           <p className="text-sm text-lex-brown mt-4">
