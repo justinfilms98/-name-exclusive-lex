@@ -106,7 +106,7 @@ export default function HeroSection() {
   return (
     <div className="relative h-screen bg-black overflow-hidden hero-container group" style={{ marginTop: '-3.5rem' }}>
       {/* Shimmering Gradient Background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+      <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-sage/20 to-slate-900">
         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-shimmer"></div>
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/20 to-black/60"></div>
       </div>
@@ -173,12 +173,19 @@ export default function HeroSection() {
               {currentVideo ? currentVideo.subtitle : 'A private collection of sensual content'}
             </p>
 
+            {/* Guiding subtext for non-signed-in users */}
+            {!user && (
+              <p className="text-lg sm:text-xl text-sage mb-6 text-shadow animate-fade-in">
+                Login to unlock exclusive access to premium content
+              </p>
+            )}
+
             {/* CTA Button - Dynamic based on user authentication */}
             <div className="animate-fade-in">
               {user ? (
                 <Link
                   href="/collections"
-                  className="inline-flex items-center bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white text-lg sm:text-xl px-8 sm:px-12 py-4 sm:py-5 rounded-full shadow-2xl hover:shadow-purple-500/25 transition-all duration-300 transform hover:scale-105 font-semibold"
+                  className="inline-flex items-center bg-gradient-to-r from-sage to-sage/80 hover:from-sage/90 hover:to-sage/70 text-white text-lg sm:text-xl px-8 sm:px-12 py-4 sm:py-5 rounded-full shadow-2xl hover:shadow-sage/25 transition-all duration-300 transform hover:scale-105 font-semibold"
                 >
                   <Play className="w-5 h-5 mr-2" />
                   View Collections
@@ -186,7 +193,7 @@ export default function HeroSection() {
               ) : (
                 <Link
                   href="/login"
-                  className="inline-flex items-center bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white text-lg sm:text-xl px-8 sm:px-12 py-4 sm:py-5 rounded-full shadow-2xl hover:shadow-purple-500/25 transition-all duration-300 transform hover:scale-105 font-semibold"
+                  className="inline-flex items-center bg-gradient-to-r from-sage to-sage/80 hover:from-sage/90 hover:to-sage/70 text-white text-lg sm:text-xl px-8 sm:px-12 py-4 sm:py-5 rounded-full shadow-2xl hover:shadow-sage/25 transition-all duration-300 transform hover:scale-105 font-semibold"
                 >
                   <Sparkles className="w-5 h-5 mr-2" />
                   Login or Sign Up
