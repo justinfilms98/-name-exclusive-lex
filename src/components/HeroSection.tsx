@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { getHeroVideos, getSignedUrl, supabase } from '@/lib/supabase';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Play, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 
 interface HeroVideo {
@@ -21,151 +21,12 @@ export default function HeroSection() {
   const [error, setError] = useState<string>('');
   const [user, setUser] = useState<any>(null);
   const [videosLoaded, setVideosLoaded] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
   const [videosPlaying, setVideosPlaying] = useState(false);
 
   useEffect(() => {
     loadHeroVideos();
     loadUser();
-    
-    // Detect mobile device
-    const checkMobile = () => {
-      const userAgent = navigator.userAgent.toLowerCase();
-      const isMobileDevice = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
-      setIsMobile(isMobileDevice);
-    };
-    
-    checkMobile();
-    
-    // Force autoplay on both mobile and desktop
-    setTimeout(() => {
-      const videos = document.querySelectorAll('video');
-      videos.forEach(video => {
-        video.muted = true;
-        video.playsInline = true;
-        video.autoplay = true;
-        video.loop = true;
-        
-        // Keep muted for autoplay to work
-        video.play().then(() => {
-          setVideosPlaying(true);
-          console.log('Hero video autoplay successful');
-        }).catch((error) => {
-          console.log('Autoplay failed:', error);
-          
-          // For mobile, try additional strategies
-          if (isMobile) {
-            // Try again after a delay
-            setTimeout(() => {
-              video.play().then(() => {
-                setVideosPlaying(true);
-                console.log('Mobile autoplay successful on retry');
-              }).catch(() => {
-                console.log('Mobile autoplay still failed');
-              });
-            }, 2000);
-            
-            // Try on any touch event
-            const playOnTouch = () => {
-              video.play().then(() => {
-                setVideosPlaying(true);
-                console.log('Mobile autoplay successful on touch');
-              });
-              document.removeEventListener('touchstart', playOnTouch);
-            };
-            document.addEventListener('touchstart', playOnTouch);
-          }
-        });
-      });
-    }, 1000);
-  }, [isMobile]);
-
-  // Additional mobile autoplay strategy
-  useEffect(() => {
-    if (isMobile && videosLoaded) {
-      const forceMobileAutoplay = () => {
-        const videos = document.querySelectorAll('video');
-        videos.forEach(video => {
-          video.muted = true;
-          video.playsInline = true;
-          video.autoplay = true;
-          video.loop = true;
-          
-          video.play().then(() => {
-            setVideosPlaying(true);
-            console.log('Mobile autoplay successful');
-          }).catch(() => {
-            console.log('Mobile autoplay failed, will try on touch');
-          });
-        });
-      };
-      
-      // Try immediately
-      forceMobileAutoplay();
-      
-      // Try after delays
-      setTimeout(forceMobileAutoplay, 1000);
-      setTimeout(forceMobileAutoplay, 2000);
-      setTimeout(forceMobileAutoplay, 5000);
-      
-      // Try on any touch event
-      const playOnTouch = () => {
-        const videos = document.querySelectorAll('video');
-        videos.forEach(video => {
-          video.play().then(() => {
-            setVideosPlaying(true);
-            console.log('Mobile autoplay successful on touch');
-          });
-        });
-        document.removeEventListener('touchstart', playOnTouch);
-      };
-      document.addEventListener('touchstart', playOnTouch);
-    }
-  }, [isMobile, videosLoaded]);
-
-  // Enhanced mobile autoplay after user authentication
-  useEffect(() => {
-    if (user && isMobile && videosLoaded) {
-      const forceAutoplayAfterAuth = () => {
-        const videos = document.querySelectorAll('video');
-        videos.forEach(video => {
-          video.muted = true;
-          video.playsInline = true;
-          video.autoplay = true;
-          video.loop = true;
-          
-          video.play().then(() => {
-            setVideosPlaying(true);
-            console.log('Mobile autoplay successful after auth');
-          }).catch(() => {
-            console.log('Mobile autoplay failed after auth');
-          });
-        });
-      };
-      
-      // Try multiple times after user authentication
-      forceAutoplayAfterAuth();
-      setTimeout(forceAutoplayAfterAuth, 500);
-      setTimeout(forceAutoplayAfterAuth, 1000);
-      setTimeout(forceAutoplayAfterAuth, 2000);
-      setTimeout(forceAutoplayAfterAuth, 5000);
-      
-      // Try on any user interaction after auth
-      const playOnInteraction = () => {
-        const videos = document.querySelectorAll('video');
-        videos.forEach(video => {
-          video.play().then(() => {
-            setVideosPlaying(true);
-            console.log('Mobile autoplay successful on interaction after auth');
-          });
-        });
-      };
-      
-      document.addEventListener('click', playOnInteraction, { once: true });
-      document.addEventListener('touchstart', playOnInteraction, { once: true });
-      document.addEventListener('scroll', playOnInteraction, { once: true });
-    }
-  }, [user, isMobile, videosLoaded]);
+  }, []);
 
   useEffect(() => {
     if (heroVideos.length > 0) {
@@ -194,18 +55,15 @@ export default function HeroSection() {
       const { data, error } = await getHeroVideos();
       
       if (error) {
-        setError('Failed to load hero videos');
         console.error('Hero videos error:', error);
+        setLoading(false);
         return;
       }
 
       if (data && data.length > 0) {
         setHeroVideos(data);
-      } else {
-        setError('No hero videos available');
       }
     } catch (err) {
-      setError('Failed to load hero videos');
       console.error('Hero videos error:', err);
     } finally {
       setLoading(false);
@@ -243,131 +101,21 @@ export default function HeroSection() {
     }
   };
 
-  const handleVideoLoad = (videoElement: HTMLVideoElement) => {
-    // Set video properties for autoplay compliance
-    videoElement.muted = true;
-    videoElement.playsInline = true;
-    videoElement.autoplay = true;
-    videoElement.loop = true;
-    
-    // Try to play the video
-    const playVideo = () => {
-      videoElement.play().then(() => {
-        setVideosPlaying(true);
-        console.log('Hero video playing successfully');
-        
-        // Keep muted for autoplay compliance
-        // Only unmute after user interaction
-        const unmuteAfterInteraction = () => {
-          setTimeout(() => {
-            videoElement.muted = false;
-          }, 2000);
-        };
-        
-        // Listen for any user interaction
-        document.addEventListener('click', unmuteAfterInteraction, { once: true });
-        document.addEventListener('touchstart', unmuteAfterInteraction, { once: true });
-        
-      }).catch((error) => {
-        console.log('Hero video play failed:', error);
-        setVideosPlaying(false);
-        
-        // For mobile, try additional strategies
-        if (isMobile) {
-          // Try again after delays
-          setTimeout(() => {
-            videoElement.play().then(() => {
-              setVideosPlaying(true);
-              console.log('Mobile video play successful on retry');
-            });
-          }, 1000);
-          
-          setTimeout(() => {
-            videoElement.play().then(() => {
-              setVideosPlaying(true);
-              console.log('Mobile video play successful on second retry');
-            });
-          }, 3000);
-          
-          // Try on any touch event
-          const playOnTouch = () => {
-            videoElement.play().then(() => {
-              setVideosPlaying(true);
-              console.log('Mobile video play successful on touch');
-            });
-            document.removeEventListener('touchstart', playOnTouch);
-          };
-          document.addEventListener('touchstart', playOnTouch);
-        }
-      });
-    };
-    
-    // Try to play immediately
-    playVideo();
-    
-    // Also try after delays to handle different browser behaviors
-    setTimeout(playVideo, 100);
-    setTimeout(playVideo, 500);
-    setTimeout(playVideo, 1000);
-    
-    // For mobile, try more aggressively
-    if (isMobile) {
-      setTimeout(playVideo, 2000);
-      setTimeout(playVideo, 3000);
-      setTimeout(playVideo, 5000);
-      
-      // Additional mobile-specific attempts
-      setTimeout(playVideo, 10000);
-      setTimeout(playVideo, 15000);
-    }
-    
-    // If user is authenticated, try even more aggressively
-    if (user && isMobile) {
-      setTimeout(playVideo, 500);
-      setTimeout(playVideo, 1000);
-      setTimeout(playVideo, 2000);
-      setTimeout(playVideo, 3000);
-      setTimeout(playVideo, 5000);
-      setTimeout(playVideo, 10000);
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="relative h-screen bg-gradient-to-br from-almond via-mushroom to-blanket flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-12 h-12 spinner mx-auto mb-4"></div>
-          <p className="text-sage text-lg">Loading exclusive content...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error || heroVideos.length === 0) {
-    return (
-      <div className="relative h-screen bg-gradient-to-br from-almond via-mushroom to-blanket flex items-center justify-center">
-        <div className="text-center max-w-2xl mx-auto px-4">
-          <h1 className="heading-1 mb-6 text-shadow-lg">Exclusive Lex</h1>
-          <p className="body-large text-sage mb-8">
-            Premium exclusive content with limited-time access
-          </p>
-          <div className="text-khaki">
-            {error || 'Hero videos will appear here once uploaded by admin'}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   const currentVideo = heroVideos[currentVideoIndex];
 
   return (
     <div className="relative h-screen bg-black overflow-hidden hero-container group" style={{ marginTop: '-3.5rem' }}>
-      {/* Background Videos with Crossfade */}
-      {videoUrls.map((videoUrl, index) => (
+      {/* Shimmering Gradient Background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-shimmer"></div>
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/20 to-black/60"></div>
+      </div>
+
+      {/* Optional Hero Videos */}
+      {videoUrls.length > 0 && videoUrls.map((videoUrl, index) => (
         <video
           key={heroVideos[index]?.id || index}
-          className={`absolute inset-0 w-full h-full object-cover hero-crossfade ${
+          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${
             index === currentVideoIndex ? 'opacity-100' : 'opacity-0'
           }`}
           autoPlay={true}
@@ -375,7 +123,6 @@ export default function HeroSection() {
           loop
           playsInline
           preload="auto"
-          onLoadedData={(e) => handleVideoLoad(e.currentTarget)}
           onPlay={() => setVideosPlaying(true)}
           onPause={() => setVideosPlaying(false)}
         >
@@ -384,67 +131,64 @@ export default function HeroSection() {
         </video>
       ))}
 
-      {/* Dark Overlay for Text Readability */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
+      {/* Enhanced Dark Overlay for Text Readability */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent"></div>
 
-      {/* Mobile Play Button Overlay - Only show when videos are not playing */}
-      {isMobile && videosLoaded && !videosPlaying && (
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-5 pointer-events-none">
-          <button
-            onClick={() => {
-              const videos = document.querySelectorAll('video');
-              videos.forEach(video => {
-                video.muted = false;
-                video.play().then(() => {
-                  setVideosPlaying(true);
-                }).catch(() => {
-                  console.log('Playback failed');
-                });
-              });
-            }}
-            className="bg-black/50 text-white p-4 rounded-full backdrop-blur-sm hover:bg-black/70 transition-all pointer-events-auto"
-          >
-            <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M8 5v14l11-7z"/>
-            </svg>
-          </button>
+      {/* Floating Sparkles Effect */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/4 left-1/4 animate-pulse">
+          <Sparkles className="w-4 h-4 text-white/20" />
         </div>
-      )}
+        <div className="absolute top-1/3 right-1/4 animate-pulse delay-1000">
+          <Sparkles className="w-3 h-3 text-white/15" />
+        </div>
+        <div className="absolute bottom-1/3 left-1/3 animate-pulse delay-2000">
+          <Sparkles className="w-5 h-5 text-white/25" />
+        </div>
+        <div className="absolute bottom-1/4 right-1/3 animate-pulse delay-1500">
+          <Sparkles className="w-2 h-2 text-white/10" />
+        </div>
+      </div>
 
       {/* Content */}
       <div className="relative z-10 h-full flex items-center justify-center pt-14 sm:pt-16">
-        <div className="text-center text-blanc max-w-4xl mx-auto px-4">
-          <div className="hero-text-container bg-black/20 backdrop-blur-sm rounded-lg p-6 sm:p-8 border border-amber-200/30 shadow-2xl">
+        <div className="text-center text-white max-w-4xl mx-auto px-4">
+          <div className="hero-text-container bg-black/30 backdrop-blur-md rounded-2xl p-8 sm:p-12 border border-white/20 shadow-2xl">
             <h1 
-              className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl mb-4 text-shadow-lg animate-fade-in"
+              className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl mb-6 text-shadow-lg animate-fade-in"
               style={{ 
                 fontFamily: 'Vogue, serif',
                 fontWeight: 'normal',
-                letterSpacing: '0.05em'
+                letterSpacing: '0.05em',
+                background: 'linear-gradient(135deg, #ffffff 0%, #f3f4f6 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text'
               }}
             >
-              {currentVideo.title}
+              {currentVideo ? currentVideo.title : 'EXCLUSIVE LEX'}
             </h1>
-            {currentVideo.subtitle && (
-              <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl text-blanket mb-6 sm:mb-8 text-shadow animate-fade-in">
-                {currentVideo.subtitle}
-              </p>
-            )}
+            
+            <p className="text-xl sm:text-2xl md:text-3xl lg:text-4xl text-gray-200 mb-8 text-shadow animate-fade-in">
+              {currentVideo ? currentVideo.subtitle : 'A private collection of sensual content'}
+            </p>
 
             {/* CTA Button - Dynamic based on user authentication */}
             <div className="animate-fade-in">
               {user ? (
                 <Link
                   href="/collections"
-                  className="inline-flex items-center btn-primary text-base sm:text-lg px-6 sm:px-8 py-3 sm:py-4 shadow-elegant hover:shadow-glass"
+                  className="inline-flex items-center bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white text-lg sm:text-xl px-8 sm:px-12 py-4 sm:py-5 rounded-full shadow-2xl hover:shadow-purple-500/25 transition-all duration-300 transform hover:scale-105 font-semibold"
                 >
+                  <Play className="w-5 h-5 mr-2" />
                   View Collections
                 </Link>
               ) : (
                 <Link
                   href="/login"
-                  className="inline-flex items-center btn-primary text-base sm:text-lg px-6 sm:px-8 py-3 sm:py-4 shadow-elegant hover:shadow-glass"
+                  className="inline-flex items-center bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white text-lg sm:text-xl px-8 sm:px-12 py-4 sm:py-5 rounded-full shadow-2xl hover:shadow-purple-500/25 transition-all duration-300 transform hover:scale-105 font-semibold"
                 >
+                  <Sparkles className="w-5 h-5 mr-2" />
                   Login or Sign Up
                 </Link>
               )}
@@ -453,53 +197,39 @@ export default function HeroSection() {
         </div>
       </div>
 
-      {/* Navigation Arrows - Hidden unless hovered */}
+      {/* Navigation Arrows - Only show if videos are available */}
       {heroVideos.length > 1 && (
         <>
           <button
             onClick={prevVideo}
-            className="hero-controls absolute left-3 sm:left-6 top-1/2 transform -translate-y-1/2 z-20 bg-black/30 hover:bg-black/50 text-blanc p-3 sm:p-4 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-110"
+            className="absolute left-6 top-1/2 transform -translate-y-1/2 z-20 bg-black/40 hover:bg-black/60 text-white p-4 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-110 border border-white/20"
           >
-            <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6" />
+            <ChevronLeft className="w-6 h-6" />
           </button>
           
           <button
             onClick={nextVideo}
-            className="hero-controls absolute right-3 sm:right-6 top-1/2 transform -translate-y-1/2 z-20 bg-black/30 hover:bg-black/50 text-blanc p-3 sm:p-4 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-110"
+            className="absolute right-6 top-1/2 transform -translate-y-1/2 z-20 bg-black/40 hover:bg-black/60 text-white p-4 rounded-full backdrop-blur-sm transition-all duration-300 hover:scale-110 border border-white/20"
           >
-            <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6" />
+            <ChevronRight className="w-6 h-6" />
           </button>
         </>
       )}
 
-      {/* Dots Indicator */}
+      {/* Dots Indicator - Only show if videos are available */}
       {heroVideos.length > 1 && (
-        <div className="absolute bottom-6 sm:bottom-8 left-1/2 transform -translate-x-1/2 z-20 flex space-x-2 sm:space-x-3">
+        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-20 flex space-x-3">
           {heroVideos.map((_, index) => (
             <button
               key={index}
               onClick={() => setCurrentVideoIndex(index)}
-              className={`w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full transition-all duration-300 ${
+              className={`w-3 h-3 rounded-full transition-all duration-300 ${
                 index === currentVideoIndex 
-                  ? 'bg-blanc scale-125 shadow-lg' 
-                  : 'bg-blanc/50 hover:bg-blanc/75'
+                  ? 'bg-white scale-125 shadow-lg' 
+                  : 'bg-white/50 hover:bg-white/75'
               }`}
             />
           ))}
-        </div>
-      )}
-
-      {/* Progress Bar */}
-      {heroVideos.length > 1 && (
-        <div className="absolute bottom-0 left-0 right-0 z-20">
-          <div className="progress-bar h-1">
-            <div 
-              className="progress-fill h-full"
-              style={{ 
-                width: `${((currentVideoIndex + 1) / heroVideos.length) * 100}%` 
-              }}
-            />
-          </div>
         </div>
       )}
     </div>
