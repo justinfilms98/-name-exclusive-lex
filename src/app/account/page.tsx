@@ -10,7 +10,6 @@ interface Purchase {
   id: string;
   collection_id: string;
   amount_paid: number;
-  expires_at: string;
   created_at: string;
   stripe_session_id: string;
   collections: {
@@ -75,38 +74,13 @@ export default function AccountPage() {
     }
   };
 
-  const isAccessActive = (expiresAt: string): boolean => {
-    return new Date(expiresAt) > new Date();
-  };
-
-  const formatExpiration = (expiresAt: string): string => {
-    const date = new Date(expiresAt);
-    const now = new Date();
-    
-    if (date <= now) {
-      return 'Expired';
-    }
-
-    const diffMs = date.getTime() - now.getTime();
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-    const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-    
-    if (diffHours > 24) {
-      const days = Math.floor(diffHours / 24);
-      return `${days} day${days > 1 ? 's' : ''} remaining`;
-    } else if (diffHours > 0) {
-      return `${diffHours}h ${diffMinutes}m remaining`;
-    } else {
-      return `${diffMinutes}m remaining`;
-    }
-  };
-
+  // All purchases are now permanent - no expiration logic needed
   const getActivePurchases = () => {
-    return purchases.filter(p => isAccessActive(p.expires_at));
+    return purchases; // All purchases are active
   };
 
   const getExpiredPurchases = () => {
-    return purchases.filter(p => !isAccessActive(p.expires_at));
+    return []; // No expired purchases since all are permanent
   };
 
   if (loading) {
@@ -196,7 +170,7 @@ export default function AccountPage() {
                     
                     <div className="ml-6 text-right">
                       <div className="text-sm text-sage mb-2">
-                        {formatExpiration(purchase.expires_at)}
+                        Permanent Access
                       </div>
                       <Link
                         href={`/watch/${purchase.collection_id}?session_id=${purchase.stripe_session_id}`}
@@ -212,49 +186,6 @@ export default function AccountPage() {
             </div>
           )}
         </div>
-
-        {/* Purchase History */}
-        {expiredPurchases.length > 0 && (
-          <div className="mb-8">
-            <h2 className="heading-3 mb-4 flex items-center">
-              <Shield className="w-6 h-6 mr-2 text-sage" />
-              Purchase History ({expiredPurchases.length})
-            </h2>
-
-            <div className="space-y-4">
-              {expiredPurchases.map((purchase) => (
-                <div key={purchase.id} className="card p-6 opacity-75">
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <h3 className="text-lg font-serif text-earth mb-1">
-                        {purchase.collections.title}
-                      </h3>
-                      <p className="text-sage text-sm mb-2">
-                        {purchase.collections.description}
-                      </p>
-                      <div className="flex items-center space-x-4 text-xs text-sage">
-                        <span>Purchased: {new Date(purchase.created_at).toLocaleDateString()}</span>
-                        <span>Paid: ${purchase.amount_paid.toFixed(2)}</span>
-                      </div>
-                    </div>
-                    
-                    <div className="ml-6 text-right">
-                      <div className="text-sm text-khaki mb-2">
-                        Expired {new Date(purchase.expires_at).toLocaleDateString()}
-                      </div>
-                      <Link
-                        href="/collections"
-                        className="btn-secondary text-sm"
-                      >
-                        Purchase Again
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
 
         {/* Account Actions */}
         <div className="card-glass p-6">
