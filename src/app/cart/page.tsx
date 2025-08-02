@@ -151,18 +151,9 @@ export default function CartPage() {
     return cartItems.reduce((total, item) => total + (item.video_duration || 300), 0);
   };
 
-  const getTotalAccessDuration = () => {
-    return cartItems.reduce((total, item) => total + (item.duration || 0), 0);
-  };
-
   const formatDuration = (seconds: number): string => {
     const minutes = Math.floor(seconds / 60);
     return `${minutes} min`;
-  };
-
-  const formatAccessTime = (duration: number): string => {
-    const minutes = Math.floor(duration / 60);
-    return `${minutes} min access`;
   };
 
   const formatVideoDuration = (seconds: number): string => {
@@ -472,7 +463,7 @@ export default function CartPage() {
                   
                   <div className="flex justify-between text-sage">
                     <span>Access Window</span>
-                    <span>{formatAccessTime(getTotalAccessDuration())}</span>
+                    <span>Permanent Access</span>
                   </div>
                   
                   <div className="border-t border-mushroom/30 pt-4">
