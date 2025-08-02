@@ -1,21 +1,39 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
-import { CheckCircle, Play, ArrowRight } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { createClient } from '@supabase/supabase-js';
 import Link from 'next/link';
-import PurchaseDisclaimer from '@/components/PurchaseDisclaimer';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
+
+interface Purchase {
+  id: string;
+  user_id: string;
+  collection_id: string;
+  stripe_session_id: string;
+  created_at: string;
+  collection: {
+    id: string;
+    title: string;
+    description: string;
+  };
+}
 
 export default function SuccessClient() {
-  const [loading, setLoading] = useState(true);
-  const [purchase, setPurchase] = useState<any>(null);
-  const [error, setError] = useState<string | null>(null);
-  const searchParams = useSearchParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const sessionId = searchParams?.get('session_id');
+  
+  const [purchase, setPurchase] = useState<Purchase | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   useEffect(() => {
-    const sessionId = searchParams?.get('session_id');
     if (!sessionId) {
       setError('No session ID provided');
       setLoading(false);
@@ -23,7 +41,7 @@ export default function SuccessClient() {
     }
 
     verifyPurchase(sessionId);
-  }, [searchParams]);
+  }, [sessionId]);
 
   const verifyPurchase = async (sessionId: string) => {
     try {
@@ -42,12 +60,10 @@ export default function SuccessClient() {
           user_id,
           collection_id,
           stripe_session_id,
-          created_at,
-          expires_at
+          created_at
         `)
         .eq('stripe_session_id', sessionId)
         .eq('user_id', session.user.id)
-        .gte('expires_at', new Date().toISOString())
         .single();
 
       if (error || !purchaseData) {
@@ -59,7 +75,7 @@ export default function SuccessClient() {
       // Now get the collection details
       const { data: collection, error: collectionError } = await supabase
         .from('collections')
-        .select('id, title, description, price')
+        .select('id, title, description')
         .eq('id', purchaseData.collection_id)
         .single();
 
@@ -85,7 +101,7 @@ export default function SuccessClient() {
   };
 
   const startWatching = () => {
-    if (!purchase) return;
+    if (!purchase || !agreedToTerms) return;
     
     // Redirect to watch page with permanent access
     router.push(`/watch/${purchase.collection.id}?session_id=${purchase.stripe_session_id}`);
@@ -126,16 +142,13 @@ export default function SuccessClient() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center max-w-md mx-auto p-8">
-          <div className="w-16 h-16 bg-lex-brown rounded-full flex items-center justify-center mx-auto mb-4">
-            <CheckCircle className="w-8 h-8 text-white" />
-          </div>
-          <h1 className="text-2xl font-serif text-lex-brown mb-4">Purchase Successful!</h1>
-          <p className="text-lex-brown mb-6">Your purchase has been processed successfully.</p>
+          <h1 className="text-2xl font-serif text-lex-brown mb-4">Purchase Not Found</h1>
+          <p className="text-lex-brown mb-6">You need to purchase this collection to watch it.</p>
           <Link 
             href="/collections"
             className="inline-block bg-lex-brown text-white px-6 py-3 rounded-lg hover:bg-lex-warmGray transition-colors"
           >
-            Browse More Collections
+            Browse Collections
           </Link>
         </div>
       </div>
@@ -145,60 +158,83 @@ export default function SuccessClient() {
   const collection = purchase.collection;
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
-      <div className="max-w-2xl mx-auto text-center">
-        {/* Success Icon */}
-        <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-          <CheckCircle className="w-10 h-10 text-green-600" />
+    <div className="min-h-screen bg-almond pt-20">
+      <div className="max-w-4xl mx-auto px-4 py-16">
+        <div className="text-center mb-12">
+          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <span className="text-green-600 text-3xl">✓</span>
+          </div>
+          <h1 className="text-4xl font-serif text-lex-brown mb-4">Purchase Successful!</h1>
+          <p className="text-xl text-lex-brown mb-8">
+            You now have permanent access to <strong>{collection.title}</strong>
+          </p>
         </div>
 
-        {/* Success Message */}
-        <h1 className="text-3xl font-serif text-lex-brown mb-4">Purchase Successful!</h1>
-        <p className="text-lex-brown text-lg mb-8">
-          You now have permanent access to <strong>{collection.title}</strong>
-        </p>
-
-        {/* Purchase Success Disclaimer */}
-        <PurchaseDisclaimer variant="success" className="mb-8" />
-
-        {/* Collection Details */}
-        <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
-          <h2 className="text-xl font-serif text-lex-brown mb-4">{collection.title}</h2>
-          <p className="text-lex-brown mb-4">{collection.description}</p>
+        <div className="bg-white rounded-lg shadow-lg p-8 mb-8">
+          <h2 className="text-2xl font-serif text-lex-brown mb-6">Legal Terms & DMCA Protection</h2>
           
-          <div className="flex items-center justify-center space-x-6 text-sm text-lex-brown">
-            <div className="flex items-center">
-              <span>Permanent Access</span>
+          <div className="space-y-6 text-lex-brown">
+            <div>
+              <h3 className="text-lg font-semibold mb-3">DMCA Copyright Protection</h3>
+              <p className="text-sm leading-relaxed">
+                By accessing this content, you acknowledge that this material is protected by copyright laws. 
+                You agree not to reproduce, distribute, or create derivative works without explicit permission. 
+                Any unauthorized use may result in legal action under the Digital Millennium Copyright Act (DMCA).
+              </p>
             </div>
-            <div className="flex items-center">
-              <span>Unlimited Viewing</span>
+
+            <div>
+              <h3 className="text-lg font-semibold mb-3">Terms of Service</h3>
+              <p className="text-sm leading-relaxed">
+                This content is for personal, non-commercial use only. You may not share, sell, or redistribute 
+                this content. You must be 18 years or older to access this material. By proceeding, you confirm 
+                that you meet all age requirements and agree to these terms.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="text-lg font-semibold mb-3">Privacy & Security</h3>
+              <p className="text-sm leading-relaxed">
+                Your access is logged for security purposes. Any attempt to circumvent security measures, 
+                download content without permission, or share access credentials will result in immediate 
+                account termination and potential legal action.
+              </p>
+            </div>
+
+            <div className="border-t pt-6">
+              <label className="flex items-start space-x-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={agreedToTerms}
+                  onChange={(e) => setAgreedToTerms(e.target.checked)}
+                  className="mt-1 h-4 w-4 text-lex-brown border-gray-300 rounded focus:ring-lex-brown"
+                />
+                <span className="text-sm text-lex-brown">
+                  I have read, understood, and agree to all terms and conditions above. 
+                  I confirm that I am 18 years or older and will use this content responsibly.
+                </span>
+              </label>
             </div>
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
+        <div className="text-center">
           <button
             onClick={startWatching}
-            className="inline-flex items-center justify-center bg-lex-brown text-white px-8 py-3 rounded-lg hover:bg-lex-warmGray transition-colors font-medium"
+            disabled={!agreedToTerms}
+            className={`
+              px-8 py-4 rounded-lg text-lg font-semibold transition-all duration-200
+              ${agreedToTerms 
+                ? 'bg-lex-brown text-white hover:bg-lex-warmGray transform hover:scale-105' 
+                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              }
+            `}
           >
-            <Play className="w-5 h-5 mr-2" />
-            <span>Start Watching</span>
+            {agreedToTerms ? 'Start Watching Now' : 'Agree to Terms to Continue'}
           </button>
           
-          <Link
-            href="/collections"
-            className="inline-flex items-center justify-center bg-transparent border border-lex-brown text-lex-brown px-8 py-3 rounded-lg hover:bg-lex-brown hover:text-white transition-colors font-medium"
-          >
-            <ArrowRight className="w-5 h-5 mr-2" />
-            Browse More
-          </Link>
-        </div>
-
-        {/* Important Notice */}
-        <div className="mt-8 p-4 bg-green-50 border border-green-200 rounded-lg">
-          <p className="text-green-800 text-sm">
-            <strong>Great news!</strong> You now have permanent access to this collection. You can watch it anytime, anywhere, with no time limits.
+          <p className="text-sm text-lex-brown mt-4">
+            Purchase completed on {new Date(purchase.created_at).toLocaleDateString()}
           </p>
         </div>
       </div>

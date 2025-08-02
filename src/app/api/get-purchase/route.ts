@@ -15,7 +15,7 @@ export async function GET(request: Request) {
   // First try to find any purchase with this session_id (without expiration filter)
   const { data: anyPurchase, error: anyError } = await supabase
     .from('purchases')
-    .select('id, user_id, collection_id, stripe_session_id, created_at, expires_at, amount_paid')
+    .select('id, user_id, collection_id, stripe_session_id, created_at, amount_paid')
     .eq('stripe_session_id', session_id)
     .single()
 
@@ -26,12 +26,6 @@ export async function GET(request: Request) {
   }
 
   console.log('Found purchase:', anyPurchase.id);
-
-  // Check if purchase is expired
-  if (new Date(anyPurchase.expires_at) < new Date()) {
-    console.log('Purchase is expired:', anyPurchase.expires_at);
-    return NextResponse.json({ error: 'Access expired' }, { status: 403 })
-  }
 
   // Now get the collection details
   const { data: collection, error: collectionError } = await supabase

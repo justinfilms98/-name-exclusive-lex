@@ -260,8 +260,7 @@ export async function POST(request: NextRequest) {
         collection_id: collectionId,
         stripe_session_id: session.id,
         created_at: new Date().toISOString(),
-        amount_paid: collection.price,
-        expires_at: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString() // 1 year from now
+        amount_paid: collection.price
       })
       .select()
       .single();

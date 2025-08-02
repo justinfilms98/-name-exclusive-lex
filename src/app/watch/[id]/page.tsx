@@ -294,13 +294,6 @@ function WatchPageClient({ collectionId }: { collectionId: string }) {
         return;
       }
 
-      // Check if purchase is expired
-      if (new Date(purchase.expires_at) < new Date()) {
-        setError('This purchase has expired.');
-        setLoading(false);
-        return;
-      }
-
       setPurchase(purchase);
 
       // Get signed URL for video

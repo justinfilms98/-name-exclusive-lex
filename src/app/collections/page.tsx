@@ -46,8 +46,7 @@ export default function CollectionsPage() {
         const { data: purchases } = await supabase
           .from('purchases')
           .select('collection_id')
-          .eq('user_id', session.user.id)
-          .gte('expires_at', new Date().toISOString());
+          .eq('user_id', session.user.id);
         
         if (purchases) {
           setUserPurchases(purchases.map(p => p.collection_id));
