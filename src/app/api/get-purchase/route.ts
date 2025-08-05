@@ -12,19 +12,27 @@ export async function GET(request: Request) {
 
   console.log('Looking for purchase with session_id:', session_id);
 
-  // Find active purchase with this session_id
-  const { data: anyPurchase, error: anyError } = await supabase
+  // Find active purchases with this session_id (could be multiple for multi-collection purchases)
+  const { data: purchases, error: anyError } = await supabase
     .from('purchases')
     .select('id, user_id, collection_id, stripe_session_id, created_at, amount_paid')
     .eq('stripe_session_id', session_id)
     .eq('is_active', true)
-    .single()
+    .order('created_at', { ascending: true })
 
   if (anyError) {
-    console.error('No purchase found with session_id:', session_id);
+    console.error('No purchases found with session_id:', session_id);
     console.error('Error details:', anyError);
     return NextResponse.json({ error: 'Purchase not found' }, { status: 404 })
   }
+
+  if (!purchases || purchases.length === 0) {
+    console.error('No active purchases found with session_id:', session_id);
+    return NextResponse.json({ error: 'Purchase not found' }, { status: 404 })
+  }
+
+  // For now, return the first purchase (we can enhance this later to handle multiple)
+  const anyPurchase = purchases[0];
 
   console.log('Found purchase:', anyPurchase.id);
 
