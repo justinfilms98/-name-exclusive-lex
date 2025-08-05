@@ -30,6 +30,7 @@ export async function POST(request: NextRequest) {
     // Handle both single collection and multiple collections
     let collectionIds: string[] = [];
     let userId = body.userId;
+    let tipAmount = body.tipAmount || 0;
     
     // If it's a single collection purchase
     if (body.collectionId) {
@@ -39,15 +40,18 @@ export async function POST(request: NextRequest) {
     else if (body.items && body.items.length > 0) {
       collectionIds = body.items.map((item: any) => item.id);
       userId = body.userId;
+      tipAmount = body.tipAmount || 0;
     }
     // If it's a cart checkout with videoIds array
     else if (body.videoIds && body.videoIds.length > 0) {
       collectionIds = body.videoIds;
       userId = body.userId;
+      tipAmount = body.tipAmount || 0;
     }
 
     console.log('Collection IDs:', collectionIds);
     console.log('User ID:', userId);
+    console.log('Tip Amount:', tipAmount);
 
     if (!collectionIds.length) {
       console.log('Error: At least one collection ID is required');
@@ -180,6 +184,21 @@ export async function POST(request: NextRequest) {
       }
     });
 
+    // Add tip as a separate line item if provided
+    if (tipAmount > 0) {
+      lineItems.push({
+        price_data: {
+          currency: 'usd',
+          product_data: {
+            name: 'Tip - Thank you for your support!',
+            description: 'Your tip helps us continue creating amazing content.',
+          },
+          unit_amount: Math.round(tipAmount * 100), // Convert to cents
+        },
+        quantity: 1,
+      });
+    }
+
     console.log('Line items prepared:', lineItems.length);
 
     // Create checkout session with multiple line items
@@ -194,6 +213,7 @@ export async function POST(request: NextRequest) {
         user_id: user.id,
         collection_ids: JSON.stringify(collectionIds), // Store as JSON string
         collection_count: collectionIds.length.toString(),
+        tip_amount: tipAmount.toString(),
       },
       // Mobile-friendly settings
       billing_address_collection: 'auto',

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase, getCollections, getSignedUrl } from '@/lib/supabase';
-import { Trash2, ShoppingCart, CreditCard, Clock, Image as ImageIcon, ArrowLeft, Plus } from 'lucide-react';
+import { Trash2, ShoppingCart, CreditCard, Clock, Image as ImageIcon, ArrowLeft, Plus, Heart } from 'lucide-react';
 import Link from 'next/link';
 import { loadStripe } from '@stripe/stripe-js';
 
@@ -37,6 +37,8 @@ export default function CartPage() {
   const [thumbnailUrls, setThumbnailUrls] = useState<{[key: string]: string}>({});
   const [addingItems, setAddingItems] = useState<Set<string>>(new Set());
   const [expandedDescriptions, setExpandedDescriptions] = useState<{[key: string]: boolean}>({});
+  const [selectedTip, setSelectedTip] = useState<number>(0);
+  const [customTip, setCustomTip] = useState<string>('');
 
   useEffect(() => {
     // Get user session
@@ -45,29 +47,23 @@ export default function CartPage() {
       setUser(session?.user || null);
       setLoading(false);
     };
-
     getSession();
+  }, []);
 
-    // Load cart from localStorage
+  useEffect(() => {
     loadCart();
-
-    // Load all collections for suggestions
     loadAllCollections();
-
-    // Listen for cart updates
-    const handleCartUpdate = () => {
-      loadCart();
-    };
-
     window.addEventListener('cartUpdated', handleCartUpdate);
     return () => window.removeEventListener('cartUpdated', handleCartUpdate);
   }, []);
 
+  const handleCartUpdate = () => {
+    loadCart();
+  };
+
   const loadCart = () => {
-    if (typeof window !== 'undefined') {
-      const cart = JSON.parse(localStorage.getItem('cart') || '[]');
-      setCartItems(cart);
-    }
+    const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+    setCartItems(cart);
   };
 
   const loadAllCollections = async () => {
@@ -75,29 +71,30 @@ export default function CartPage() {
       const { data, error } = await getCollections();
       if (!error && data) {
         setAllCollections(data);
-        loadThumbnails(data);
+        await loadThumbnails(data);
       }
     } catch (error) {
-      console.error('Failed to load collections:', error);
+      console.error('Error loading collections:', error);
     }
   };
 
   const loadThumbnails = async (collections: Collection[]) => {
-    const thumbnailPromises = collections.map(async (collection) => {
-      if (collection.thumbnail_path) {
-        try {
-          const { data, error } = await getSignedUrl('media', collection.thumbnail_path, 3600);
-          if (!error && data) {
-            return { id: collection.id, url: data.signedUrl };
+    const results = await Promise.all(
+      collections.map(async (collection) => {
+        if (collection.thumbnail_path) {
+          try {
+            const { data, error } = await getSignedUrl('media', collection.thumbnail_path, 3600);
+            if (!error && data) {
+              return { id: collection.id, url: data.signedUrl };
+            }
+          } catch (error) {
+            console.error('Error loading thumbnail for', collection.id, error);
           }
-        } catch (error) {
-          console.error('Failed to load thumbnail for', collection.id, error);
         }
-      }
-      return { id: collection.id, url: null };
-    });
+        return { id: collection.id, url: null };
+      })
+    );
 
-    const results = await Promise.all(thumbnailPromises);
     const urlMap: {[key: string]: string} = {};
     results.forEach(result => {
       if (result.url) {
@@ -132,15 +129,14 @@ export default function CartPage() {
       setCartItems(cart);
       window.dispatchEvent(new Event('cartUpdated'));
     }
-
-    // Remove loading state after animation
+    
     setTimeout(() => {
       setAddingItems(prev => {
         const newSet = new Set(prev);
         newSet.delete(collection.id);
         return newSet;
       });
-    }, 800);
+    }, 1000);
   };
 
   const getTotalPrice = () => {
@@ -152,13 +148,15 @@ export default function CartPage() {
   };
 
   const formatDuration = (seconds: number): string => {
-    const minutes = Math.floor(seconds / 60);
-    return `${minutes} min`;
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    return `${hours}h ${minutes}m`;
   };
 
   const formatVideoDuration = (seconds: number): string => {
-    const minutes = Math.floor(seconds / 60);
-    return `${minutes} min`;
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    return `${hours}h ${minutes}m`;
   };
 
   const toggleDescription = (itemId: string) => {
@@ -166,6 +164,31 @@ export default function CartPage() {
       ...prev,
       [itemId]: !prev[itemId]
     }));
+  };
+
+  const handleTipChange = (tipAmount: number) => {
+    setSelectedTip(tipAmount);
+    setCustomTip('');
+  };
+
+  const handleCustomTipChange = (value: string) => {
+    setCustomTip(value);
+    setSelectedTip(0);
+  };
+
+  const getTipAmount = () => {
+    if (selectedTip > 0) {
+      return selectedTip;
+    }
+    if (customTip) {
+      const amount = parseFloat(customTip);
+      return isNaN(amount) ? 0 : amount;
+    }
+    return 0;
+  };
+
+  const getFinalTotal = () => {
+    return getTotalPrice() + getTipAmount();
   };
 
   const handleCheckout = async () => {
@@ -231,6 +254,7 @@ export default function CartPage() {
         body: JSON.stringify({
           items: cartItems,
           userId: currentUser.id,
+          tipAmount: getTipAmount(),
         }),
       });
 
@@ -281,99 +305,127 @@ export default function CartPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-almond pt-20 flex items-center justify-center">
+      <div className="min-h-screen bg-brand-mist flex items-center justify-center">
         <div className="text-center">
           <div className="w-12 h-12 spinner mx-auto mb-4"></div>
-          <p className="text-sage text-lg">Loading cart...</p>
+          <p className="text-brand-earth">Loading your cart...</p>
         </div>
       </div>
     );
   }
 
-  const suggestedCollections = getSuggestedCollections();
-
-  return (
-    <div className="min-h-screen bg-almond pt-20">
-      <div className="max-w-6xl mx-auto px-4 py-16">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center space-x-4">
-            <Link 
+  if (cartItems.length === 0) {
+    return (
+      <div className="min-h-screen bg-brand-mist">
+        <div className="max-w-7xl mx-auto px-4 py-8">
+          <div className="text-center py-16">
+            <ShoppingCart className="w-16 h-16 text-brand-sage mx-auto mb-4" />
+            <h1 className="text-3xl font-serif text-brand-pine mb-4">Your Cart is Empty</h1>
+            <p className="text-brand-earth mb-8">Add some amazing content to get started!</p>
+            <Link
               href="/collections"
-              className="flex items-center text-sage hover:text-khaki transition-colors"
+              className="btn-primary inline-flex items-center space-x-2"
             >
-              <ArrowLeft className="w-5 h-5 mr-2" />
-              Continue Shopping
+              <ArrowLeft className="w-4 h-4" />
+              <span>Browse Collections</span>
             </Link>
           </div>
-          
-          {cartItems.length > 0 && (
-            <button
-              onClick={clearCart}
-              className="text-sage hover:text-khaki transition-colors font-medium"
-            >
-              Clear All
-            </button>
-          )}
-        </div>
 
-        <div className="mb-8">
-          <h1 className="heading-1 mb-2">Your Cart</h1>
-          <p className="text-sage">
-            {cartItems.length} {cartItems.length === 1 ? 'collection' : 'collections'} selected
-          </p>
-          
-          {/* Purchase Information Notice */}
-          <div className="mt-4 p-4 bg-khaki/10 border border-khaki/20 rounded-lg">
-            <div className="flex items-start space-x-3">
-              <div className="text-khaki mt-0.5">
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                </svg>
-              </div>
-              <div className="text-sm text-sage">
-                <p className="font-medium text-earth mb-1">Purchase Information</p>
-                <p>Purchases are completed one collection at a time. After payment, you'll get a "Start Watching" button. You can purchase more collections after each transaction.</p>
-                <p className="mt-2 text-xs text-khaki">
-                  <strong>Legal Notice:</strong> Before viewing content, you'll be required to accept our DMCA copyright protection terms and conditions. This is a mandatory step to ensure content protection compliance.
-                </p>
-              </div>
+          {/* Suggested Collections */}
+          <div className="mt-16">
+            <h2 className="text-2xl font-serif text-brand-pine mb-8 text-center">Discover Amazing Content</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {getSuggestedCollections().map((collection) => (
+                <div key={collection.id} className="card-glass p-6">
+                  <div className="aspect-video bg-brand-almond rounded-lg mb-4 overflow-hidden">
+                    {thumbnailUrls[collection.id] ? (
+                      <img
+                        src={thumbnailUrls[collection.id]}
+                        alt={collection.title}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-brand-sage">
+                        <ImageIcon className="w-8 h-8" />
+                      </div>
+                    )}
+                  </div>
+                  
+                  <h3 className="text-lg font-serif text-brand-pine mb-2">{collection.title}</h3>
+                  <p className="text-brand-earth text-sm mb-3 line-clamp-2">{collection.description}</p>
+                  
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center space-x-4 text-xs text-brand-sage">
+                      <div className="flex items-center">
+                        <Clock className="w-3 h-3 mr-1" />
+                        <span>{formatVideoDuration(collection.video_duration || 300)}</span>
+                      </div>
+                      <div className="flex items-center">
+                        <ImageIcon className="w-3 h-3 mr-1" />
+                        <span>{collection.photo_paths?.length || 0} photos</span>
+                      </div>
+                    </div>
+                    <div className="text-xl font-bold text-brand-tan">
+                      ${(collection.price / 100).toFixed(2)}
+                    </div>
+                  </div>
+                  
+                  <button
+                    onClick={() => addToCart(collection)}
+                    disabled={addingItems.has(collection.id)}
+                    className="w-full btn-secondary flex items-center justify-center space-x-2 disabled:opacity-50"
+                  >
+                    {addingItems.has(collection.id) ? (
+                      <>
+                        <div className="w-4 h-4 spinner"></div>
+                        <span>Adding...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="w-4 h-4" />
+                        <span>Add to Cart</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              ))}
             </div>
           </div>
         </div>
+      </div>
+    );
+  }
 
-        {/* Cart Content */}
-        {cartItems.length === 0 ? (
-          <div className="text-center py-16">
-            <div className="card-glass max-w-md mx-auto p-12">
-              <div className="text-sage mb-6">
-                <ShoppingCart className="w-24 h-24 mx-auto" />
-              </div>
-              <h2 className="heading-2 mb-4">Your cart is empty</h2>
-              <p className="text-sage mb-8">Browse our exclusive collections to add items to your cart.</p>
-              <Link
-                href="/collections"
-                className="btn-primary"
-              >
-                Browse Collections
-              </Link>
-            </div>
+  return (
+    <div className="min-h-screen bg-brand-mist">
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-3xl font-serif text-brand-pine mb-2">Your Cart</h1>
+            <p className="text-brand-earth">{cartItems.length} item{cartItems.length !== 1 ? 's' : ''} in your cart</p>
           </div>
-        ) : (
-          <div className="grid lg:grid-cols-3 gap-8">
-            {/* Cart Items */}
-            <div className="lg:col-span-2 space-y-6">
-              {cartItems.map((item) => {
+          <button
+            onClick={clearCart}
+            className="text-brand-sage hover:text-brand-khaki transition-colors"
+          >
+            Clear Cart
+          </button>
+        </div>
+
+        {/* Main Content */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Cart Items */}
+          <div className="lg:col-span-2">
+            <div className="space-y-6">
+              {cartItems.map((item, index) => {
                 const thumbnailUrl = thumbnailUrls[item.id];
                 
                 return (
-                  <div
-                    key={item.id}
-                    className="card p-6"
-                  >
-                    <div className="flex items-start space-x-6">
+                  <div key={item.id + index} className="card-glass p-6">
+                    <div className="flex gap-6">
                       {/* Thumbnail */}
-                      <div className="w-24 h-32 bg-gradient-to-br from-mushroom to-blanket rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
+                      <div className="w-32 h-24 bg-brand-almond rounded-lg overflow-hidden flex-shrink-0">
                         {thumbnailUrl ? (
                           <img
                             src={thumbnailUrl}
@@ -381,27 +433,47 @@ export default function CartPage() {
                             className="w-full h-full object-cover"
                           />
                         ) : (
-                          <ImageIcon className="w-8 h-8 text-sage/60" />
+                          <div className="w-full h-full flex items-center justify-center text-brand-sage">
+                            <ImageIcon className="w-8 h-8" />
+                          </div>
                         )}
                       </div>
 
                       {/* Content */}
                       <div className="flex-1 min-w-0">
-                        <h3 className="text-xl font-serif text-earth mb-2">
-                          {item.title}
-                        </h3>
-                        <div className="text-sage text-sm mb-3">
-                          <p className={`${expandedDescriptions[item.id] ? '' : 'line-clamp-2'}`}>
-                            {item.description}
-                          </p>
-                          {item.description.length > 100 && (
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1 min-w-0">
+                            <h3 className="text-lg font-serif text-brand-pine mb-2">{item.title}</h3>
+                            <p className="text-brand-earth text-sm mb-3">
+                              {expandedDescriptions[item.id] 
+                                ? item.description 
+                                : item.description.length > 100 
+                                  ? `${item.description.substring(0, 100)}...` 
+                                  : item.description
+                              }
+                            </p>
+                            {item.description.length > 100 && (
+                              <button
+                                onClick={() => toggleDescription(item.id)}
+                                className="text-khaki hover:text-earth text-xs mt-1 underline"
+                              >
+                                {expandedDescriptions[item.id] ? 'Show Less' : 'Read More'}
+                              </button>
+                            )}
+                          </div>
+                          
+                          <div className="flex flex-col items-end space-y-3">
+                            <div className="text-2xl font-bold text-earth">
+                              ${(item.price / 100).toFixed(2)}
+                            </div>
                             <button
-                              onClick={() => toggleDescription(item.id)}
-                              className="text-khaki hover:text-earth text-xs mt-1 underline"
+                              onClick={() => removeFromCart(item.id)}
+                              className="text-sage hover:text-khaki transition-colors p-2 hover:bg-blanket/50 rounded-lg"
+                              title="Remove from cart"
                             >
-                              {expandedDescriptions[item.id] ? 'Show Less' : 'Read More'}
+                              <Trash2 className="w-4 h-4" />
                             </button>
-                          )}
+                          </div>
                         </div>
                         
                         <div className="flex items-center space-x-4 text-xs text-sage">
@@ -415,224 +487,177 @@ export default function CartPage() {
                           </div>
                         </div>
                         
-                                                 {/* Legal Notice */}
-                         <div className="mt-2 p-2 bg-khaki/10 border border-khaki/20 rounded text-xs text-khaki">
-                           <div className="flex items-center">
-                             <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                               <path fillRule="evenodd" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" clipRule="evenodd" />
-                             </svg>
-                             <span>DMCA protection required before viewing</span>
-                           </div>
-                         </div>
-                      </div>
-
-                      {/* Price & Actions */}
-                      <div className="flex flex-col items-end space-y-3">
-                        <div className="text-2xl font-bold text-earth">
-                          ${(item.price / 100).toFixed(2)}
+                        {/* Legal Notice */}
+                        <div className="mt-2 p-2 bg-khaki/10 border border-khaki/20 rounded text-xs text-khaki">
+                          <div className="flex items-center">
+                            <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" clipRule="evenodd" />
+                            </svg>
+                            <span>DMCA protection required before viewing</span>
+                          </div>
                         </div>
-                        <button
-                          onClick={() => removeFromCart(item.id)}
-                          className="text-sage hover:text-khaki transition-colors p-2 hover:bg-blanket/50 rounded-lg"
-                          title="Remove from cart"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
                       </div>
                     </div>
                   </div>
                 );
               })}
             </div>
+          </div>
 
-            {/* Checkout Summary */}
-            <div className="lg:col-span-1">
-              <div className="card-glass p-6 sticky top-24">
-                <h2 className="text-xl font-serif text-earth mb-6">Order Summary</h2>
+          {/* Checkout Summary */}
+          <div className="lg:col-span-1">
+            <div className="card-glass p-6 sticky top-24">
+              <h2 className="text-xl font-serif text-earth mb-6">Order Summary</h2>
+              
+              <div className="space-y-4 mb-6">
+                <div className="flex justify-between text-sage">
+                  <span>Items ({cartItems.length})</span>
+                  <span>${getTotalPrice().toFixed(2)}</span>
+                </div>
                 
-                <div className="space-y-4 mb-6">
-                  <div className="flex justify-between text-sage">
-                    <span>Items ({cartItems.length})</span>
-                    <span>${getTotalPrice().toFixed(2)}</span>
-                  </div>
-                  
-                  <div className="flex justify-between text-sage">
-                    <span>Total Video Content</span>
-                    <span>{formatVideoDuration(getTotalVideoDuration())}</span>
-                  </div>
-                  
-                  <div className="flex justify-between text-sage">
-                    <span>Access Window</span>
-                    <span>Permanent Access</span>
-                  </div>
-                  
-                  <div className="border-t border-mushroom/30 pt-4">
-                    <div className="flex justify-between text-xl font-bold text-earth">
-                      <span>Total</span>
-                      <span>${getTotalPrice().toFixed(2)}</span>
-                    </div>
-                  </div>
+                <div className="flex justify-between text-sage">
+                  <span>Total Video Content</span>
+                  <span>{formatVideoDuration(getTotalVideoDuration())}</span>
                 </div>
-
-                {/* Legal Notice */}
-                <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                  <div className="flex items-start space-x-3">
-                    <div className="text-yellow-600 mt-0.5">
-                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                      </svg>
-                    </div>
-                    <div className="text-sm text-yellow-800">
-                      <p className="font-medium mb-1">Legal Notice</p>
-                      <p>Before viewing content, you'll be required to accept our DMCA copyright protection terms and conditions. This is a mandatory step to ensure content protection compliance.</p>
-                    </div>
-                  </div>
+                
+                <div className="flex justify-between text-sage">
+                  <span>Access Window</span>
+                  <span>Permanent Access</span>
                 </div>
+              </div>
 
-                {/* Checkout Button */}
-                {user ? (
-                  <button
-                    onClick={handleCheckout}
-                    disabled={checkoutLoading}
-                    className="w-full btn-primary flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {checkoutLoading ? (
-                      <>
-                        <div className="w-4 h-4 spinner"></div>
-                        <span>Processing...</span>
-                      </>
-                    ) : (
-                      <>
-                        <CreditCard className="w-4 h-4" />
-                        <span>Checkout with Stripe</span>
-                      </>
-                    )}
-                  </button>
-                ) : (
-                  <div className="space-y-3">
-                    <div className="text-center text-sage text-sm">
-                      Sign in to complete your purchase
-                    </div>
-                    <Link
-                      href="/login"
-                      className="w-full btn-secondary text-center block"
+              {/* Tip Section */}
+              <div className="mb-6 p-4 bg-brand-almond/30 rounded-lg">
+                <div className="flex items-center mb-3">
+                  <Heart className="w-4 h-4 text-brand-khaki mr-2" />
+                  <h3 className="text-sm font-semibold text-brand-pine">Add a Tip</h3>
+                </div>
+                <p className="text-xs text-brand-earth mb-3">
+                  Support the creators and help us continue making amazing content!
+                </p>
+                
+                {/* Tip Options */}
+                <div className="grid grid-cols-3 gap-2 mb-3">
+                  {[2, 5, 10].map((amount) => (
+                    <button
+                      key={amount}
+                      onClick={() => handleTipChange(amount)}
+                      className={`px-3 py-2 text-xs rounded border transition-colors ${
+                        selectedTip === amount
+                          ? 'bg-brand-khaki text-white border-brand-khaki'
+                          : 'bg-white text-brand-pine border-brand-sage hover:bg-brand-almond'
+                      }`}
                     >
-                      Sign Up or Login with Google
-                    </Link>
-                  </div>
-                )}
-
-                {/* Payment Info */}
-                <div className="mt-6 text-xs text-sage text-center space-y-1">
-                  <p>Secure checkout powered by Stripe</p>
-                  <p>Supports Apple Pay, Google Pay & all major cards</p>
-                  <p className="text-khaki">SSL encrypted • 256-bit security</p>
+                      ${amount}
+                    </button>
+                  ))}
                 </div>
+                
+                {/* Custom Tip */}
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="number"
+                    placeholder="Custom amount"
+                    value={customTip}
+                    onChange={(e) => handleCustomTipChange(e.target.value)}
+                    className="flex-1 px-3 py-2 text-xs border border-brand-sage rounded focus:outline-none focus:border-brand-khaki"
+                    min="0"
+                    step="0.01"
+                  />
+                  <span className="text-xs text-brand-sage">USD</span>
+                </div>
+              </div>
 
-                {/* Features */}
-                <div className="mt-6 space-y-2 text-xs text-sage">
-                  <div className="flex items-center">
-                    <div className="w-2 h-2 bg-sage rounded-full mr-2"></div>
-                    <span>Instant access after payment</span>
+              {/* Tip Display */}
+              {getTipAmount() > 0 && (
+                <div className="mb-4 p-3 bg-brand-khaki/10 border border-brand-khaki/20 rounded">
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-brand-pine">Tip Amount</span>
+                    <span className="font-semibold text-brand-khaki">${getTipAmount().toFixed(2)}</span>
                   </div>
-                                     <div className="flex items-center">
-                     <div className="w-2 h-2 bg-sage rounded-full mr-2"></div>
-                     <span>DMCA protection required</span>
-                   </div>
-                  <div className="flex items-center">
-                    <div className="w-2 h-2 bg-sage rounded-full mr-2"></div>
-                    <span>HD quality videos & photos</span>
+                </div>
+              )}
+              
+              <div className="border-t border-mushroom/30 pt-4 mb-6">
+                <div className="flex justify-between text-xl font-bold text-earth">
+                  <span>Total</span>
+                  <span>${getFinalTotal().toFixed(2)}</span>
+                </div>
+              </div>
+
+              {/* Legal Notice */}
+              <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <div className="flex items-start space-x-3">
+                  <div className="text-yellow-600 mt-0.5">
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
                   </div>
+                  <div className="text-sm text-yellow-800">
+                    <p className="font-medium mb-1">Legal Notice</p>
+                    <p>Before viewing content, you'll be required to accept our DMCA copyright protection terms and conditions. This is a mandatory step to ensure content protection compliance.</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Checkout Button */}
+              {user ? (
+                <button
+                  onClick={handleCheckout}
+                  disabled={checkoutLoading}
+                  className="w-full btn-primary flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {checkoutLoading ? (
+                    <>
+                      <div className="w-4 h-4 spinner"></div>
+                      <span>Processing...</span>
+                    </>
+                  ) : (
+                    <>
+                      <CreditCard className="w-4 h-4" />
+                      <span>Checkout with Stripe</span>
+                    </>
+                  )}
+                </button>
+              ) : (
+                <div className="space-y-3">
+                  <div className="text-center text-sage text-sm">
+                    Sign in to complete your purchase
+                  </div>
+                  <Link
+                    href="/login"
+                    className="w-full btn-secondary text-center block"
+                  >
+                    Sign Up or Login with Google
+                  </Link>
+                </div>
+              )}
+
+              {/* Payment Info */}
+              <div className="mt-6 text-xs text-sage text-center space-y-1">
+                <p>Secure checkout powered by Stripe</p>
+                <p>Supports Apple Pay, Google Pay & all major cards</p>
+                <p className="text-khaki">SSL encrypted • 256-bit security</p>
+              </div>
+
+              {/* Features */}
+              <div className="mt-6 space-y-2 text-xs text-sage">
+                <div className="flex items-center">
+                  <div className="w-2 h-2 bg-sage rounded-full mr-2"></div>
+                  <span>Instant access after payment</span>
+                </div>
+                <div className="flex items-center">
+                  <div className="w-2 h-2 bg-sage rounded-full mr-2"></div>
+                  <span>DMCA protection required</span>
+                </div>
+                <div className="flex items-center">
+                  <div className="w-2 h-2 bg-sage rounded-full mr-2"></div>
+                  <span>HD quality videos & photos</span>
                 </div>
               </div>
             </div>
           </div>
-        )}
-
-        {/* You Might Also Like Section */}
-        {suggestedCollections.length > 0 && (
-          <div className="mt-16">
-            <h2 className="heading-2 mb-8 text-center">You Might Also Like</h2>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {suggestedCollections.map((collection) => {
-                const thumbnailUrl = thumbnailUrls[collection.id];
-                const isAdding = addingItems.has(collection.id);
-                
-                return (
-                  <div
-                    key={collection.id}
-                    className="card group hover:shadow-elegant transition-all duration-300"
-                  >
-                    {/* Thumbnail */}
-                    <div className="relative aspect-[4/5] overflow-hidden rounded-t-xl">
-                      {thumbnailUrl ? (
-                        <img
-                          src={thumbnailUrl}
-                          alt={collection.title}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-gradient-to-br from-mushroom to-blanket flex items-center justify-center">
-                          <ImageIcon className="w-12 h-12 text-sage/60" />
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Content */}
-                    <div className="p-4">
-                      <h3 className="font-serif text-earth text-lg mb-2 line-clamp-2">
-                        {collection.title}
-                      </h3>
-                      
-                      <div className="text-sage text-sm mb-3">
-                        <p className={`${expandedDescriptions[collection.id] ? '' : 'line-clamp-2'}`}>
-                          {collection.description}
-                        </p>
-                        {collection.description.length > 100 && (
-                          <button
-                            onClick={() => toggleDescription(collection.id)}
-                            className="text-khaki hover:text-earth text-xs mt-1 underline"
-                          >
-                            {expandedDescriptions[collection.id] ? 'Show Less' : 'Read More'}
-                          </button>
-                        )}
-                      </div>
-
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="text-xs text-sage">
-                          {collection.photo_paths?.length || 0} photos • {formatDuration(collection.duration)}
-                        </div>
-                        <div className="text-lg font-bold text-earth">
-                          ${(collection.price / 100).toFixed(2)}
-                        </div>
-                      </div>
-
-                      {/* Add to Cart Button */}
-                      <button
-                        onClick={() => addToCart(collection)}
-                        disabled={isAdding}
-                        className="w-full btn-secondary flex items-center justify-center space-x-2 disabled:opacity-50"
-                      >
-                        {isAdding ? (
-                          <>
-                            <div className="w-4 h-4 spinner"></div>
-                            <span>Adding...</span>
-                          </>
-                        ) : (
-                          <>
-                            <Plus className="w-4 h-4" />
-                            <span>Add to Cart</span>
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
+        </div>
       </div>
     </div>
   );

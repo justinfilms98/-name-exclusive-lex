@@ -33,6 +33,7 @@ export default function SuccessClient() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [tipAmount, setTipAmount] = useState<number>(0);
 
   useEffect(() => {
     if (!sessionId) {
@@ -95,6 +96,13 @@ export default function SuccessClient() {
       });
 
       setPurchases(purchasesWithCollections);
+      
+      // Check if there was a tip (we'll need to get this from Stripe session metadata)
+      // For now, we'll calculate it from the difference between total and collection prices
+      const totalCollectionPrice = purchasesWithCollections.reduce((sum, p) => sum + p.collection.price, 0);
+      const tipAmount = Math.max(0, totalCollectionPrice - totalCollectionPrice); // Placeholder for now
+      setTipAmount(tipAmount);
+      
       setLoading(false);
     } catch (error) {
       console.error('Purchase verification error:', error);
@@ -165,6 +173,7 @@ export default function SuccessClient() {
 
   const isMultiplePurchases = purchases.length > 1;
   const totalPrice = purchases.reduce((sum, purchase) => sum + (purchase.collection.price || 0), 0);
+  const finalTotal = totalPrice + tipAmount;
 
   return (
     <div className="min-h-screen bg-almond pt-20">
@@ -200,11 +209,26 @@ export default function SuccessClient() {
               </div>
             ))}
             
+            {/* Tip Display */}
+            {tipAmount > 0 && (
+              <div className="flex items-center justify-between p-4 bg-brand-khaki/10 border border-brand-khaki/20 rounded-lg">
+                <div>
+                  <h3 className="font-semibold text-lex-brown">Tip - Thank you for your support!</h3>
+                  <p className="text-sm text-gray-600">Your tip helps us continue creating amazing content.</p>
+                </div>
+                <div className="text-right">
+                  <span className="text-brand-khaki font-semibold">
+                    ${tipAmount.toFixed(2)}
+                  </span>
+                </div>
+              </div>
+            )}
+            
             {isMultiplePurchases && (
               <div className="border-t pt-4 mt-4">
                 <div className="flex justify-between items-center">
                   <span className="font-semibold text-lex-brown">Total</span>
-                  <span className="font-bold text-lex-brown text-lg">${totalPrice.toFixed(2)}</span>
+                  <span className="font-bold text-lex-brown text-lg">${finalTotal.toFixed(2)}</span>
                 </div>
               </div>
             )}
