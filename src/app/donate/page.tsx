@@ -128,7 +128,7 @@ export default function DonatePage() {
           </div>
           <h1 className="text-4xl font-serif text-brand-pine mb-4">Thank You</h1>
           <p className="text-xl text-brand-earth max-w-2xl mx-auto">
-            Your appreciation for our work means everything to us. Every contribution helps us continue creating the luxury experiences you value.
+            Your appreciation for my work means everything to me. Every contribution helps me continue creating the luxury experiences you value.
           </p>
         </div>
 
@@ -230,78 +230,15 @@ export default function DonatePage() {
           </div>
 
           {/* Benefits & Info */}
-          <div className="space-y-6">
-            <div className="card-glass p-6">
-              <h3 className="text-xl font-serif text-brand-pine mb-4">Your Impact</h3>
-              <div className="space-y-4">
-                <div className="flex items-start space-x-3">
-                  <div className="w-6 h-6 bg-brand-khaki rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <span className="text-white text-xs font-bold">1</span>
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-brand-pine">Quality</h4>
-                    <p className="text-sm text-brand-earth">Your appreciation enables us to maintain the highest standards in everything we create.</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start space-x-3">
-                  <div className="w-6 h-6 bg-brand-khaki rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <span className="text-white text-xs font-bold">2</span>
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-brand-pine">Excellence</h4>
-                    <p className="text-sm text-brand-earth">Your support allows us to invest in the finest equipment and locations.</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start space-x-3">
-                  <div className="w-6 h-6 bg-brand-khaki rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <span className="text-white text-xs font-bold">3</span>
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-brand-pine">Connection</h4>
-                    <p className="text-sm text-brand-earth">You become part of a community that values beauty, quality, and authentic experiences.</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="card-glass p-6">
-              <h3 className="text-xl font-serif text-brand-pine mb-4">How We Use Your Gift</h3>
-              <div className="space-y-3 text-sm text-brand-earth">
-                <div className="flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-brand-khaki rounded-full"></div>
-                  <span>Premium equipment and technology</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-brand-khaki rounded-full"></div>
-                  <span>Exclusive and beautiful locations</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-brand-khaki rounded-full"></div>
-                  <span>Meticulous editing and refinement</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-brand-khaki rounded-full"></div>
-                  <span>Supporting our talented team</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-brand-khaki rounded-full"></div>
-                  <span>Maintaining our platform's excellence</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="card-glass p-6">
+                      <div className="card-glass p-6">
               <h3 className="text-xl font-serif text-brand-pine mb-4">Gratitude</h3>
               <p className="text-brand-earth mb-4">
-                Your appreciation for our work is deeply meaningful to us. Every contribution, regardless of size, helps us continue creating the exceptional experiences you value.
+                Your appreciation for my work is deeply meaningful to me. Every contribution, regardless of size, helps me continue creating the exceptional experiences you value.
               </p>
               <p className="text-brand-earth text-sm">
-                Thank you for being part of our journey and for valuing the beauty and quality we strive to deliver.
+                Thank you for being part of my journey and for valuing the beauty and quality I strive to deliver.
               </p>
             </div>
-          </div>
         </div>
 
         {/* Back to Collections */}
