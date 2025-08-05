@@ -61,21 +61,16 @@ export async function GET(request: Request) {
     }, { status: 429 })
   }
 
-  // Verify purchase (removed expiration check)
+  // Verify purchase (permanent access)
   const { data: purchase, error } = await supabase
     .from('purchases')
-    .select('id, user_id, collection_id, stripe_session_id, created_at, expires_at, amount_paid')
+    .select('id, user_id, collection_id, stripe_session_id, created_at, amount_paid')
     .eq('stripe_session_id', sessionId)
-    .gte('expires_at', new Date().toISOString())
+    .eq('is_active', true)
     .single()
 
   if (error || !purchase) {
     return NextResponse.json({ error: 'Purchase not found or inactive' }, { status: 404 })
-  }
-
-  // Check if purchase is expired
-  if (new Date(purchase.expires_at) < new Date()) {
-    return NextResponse.json({ error: 'Purchase has expired.' }, { status: 403 })
   }
 
   // Get collection data to get video URL

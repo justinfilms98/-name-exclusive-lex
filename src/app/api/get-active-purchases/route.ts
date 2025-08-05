@@ -24,7 +24,6 @@ export async function GET(request: Request) {
         collection_id,
         stripe_session_id,
         created_at,
-        expires_at,
         amount_paid,
         is_active,
         deactivated_at
@@ -52,15 +51,15 @@ export async function GET(request: Request) {
           return {
             ...purchase,
             collection: null,
-            isExpired: new Date(purchase.expires_at) < new Date()
+            isExpired: false // Permanent access - never expires
           }
         }
 
         return {
           ...purchase,
           collection,
-          isExpired: new Date(purchase.expires_at) < new Date(),
-          timeRemaining: Math.max(0, new Date(purchase.expires_at).getTime() - new Date().getTime())
+          isExpired: false, // Permanent access - never expires
+          timeRemaining: null // No timer for permanent access
         }
       })
     )

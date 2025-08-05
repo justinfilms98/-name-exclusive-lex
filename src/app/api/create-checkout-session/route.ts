@@ -149,7 +149,7 @@ export async function POST(request: NextRequest) {
       .select('collection_id')
       .eq('user_id', user.id)
       .in('collection_id', collectionIds)
-      .gte('expires_at', new Date().toISOString());
+      .eq('is_active', true);
 
     if (existingPurchases && existingPurchases.length > 0) {
       const alreadyOwned = existingPurchases.map(p => p.collection_id);
