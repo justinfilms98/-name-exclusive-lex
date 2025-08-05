@@ -12,6 +12,7 @@ export async function GET(request: Request) {
   if (!session_id) return NextResponse.json({ error: 'Missing session_id' }, { status: 400 })
 
   console.log('Looking for purchase with session_id:', session_id);
+  console.log('Collection ID parameter:', collection_id);
 
   // Find active purchases with this session_id and collection_id
   let query = supabase

@@ -33,6 +33,9 @@ function WatchPageContent() {
   const pathname = window.location.pathname;
   const collectionId = pathname.split('/').pop()?.split('?')[0];
   
+  console.log('🔍 DEBUG: Collection ID extracted:', collectionId);
+  console.log('🔍 DEBUG: Full pathname:', pathname);
+  
   console.log('🔍 DEBUG: WatchPageContent loaded with sessionId:', sessionId);
   
   const [purchase, setPurchase] = useState<Purchase | null>(null);
@@ -553,6 +556,7 @@ function WatchPageContent() {
 
   const loadPurchase = async () => {
     try {
+      console.log('🔍 DEBUG: Making API call with sessionId:', sessionId, 'collectionId:', collectionId);
       const res = await fetch(`/api/get-purchase?session_id=${sessionId}&collection_id=${collectionId}`)
       const json = await res.json()
       if (!res.ok) {
