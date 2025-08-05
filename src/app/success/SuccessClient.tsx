@@ -172,7 +172,7 @@ export default function SuccessClient() {
   }
 
   const isMultiplePurchases = purchases.length > 1;
-  const totalPrice = purchases.reduce((sum, purchase) => sum + (purchase.collection.price || 0), 0);
+  const totalPrice = purchases.reduce((sum, purchase) => sum + ((purchase.collection.price || 0) / 100), 0);
   const finalTotal = totalPrice + tipAmount;
 
   return (
@@ -203,7 +203,7 @@ export default function SuccessClient() {
                 </div>
                 <div className="text-right">
                   <span className="text-lex-brown font-semibold">
-                    ${(purchase.collection.price || 0).toFixed(2)}
+                    ${((purchase.collection.price || 0) / 100).toFixed(2)}
                   </span>
                 </div>
               </div>

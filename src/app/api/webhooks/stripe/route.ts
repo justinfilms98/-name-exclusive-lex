@@ -136,7 +136,8 @@ async function processCollectionPurchase(
       collection_id: collectionId,
       stripe_session_id: sessionId,
       created_at: new Date().toISOString(),
-      amount_paid: amountPaid
+      amount_paid: amountPaid,
+      is_active: true
     });
 
   if (error) {
