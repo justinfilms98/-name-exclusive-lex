@@ -58,8 +58,13 @@ function WatchPageContent() {
     
     console.log('🔍 DEBUG: Collection ID extracted:', collectionId);
     console.log('🔍 DEBUG: Full pathname:', pathname);
+    console.log('🔍 DEBUG: Window location:', window.location.href);
+    console.log('🔍 DEBUG: Session ID:', sessionId);
 
-    loadPurchase(collectionId);
+    // Add a small delay to ensure everything is loaded
+    setTimeout(() => {
+      loadPurchase(collectionId);
+    }, 100);
     
     // Get current user
     const getSession = async () => {
@@ -557,7 +562,13 @@ function WatchPageContent() {
   const loadPurchase = async (collectionId: string | undefined) => {
     try {
       console.log('🔍 DEBUG: Making API call with sessionId:', sessionId, 'collectionId:', collectionId);
-      const res = await fetch(`/api/get-purchase?session_id=${sessionId}&collection_id=${collectionId}`)
+      console.log('🔍 DEBUG: Collection ID type:', typeof collectionId);
+      console.log('🔍 DEBUG: Collection ID value:', collectionId);
+      
+      const apiUrl = `/api/get-purchase?session_id=${sessionId}&collection_id=${collectionId}`;
+      console.log('🔍 DEBUG: Full API URL:', apiUrl);
+      
+      const res = await fetch(apiUrl)
       const json = await res.json()
       if (!res.ok) {
         setError(json.error || 'Unknown error')
