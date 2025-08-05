@@ -8,17 +8,24 @@ const supabase = createClient(
 
 export async function GET(request: Request) {
   const session_id = new URL(request.url).searchParams.get('session_id')
+  const collection_id = new URL(request.url).searchParams.get('collection_id')
   if (!session_id) return NextResponse.json({ error: 'Missing session_id' }, { status: 400 })
 
   console.log('Looking for purchase with session_id:', session_id);
 
-  // Find active purchases with this session_id (could be multiple for multi-collection purchases)
-  const { data: purchases, error: anyError } = await supabase
+  // Find active purchases with this session_id and collection_id
+  let query = supabase
     .from('purchases')
     .select('id, user_id, collection_id, stripe_session_id, created_at, amount_paid')
     .eq('stripe_session_id', session_id)
     .eq('is_active', true)
-    .order('created_at', { ascending: true })
+  
+  // If collection_id is provided, filter by it
+  if (collection_id) {
+    query = query.eq('collection_id', collection_id)
+  }
+  
+  const { data: purchases, error: anyError } = await query.order('created_at', { ascending: true })
 
   if (anyError) {
     console.error('No purchases found with session_id:', session_id);

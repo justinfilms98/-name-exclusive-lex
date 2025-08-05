@@ -29,6 +29,10 @@ function WatchPageContent() {
   const sessionId = searchParams?.get('session_id');
   const { addToast } = useToast();
   
+  // Extract collection ID from URL path
+  const pathname = window.location.pathname;
+  const collectionId = pathname.split('/').pop()?.split('?')[0];
+  
   console.log('🔍 DEBUG: WatchPageContent loaded with sessionId:', sessionId);
   
   const [purchase, setPurchase] = useState<Purchase | null>(null);
@@ -549,7 +553,7 @@ function WatchPageContent() {
 
   const loadPurchase = async () => {
     try {
-      const res = await fetch(`/api/get-purchase?session_id=${sessionId}`)
+      const res = await fetch(`/api/get-purchase?session_id=${sessionId}&collection_id=${collectionId}`)
       const json = await res.json()
       if (!res.ok) {
         setError(json.error || 'Unknown error')
