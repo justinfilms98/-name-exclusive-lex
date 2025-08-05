@@ -77,8 +77,19 @@ export default function WatchPage() {
         // Set permanent access (no expiration)
         setTimeRemaining(0); // No timer needed for permanent access
 
-        // Get signed URLs for content
-        const { data: videoSignedUrl, error: videoError } = await getSignedUrl('media', collectionData.video_path, 3600);
+        // Get protected video URL through our API
+        const videoRes = await fetch(`/api/protected-video?session_id=${accessData.stripe_session_id}`);
+        const videoJson = await videoRes.json();
+        
+        if (!videoRes.ok || !videoJson.videoUrl) {
+          console.error('Failed to get protected video URL:', videoJson);
+          setError('Failed to load video content');
+          setLoading(false);
+          return;
+        }
+
+        // Get signed URL for the video path
+        const { data: videoSignedUrl, error: videoError } = await getSignedUrl('media', videoJson.videoUrl, 3600);
         if (videoError || !videoSignedUrl) {
           setError('Failed to load video content');
           setLoading(false);
