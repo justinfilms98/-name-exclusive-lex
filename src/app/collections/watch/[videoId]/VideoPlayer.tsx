@@ -18,6 +18,7 @@ export default function VideoPlayer({ src, title, expiresAt }: VideoPlayerProps)
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [showControls, setShowControls] = useState(true);
+  const [error, setError] = useState<string>('');
   const videoRef = useRef<HTMLVideoElement>(null);
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -60,9 +61,27 @@ export default function VideoPlayer({ src, title, expiresAt }: VideoPlayerProps)
     }
   }, [user, router]);
 
+  // Video loading timeout
+  useEffect(() => {
+    if (src && !videoLoaded) {
+      const timeout = setTimeout(() => {
+        console.log('Video loading timeout - forcing load state');
+        setVideoLoaded(true);
+      }, 10000); // 10 second timeout
+
+      return () => clearTimeout(timeout);
+    }
+  }, [src, videoLoaded]);
+
   // Handle video events
   const handleVideoLoad = () => {
+    console.log('Video loaded successfully');
     setVideoLoaded(true);
+  };
+
+  const handleVideoError = (e: any) => {
+    console.error('Video loading error:', e);
+    setError('Failed to load video content. Please try refreshing the page.');
   };
 
   const handlePlay = () => {
@@ -180,11 +199,13 @@ export default function VideoPlayer({ src, title, expiresAt }: VideoPlayerProps)
             className="w-full h-screen object-contain"
             onContextMenu={(e) => e.preventDefault()}
             onLoadedData={handleVideoLoad}
+            onError={handleVideoError}
             onPlay={handlePlay}
             onPause={handlePause}
             onTimeUpdate={handleTimeUpdate}
             onLoadedMetadata={handleLoadedMetadata}
             onEnded={() => setIsPlaying(false)}
+            preload="metadata"
             style={{
               WebkitUserSelect: 'none',
               MozUserSelect: 'none',
@@ -196,11 +217,32 @@ export default function VideoPlayer({ src, title, expiresAt }: VideoPlayerProps)
           </video>
 
           {/* Loading overlay */}
-          {!videoLoaded && (
+          {!videoLoaded && !error && (
             <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-75 z-10">
               <div className="text-center text-white">
                 <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white mx-auto mb-4"></div>
                 <p>Loading video...</p>
+              </div>
+            </div>
+          )}
+
+          {/* Error overlay */}
+          {error && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-75 z-10">
+              <div className="text-center text-white">
+                <div className="text-red-400 mb-4">
+                  <svg className="w-12 h-12 mx-auto" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                  </svg>
+                </div>
+                <p className="text-lg mb-2">Video Loading Error</p>
+                <p className="text-sm text-gray-300 mb-4">{error}</p>
+                <button
+                  onClick={() => window.location.reload()}
+                  className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-colors"
+                >
+                  Refresh Page
+                </button>
               </div>
             </div>
           )}

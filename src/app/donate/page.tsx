@@ -126,9 +126,9 @@ export default function DonatePage() {
           <div className="w-20 h-20 bg-brand-khaki/20 rounded-full flex items-center justify-center mx-auto mb-6">
             <Heart className="w-10 h-10 text-brand-khaki" />
           </div>
-          <h1 className="text-4xl font-serif text-brand-pine mb-4">Support Our Creators</h1>
+          <h1 className="text-4xl font-serif text-brand-pine mb-4">Thank You</h1>
           <p className="text-xl text-brand-earth max-w-2xl mx-auto">
-            Your generous donations help us continue creating amazing luxury content and support our talented creators.
+            Your appreciation for our work means everything to us. Every contribution helps us continue creating the luxury experiences you value.
           </p>
         </div>
 
@@ -136,7 +136,7 @@ export default function DonatePage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
           {/* Donation Options */}
           <div className="card-glass p-8">
-            <h2 className="text-2xl font-serif text-brand-pine mb-6">Choose Your Donation</h2>
+            <h2 className="text-2xl font-serif text-brand-pine mb-6">Express Your Appreciation</h2>
             
             {/* Preset Amounts */}
             <div className="grid grid-cols-2 gap-4 mb-6">
@@ -152,10 +152,10 @@ export default function DonatePage() {
                 >
                   <div className="text-2xl font-bold">${amount}</div>
                   <div className="text-sm opacity-75">
-                    {amount === 5 && 'Coffee & Support'}
-                    {amount === 10 && 'Lunch & Love'}
-                    {amount === 25 && 'Dinner & Dreams'}
-                    {amount === 50 && 'VIP Support'}
+                    {amount === 5 && 'A thoughtful gesture'}
+                    {amount === 10 && 'Your appreciation'}
+                    {amount === 25 && 'A generous gift'}
+                    {amount === 50 && 'Your valued support'}
                   </div>
                 </button>
               ))}
@@ -182,7 +182,7 @@ export default function DonatePage() {
             {getDonationAmount() > 0 && (
               <div className="mb-6 p-4 bg-brand-khaki/10 border border-brand-khaki/20 rounded-lg">
                 <div className="flex justify-between items-center">
-                  <span className="text-brand-pine font-semibold">Your Donation</span>
+                  <span className="text-brand-pine font-semibold">Your Gift</span>
                   <span className="text-2xl font-bold text-brand-khaki">${getDonationAmount().toFixed(2)}</span>
                 </div>
               </div>
@@ -232,15 +232,15 @@ export default function DonatePage() {
           {/* Benefits & Info */}
           <div className="space-y-6">
             <div className="card-glass p-6">
-              <h3 className="text-xl font-serif text-brand-pine mb-4">Why Donate?</h3>
+              <h3 className="text-xl font-serif text-brand-pine mb-4">Your Impact</h3>
               <div className="space-y-4">
                 <div className="flex items-start space-x-3">
                   <div className="w-6 h-6 bg-brand-khaki rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
                     <span className="text-white text-xs font-bold">1</span>
                   </div>
                   <div>
-                    <h4 className="font-semibold text-brand-pine">Support Creators</h4>
-                    <p className="text-sm text-brand-earth">Help our talented creators continue producing high-quality luxury content.</p>
+                    <h4 className="font-semibold text-brand-pine">Quality</h4>
+                    <p className="text-sm text-brand-earth">Your appreciation enables us to maintain the highest standards in everything we create.</p>
                   </div>
                 </div>
                 
@@ -249,8 +249,8 @@ export default function DonatePage() {
                     <span className="text-white text-xs font-bold">2</span>
                   </div>
                   <div>
-                    <h4 className="font-semibold text-brand-pine">Better Content</h4>
-                    <p className="text-sm text-brand-earth">Your donations directly fund better equipment, locations, and production quality.</p>
+                    <h4 className="font-semibold text-brand-pine">Excellence</h4>
+                    <p className="text-sm text-brand-earth">Your support allows us to invest in the finest equipment and locations.</p>
                   </div>
                 </div>
                 
@@ -259,46 +259,46 @@ export default function DonatePage() {
                     <span className="text-white text-xs font-bold">3</span>
                   </div>
                   <div>
-                    <h4 className="font-semibold text-brand-pine">Community</h4>
-                    <p className="text-sm text-brand-earth">Join our community of supporters who value quality and creativity.</p>
+                    <h4 className="font-semibold text-brand-pine">Connection</h4>
+                    <p className="text-sm text-brand-earth">You become part of a community that values beauty, quality, and authentic experiences.</p>
                   </div>
                 </div>
               </div>
             </div>
 
             <div className="card-glass p-6">
-              <h3 className="text-xl font-serif text-brand-pine mb-4">What Your Donation Supports</h3>
+              <h3 className="text-xl font-serif text-brand-pine mb-4">How We Use Your Gift</h3>
               <div className="space-y-3 text-sm text-brand-earth">
                 <div className="flex items-center space-x-2">
                   <div className="w-2 h-2 bg-brand-khaki rounded-full"></div>
-                  <span>Professional photography and videography equipment</span>
+                  <span>Premium equipment and technology</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <div className="w-2 h-2 bg-brand-khaki rounded-full"></div>
-                  <span>Exclusive locations and premium venues</span>
+                  <span>Exclusive and beautiful locations</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <div className="w-2 h-2 bg-brand-khaki rounded-full"></div>
-                  <span>High-quality editing and post-production</span>
+                  <span>Meticulous editing and refinement</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <div className="w-2 h-2 bg-brand-khaki rounded-full"></div>
-                  <span>Creator compensation and fair wages</span>
+                  <span>Supporting our talented team</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <div className="w-2 h-2 bg-brand-khaki rounded-full"></div>
-                  <span>Platform development and security</span>
+                  <span>Maintaining our platform's excellence</span>
                 </div>
               </div>
             </div>
 
             <div className="card-glass p-6">
-              <h3 className="text-xl font-serif text-brand-pine mb-4">Thank You</h3>
+              <h3 className="text-xl font-serif text-brand-pine mb-4">Gratitude</h3>
               <p className="text-brand-earth mb-4">
-                Every donation, no matter the size, makes a real difference in our ability to create the luxury content you love.
+                Your appreciation for our work is deeply meaningful to us. Every contribution, regardless of size, helps us continue creating the exceptional experiences you value.
               </p>
               <p className="text-brand-earth text-sm">
-                Your support helps us maintain the highest standards of quality and creativity in everything we produce.
+                Thank you for being part of our journey and for valuing the beauty and quality we strive to deliver.
               </p>
             </div>
           </div>
