@@ -473,38 +473,56 @@ export default function WatchPage() {
 
       {/* Main Content */}
       <div className="pt-20">
-        {/* Video Player */}
-        <div 
-          className="relative bg-black"
-          onMouseMove={handleMouseMove}
-          onMouseLeave={() => {
-            if (isPlaying) {
-              setShowControls(false);
-            }
-          }}
-        >
-          <video
-            ref={videoRef}
-            src={videoUrl}
-            className="w-full h-screen object-contain"
-            onContextMenu={(e) => e.preventDefault()}
-            onLoadedData={handleVideoLoad}
-            onError={handleVideoError}
-            onPlay={handlePlay}
-            onPause={handlePause}
-            onTimeUpdate={handleTimeUpdate}
-            onLoadedMetadata={handleLoadedMetadata}
-            onEnded={() => setIsPlaying(false)}
-            preload="metadata"
-            style={{
-              WebkitUserSelect: 'none',
-              MozUserSelect: 'none',
-              msUserSelect: 'none',
-              userSelect: 'none',
-            }}
-          >
-            Your browser does not support the video tag.
-          </video>
+                 {/* Video Player */}
+         <div 
+           className="relative bg-black"
+           onMouseMove={handleMouseMove}
+           onMouseLeave={() => {
+             if (isPlaying) {
+               setShowControls(false);
+             }
+           }}
+         >
+           {/* Debug info */}
+           <div className="absolute top-4 left-4 z-20 bg-black bg-opacity-75 text-white p-2 rounded text-xs">
+             <div>Video URL: {videoUrl ? 'Set' : 'Not set'}</div>
+             <div>Video Element: {videoRef.current ? 'Rendered' : 'Not rendered'}</div>
+             <div>Video Loaded: {videoLoaded ? 'Yes' : 'No'}</div>
+             <div>Content Ready: {contentReady ? 'Yes' : 'No'}</div>
+           </div>
+                     <video
+             ref={videoRef}
+             src={videoUrl}
+             className="w-full h-screen object-contain"
+             onContextMenu={(e) => e.preventDefault()}
+             onError={handleVideoError}
+             onPlay={handlePlay}
+             onPause={handlePause}
+             onTimeUpdate={handleTimeUpdate}
+             onLoadedMetadata={handleLoadedMetadata}
+             onEnded={() => setIsPlaying(false)}
+             onLoadStart={() => console.log('🔍 DEBUG: Video load start event')}
+             onCanPlay={() => console.log('🔍 DEBUG: Video can play event')}
+             onCanPlayThrough={() => console.log('🔍 DEBUG: Video can play through event')}
+             onProgress={() => console.log('🔍 DEBUG: Video progress event')}
+             onSuspend={() => console.log('🔍 DEBUG: Video suspend event')}
+             onAbort={() => console.log('🔍 DEBUG: Video abort event')}
+             onEmptied={() => console.log('🔍 DEBUG: Video emptied event')}
+             onStalled={() => console.log('🔍 DEBUG: Video stalled event')}
+             onWaiting={() => console.log('🔍 DEBUG: Video waiting event')}
+             preload="metadata"
+             controls={false}
+             playsInline
+             muted
+             style={{
+               WebkitUserSelect: 'none',
+               MozUserSelect: 'none',
+               msUserSelect: 'none',
+               userSelect: 'none',
+             }}
+           >
+             Your browser does not support the video tag.
+           </video>
 
           {/* Loading overlay */}
           {!videoLoaded && (
