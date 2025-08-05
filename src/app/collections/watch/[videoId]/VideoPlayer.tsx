@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabase";
 interface VideoPlayerProps {
   src: string;
   title: string;
-  expiresAt?: string;
+  expiresAt?: string; // Optional for backward compatibility
 }
 
 export default function VideoPlayer({ src, title, expiresAt }: VideoPlayerProps) {
@@ -41,19 +41,13 @@ export default function VideoPlayer({ src, title, expiresAt }: VideoPlayerProps)
     return () => subscription.unsubscribe();
   }, []);
 
+  // Permanent access - no expiration timer needed
   useEffect(() => {
-    if (!expiresAt) return;
-    const interval = setInterval(() => {
-      const ms = new Date(expiresAt).getTime() - Date.now();
-      if (ms <= 0) {
-        setTimeLeft(0);
-        router.push("/collections");
-      } else {
-        setTimeLeft(Math.ceil(ms / 1000));
-      }
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [expiresAt, router]);
+    if (expiresAt) {
+      // For backward compatibility, but no timer needed
+      setTimeLeft(null);
+    }
+  }, [expiresAt]);
 
   useEffect(() => {
     if (!user) {
@@ -167,22 +161,20 @@ export default function VideoPlayer({ src, title, expiresAt }: VideoPlayerProps)
 
   return (
     <div className="min-h-screen bg-black">
-      {/* Header with timer */}
-      {timeLeft !== null && timeLeft > 0 && (
-        <div className="bg-black bg-opacity-75 text-white p-4 flex justify-between items-center fixed top-0 left-0 right-0 z-50">
-          <div>
-            <h1 className="text-lg font-semibold">{title}</h1>
-            <p className="text-sm text-gray-300">Exclusive Content</p>
-          </div>
-          <div className="text-right">
-            <p className="text-sm text-gray-300">Time Remaining</p>
-            <p className="text-lg font-mono text-red-400">{formatTimeLeft(timeLeft)}</p>
-          </div>
+      {/* Header for permanent access */}
+      <div className="bg-black bg-opacity-75 text-white p-4 flex justify-between items-center fixed top-0 left-0 right-0 z-50">
+        <div>
+          <h1 className="text-lg font-semibold">{title}</h1>
+          <p className="text-sm text-gray-300">Exclusive Content</p>
         </div>
-      )}
+        <div className="text-right">
+          <p className="text-sm text-gray-300">Permanent Access</p>
+          <p className="text-lg font-mono text-green-400">∞</p>
+        </div>
+      </div>
 
       {/* Main Content */}
-      <div className={timeLeft !== null && timeLeft > 0 ? "pt-20" : ""}>
+      <div className="pt-20">
         {/* Video Player */}
         <div 
           className="relative bg-black"

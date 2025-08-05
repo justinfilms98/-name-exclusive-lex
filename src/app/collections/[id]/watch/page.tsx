@@ -74,17 +74,8 @@ export default function WatchPage() {
 
         setHasAccess(true);
 
-        // Calculate time remaining
-        const expiresAt = new Date(accessData.expires_at);
-        const now = new Date();
-        const remaining = Math.max(0, expiresAt.getTime() - now.getTime());
-        setTimeRemaining(Math.floor(remaining / 1000));
-
-        if (remaining <= 0) {
-          setError('Your access to this content has expired.');
-          setLoading(false);
-          return;
-        }
+        // Set permanent access (no expiration)
+        setTimeRemaining(0); // No timer needed for permanent access
 
         // Get signed URLs for content
         const { data: videoSignedUrl, error: videoError } = await getSignedUrl('media', collectionData.video_path, 3600);
