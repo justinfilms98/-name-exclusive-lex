@@ -453,9 +453,24 @@ export default function WatchPage() {
 
   console.log('Rendering watch page - photoUrls.length:', photoUrls.length);
   console.log('Collection photo_paths:', collection?.photo_paths);
-  console.log('Video URL being rendered:', videoUrl);
-  console.log('Video loaded state:', videoLoaded);
-  console.log('Content ready state:', contentReady);
+           console.log('Video URL being rendered:', videoUrl);
+         console.log('Video loaded state:', videoLoaded);
+         console.log('Content ready state:', contentReady);
+         
+         // Test if video element is actually rendered
+         setTimeout(() => {
+           console.log('🔍 DEBUG: Video element check after render:');
+           console.log('Video ref exists:', !!videoRef.current);
+           console.log('Video element src:', videoRef.current?.src);
+           console.log('Video element readyState:', videoRef.current?.readyState);
+           console.log('Video element networkState:', videoRef.current?.networkState);
+           console.log('Video element error:', videoRef.current?.error);
+           console.log('Video element duration:', videoRef.current?.duration);
+           console.log('Video element videoWidth:', videoRef.current?.videoWidth);
+           console.log('Video element videoHeight:', videoRef.current?.videoHeight);
+           console.log('Video element paused:', videoRef.current?.paused);
+           console.log('Video element ended:', videoRef.current?.ended);
+         }, 1000);
 
   return (
     <div className="min-h-screen bg-black">
@@ -489,6 +504,9 @@ export default function WatchPage() {
              <div>Video Element: {videoRef.current ? 'Rendered' : 'Not rendered'}</div>
              <div>Video Loaded: {videoLoaded ? 'Yes' : 'No'}</div>
              <div>Content Ready: {contentReady ? 'Yes' : 'No'}</div>
+             <div>Video Dimensions: {videoRef.current ? `${videoRef.current.offsetWidth}x${videoRef.current.offsetHeight}` : 'N/A'}</div>
+             <div>Video Display: {videoRef.current ? videoRef.current.style.display : 'N/A'}</div>
+             <div>Video Visibility: {videoRef.current ? videoRef.current.style.visibility : 'N/A'}</div>
            </div>
                      <video
              ref={videoRef}
