@@ -181,9 +181,27 @@ export default function WatchPage() {
     }
   }, [timeRemaining, timerStarted]);
 
+  // Video loading timeout
+  useEffect(() => {
+    if (videoUrl && !videoLoaded) {
+      const timeout = setTimeout(() => {
+        console.log('Video loading timeout - forcing load state');
+        setVideoLoaded(true);
+      }, 10000); // 10 second timeout
+
+      return () => clearTimeout(timeout);
+    }
+  }, [videoUrl, videoLoaded]);
+
   // Handle video events
   const handleVideoLoad = () => {
+    console.log('Video loaded successfully');
     setVideoLoaded(true);
+  };
+
+  const handleVideoError = (e: any) => {
+    console.error('Video loading error:', e);
+    setError('Failed to load video content. Please try refreshing the page.');
   };
 
   const handlePlay = () => {
@@ -416,11 +434,13 @@ export default function WatchPage() {
             className="w-full h-screen object-contain"
             onContextMenu={(e) => e.preventDefault()}
             onLoadedData={handleVideoLoad}
+            onError={handleVideoError}
             onPlay={handlePlay}
             onPause={handlePause}
             onTimeUpdate={handleTimeUpdate}
             onLoadedMetadata={handleLoadedMetadata}
             onEnded={() => setIsPlaying(false)}
+            preload="metadata"
             style={{
               WebkitUserSelect: 'none',
               MozUserSelect: 'none',

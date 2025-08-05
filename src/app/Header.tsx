@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { supabase, signInWithGoogle, signOut } from '@/lib/supabase';
 import { isAdmin } from '@/lib/auth';
-import { User, LogOut, ShoppingCart, Menu, X } from 'lucide-react';
+import { User, LogOut, ShoppingCart, Menu, X, DollarSign } from 'lucide-react';
 
 export default function Header() {
   const [user, setUser] = useState<any>(null);
@@ -160,6 +160,15 @@ export default function Header() {
                 <div className="w-5 h-5 sm:w-6 sm:h-6 spinner"></div>
               ) : user ? (
                 <>
+                  {/* Donation Icon */}
+                  <Link 
+                    href="/donate" 
+                    className="p-1.5 sm:p-2 text-earth hover:text-brand-khaki transition-colors"
+                    title="Support Our Creators"
+                  >
+                    <DollarSign className="w-4 h-4 sm:w-5 sm:h-5" />
+                  </Link>
+
                   {/* Cart Icon */}
                   <Link 
                     href="/cart" 
@@ -264,6 +273,14 @@ export default function Header() {
                         onClick={closeMobileMenu}
                       >
                         My Account
+                      </Link>
+
+                      <Link 
+                        href="/donate" 
+                        className="block text-earth hover:text-brand-khaki transition-colors font-medium py-3 px-2 rounded-lg hover:bg-blanket/30"
+                        onClick={closeMobileMenu}
+                      >
+                        Support Creators
                       </Link>
 
                       <Link 

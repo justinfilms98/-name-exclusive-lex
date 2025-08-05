@@ -321,7 +321,7 @@ export default function CartPage() {
           <div className="text-center py-16">
             <ShoppingCart className="w-16 h-16 text-brand-sage mx-auto mb-4" />
             <h1 className="text-3xl font-serif text-brand-pine mb-4">Your Cart is Empty</h1>
-            <p className="text-brand-earth mb-8">Add some amazing content to get started!</p>
+            <p className="text-brand-earth mb-8">Add some luxury content to get started!</p>
             <Link
               href="/collections"
               className="btn-primary inline-flex items-center space-x-2"
@@ -333,7 +333,7 @@ export default function CartPage() {
 
           {/* Suggested Collections */}
           <div className="mt-16">
-            <h2 className="text-2xl font-serif text-brand-pine mb-8 text-center">Discover Amazing Content</h2>
+            <h2 className="text-2xl font-serif text-brand-pine mb-8 text-center">Discover Luxury Content</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {getSuggestedCollections().map((collection) => (
                 <div key={collection.id} className="card-glass p-6">

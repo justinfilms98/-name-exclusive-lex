@@ -1,98 +1,185 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
-import { supabase } from '@/lib/supabase';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-05-28.basil',
 });
 
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 export async function POST(request: NextRequest) {
+  const body = await request.text();
+  const signature = request.headers.get('stripe-signature');
+
+  if (!signature) {
+    return NextResponse.json(
+      { error: 'Missing stripe signature' },
+      { status: 400 }
+    );
+  }
+
+  let event: Stripe.Event;
+
   try {
-    const body = await request.text();
-    const signature = request.headers.get('stripe-signature')!;
+    event = stripe.webhooks.constructEvent(
+      body,
+      signature,
+      process.env.STRIPE_WEBHOOK_SECRET!
+    );
+  } catch (err) {
+    console.error('Webhook signature verification failed:', err);
+    return NextResponse.json(
+      { error: 'Invalid signature' },
+      { status: 400 }
+    );
+  }
 
-    let event: Stripe.Event;
-
-    try {
-      event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
-    } catch (err: any) {
-      console.error('Webhook signature verification failed:', err.message);
-      return NextResponse.json(
-        { error: 'Invalid signature' },
-        { status: 400 }
-      );
-    }
-
-    if (event.type === 'checkout.session.completed') {
-      const session = event.data.object as Stripe.Checkout.Session;
+  try {
+    switch (event.type) {
+      case 'checkout.session.completed':
+        await handleCheckoutSessionCompleted(event.data.object as Stripe.Checkout.Session);
+        break;
       
-      const { collectionId, userId, duration } = session.metadata!;
-      
-      if (!collectionId || !userId || !duration) {
-        console.error('Missing metadata in webhook:', session.metadata);
-        return NextResponse.json(
-          { error: 'Missing metadata' },
-          { status: 400 }
-        );
-      }
-
-      // Calculate expiration time
-      const now = new Date();
-      const expiresAt = new Date(now.getTime() + parseInt(duration) * 1000);
-
-      // Create purchase record
-      const { error: purchaseError } = await supabase
-        .from('purchases')
-        .insert([
-          {
-            user_id: userId,
-            collection_id: collectionId,
-            stripe_session_id: session.id,
-            amount_paid: (session.amount_total || 0) / 100, // Convert from cents
-            expires_at: expiresAt.toISOString(),
-          },
-        ]);
-
-      if (purchaseError) {
-        console.error('Failed to create purchase record:', purchaseError);
-        return NextResponse.json(
-          { error: 'Failed to create purchase record' },
-          { status: 500 }
-        );
-      }
-
-      // TODO: Send WhatsApp notification
-      try {
-        await fetch(`${request.headers.get('origin')}/api/send-whatsapp`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            type: 'purchase_confirmation',
-            userId,
-            collectionId,
-            expiresAt: expiresAt.toISOString(),
-          }),
-        });
-      } catch (whatsappError) {
-        console.error('WhatsApp notification failed:', whatsappError);
-        // Don't fail the webhook for notification errors
-      }
-
-      console.log('Purchase completed successfully:', {
-        userId,
-        collectionId,
-        sessionId: session.id,
-      });
+      default:
+        console.log(`Unhandled event type: ${event.type}`);
     }
 
     return NextResponse.json({ received: true });
-  } catch (error: any) {
-    console.error('Webhook error:', error);
+  } catch (error) {
+    console.error('Webhook handler error:', error);
     return NextResponse.json(
       { error: 'Webhook handler failed' },
       { status: 500 }
     );
+  }
+}
+
+async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) {
+  const { user_id, collection_ids, collection_count } = session.metadata || {};
+  
+  if (!user_id) {
+    console.error('Missing user_id in checkout session metadata:', session.id);
+    return;
+  }
+
+  // Handle multiple collections
+  if (collection_ids && collection_count) {
+    try {
+      const collectionIds = JSON.parse(collection_ids);
+      const count = parseInt(collection_count);
+      
+      console.log(`Processing ${count} collections for user ${user_id}:`, collectionIds);
+      
+      // Process each collection
+      for (const collectionId of collectionIds) {
+        await processCollectionPurchase(user_id, collectionId, session.id, session.amount_total);
+      }
+      
+      console.log(`Successfully processed ${count} collections for user ${user_id}`);
+    } catch (error) {
+      console.error('Error processing multiple collections:', error);
+      throw error;
+    }
+  }
+  // Handle single collection (backward compatibility)
+  else if (session.metadata?.collection_id) {
+    const collectionId = session.metadata.collection_id;
+    await processCollectionPurchase(user_id, collectionId, session.id, session.amount_total);
+  }
+  // Fallback: try to get collection from line items
+  else {
+    console.log('No collection metadata found, attempting to process from line items');
+    await processFromLineItems(session);
+  }
+}
+
+async function processCollectionPurchase(
+  userId: string, 
+  collectionId: string, 
+  sessionId: string, 
+  amountTotal: number | null
+) {
+  console.log(`Processing collection ${collectionId} for user ${userId}`);
+  
+  // Check if purchase record already exists
+  const { data: existingPurchase } = await supabase
+    .from('purchases')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('collection_id', collectionId)
+    .eq('stripe_session_id', sessionId)
+    .single();
+
+  if (existingPurchase) {
+    console.log(`Purchase record already exists for user ${userId}, collection ${collectionId}`);
+    return;
+  }
+
+  // Get collection details to calculate individual price
+  const { data: collection } = await supabase
+    .from('collections')
+    .select('price')
+    .eq('id', collectionId)
+    .single();
+
+  const amountPaid = collection?.price || (amountTotal ? amountTotal / 100 : 0);
+
+  // Create new purchase record
+  const { error } = await supabase
+    .from('purchases')
+    .insert({
+      user_id: userId,
+      collection_id: collectionId,
+      stripe_session_id: sessionId,
+      created_at: new Date().toISOString(),
+      amount_paid: amountPaid
+    });
+
+  if (error) {
+    console.error('Failed to create purchase record:', error);
+    throw error;
+  }
+
+  console.log(`New purchase created for user ${userId}, collection ${collectionId}`);
+}
+
+async function processFromLineItems(session: Stripe.Checkout.Session) {
+  console.log('Processing from line items as fallback');
+  
+  if (!session.line_items?.data) {
+    console.error('No line items found in session');
+    return;
+  }
+
+  const userId = session.metadata?.user_id;
+  if (!userId) {
+    console.error('No user_id found in session metadata');
+    return;
+  }
+
+  // This is a fallback method - in practice, we should always have metadata
+  // But this provides backward compatibility
+  for (const item of session.line_items.data) {
+    if (item.price?.product) {
+      // Try to find collection by Stripe product ID
+      const { data: collection } = await supabase
+        .from('collections')
+        .select('id, price')
+        .eq('stripe_product_id', item.price.product)
+        .single();
+
+      if (collection) {
+        await processCollectionPurchase(
+          userId, 
+          collection.id, 
+          session.id, 
+          session.amount_total
+        );
+      }
+    }
   }
 } 
