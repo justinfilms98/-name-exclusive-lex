@@ -95,7 +95,7 @@ export default function CollectionsPage() {
 
   const addToCart = async (collection: Collection) => {
     if (userPurchases.includes(collection.id)) {
-      router.push(`/watch/${collection.id}`);
+      router.push(`/collections/${collection.id}/watch`);
       return;
     }
 

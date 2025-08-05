@@ -28,6 +28,12 @@ export async function GET(request: Request) {
   
   const { data: purchases, error: anyError } = await query.order('created_at', { ascending: true })
 
+  console.log('Found purchases count:', purchases?.length || 0);
+  if (purchases && purchases.length > 0) {
+    console.log('Purchase IDs:', purchases.map(p => p.id));
+    console.log('Collection IDs:', purchases.map(p => p.collection_id));
+  }
+
   if (anyError) {
     console.error('No purchases found with session_id:', session_id);
     console.error('Error details:', anyError);
