@@ -5,8 +5,7 @@
 UPDATE purchases 
 SET 
   status = 'completed',
-  is_active = true,
-  updated_at = NOW()
+  is_active = true
 WHERE 
   status = 'pending' 
   AND stripe_session_id IS NOT NULL;
@@ -28,10 +27,9 @@ SELECT
   status,
   is_active,
   amount_paid,
-  created_at,
-  updated_at
+  created_at
 FROM purchases 
 WHERE status = 'completed' 
-  AND updated_at >= NOW() - INTERVAL '1 hour'
-ORDER BY updated_at DESC
+  AND created_at >= NOW() - INTERVAL '1 hour'
+ORDER BY created_at DESC
 LIMIT 10; 
