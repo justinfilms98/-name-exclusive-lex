@@ -30,6 +30,9 @@ function WatchPageContent() {
   const { addToast } = useToast();
   
   console.log('🔍 DEBUG: WatchPageContent loaded with sessionId:', sessionId);
+  console.log('🔍 DEBUG: IMMEDIATE - Component loaded!');
+  console.log('🔍 DEBUG: IMMEDIATE - URL:', window.location.href);
+  console.log('🔍 DEBUG: IMMEDIATE - Pathname:', window.location.pathname);
   
   const [purchase, setPurchase] = useState<Purchase | null>(null);
   const [loading, setLoading] = useState(true);
@@ -52,17 +55,29 @@ function WatchPageContent() {
       return;
     }
 
-    // Extract collection ID from URL path
+    // Extract collection ID from URL path - FIXED LOGIC
     const pathname = window.location.pathname;
-    const collectionId = pathname.split('/').pop()?.split('?')[0];
-    
-    console.log('🔍 DEBUG: Collection ID extracted:', collectionId);
     console.log('🔍 DEBUG: Full pathname:', pathname);
     console.log('🔍 DEBUG: Window location:', window.location.href);
     console.log('🔍 DEBUG: Session ID:', sessionId);
+    
+    // Improved collection ID extraction
+    const pathParts = pathname.split('/');
+    console.log('🔍 DEBUG: Path parts:', pathParts);
+    
+    // Find the collection ID (should be the last part before any query params)
+    let collectionId = pathParts[pathParts.length - 1];
+    if (collectionId && collectionId.includes('?')) {
+      collectionId = collectionId.split('?')[0];
+    }
+    
+    console.log('🔍 DEBUG: Collection ID extracted:', collectionId);
+    console.log('🔍 DEBUG: Collection ID type:', typeof collectionId);
+    console.log('🔍 DEBUG: Collection ID length:', collectionId?.length);
 
     // Add a small delay to ensure everything is loaded
     setTimeout(() => {
+      console.log('🔍 DEBUG: About to call loadPurchase with collectionId:', collectionId);
       loadPurchase(collectionId);
     }, 100);
     
