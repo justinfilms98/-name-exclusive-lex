@@ -229,15 +229,27 @@ export default function WatchPage() {
           currentSrc: videoRef.current?.currentSrc
         });
         setVideoLoaded(true);
-      }, 10000); // 10 second timeout
+      }, 5000); // Reduced to 5 seconds
 
       return () => clearTimeout(timeout);
     }
   }, [videoUrl, videoLoaded]);
 
+  // Handle video URL changes
+  useEffect(() => {
+    if (videoUrl && videoRef.current) {
+      console.log('🔍 DEBUG: Video URL changed, updating video element');
+      console.log('New video URL:', videoUrl);
+      
+      // Force the video element to reload
+      videoRef.current.load();
+      setVideoLoaded(false);
+    }
+  }, [videoUrl]);
+
   // Handle video events
   const handleVideoLoad = () => {
-    console.log('Video loaded successfully');
+    console.log('✅ Video loaded successfully');
     console.log('Video element:', videoRef.current);
     console.log('Video src:', videoRef.current?.src);
     console.log('Video readyState:', videoRef.current?.readyState);
@@ -246,7 +258,7 @@ export default function WatchPage() {
   };
 
   const handleVideoError = (e: any) => {
-    console.error('Video loading error:', e);
+    console.error('❌ Video loading error:', e);
     console.error('Video error details:', {
       error: videoRef.current?.error,
       networkState: videoRef.current?.networkState,
@@ -500,50 +512,44 @@ export default function WatchPage() {
          >
            {/* Debug info */}
            <div className="absolute top-4 left-4 z-20 bg-black bg-opacity-75 text-white p-2 rounded text-xs">
-             <div>Video URL: {videoUrl ? 'Set' : 'Not set'}</div>
-             <div>Video Element: {videoRef.current ? 'Rendered' : 'Not rendered'}</div>
-             <div>Video Loaded: {videoLoaded ? 'Yes' : 'No'}</div>
-             <div>Content Ready: {contentReady ? 'Yes' : 'No'}</div>
-             <div>Video Dimensions: {videoRef.current ? `${videoRef.current.offsetWidth}x${videoRef.current.offsetHeight}` : 'N/A'}</div>
-             <div>Video Display: {videoRef.current ? videoRef.current.style.display : 'N/A'}</div>
-             <div>Video Visibility: {videoRef.current ? videoRef.current.style.visibility : 'N/A'}</div>
-           </div>
-                     <video
-             ref={videoRef}
-             key={videoUrl} // Force re-render when URL changes
-             src={videoUrl}
-             className="w-full h-screen object-contain"
-             onContextMenu={(e) => e.preventDefault()}
-             onError={handleVideoError}
-             onPlay={handlePlay}
-             onPause={handlePause}
-             onTimeUpdate={handleTimeUpdate}
-             onLoadedMetadata={handleLoadedMetadata}
-             onLoadedData={handleVideoLoad}
-             onEnded={() => setIsPlaying(false)}
-             onLoadStart={() => console.log('🔍 DEBUG: Video load start event')}
-             onCanPlay={() => console.log('🔍 DEBUG: Video can play event')}
-             onCanPlayThrough={() => console.log('🔍 DEBUG: Video can play through event')}
-             onProgress={() => console.log('🔍 DEBUG: Video progress event')}
-             onSuspend={() => console.log('🔍 DEBUG: Video suspend event')}
-             onAbort={() => console.log('🔍 DEBUG: Video abort event')}
-             onEmptied={() => console.log('🔍 DEBUG: Video emptied event')}
-             onStalled={() => console.log('🔍 DEBUG: Video stalled event')}
-             onWaiting={() => console.log('🔍 DEBUG: Video waiting event')}
-             preload="auto"
-             controls={false}
-             playsInline
-             muted
-             crossOrigin="anonymous"
-             style={{
-               WebkitUserSelect: 'none',
-               MozUserSelect: 'none',
-               msUserSelect: 'none',
-               userSelect: 'none',
-             }}
-           >
-             Your browser does not support the video tag.
-           </video>
+            <div>Video URL: {videoUrl ? 'Set' : 'Not set'}</div>
+            <div>Video Element: {videoRef.current ? 'Rendered' : 'Not rendered'}</div>
+            <div>Video Loaded: {videoLoaded ? 'Yes' : 'No'}</div>
+            <div>Content Ready: {contentReady ? 'Yes' : 'No'}</div>
+            <div>Video Dimensions: {videoRef.current ? `${videoRef.current.offsetWidth}x${videoRef.current.offsetHeight}` : 'N/A'}</div>
+            <div>Video Display: {videoRef.current ? videoRef.current.style.display : 'N/A'}</div>
+            <div>Video Visibility: {videoRef.current ? videoRef.current.style.visibility : 'N/A'}</div>
+            <div>Video Duration: {videoRef.current ? videoRef.current.duration : 'N/A'}</div>
+            <div>Video Has Data: {videoRef.current ? (videoRef.current.readyState >= 2 ? 'Yes' : 'No') : 'N/A'}</div>
+            <div>Video Playback State: {videoRef.current ? (videoRef.current.paused ? 'Paused' : 'Playing') : 'N/A'}</div>
+          </div>
+          <video
+            ref={videoRef}
+            key={videoUrl} // Force re-render when URL changes
+            src={videoUrl}
+            className="w-full h-screen object-contain"
+            onContextMenu={(e) => e.preventDefault()}
+            onError={handleVideoError}
+            onPlay={handlePlay}
+            onPause={handlePause}
+            onTimeUpdate={handleTimeUpdate}
+            onLoadedMetadata={handleLoadedMetadata}
+            onLoadedData={handleVideoLoad}
+            onEnded={() => setIsPlaying(false)}
+            preload="metadata"
+            controls={false}
+            playsInline
+            muted
+            crossOrigin="anonymous"
+            style={{
+              WebkitUserSelect: 'none',
+              MozUserSelect: 'none',
+              msUserSelect: 'none',
+              userSelect: 'none',
+            }}
+          >
+            Your browser does not support the video tag.
+          </video>
 
           {/* Loading overlay */}
           {!videoLoaded && (

@@ -66,33 +66,37 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
     return;
   }
 
+  console.log(`🔍 DEBUG: Processing checkout session ${session.id} for user ${user_id}`);
+  console.log(`🔍 DEBUG: Session metadata:`, session.metadata);
+
   // Handle multiple collections
   if (collection_ids && collection_count) {
     try {
       const collectionIds = JSON.parse(collection_ids);
       const count = parseInt(collection_count);
       
-      console.log(`Processing ${count} collections for user ${user_id}:`, collectionIds);
+      console.log(`🔍 DEBUG: Processing ${count} collections for user ${user_id}:`, collectionIds);
       
       // Process each collection
       for (const collectionId of collectionIds) {
         await processCollectionPurchase(user_id, collectionId, session.id, session.amount_total);
       }
       
-      console.log(`Successfully processed ${count} collections for user ${user_id}`);
+      console.log(`✅ Successfully processed ${count} collections for user ${user_id}`);
     } catch (error) {
-      console.error('Error processing multiple collections:', error);
+      console.error('❌ Error processing multiple collections:', error);
       throw error;
     }
   }
   // Handle single collection (backward compatibility)
   else if (session.metadata?.collection_id) {
     const collectionId = session.metadata.collection_id;
+    console.log(`🔍 DEBUG: Processing single collection ${collectionId} for user ${user_id}`);
     await processCollectionPurchase(user_id, collectionId, session.id, session.amount_total);
   }
   // Fallback: try to get collection from line items
   else {
-    console.log('No collection metadata found, attempting to process from line items');
+    console.log('🔍 DEBUG: No collection metadata found, attempting to process from line items');
     await processFromLineItems(session);
   }
 }
@@ -103,7 +107,7 @@ async function processCollectionPurchase(
   sessionId: string, 
   amountTotal: number | null
 ) {
-  console.log(`Processing collection ${collectionId} for user ${userId}`);
+  console.log(`🔍 DEBUG: Processing collection ${collectionId} for user ${userId}`);
   
   // Check if purchase record already exists
   const { data: existingPurchase } = await supabase
@@ -115,21 +119,28 @@ async function processCollectionPurchase(
     .single();
 
   if (existingPurchase) {
-    console.log(`Purchase record already exists for user ${userId}, collection ${collectionId}`);
+    console.log(`✅ Purchase record already exists for user ${userId}, collection ${collectionId}`);
     return;
   }
 
   // Get collection details to calculate individual price
-  const { data: collection } = await supabase
+  const { data: collection, error: collectionError } = await supabase
     .from('collections')
-    .select('price')
+    .select('price, title')
     .eq('id', collectionId)
     .single();
 
+  if (collectionError || !collection) {
+    console.error(`❌ Failed to fetch collection ${collectionId}:`, collectionError);
+    throw new Error(`Collection ${collectionId} not found`);
+  }
+
   const amountPaid = collection?.price || (amountTotal ? amountTotal / 100 : 0);
 
+  console.log(`🔍 DEBUG: Creating purchase record for collection ${collectionId} (${collection.title}) - Amount: $${amountPaid}`);
+
   // Create new purchase record
-  const { error } = await supabase
+  const { data: newPurchase, error } = await supabase
     .from('purchases')
     .insert({
       user_id: userId,
@@ -138,14 +149,16 @@ async function processCollectionPurchase(
       created_at: new Date().toISOString(),
       amount_paid: amountPaid,
       is_active: true
-    });
+    })
+    .select()
+    .single();
 
   if (error) {
-    console.error('Failed to create purchase record:', error);
+    console.error(`❌ Failed to create purchase record for collection ${collectionId}:`, error);
     throw error;
   }
 
-  console.log(`New purchase created for user ${userId}, collection ${collectionId}`);
+  console.log(`✅ New purchase created for user ${userId}, collection ${collectionId} (${collection.title}) - Purchase ID: ${newPurchase.id}`);
 }
 
 async function processFromLineItems(session: Stripe.Checkout.Session) {

@@ -225,29 +225,6 @@ export async function POST(request: NextRequest) {
 
     console.log('Stripe session created successfully:', session.id);
 
-    // Create purchase records for each collection (these will be marked as pending)
-    for (const collectionId of collectionIds) {
-      const { data: purchase, error: purchaseError } = await supabase
-        .from('purchases')
-        .insert({
-          user_id: user.id,
-          collection_id: collectionId,
-          stripe_session_id: session.id,
-          created_at: new Date().toISOString(),
-          amount_paid: collections.find(c => c.id === collectionId)?.price || 0
-        })
-        .select()
-        .single();
-
-      if (purchaseError) {
-        console.error('Failed to create purchase record for collection', collectionId, ':', purchaseError);
-        // Don't fail the checkout if purchase record creation fails
-        // The webhook will handle it
-      } else {
-        console.log('Purchase record created successfully for collection', collectionId, ':', purchase.id);
-      }
-    }
-
     return NextResponse.json({ sessionId: session.id });
 
   } catch (error) {
