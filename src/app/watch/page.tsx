@@ -29,13 +29,6 @@ function WatchPageContent() {
   const sessionId = searchParams?.get('session_id');
   const { addToast } = useToast();
   
-  // Extract collection ID from URL path
-  const pathname = window.location.pathname;
-  const collectionId = pathname.split('/').pop()?.split('?')[0];
-  
-  console.log('🔍 DEBUG: Collection ID extracted:', collectionId);
-  console.log('🔍 DEBUG: Full pathname:', pathname);
-  
   console.log('🔍 DEBUG: WatchPageContent loaded with sessionId:', sessionId);
   
   const [purchase, setPurchase] = useState<Purchase | null>(null);
@@ -59,7 +52,14 @@ function WatchPageContent() {
       return;
     }
 
-    loadPurchase();
+    // Extract collection ID from URL path
+    const pathname = window.location.pathname;
+    const collectionId = pathname.split('/').pop()?.split('?')[0];
+    
+    console.log('🔍 DEBUG: Collection ID extracted:', collectionId);
+    console.log('🔍 DEBUG: Full pathname:', pathname);
+
+    loadPurchase(collectionId);
     
     // Get current user
     const getSession = async () => {
@@ -554,7 +554,7 @@ function WatchPageContent() {
     }
   }, [sessionId, addToast, router, user])
 
-  const loadPurchase = async () => {
+  const loadPurchase = async (collectionId: string | undefined) => {
     try {
       console.log('🔍 DEBUG: Making API call with sessionId:', sessionId, 'collectionId:', collectionId);
       const res = await fetch(`/api/get-purchase?session_id=${sessionId}&collection_id=${collectionId}`)
