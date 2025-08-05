@@ -31,8 +31,8 @@ export default function PurchaseLegalDisclaimer({ onAccept, onDecline }: Purchas
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 p-4">
-      <div className="bg-gradient-to-br from-red-50 to-white rounded-xl max-w-4xl max-h-[90vh] overflow-y-auto p-8 shadow-2xl border-2 border-red-200">
+    <div className="fixed inset-0 bg-black bg-opacity-90 flex items-start justify-center z-50 p-4 overflow-y-auto">
+      <div className="bg-gradient-to-br from-red-50 to-white rounded-xl max-w-4xl w-full my-8 overflow-y-auto p-8 shadow-2xl border-2 border-red-200">
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-red-100 rounded-full mb-4">
             <svg className="w-8 h-8 text-red-600" fill="currentColor" viewBox="0 0 24 24">
