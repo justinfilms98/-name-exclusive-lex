@@ -244,6 +244,18 @@ export default function WatchPage() {
       // Force the video element to reload
       videoRef.current.load();
       setVideoLoaded(false);
+      
+      // Add a small delay to ensure the video element is ready
+      setTimeout(() => {
+        if (videoRef.current) {
+          console.log('🔍 DEBUG: Video element after load:', {
+            src: videoRef.current.src,
+            readyState: videoRef.current.readyState,
+            networkState: videoRef.current.networkState,
+            error: videoRef.current.error
+          });
+        }
+      }, 1000);
     }
   }, [videoUrl]);
 
