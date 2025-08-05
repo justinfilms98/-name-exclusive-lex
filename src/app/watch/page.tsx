@@ -12,7 +12,6 @@ interface Purchase {
   collection_video_id: string;
   stripe_session_id: string;
   created_at: string;
-  expires_at: string;
   amount_paid: number;
   CollectionVideo: {
     id: string;
@@ -558,11 +557,8 @@ function WatchPageContent() {
       }
       setPurchase(json.purchase)
 
-      // Calculate time remaining
-      const expiresAt = new Date(json.purchase.expires_at);
-      const now = new Date();
-      const remaining = expiresAt.getTime() - now.getTime();
-      setTimeRemaining(Math.max(0, remaining));
+      // Set permanent access (no expiration)
+      setTimeRemaining(0); // No timer needed for permanent access
 
       // Get protected video URL
       if (json.purchase.CollectionVideo?.id) {

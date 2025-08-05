@@ -12,11 +12,12 @@ export async function GET(request: Request) {
 
   console.log('Looking for purchase with session_id:', session_id);
 
-  // First try to find any purchase with this session_id (without expiration filter)
+  // Find active purchase with this session_id
   const { data: anyPurchase, error: anyError } = await supabase
     .from('purchases')
     .select('id, user_id, collection_id, stripe_session_id, created_at, amount_paid')
     .eq('stripe_session_id', session_id)
+    .eq('is_active', true)
     .single()
 
   if (anyError) {
