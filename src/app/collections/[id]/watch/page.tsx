@@ -124,13 +124,13 @@ export default function WatchPage() {
           console.log('Photo paths value:', collectionData.photo_paths);
         }
 
-        // Log the watch activity (temporarily disabled until watch_logs table is created)
-        // await logWatchActivity({
-        //   user_id: session.user.id,
-        //   collection_id: id,
-        //   purchase_id: accessData.id,
-        //   created_at: new Date().toISOString(),
-        // });
+        // Log the watch activity
+        await logWatchActivity({
+          user_id: session.user.id,
+          collection_id: id,
+          purchase_id: accessData.id,
+          created_at: new Date().toISOString(),
+        });
 
         // Check if user has accepted purchase terms
         const hasAcceptedPurchaseTerms = localStorage.getItem('exclusive-lex-purchase-terms-accepted') === 'true';
