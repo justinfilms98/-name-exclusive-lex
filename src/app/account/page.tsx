@@ -173,7 +173,7 @@ export default function AccountPage() {
                         Permanent Access
                       </div>
                       <Link
-                        href={`/watch/${purchase.collection_id}?session_id=${purchase.stripe_session_id}`}
+                        href={`/collections/${purchase.collection_id}/watch`}
                         className="btn-primary text-sm flex items-center space-x-2"
                       >
                         <span>Watch Now</span>
