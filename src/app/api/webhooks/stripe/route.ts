@@ -35,40 +35,29 @@ export async function POST(req: Request) {
       console.log(`🔍 DEBUG: Processing checkout session ${session.id} for user ${session.metadata?.user_id}`);
       console.log(`🔍 DEBUG: Session metadata:`, session.metadata);
 
-      // Handle multiple collections from metadata
-      if (session.metadata?.collection_ids && session.metadata?.collection_count) {
-        try {
-          const collectionIds = JSON.parse(session.metadata.collection_ids);
-          const count = parseInt(session.metadata.collection_count);
-          
-          console.log(`🔍 DEBUG: Processing ${count} collections for user ${session.metadata.user_id}:`, collectionIds);
-          
-          // Process each collection
-          for (const collectionId of collectionIds) {
-            await processCollectionPurchase(session.metadata.user_id, collectionId, session.id, session.amount_total, session.currency);
-          }
-          
-          console.log(`✅ Successfully processed ${count} collections for user ${session.metadata.user_id}`);
-        } catch (error) {
-          console.error('❌ Error processing multiple collections:', error);
-          throw error;
+      // Get all line items from the checkout session
+      const lineItems = await stripe.checkout.sessions.listLineItems(session.id);
+      console.log(`🔍 DEBUG: Found ${lineItems.data.length} line items`);
+
+      // Process each line item
+      for (const item of lineItems.data) {
+        const collectionId = item.price?.metadata?.collection_id;
+
+        if (!collectionId) {
+          console.warn(`⚠️ Missing collection_id in metadata for item ${item.id}`);
+          continue;
         }
-      } else {
-        // Fallback: try to get collection from line items
-        console.log('🔍 DEBUG: No collection metadata found, attempting to process from line items');
-        const lineItems = await stripe.checkout.sessions.listLineItems(session.id);
 
-        for (const item of lineItems.data) {
-          const collectionId = item.price?.metadata?.collection_id;
-
-          if (!collectionId) {
-            console.warn(`⚠️ Missing collection_id in metadata for item ${item.id}`);
-            continue;
-          }
-
-          await processCollectionPurchase(session.metadata?.user_id, collectionId, session.id, session.amount_total, session.currency);
-        }
+        await processCollectionPurchase(
+          session.metadata?.user_id, 
+          collectionId, 
+          session.id, 
+          session.amount_total, 
+          session.currency
+        );
       }
+
+      console.log(`✅ Successfully processed ${lineItems.data.length} items for user ${session.metadata?.user_id}`);
     } catch (error) {
       console.error('❌ Error processing webhook:', error);
       return new NextResponse('Webhook handler failed', { status: 500 });
@@ -92,7 +81,7 @@ async function processCollectionPurchase(
 
   console.log(`🔍 DEBUG: Processing collection ${collectionId} for user ${userId}`);
   
-  // Check for duplicates before inserting
+  // Check for duplicates using unique constraint
   const { data: existing } = await supabase
     .from('purchases')
     .select('id')
@@ -122,7 +111,7 @@ async function processCollectionPurchase(
 
   console.log(`🔍 DEBUG: Creating purchase record for collection ${collectionId} (${collection.title}) - Amount: $${amountPaid}`);
 
-  // Create new purchase record
+  // Create new purchase record with completed status
   const { data: newPurchase, error } = await supabase
     .from('purchases')
     .insert({

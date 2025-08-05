@@ -537,12 +537,12 @@ export default function CartPage() {
                 </p>
                 
                 {/* Tip Options */}
-                <div className="grid grid-cols-3 gap-2 mb-3">
-                  {[2, 5, 10].map((amount) => (
+                <div className="grid grid-cols-5 gap-2 mb-3">
+                  {[20, 50, 200, 500, 1000].map((amount) => (
                     <button
                       key={amount}
                       onClick={() => handleTipChange(amount)}
-                      className={`px-3 py-2 text-xs rounded border transition-colors ${
+                      className={`px-2 py-2 text-xs rounded border transition-colors ${
                         selectedTip === amount
                           ? 'bg-brand-khaki text-white border-brand-khaki'
                           : 'bg-white text-brand-pine border-brand-sage hover:bg-brand-almond'

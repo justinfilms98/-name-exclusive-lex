@@ -10,6 +10,30 @@ WHERE
   status = 'pending' 
   AND stripe_session_id IS NOT NULL;
 
+-- Add unique constraint to prevent duplicate entries
+ALTER TABLE purchases
+ADD CONSTRAINT unique_user_collection_session
+UNIQUE (user_id, collection_id, stripe_session_id);
+
+-- Create trigger to automatically mark purchases as completed
+CREATE OR REPLACE FUNCTION auto_complete_purchase()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.stripe_session_id IS NOT NULL AND NEW.status = 'pending' THEN
+    NEW.status := 'completed';
+    NEW.is_active := true;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_auto_complete_purchase ON purchases;
+
+CREATE TRIGGER trg_auto_complete_purchase
+BEFORE INSERT OR UPDATE ON purchases
+FOR EACH ROW
+EXECUTE FUNCTION auto_complete_purchase();
+
 -- Show the results
 SELECT 
   COUNT(*) as total_purchases_updated,

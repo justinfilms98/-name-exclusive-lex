@@ -139,23 +139,24 @@ export default function DonatePage() {
             <h2 className="text-2xl font-serif text-brand-pine mb-6">Express Your Appreciation</h2>
             
             {/* Preset Amounts */}
-            <div className="grid grid-cols-2 gap-4 mb-6">
-              {[5, 10, 25, 50].map((amount) => (
+            <div className="grid grid-cols-3 gap-3 mb-6">
+              {[20, 50, 200, 500, 1000].map((amount) => (
                 <button
                   key={amount}
                   onClick={() => handleAmountChange(amount)}
-                  className={`p-4 rounded-lg border-2 transition-all duration-200 ${
+                  className={`p-3 rounded-lg border-2 transition-all duration-200 ${
                     selectedAmount === amount
                       ? 'border-brand-khaki bg-brand-khaki text-white'
                       : 'border-brand-sage bg-white text-brand-pine hover:border-brand-khaki hover:bg-brand-almond'
                   }`}
                 >
-                  <div className="text-2xl font-bold">${amount}</div>
-                  <div className="text-sm opacity-75">
-                    {amount === 5 && 'A thoughtful gesture'}
-                    {amount === 10 && 'Your appreciation'}
-                    {amount === 25 && 'A generous gift'}
-                    {amount === 50 && 'Your valued support'}
+                  <div className="text-xl font-bold">${amount}</div>
+                  <div className="text-xs opacity-75">
+                    {amount === 20 && 'A thoughtful gesture'}
+                    {amount === 50 && 'Your appreciation'}
+                    {amount === 200 && 'A generous gift'}
+                    {amount === 500 && 'Your valued support'}
+                    {amount === 1000 && 'Exceptional generosity'}
                   </div>
                 </button>
               ))}
