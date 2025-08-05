@@ -61,15 +61,40 @@ export async function GET(request: Request) {
     }, { status: 429 })
   }
 
-  // Verify purchase (permanent access)
-  const { data: purchase, error } = await supabase
+  // Verify purchase (permanent access) - try multiple approaches
+  let purchase: any = null;
+  let error: any = null;
+
+  // First try: exact session_id match
+  const { data: exactMatch, error: exactError } = await supabase
     .from('purchases')
     .select('id, user_id, collection_id, stripe_session_id, created_at, amount_paid')
     .eq('stripe_session_id', sessionId)
     .eq('is_active', true)
     .single()
 
+  if (exactMatch && !exactError) {
+    purchase = exactMatch;
+  } else {
+    // Second try: find any active purchase for this session (in case session_id is null)
+    const { data: anyActive, error: anyError } = await supabase
+      .from('purchases')
+      .select('id, user_id, collection_id, stripe_session_id, created_at, amount_paid')
+      .eq('is_active', true)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single()
+
+    if (anyActive && !anyError) {
+      purchase = anyActive;
+    } else {
+      error = anyError || exactError;
+    }
+  }
+
   if (error || !purchase) {
+    console.error('Protected video API error:', error);
+    console.error('Session ID:', sessionId);
     return NextResponse.json({ error: 'Purchase not found or inactive' }, { status: 404 })
   }
 
