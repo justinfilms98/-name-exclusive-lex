@@ -27,56 +27,35 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     console.log('Request body:', JSON.stringify(body, null, 2));
     
-    // Handle both single collection and cart items
-    let collectionId = body.collectionId;
+    // Handle both single collection and multiple collections
+    let collectionIds: string[] = [];
     let userId = body.userId;
     
-    // If it's a cart checkout, use the first item
-    if (body.items && body.items.length > 0) {
-      collectionId = body.items[0].id;
+    // If it's a single collection purchase
+    if (body.collectionId) {
+      collectionIds = [body.collectionId];
+    }
+    // If it's a cart checkout with multiple items
+    else if (body.items && body.items.length > 0) {
+      collectionIds = body.items.map((item: any) => item.id);
+      userId = body.userId;
+    }
+    // If it's a cart checkout with videoIds array
+    else if (body.videoIds && body.videoIds.length > 0) {
+      collectionIds = body.videoIds;
       userId = body.userId;
     }
 
-    console.log('Collection ID:', collectionId);
+    console.log('Collection IDs:', collectionIds);
     console.log('User ID:', userId);
 
-    if (!collectionId) {
-      console.log('Error: Collection ID is required');
+    if (!collectionIds.length) {
+      console.log('Error: At least one collection ID is required');
       return NextResponse.json(
-        { error: 'Collection ID is required' },
+        { error: 'At least one collection ID is required' },
         { status: 400 }
       );
     }
-
-    // Get the collection details
-    console.log('Fetching collection details for ID:', collectionId);
-    const { data: collection, error: collectionError } = await supabase
-      .from('collections')
-      .select('*')
-      .eq('id', collectionId)
-      .single();
-
-    if (collectionError) {
-      console.log('Collection error:', collectionError);
-      return NextResponse.json(
-        { error: 'Collection not found' },
-        { status: 404 }
-      );
-    }
-
-    if (!collection) {
-      console.log('Collection not found for ID:', collectionId);
-      return NextResponse.json(
-        { error: 'Collection not found' },
-        { status: 404 }
-      );
-    }
-
-    console.log('Collection found:', collection.title);
-    console.log('Collection price:', collection.price);
-    console.log('Collection price type:', typeof collection.price);
-    console.log('Collection stripe_product_id:', collection.stripe_product_id);
-    console.log('Price in cents:', Math.round(collection.price * 100));
 
     // Get the current user from auth header
     console.log('Checking authentication');
@@ -116,9 +95,7 @@ export async function POST(request: NextRequest) {
         );
       }
       
-      // Remove admin email restriction - allow all authenticated users to purchase
       console.log('User authenticated:', authUser.id, 'Email:', authUser.email);
-      
       user = authUser;
     } catch (authErr) {
       console.log('Auth exception:', authErr);
@@ -139,108 +116,84 @@ export async function POST(request: NextRequest) {
 
     console.log('User authenticated:', user.id);
 
-    // Check if user already purchased this collection
-    const { data: existingPurchase } = await supabase
-      .from('purchases')
+    // Fetch all collections and validate they exist
+    console.log('Fetching collection details for IDs:', collectionIds);
+    const { data: collections, error: collectionsError } = await supabase
+      .from('collections')
       .select('*')
-      .eq('user_id', user.id)
-      .eq('collection_id', collectionId)
-      .gte('expires_at', new Date().toISOString())
-      .single();
+      .in('id', collectionIds);
 
-    if (existingPurchase) {
+    if (collectionsError) {
+      console.log('Collections error:', collectionsError);
       return NextResponse.json(
-        { error: 'You already own this collection' },
+        { error: 'Failed to fetch collections' },
+        { status: 500 }
+      );
+    }
+
+    if (!collections || collections.length !== collectionIds.length) {
+      console.log('Error: Some collections not found');
+      return NextResponse.json(
+        { error: 'Some collections not found' },
+        { status: 404 }
+      );
+    }
+
+    // Check if user already purchased any of these collections
+    const { data: existingPurchases } = await supabase
+      .from('purchases')
+      .select('collection_id')
+      .eq('user_id', user.id)
+      .in('collection_id', collectionIds)
+      .gte('expires_at', new Date().toISOString());
+
+    if (existingPurchases && existingPurchases.length > 0) {
+      const alreadyOwned = existingPurchases.map(p => p.collection_id);
+      return NextResponse.json(
+        { error: `You already own some of these collections: ${alreadyOwned.join(', ')}` },
         { status: 400 }
       );
     }
 
-    // Create or get Stripe price
-    let stripePriceId = collection.stripe_product_id;
-    
-    if (!stripePriceId) {
-      // Create a new product and price in Stripe
-      const product = await stripe.products.create({
-        name: collection.title,
-        description: collection.description,
-      });
-
-      const price = await stripe.prices.create({
-        unit_amount: Math.round(collection.price * 100), // Convert to cents
-        currency: 'usd',
-        product: product.id,
-      });
-
-      // Update the collection with the Stripe product ID
-      await supabase
-        .from('collections')
-        .update({ stripe_product_id: product.id })
-        .eq('id', collectionId);
-
-      stripePriceId = price.id;
-    } else {
-      // If we have a product ID, we need to create a price for it
-      try {
-        // Check if this product already has a price
-        const prices = await stripe.prices.list({
-          product: stripePriceId,
-          active: true,
-          limit: 1,
-        });
-
-        if (prices.data.length > 0) {
-          stripePriceId = prices.data[0].id;
-        } else {
-          // Create a new price for the existing product
-          const price = await stripe.prices.create({
-            unit_amount: Math.round(collection.price * 100), // Convert to cents
+    // Prepare line items for Stripe
+    const lineItems = collections.map(collection => {
+      let stripePriceId = collection.stripe_product_id;
+      
+      // If no Stripe product ID, we'll create one during checkout
+      if (!stripePriceId) {
+        return {
+          price_data: {
             currency: 'usd',
-            product: stripePriceId,
-          });
-          stripePriceId = price.id;
-        }
-      } catch (stripeError) {
-        console.error('Stripe price creation error:', stripeError);
-        // Create a new product and price if there's an issue
-        const product = await stripe.products.create({
-          name: collection.title,
-          description: collection.description,
-        });
-
-        const price = await stripe.prices.create({
-          unit_amount: Math.round(collection.price * 100), // Convert to cents
-          currency: 'usd',
-          product: product.id,
-        });
-
-        // Update the collection with the new Stripe product ID
-        await supabase
-          .from('collections')
-          .update({ stripe_product_id: product.id })
-          .eq('id', collectionId);
-
-        stripePriceId = price.id;
+            product_data: {
+              name: collection.title,
+              description: collection.description,
+            },
+            unit_amount: Math.round(collection.price * 100), // Convert to cents
+          },
+          quantity: 1,
+        };
+      } else {
+        return {
+          price: stripePriceId,
+          quantity: 1,
+        };
       }
-    }
+    });
 
-    console.log('Using Stripe price ID:', stripePriceId);
+    console.log('Line items prepared:', lineItems.length);
 
-    // Create checkout session with mobile-friendly settings
+    // Create checkout session with multiple line items
     console.log('Creating Stripe checkout session...');
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
-      line_items: [
-        {
-          price: stripePriceId,
-          quantity: 1,
-        },
-      ],
+      line_items: lineItems,
       mode: 'payment',
       success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/collections`,
       metadata: {
-        collection_id: collectionId,
         user_id: user.id,
+        collection_ids: JSON.stringify(collectionIds), // Store as JSON string
+        collection_count: collectionIds.length.toString(),
       },
       // Mobile-friendly settings
       billing_address_collection: 'auto',
@@ -252,30 +205,27 @@ export async function POST(request: NextRequest) {
 
     console.log('Stripe session created successfully:', session.id);
 
-    // Insert purchase record with session ID
-    const { data: purchase, error: purchaseError } = await supabase
-      .from('purchases')
-      .insert({
-        user_id: user.id,
-        collection_id: collectionId,
-        stripe_session_id: session.id,
-        created_at: new Date().toISOString(),
-        amount_paid: collection.price
-      })
-      .select()
-      .single();
+    // Create purchase records for each collection (these will be marked as pending)
+    for (const collectionId of collectionIds) {
+      const { data: purchase, error: purchaseError } = await supabase
+        .from('purchases')
+        .insert({
+          user_id: user.id,
+          collection_id: collectionId,
+          stripe_session_id: session.id,
+          created_at: new Date().toISOString(),
+          amount_paid: collections.find(c => c.id === collectionId)?.price || 0
+        })
+        .select()
+        .single();
 
-    if (purchaseError) {
-      console.error('Failed to create purchase record:', purchaseError);
-      console.error('Purchase error details:', {
-        code: purchaseError.code,
-        message: purchaseError.message,
-        details: purchaseError.details
-      });
-      // Don't fail the checkout if purchase record creation fails
-      // The webhook will handle it
-    } else {
-      console.log('Purchase record created successfully:', purchase.id);
+      if (purchaseError) {
+        console.error('Failed to create purchase record for collection', collectionId, ':', purchaseError);
+        // Don't fail the checkout if purchase record creation fails
+        // The webhook will handle it
+      } else {
+        console.log('Purchase record created successfully for collection', collectionId, ':', purchase.id);
+      }
     }
 
     return NextResponse.json({ sessionId: session.id });

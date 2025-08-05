@@ -20,6 +20,7 @@ interface Purchase {
     id: string;
     title: string;
     description: string;
+    price: number;
   };
 }
 
@@ -28,7 +29,7 @@ export default function SuccessClient() {
   const searchParams = useSearchParams();
   const sessionId = searchParams?.get('session_id');
   
-  const [purchase, setPurchase] = useState<Purchase | null>(null);
+  const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
@@ -40,10 +41,10 @@ export default function SuccessClient() {
       return;
     }
 
-    verifyPurchase(sessionId);
+    verifyPurchases(sessionId);
   }, [sessionId]);
 
-  const verifyPurchase = async (sessionId: string) => {
+  const verifyPurchases = async (sessionId: string) => {
     try {
       // Get current user
       const { data: { session } } = await supabase.auth.getSession();
@@ -52,7 +53,7 @@ export default function SuccessClient() {
         return;
       }
 
-      // First get the purchase record
+      // Get all purchase records for this session
       const { data: purchaseData, error } = await supabase
         .from('purchases')
         .select(`
@@ -63,35 +64,37 @@ export default function SuccessClient() {
           created_at
         `)
         .eq('stripe_session_id', sessionId)
-        .eq('user_id', session.user.id)
-        .single();
+        .eq('user_id', session.user.id);
 
-      if (error || !purchaseData) {
+      if (error || !purchaseData || purchaseData.length === 0) {
         setError('Purchase not found or access denied');
         setLoading(false);
         return;
       }
 
-      // Now get the collection details
-      const { data: collection, error: collectionError } = await supabase
+      // Get collection details for all purchases
+      const collectionIds = purchaseData.map(p => p.collection_id);
+      const { data: collections, error: collectionError } = await supabase
         .from('collections')
-        .select('id, title, description')
-        .eq('id', purchaseData.collection_id)
-        .single();
+        .select('id, title, description, price')
+        .in('id', collectionIds);
 
-      if (collectionError || !collection) {
-        setError('Collection not found');
+      if (collectionError || !collections) {
+        setError('Collections not found');
         setLoading(false);
         return;
       }
 
       // Combine the data
-      const purchaseWithCollection = {
-        ...purchaseData,
-        collection: collection
-      };
+      const purchasesWithCollections = purchaseData.map(purchase => {
+        const collection = collections.find(c => c.id === purchase.collection_id);
+        return {
+          ...purchase,
+          collection: collection!
+        };
+      });
 
-      setPurchase(purchaseWithCollection);
+      setPurchases(purchasesWithCollections);
       setLoading(false);
     } catch (error) {
       console.error('Purchase verification error:', error);
@@ -101,10 +104,15 @@ export default function SuccessClient() {
   };
 
   const startWatching = () => {
-    if (!purchase || !agreedToTerms) return;
+    if (!purchases.length || !agreedToTerms) return;
     
-    // Redirect to watch page with permanent access
-    router.push(`/watch/${purchase.collection.id}?session_id=${purchase.stripe_session_id}`);
+    // Redirect to the first collection's watch page
+    // Users can access all collections from their account
+    router.push(`/collections/${purchases[0].collection.id}/watch`);
+  };
+
+  const goToAccount = () => {
+    router.push('/account');
   };
 
   if (loading) {
@@ -138,12 +146,12 @@ export default function SuccessClient() {
     );
   }
 
-  if (!purchase) {
+  if (!purchases.length) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center max-w-md mx-auto p-8">
           <h1 className="text-2xl font-serif text-lex-brown mb-4">Purchase Not Found</h1>
-          <p className="text-lex-brown mb-6">You need to purchase this collection to watch it.</p>
+          <p className="text-lex-brown mb-6">You need to purchase collections to watch them.</p>
           <Link 
             href="/collections"
             className="inline-block bg-lex-brown text-white px-6 py-3 rounded-lg hover:bg-lex-warmGray transition-colors"
@@ -155,7 +163,8 @@ export default function SuccessClient() {
     );
   }
 
-  const collection = purchase.collection;
+  const isMultiplePurchases = purchases.length > 1;
+  const totalPrice = purchases.reduce((sum, purchase) => sum + (purchase.collection.price || 0), 0);
 
   return (
     <div className="min-h-screen bg-almond pt-20">
@@ -166,8 +175,40 @@ export default function SuccessClient() {
           </div>
           <h1 className="text-4xl font-serif text-lex-brown mb-4">Purchase Successful!</h1>
           <p className="text-xl text-lex-brown mb-8">
-            You now have permanent access to <strong>{collection.title}</strong>
+            You now have permanent access to {isMultiplePurchases ? `${purchases.length} collections` : purchases[0].collection.title}
           </p>
+        </div>
+
+        {/* Purchased Collections */}
+        <div className="bg-white rounded-lg shadow-lg p-8 mb-8">
+          <h2 className="text-2xl font-serif text-lex-brown mb-6">
+            {isMultiplePurchases ? 'Purchased Collections' : 'Purchased Collection'}
+          </h2>
+          
+          <div className="space-y-4">
+            {purchases.map((purchase, index) => (
+              <div key={purchase.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                <div>
+                  <h3 className="font-semibold text-lex-brown">{purchase.collection.title}</h3>
+                  <p className="text-sm text-gray-600">{purchase.collection.description}</p>
+                </div>
+                <div className="text-right">
+                  <span className="text-lex-brown font-semibold">
+                    ${(purchase.collection.price || 0).toFixed(2)}
+                  </span>
+                </div>
+              </div>
+            ))}
+            
+            {isMultiplePurchases && (
+              <div className="border-t pt-4 mt-4">
+                <div className="flex justify-between items-center">
+                  <span className="font-semibold text-lex-brown">Total</span>
+                  <span className="font-bold text-lex-brown text-lg">${totalPrice.toFixed(2)}</span>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="bg-white rounded-lg shadow-lg p-8 mb-8">
@@ -233,12 +274,12 @@ export default function SuccessClient() {
           </div>
         </div>
 
-        <div className="text-center">
+        <div className="text-center space-y-4">
           <button
             onClick={startWatching}
             disabled={!agreedToTerms}
             className={`
-              px-8 py-4 rounded-lg text-lg font-semibold transition-all duration-200
+              px-8 py-4 rounded-lg text-lg font-semibold transition-all duration-200 mr-4
               ${agreedToTerms 
                 ? 'bg-lex-brown text-white hover:bg-lex-warmGray transform hover:scale-105' 
                 : 'bg-gray-300 text-gray-500 cursor-not-allowed'
@@ -248,8 +289,15 @@ export default function SuccessClient() {
             {agreedToTerms ? '✓ Start Watching Now' : '☐ Accept Terms to Continue'}
           </button>
           
+          <button
+            onClick={goToAccount}
+            className="px-8 py-4 rounded-lg text-lg font-semibold bg-gray-200 text-lex-brown hover:bg-gray-300 transition-all duration-200"
+          >
+            View All Purchases
+          </button>
+          
           <p className="text-sm text-lex-brown mt-4">
-            Purchase completed on {new Date(purchase.created_at).toLocaleDateString()}
+            Purchase completed on {new Date(purchases[0].created_at).toLocaleDateString()}
           </p>
         </div>
       </div>

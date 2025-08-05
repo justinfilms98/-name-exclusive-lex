@@ -59,22 +59,84 @@ export async function POST(request: NextRequest) {
 }
 
 async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) {
-  const { collection_id, user_id } = session.metadata || {};
+  const { user_id, collection_ids, collection_count } = session.metadata || {};
   
-  if (!collection_id || !user_id) {
-    console.error('Missing metadata in checkout session:', session.id);
+  if (!user_id) {
+    console.error('Missing user_id in checkout session metadata:', session.id);
     return;
   }
 
-  // Create new purchase record with active status (no expiration)
+  // Handle multiple collections
+  if (collection_ids && collection_count) {
+    try {
+      const collectionIds = JSON.parse(collection_ids);
+      const count = parseInt(collection_count);
+      
+      console.log(`Processing ${count} collections for user ${user_id}:`, collectionIds);
+      
+      // Process each collection
+      for (const collectionId of collectionIds) {
+        await processCollectionPurchase(user_id, collectionId, session.id, session.amount_total);
+      }
+      
+      console.log(`Successfully processed ${count} collections for user ${user_id}`);
+    } catch (error) {
+      console.error('Error processing multiple collections:', error);
+      throw error;
+    }
+  }
+  // Handle single collection (backward compatibility)
+  else if (session.metadata?.collection_id) {
+    const collectionId = session.metadata.collection_id;
+    await processCollectionPurchase(user_id, collectionId, session.id, session.amount_total);
+  }
+  // Fallback: try to get collection from line items
+  else {
+    console.log('No collection metadata found, attempting to process from line items');
+    await processFromLineItems(session);
+  }
+}
+
+async function processCollectionPurchase(
+  userId: string, 
+  collectionId: string, 
+  sessionId: string, 
+  amountTotal: number | null
+) {
+  console.log(`Processing collection ${collectionId} for user ${userId}`);
+  
+  // Check if purchase record already exists
+  const { data: existingPurchase } = await supabase
+    .from('purchases')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('collection_id', collectionId)
+    .eq('stripe_session_id', sessionId)
+    .single();
+
+  if (existingPurchase) {
+    console.log(`Purchase record already exists for user ${userId}, collection ${collectionId}`);
+    return;
+  }
+
+  // Get collection details to calculate individual price
+  const { data: collection } = await supabase
+    .from('collections')
+    .select('price')
+    .eq('id', collectionId)
+    .single();
+
+  const amountPaid = collection?.price || (amountTotal ? amountTotal / 100 : 0);
+
+  // Create new purchase record
   const { error } = await supabase
     .from('purchases')
     .insert({
-      user_id: user_id,
-      collection_id: collection_id,
-      stripe_session_id: session.id,
+      user_id: userId,
+      collection_id: collectionId,
+      stripe_session_id: sessionId,
       created_at: new Date().toISOString(),
-      amount_paid: session.amount_total ? session.amount_total / 100 : 0
+      amount_paid: amountPaid
     });
 
   if (error) {
@@ -82,6 +144,42 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
     throw error;
   }
 
-  console.log(`New active purchase created for user ${user_id}, collection ${collection_id}`);
-  console.log(`User ${user_id} now has permanent access to this collection`);
+  console.log(`New purchase created for user ${userId}, collection ${collectionId}`);
+}
+
+async function processFromLineItems(session: Stripe.Checkout.Session) {
+  console.log('Processing from line items as fallback');
+  
+  if (!session.line_items?.data) {
+    console.error('No line items found in session');
+    return;
+  }
+
+  const userId = session.metadata?.user_id;
+  if (!userId) {
+    console.error('No user_id found in session metadata');
+    return;
+  }
+
+  // This is a fallback method - in practice, we should always have metadata
+  // But this provides backward compatibility
+  for (const item of session.line_items.data) {
+    if (item.price?.product) {
+      // Try to find collection by Stripe product ID
+      const { data: collection } = await supabase
+        .from('collections')
+        .select('id, price')
+        .eq('stripe_product_id', item.price.product)
+        .single();
+
+      if (collection) {
+        await processCollectionPurchase(
+          userId, 
+          collection.id, 
+          session.id, 
+          session.amount_total
+        );
+      }
+    }
+  }
 } 

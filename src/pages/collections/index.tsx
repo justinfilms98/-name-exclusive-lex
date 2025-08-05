@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
+import { supabase } from '@/lib/supabase';
 
 type User = {
   id: string;
@@ -20,20 +21,37 @@ interface CollectionVideo {
 }
 
 export default function CollectionsPage() {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
   const [videos, setVideos] = useState<CollectionVideo[]>([]);
   const [cart, setCart] = useState<CollectionVideo[]>([]);
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
   const [videosLoading, setVideosLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
     const fetchUser = async () => {
-      // TODO: Replace Supabase logic with NextAuth if needed.
-      setUser(null);
-      setLoading(false);
+      try {
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) {
+          console.error('Session error:', sessionError);
+          setUser(null);
+        } else if (session?.user) {
+          setUser({
+            id: session.user.id,
+            email: session.user.email || '',
+            name: session.user.user_metadata?.name,
+            image: session.user.user_metadata?.avatar_url,
+            role: session.user.user_metadata?.role || 'user'
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching user:', error);
+        setUser(null);
+      } finally {
+        setLoading(false);
+      }
     };
 
     fetchUser();
@@ -68,25 +86,45 @@ export default function CollectionsPage() {
   }
 
   async function handleCheckout() {
-    if (!user?.email) {
+    if (!user?.id) {
       setError('You must be logged in to checkout.');
       return;
     }
     setCheckoutLoading(true);
     setError(null);
+    
     try {
-      const res = await fetch('/api/checkout_sessions', {
+      // Get the user's session token
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !session) {
+        throw new Error('Authentication required');
+      }
+
+      const res = await fetch('/api/create-checkout-session', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
         body: JSON.stringify({
-          videoIds: cart.map(v => v.id),
-          userEmail: user.email,
+          items: cart.map(video => ({
+            id: video.id,
+            title: video.title,
+            price: video.price
+          })),
+          userId: user.id,
         }),
       });
+      
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to create checkout session');
-      setCart([]);
-      window.location.href = data.url;
+      
+      if (data.sessionId) {
+        // Redirect to Stripe checkout
+        window.location.href = `https://checkout.stripe.com/pay/${data.sessionId}`;
+      } else {
+        throw new Error('No session ID received');
+      }
     } catch (err: any) {
       setError(err.message || 'Checkout failed');
     } finally {
@@ -95,7 +133,18 @@ export default function CollectionsPage() {
   }
 
   const handleSignIn = async () => {
-    // TODO: Replace Supabase logic with NextAuth if needed.
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/collections`
+        }
+      });
+      if (error) throw error;
+    } catch (error) {
+      console.error('Sign in error:', error);
+      setError('Failed to sign in');
+    }
   };
 
   if (loading) return <p>Loading...</p>;
