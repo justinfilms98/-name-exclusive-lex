@@ -106,6 +106,16 @@ export default function WatchPage() {
 
         console.log('🔍 DEBUG: Setting video URL to:', videoSignedUrl.signedUrl);
         setVideoUrl(videoSignedUrl.signedUrl);
+        
+        // Test the video URL directly
+        console.log('🔍 DEBUG: Testing video URL...');
+        try {
+          const testResponse = await fetch(videoSignedUrl.signedUrl, { method: 'HEAD' });
+          console.log('🔍 DEBUG: Video URL test response status:', testResponse.status);
+          console.log('🔍 DEBUG: Video URL test response headers:', Object.fromEntries(testResponse.headers.entries()));
+        } catch (error) {
+          console.error('🔍 DEBUG: Video URL test failed:', error);
+        }
 
         // Get signed URLs for photos if they exist
         if (collectionData.photo_paths && collectionData.photo_paths.length > 0) {
@@ -207,11 +217,21 @@ export default function WatchPage() {
   // Handle video events
   const handleVideoLoad = () => {
     console.log('Video loaded successfully');
+    console.log('Video element:', videoRef.current);
+    console.log('Video src:', videoRef.current?.src);
+    console.log('Video readyState:', videoRef.current?.readyState);
+    console.log('Video networkState:', videoRef.current?.networkState);
     setVideoLoaded(true);
   };
 
   const handleVideoError = (e: any) => {
     console.error('Video loading error:', e);
+    console.error('Video error details:', {
+      error: videoRef.current?.error,
+      networkState: videoRef.current?.networkState,
+      readyState: videoRef.current?.readyState,
+      src: videoRef.current?.src
+    });
     setError('Failed to load video content. Please try refreshing the page.');
   };
 
