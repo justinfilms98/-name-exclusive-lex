@@ -113,6 +113,20 @@ export default function WatchPage() {
           const testResponse = await fetch(videoSignedUrl.signedUrl, { method: 'HEAD' });
           console.log('🔍 DEBUG: Video URL test response status:', testResponse.status);
           console.log('🔍 DEBUG: Video URL test response headers:', Object.fromEntries(testResponse.headers.entries()));
+          
+          // Also try to get the actual content to check file size
+          const contentResponse = await fetch(videoSignedUrl.signedUrl);
+          console.log('🔍 DEBUG: Video content response status:', contentResponse.status);
+          console.log('🔍 DEBUG: Video content response headers:', Object.fromEntries(contentResponse.headers.entries()));
+          
+          if (contentResponse.ok) {
+            const contentLength = contentResponse.headers.get('content-length');
+            console.log('🔍 DEBUG: Video file size:', contentLength, 'bytes');
+            
+            // Check if it's actually a video file
+            const contentType = contentResponse.headers.get('content-type');
+            console.log('🔍 DEBUG: Video content type:', contentType);
+          }
         } catch (error) {
           console.error('🔍 DEBUG: Video URL test failed:', error);
         }
@@ -207,6 +221,13 @@ export default function WatchPage() {
     if (videoUrl && !videoLoaded) {
       const timeout = setTimeout(() => {
         console.log('Video loading timeout - forcing load state');
+        console.log('Video element state at timeout:', {
+          readyState: videoRef.current?.readyState,
+          networkState: videoRef.current?.networkState,
+          error: videoRef.current?.error,
+          src: videoRef.current?.src,
+          currentSrc: videoRef.current?.currentSrc
+        });
         setVideoLoaded(true);
       }, 10000); // 10 second timeout
 
@@ -432,6 +453,9 @@ export default function WatchPage() {
 
   console.log('Rendering watch page - photoUrls.length:', photoUrls.length);
   console.log('Collection photo_paths:', collection?.photo_paths);
+  console.log('Video URL being rendered:', videoUrl);
+  console.log('Video loaded state:', videoLoaded);
+  console.log('Content ready state:', contentReady);
 
   return (
     <div className="min-h-screen bg-black">
