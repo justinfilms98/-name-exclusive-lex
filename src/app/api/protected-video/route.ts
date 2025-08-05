@@ -113,15 +113,22 @@ export async function GET(request: Request) {
   }
 
   // Get collection data to get video URL
+  console.log('🔍 DEBUG: Getting collection data for ID:', purchase.collection_id);
   const { data: collection, error: collectionError } = await supabase
     .from('collections')
     .select('video_path')
     .eq('id', purchase.collection_id)
     .single()
 
+  console.log('🔍 DEBUG: Collection data result:', collection);
+  console.log('🔍 DEBUG: Collection error:', collectionError);
+
   if (collectionError || !collection?.video_path) {
+    console.error('🔍 DEBUG: Video not found in collection:', collection);
     return NextResponse.json({ error: 'Video not found' }, { status: 404 })
   }
+
+  console.log('🔍 DEBUG: Video path from collection:', collection.video_path);
 
   // Create response with security headers
   const response = NextResponse.json({ 
