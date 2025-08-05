@@ -160,12 +160,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Prepare line items for Stripe
-    const lineItems = collections.map(collection => {
-      let stripePriceId = collection.stripe_product_id;
+    const lineItems: any[] = [];
+    
+    for (const collection of collections) {
+      let stripePriceId = collection.stripe_price_id; // Use stripe_price_id instead of stripe_product_id
       
-      // If no Stripe product ID, we'll create one during checkout
+      // If no Stripe price ID, we'll create one during checkout
       if (!stripePriceId) {
-        return {
+        lineItems.push({
           price_data: {
             currency: 'usd',
             product_data: {
@@ -175,14 +177,31 @@ export async function POST(request: NextRequest) {
             unit_amount: Math.round(collection.price), // Price is already in cents
           },
           quantity: 1,
-        };
+        });
       } else {
-        return {
-          price: stripePriceId,
-          quantity: 1,
-        };
+        // Verify the price exists in Stripe, if not create a new one
+        try {
+          await stripe.prices.retrieve(stripePriceId);
+          lineItems.push({
+            price: stripePriceId,
+            quantity: 1,
+          });
+        } catch (error) {
+          console.log(`Price ${stripePriceId} not found in Stripe, creating new price for collection ${collection.id}`);
+          lineItems.push({
+            price_data: {
+              currency: 'usd',
+              product_data: {
+                name: collection.title,
+                description: collection.description,
+              },
+              unit_amount: Math.round(collection.price), // Price is already in cents
+            },
+            quantity: 1,
+          });
+        }
       }
-    });
+    }
 
     // Add tip as a separate line item if provided
     if (tipAmount > 0) {
