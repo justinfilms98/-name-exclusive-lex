@@ -93,7 +93,7 @@ export default function CollectionsPage() {
     setThumbnailUrls(urlMap);
   };
 
-  const addToCartAndRedirect = async (collection: Collection) => {
+  const addToCart = async (collection: Collection) => {
     if (userPurchases.includes(collection.id)) {
       router.push(`/watch/${collection.id}`);
       return;
@@ -111,13 +111,6 @@ export default function CollectionsPage() {
     const isAlreadyInCart = cart.some((item: any) => item.id === collection.id);
     
     if (!isAlreadyInCart) {
-      // Check purchase limit (max 2 collections at a time)
-      if (cart.length >= 2) {
-        alert('Purchase limit reached! You can only have 2 collections active at a time. Please complete your current purchase before adding more.');
-        setAddingToCart(null);
-        return;
-      }
-      
       cart.push(collection);
       localStorage.setItem('cart', JSON.stringify(cart));
       window.dispatchEvent(new Event('cartUpdated'));
@@ -126,7 +119,6 @@ export default function CollectionsPage() {
     // Small delay for visual feedback
     setTimeout(() => {
       setAddingToCart(null);
-      router.push('/cart');
     }, 800);
   };
 
@@ -267,7 +259,7 @@ export default function CollectionsPage() {
 
                         {/* CTA Button */}
                         <button
-                          onClick={() => addToCartAndRedirect(collection)}
+                          onClick={() => addToCart(collection)}
                           disabled={isAdding}
                           className="w-full bg-sage text-blanc px-4 py-3 rounded-lg font-medium hover:bg-khaki transition-all duration-300 flex items-center justify-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-700 delay-300 disabled:opacity-50"
                         >

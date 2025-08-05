@@ -172,7 +172,7 @@ export async function POST(request: NextRequest) {
               name: collection.title,
               description: collection.description,
             },
-            unit_amount: Math.round(collection.price * 100), // Convert to cents
+            unit_amount: Math.round(collection.price), // Price is already in cents
           },
           quantity: 1,
         };
@@ -193,7 +193,7 @@ export async function POST(request: NextRequest) {
             name: 'Tip - Thank you for your support!',
             description: 'Your tip helps us continue creating amazing content.',
           },
-          unit_amount: Math.round(tipAmount * 100), // Convert to cents
+          unit_amount: Math.round(tipAmount * 100), // Convert dollars to cents
         },
         quantity: 1,
       });
