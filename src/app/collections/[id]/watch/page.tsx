@@ -78,8 +78,11 @@ export default function WatchPage() {
         setTimeRemaining(0); // No timer needed for permanent access
 
         // Get protected video URL through our API
+        console.log('🔍 DEBUG: Calling protected-video API with session_id:', accessData.stripe_session_id);
         const videoRes = await fetch(`/api/protected-video?session_id=${accessData.stripe_session_id}`);
+        console.log('🔍 DEBUG: Protected video API response status:', videoRes.status);
         const videoJson = await videoRes.json();
+        console.log('🔍 DEBUG: Protected video API response:', videoJson);
         
         if (!videoRes.ok || !videoJson.videoUrl) {
           console.error('Failed to get protected video URL:', videoJson);

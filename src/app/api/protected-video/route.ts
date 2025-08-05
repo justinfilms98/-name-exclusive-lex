@@ -43,10 +43,13 @@ function checkRateLimit(ip: string): boolean {
 }
 
 export async function GET(request: Request) {
+  console.log('🔍 DEBUG: Protected video API called');
   const { searchParams } = new URL(request.url)
   const sessionId = searchParams.get('session_id')
+  console.log('🔍 DEBUG: Session ID received:', sessionId);
 
   if (!sessionId) {
+    console.log('🔍 DEBUG: Missing session_id parameter');
     return NextResponse.json({ error: 'Missing session_id parameter' }, { status: 400 })
   }
 
@@ -66,6 +69,7 @@ export async function GET(request: Request) {
   let error: any = null;
 
   // First try: exact session_id match
+  console.log('🔍 DEBUG: Trying exact session_id match for:', sessionId);
   const { data: exactMatch, error: exactError } = await supabase
     .from('purchases')
     .select('id, user_id, collection_id, stripe_session_id, created_at, amount_paid')
@@ -73,10 +77,15 @@ export async function GET(request: Request) {
     .eq('is_active', true)
     .single()
 
+  console.log('🔍 DEBUG: Exact match result:', exactMatch);
+  console.log('🔍 DEBUG: Exact match error:', exactError);
+
   if (exactMatch && !exactError) {
     purchase = exactMatch;
+    console.log('🔍 DEBUG: Using exact match purchase:', purchase);
   } else {
     // Second try: find any active purchase for this session (in case session_id is null)
+    console.log('🔍 DEBUG: Trying fallback - any active purchase');
     const { data: anyActive, error: anyError } = await supabase
       .from('purchases')
       .select('id, user_id, collection_id, stripe_session_id, created_at, amount_paid')
@@ -85,10 +94,15 @@ export async function GET(request: Request) {
       .limit(1)
       .single()
 
+    console.log('🔍 DEBUG: Any active result:', anyActive);
+    console.log('🔍 DEBUG: Any active error:', anyError);
+
     if (anyActive && !anyError) {
       purchase = anyActive;
+      console.log('🔍 DEBUG: Using fallback purchase:', purchase);
     } else {
       error = anyError || exactError;
+      console.log('🔍 DEBUG: Both attempts failed, error:', error);
     }
   }
 
