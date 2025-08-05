@@ -510,6 +510,7 @@ export default function WatchPage() {
            </div>
                      <video
              ref={videoRef}
+             key={videoUrl} // Force re-render when URL changes
              src={videoUrl}
              className="w-full h-screen object-contain"
              onContextMenu={(e) => e.preventDefault()}
@@ -518,6 +519,7 @@ export default function WatchPage() {
              onPause={handlePause}
              onTimeUpdate={handleTimeUpdate}
              onLoadedMetadata={handleLoadedMetadata}
+             onLoadedData={handleVideoLoad}
              onEnded={() => setIsPlaying(false)}
              onLoadStart={() => console.log('🔍 DEBUG: Video load start event')}
              onCanPlay={() => console.log('🔍 DEBUG: Video can play event')}
@@ -528,10 +530,11 @@ export default function WatchPage() {
              onEmptied={() => console.log('🔍 DEBUG: Video emptied event')}
              onStalled={() => console.log('🔍 DEBUG: Video stalled event')}
              onWaiting={() => console.log('🔍 DEBUG: Video waiting event')}
-             preload="metadata"
+             preload="auto"
              controls={false}
              playsInline
              muted
+             crossOrigin="anonymous"
              style={{
                WebkitUserSelect: 'none',
                MozUserSelect: 'none',
