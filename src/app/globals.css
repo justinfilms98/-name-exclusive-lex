@@ -650,9 +650,17 @@ div[style*="center"] {
     }
     @media (min-width: 1024px) {
       column-count: 3;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      column-count: unset;
     }
     @media (min-width: 1536px) {
       column-count: 4;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      column-count: unset;
     }
   }
 
@@ -660,6 +668,15 @@ div[style*="center"] {
     break-inside: avoid;
     margin-bottom: 1.5rem;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    @media (min-width: 1024px) {
+      break-inside: unset;
+      width: calc(33.333% - 1rem);
+      margin: 0.5rem;
+    }
+    @media (min-width: 1536px) {
+      width: calc(25% - 1.5rem);
+      margin: 0.75rem;
+    }
   }
 
   .masonry-item:hover {
