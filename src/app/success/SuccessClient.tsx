@@ -96,37 +96,7 @@ export default function SuccessClient() {
           break;
         }
 
-        // Method 2: Use server-side verification API (SECONDARY METHOD)
-        if (!purchaseData || purchaseData.length === 0) {
-          console.log('🔍 Trying server-side verification API...');
-          try {
-            const response = await fetch('/api/verify-purchase', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                sessionId,
-                userId: session.user.id
-              }),
-            });
-
-            if (response.ok) {
-              const result = await response.json();
-              if (result.success && result.purchases && result.purchases.length > 0) {
-                console.log('✅ Server-side verification successful:', result.purchases.length);
-                purchaseData = result.purchases;
-                break;
-              }
-            } else {
-              console.error('Server-side verification failed:', response.status);
-            }
-          } catch (apiError) {
-            console.error('Error calling verification API:', apiError);
-          }
-        }
-
-        // Method 3: Check for pending purchases for this specific session (TERTIARY METHOD)
+        // Method 2: Check for pending purchases for this specific session (SECONDARY METHOD)
         if (!purchaseData || purchaseData.length === 0) {
           console.log('🔍 Trying to find pending purchases for this session...');
           const { data: pendingPurchases, error: pendingError } = await supabase
@@ -150,6 +120,32 @@ export default function SuccessClient() {
           } else if (pendingPurchases && pendingPurchases.length > 0) {
             console.log('✅ Found pending purchases for this session:', pendingPurchases.length);
             purchaseData = pendingPurchases;
+            break;
+          }
+        }
+
+        // Method 3: Check for any purchases for this session (regardless of status)
+        if (!purchaseData || purchaseData.length === 0) {
+          console.log('🔍 Trying to find any purchases for this session...');
+          const { data: anyPurchases, error: anyError } = await supabase
+            .from('purchases')
+            .select(`
+              id,
+              user_id,
+              collection_id,
+              stripe_session_id,
+              created_at,
+              status,
+              is_active,
+              amount_paid
+            `)
+            .eq('stripe_session_id', sessionId);
+
+          if (anyError) {
+            console.error('Any purchases query error:', anyError);
+          } else if (anyPurchases && anyPurchases.length > 0) {
+            console.log('✅ Found any purchases for this session:', anyPurchases.length);
+            purchaseData = anyPurchases;
             break;
           }
         }
