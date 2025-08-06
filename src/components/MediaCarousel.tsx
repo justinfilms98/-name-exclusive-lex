@@ -36,6 +36,8 @@ export default function MediaCarousel({
   const [duration, setDuration] = useState(0);
   const [showControls, setShowControls] = useState(true);
   const [videoLoaded, setVideoLoaded] = useState(false);
+  const [videoDimensions, setVideoDimensions] = useState({ width: 0, height: 0 });
+  const [isVerticalVideo, setIsVerticalVideo] = useState(false);
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -49,6 +51,8 @@ export default function MediaCarousel({
       setCurrentTime(0);
       setDuration(0);
       setIsPlaying(false);
+      setVideoDimensions({ width: 0, height: 0 });
+      setIsVerticalVideo(false);
     }
   }, [currentIndex, currentItem]);
 
@@ -127,8 +131,15 @@ export default function MediaCarousel({
 
   const handleLoadedMetadata = () => {
     if (videoRef.current) {
-      setDuration(videoRef.current.duration);
+      const video = videoRef.current;
+      setDuration(video.duration);
       setVideoLoaded(true);
+      
+      // Detect video dimensions and orientation
+      const width = video.videoWidth;
+      const height = video.videoHeight;
+      setVideoDimensions({ width, height });
+      setIsVerticalVideo(height > width);
     }
   };
 
@@ -197,7 +208,7 @@ export default function MediaCarousel({
 
   const isModal = mode === 'modal';
   const containerClasses = isModal 
-    ? `fixed inset-0 bg-black z-50 ${isFullscreen ? 'fullscreen' : ''}`
+    ? `fixed inset-0 bg-black z-50 ${isFullscreen ? 'fullscreen' : ''} ${isFullscreen && isVerticalVideo ? 'vertical-video-fullscreen' : ''}`
     : `relative bg-black ${className}`;
 
   return (
@@ -272,7 +283,11 @@ export default function MediaCarousel({
               <video
                 ref={videoRef}
                 src={currentItem.url}
-                className="w-full h-full object-contain"
+                className={`w-full h-full ${
+                  isFullscreen && isVerticalVideo 
+                    ? 'object-cover' // Fill entire screen for vertical videos in fullscreen
+                    : 'object-contain' // Maintain aspect ratio for horizontal videos
+                }`}
                 onContextMenu={(e) => e.preventDefault()}
                 onLoadedMetadata={handleLoadedMetadata}
                 onTimeUpdate={handleTimeUpdate}
