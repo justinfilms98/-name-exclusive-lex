@@ -263,24 +263,22 @@ export default function WatchPage() {
   };
 
   const toggleVideoFullscreen = () => {
-    console.log('🔍 DEBUG: Toggling video fullscreen');
-    console.log('🔍 DEBUG: Current videoFullscreen state:', videoFullscreen);
-    console.log('🔍 DEBUG: Video ref exists:', !!videoRef.current);
-    
     if (!videoRef.current) {
-      console.log('❌ DEBUG: No video element found');
       return;
     }
     
     if (!videoFullscreen) {
-      console.log('🔍 DEBUG: Entering video fullscreen');
+      // Close photo fullscreen if it's open
+      if (photoFullscreen) {
+        closePhotoFullscreen();
+      }
+      
       setVideoFullscreen(true);
       
       // Hide body scroll
       document.body.style.overflow = 'hidden';
       
     } else {
-      console.log('🔍 DEBUG: Exiting video fullscreen');
       setVideoFullscreen(false);
       
       // Restore body scroll
@@ -296,36 +294,23 @@ export default function WatchPage() {
   };
 
   const handleVideoFullscreenButton = (e: React.MouseEvent | React.TouchEvent) => {
-    console.log('🔍 DEBUG: Video fullscreen button clicked');
-    console.log('🔍 DEBUG: Event type:', e.type);
-    console.log('🔍 DEBUG: Current videoFullscreen state:', videoFullscreen);
-    console.log('🔍 DEBUG: Current photoFullscreen state:', photoFullscreen);
-    
     e.preventDefault();
     e.stopPropagation();
     
     // Ensure we're not in photo fullscreen mode
     if (photoFullscreen) {
-      console.log('🔍 DEBUG: Photo is in fullscreen, closing it first');
       closePhotoFullscreen();
     }
     
-    console.log('🔍 DEBUG: Calling toggleVideoFullscreen');
     toggleVideoFullscreen();
   };
 
   const openPhotoFullscreen = (photoUrl: string) => {
-    console.log('🔍 DEBUG: Opening photo fullscreen for:', photoUrl);
-    console.log('🔍 DEBUG: Current videoFullscreen state:', videoFullscreen);
-    console.log('🔍 DEBUG: Current photoFullscreen state:', photoFullscreen);
-    
     // Don't open photo fullscreen if video is in fullscreen
     if (videoFullscreen) {
-      console.log('🔍 DEBUG: Video is in fullscreen, preventing photo fullscreen');
       return;
     }
     
-    console.log('🔍 DEBUG: Setting photo fullscreen states');
     setFullscreenPhoto(photoUrl);
     setPhotoFullscreen(true);
   };
@@ -494,14 +479,14 @@ export default function WatchPage() {
         {/* Video Player */}
         <div 
           ref={videoContainerRef}
-          className={`relative bg-black ${videoFullscreen ? 'fixed inset-0 z-[99999] bg-black flex items-center justify-center overflow-hidden w-screen h-screen' : ''}`}
+          className={`relative bg-black ${videoFullscreen ? 'fixed inset-0 z-[999999] bg-black flex items-center justify-center overflow-hidden w-screen h-screen' : ''}`}
           style={videoFullscreen ? {
             position: 'fixed',
             top: 0,
             left: 0,
             width: '100vw',
             height: '100vh',
-            zIndex: 99999,
+            zIndex: 999999,
             backgroundColor: '#000000',
             display: 'flex',
             alignItems: 'center',
@@ -719,7 +704,7 @@ export default function WatchPage() {
         )}
 
         {/* Photo Fullscreen Modal */}
-        {photoFullscreen && fullscreenPhoto && (
+        {photoFullscreen && fullscreenPhoto && !videoFullscreen && (
           <div 
             className="fixed inset-0 bg-black bg-opacity-95 z-40 flex items-center justify-center"
             onClick={closePhotoFullscreen}
