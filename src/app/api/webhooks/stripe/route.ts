@@ -140,8 +140,27 @@ async function processCollectionPurchase(
     .maybeSingle();
 
   if (existing) {
-    console.log(`ℹ️ Purchase already exists for collection ${collectionId}`);
+    console.log(`ℹ️ Purchase already exists for collection ${collectionId} in session ${sessionId}`);
     return;
+  }
+
+  // Additional check: see if this session already has purchases for this user
+  const { data: sessionPurchases, error: sessionError } = await supabase
+    .from('purchases')
+    .select('id, user_id, collection_id')
+    .eq('stripe_session_id', sessionId)
+    .eq('user_id', userId);
+
+  if (sessionError) {
+    console.error(`❌ Error checking session purchases:`, sessionError);
+  } else if (sessionPurchases && sessionPurchases.length > 0) {
+    console.log(`🔍 Session ${sessionId} already has ${sessionPurchases.length} purchases for user ${userId}`);
+    // Check if this specific collection is already purchased in this session
+    const alreadyPurchased = sessionPurchases.find(p => p.collection_id === collectionId);
+    if (alreadyPurchased) {
+      console.log(`ℹ️ Collection ${collectionId} already purchased in session ${sessionId}`);
+      return;
+    }
   }
 
   // Get collection details to calculate individual price
