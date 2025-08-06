@@ -23,6 +23,7 @@ export default function WatchPage() {
   const [contentReady, setContentReady] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [fullscreenPhoto, setFullscreenPhoto] = useState<string | null>(null);
+  const [customFullscreen, setCustomFullscreen] = useState(false);
   
   const router = useRouter();
   const params = useParams();
@@ -262,70 +263,72 @@ export default function WatchPage() {
 
   const toggleFullscreen = () => {
     console.log('🔍 DEBUG: toggleFullscreen called, isFullscreen:', isFullscreen);
-    console.log('🔍 DEBUG: videoRef.current:', videoRef.current);
-    console.log('🔍 DEBUG: videoContainerRef.current:', videoContainerRef.current);
     
     if (!videoRef.current) {
       console.log('❌ DEBUG: No video element found');
       return;
     }
     
-    if (!isFullscreen) {
-      console.log('🔍 DEBUG: Attempting to enter fullscreen');
-      try {
-        // Try video element first
-        if (videoRef.current.requestFullscreen) {
-          console.log('🔍 DEBUG: Using standard requestFullscreen on video');
-          videoRef.current.requestFullscreen();
-        } else if ((videoRef.current as any).webkitRequestFullscreen) {
-          console.log('🔍 DEBUG: Using webkitRequestFullscreen on video');
-          (videoRef.current as any).webkitRequestFullscreen();
-        } else if ((videoRef.current as any).msRequestFullscreen) {
-          console.log('🔍 DEBUG: Using msRequestFullscreen on video');
-          (videoRef.current as any).msRequestFullscreen();
-        } else {
-          console.log('❌ DEBUG: No fullscreen method available on video, trying container');
-          // Fallback to container
-          if (videoContainerRef.current) {
-            if (videoContainerRef.current.requestFullscreen) {
-              videoContainerRef.current.requestFullscreen();
-            } else if ((videoContainerRef.current as any).webkitRequestFullscreen) {
-              (videoContainerRef.current as any).webkitRequestFullscreen();
-            } else if ((videoContainerRef.current as any).msRequestFullscreen) {
-              (videoContainerRef.current as any).msRequestFullscreen();
-            }
-          }
-        }
-      } catch (error) {
-        console.error('❌ DEBUG: Fullscreen error:', error);
-        // Try container as fallback
-        if (videoContainerRef.current) {
-          try {
-            if (videoContainerRef.current.requestFullscreen) {
-              videoContainerRef.current.requestFullscreen();
-            } else if ((videoContainerRef.current as any).webkitRequestFullscreen) {
-              (videoContainerRef.current as any).webkitRequestFullscreen();
-            } else if ((videoContainerRef.current as any).msRequestFullscreen) {
-              (videoContainerRef.current as any).msRequestFullscreen();
-            }
-          } catch (containerError) {
-            console.error('❌ DEBUG: Container fullscreen error:', containerError);
-          }
-        }
+    // Use custom fullscreen for better control and reliability
+    if (!customFullscreen) {
+      console.log('🔍 DEBUG: Entering custom fullscreen mode');
+      setCustomFullscreen(true);
+      
+      // Store original styles
+      const video = videoRef.current;
+      const container = videoContainerRef.current;
+      
+      if (container) {
+        container.style.position = 'fixed';
+        container.style.top = '0';
+        container.style.left = '0';
+        container.style.width = '100vw';
+        container.style.height = '100vh';
+        container.style.zIndex = '9999';
+        container.style.backgroundColor = 'black';
+        container.style.display = 'flex';
+        container.style.alignItems = 'center';
+        container.style.justifyContent = 'center';
       }
+      
+      if (video) {
+        video.style.width = '100%';
+        video.style.height = '100%';
+        video.style.objectFit = 'contain';
+      }
+      
+      // Hide body scroll
+      document.body.style.overflow = 'hidden';
+      
     } else {
-      console.log('🔍 DEBUG: Attempting to exit fullscreen');
-      try {
-        if (document.exitFullscreen) {
-          document.exitFullscreen();
-        } else if ((document as any).webkitExitFullscreen) {
-          (document as any).webkitExitFullscreen();
-        } else if ((document as any).msExitFullscreen) {
-          (document as any).msExitFullscreen();
-        }
-      } catch (error) {
-        console.error('❌ DEBUG: Exit fullscreen error:', error);
+      console.log('🔍 DEBUG: Exiting custom fullscreen mode');
+      setCustomFullscreen(false);
+      
+      // Restore original styles
+      const video = videoRef.current;
+      const container = videoContainerRef.current;
+      
+      if (container) {
+        container.style.position = '';
+        container.style.top = '';
+        container.style.left = '';
+        container.style.width = '';
+        container.style.height = '';
+        container.style.zIndex = '';
+        container.style.backgroundColor = '';
+        container.style.display = '';
+        container.style.alignItems = '';
+        container.style.justifyContent = '';
       }
+      
+      if (video) {
+        video.style.width = '';
+        video.style.height = '';
+        video.style.objectFit = '';
+      }
+      
+      // Restore body scroll
+      document.body.style.overflow = '';
     }
   };
 
@@ -361,6 +364,37 @@ export default function WatchPage() {
         e.preventDefault();
         toggleFullscreen();
       }
+      // Handle escape key for custom fullscreen
+      if (e.key === 'Escape' && customFullscreen) {
+        console.log('🔍 DEBUG: Escape key pressed, exiting fullscreen');
+        setCustomFullscreen(false);
+        
+        // Restore original styles
+        const video = videoRef.current;
+        const container = videoContainerRef.current;
+        
+        if (container) {
+          container.style.position = '';
+          container.style.top = '';
+          container.style.left = '';
+          container.style.width = '';
+          container.style.height = '';
+          container.style.zIndex = '';
+          container.style.backgroundColor = '';
+          container.style.display = '';
+          container.style.alignItems = '';
+          container.style.justifyContent = '';
+        }
+        
+        if (video) {
+          video.style.width = '';
+          video.style.height = '';
+          video.style.objectFit = '';
+        }
+        
+        // Restore body scroll
+        document.body.style.overflow = '';
+      }
     };
 
     const handleFullscreenChange = () => {
@@ -380,7 +414,7 @@ export default function WatchPage() {
       document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
       document.removeEventListener('msfullscreenchange', handleFullscreenChange);
     };
-  }, []);
+  }, [customFullscreen]);
 
   if (loading) {
     return (
@@ -465,7 +499,7 @@ export default function WatchPage() {
         {/* Video Player */}
         <div 
           ref={videoContainerRef}
-          className="relative bg-black"
+          className={`relative bg-black ${customFullscreen ? 'fixed inset-0 z-50' : ''}`}
           onMouseMove={handleMouseMove}
           onMouseLeave={() => {
             if (isPlaying) {
@@ -514,7 +548,7 @@ export default function WatchPage() {
             ref={videoRef}
             key={videoUrl}
             src={videoUrl}
-            className="w-full h-screen object-contain"
+            className={`${customFullscreen ? 'w-full h-full object-contain' : 'w-full h-screen object-contain'}`}
             onContextMenu={(e) => e.preventDefault()}
             onError={handleVideoError}
             onPlay={handlePlay}
@@ -586,7 +620,7 @@ export default function WatchPage() {
                   className="text-white hover:text-gray-300 transition-colors touch-manipulation"
                   title="Toggle Fullscreen (F)"
                 >
-                  {isFullscreen ? (
+                  {customFullscreen ? (
                     <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/>
                     </svg>
@@ -604,6 +638,13 @@ export default function WatchPage() {
               </div>
             </div>
           </div>
+
+          {/* Fullscreen Exit Hint */}
+          {customFullscreen && (
+            <div className="absolute top-4 right-4 bg-black bg-opacity-75 text-white px-3 py-1 rounded text-sm">
+              Press ESC to exit fullscreen
+            </div>
+          )}
         </div>
 
         {/* Additional Photos */}
