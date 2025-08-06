@@ -21,10 +21,12 @@ export default function WatchPage() {
   const [showControls, setShowControls] = useState(true);
   const [showLegalDisclaimer, setShowLegalDisclaimer] = useState(false);
   const [contentReady, setContentReady] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   
   const router = useRouter();
   const params = useParams();
   const videoRef = useRef<HTMLVideoElement>(null);
+  const videoContainerRef = useRef<HTMLDivElement>(null);
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const id = params?.id as string;
 
@@ -256,46 +258,68 @@ export default function WatchPage() {
   };
 
   const formatTime = (seconds: number) => {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
+    const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const toggleFullscreen = () => {
+    if (!videoContainerRef.current) return;
     
-    if (hours > 0) {
-      return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    if (!isFullscreen) {
+      if (videoContainerRef.current.requestFullscreen) {
+        videoContainerRef.current.requestFullscreen();
+      } else if ((videoContainerRef.current as any).webkitRequestFullscreen) {
+        (videoContainerRef.current as any).webkitRequestFullscreen();
+      } else if ((videoContainerRef.current as any).msRequestFullscreen) {
+        (videoContainerRef.current as any).msRequestFullscreen();
+      }
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      } else if ((document as any).webkitExitFullscreen) {
+        (document as any).webkitExitFullscreen();
+      } else if ((document as any).msExitFullscreen) {
+        (document as any).msExitFullscreen();
+      }
     }
-    return `${minutes}:${secs.toString().padStart(2, '0')}`;
   };
 
   const handleLegalAccept = () => {
+    localStorage.setItem('exclusive-lex-purchase-terms-accepted', 'true');
     setShowLegalDisclaimer(false);
     setContentReady(true);
   };
 
   const handleLegalDecline = () => {
-    setShowLegalDisclaimer(false);
     router.push('/collections');
   };
 
-  // Prevent right-click and other protection
   useEffect(() => {
     const handleContextMenu = (e: MouseEvent) => e.preventDefault();
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (
-        e.key === 'F12' ||
-        (e.ctrlKey && e.shiftKey && e.key === 'I') ||
-        (e.ctrlKey && e.key === 'u') ||
-        (e.ctrlKey && e.shiftKey && e.key === 'C')
-      ) {
+      if (e.key === 'f' || e.key === 'F') {
         e.preventDefault();
+        toggleFullscreen();
       }
+    };
+
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
     };
 
     document.addEventListener('contextmenu', handleContextMenu);
     document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    document.addEventListener('msfullscreenchange', handleFullscreenChange);
 
     return () => {
       document.removeEventListener('contextmenu', handleContextMenu);
       document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('msfullscreenchange', handleFullscreenChange);
     };
   }, []);
 
@@ -381,6 +405,7 @@ export default function WatchPage() {
       <div className="pt-20">
         {/* Video Player */}
         <div 
+          ref={videoContainerRef}
           className="relative bg-black"
           onMouseMove={handleMouseMove}
           onMouseLeave={() => {
@@ -494,9 +519,28 @@ export default function WatchPage() {
                 </div>
               </div>
 
-              {/* Watermark */}
-              <div className="text-white text-opacity-50 text-sm">
-                {user?.email} • Exclusive Access
+              <div className="flex items-center space-x-4">
+                {/* Fullscreen Button */}
+                <button
+                  onClick={toggleFullscreen}
+                  className="text-white hover:text-gray-300 transition-colors"
+                  title="Toggle Fullscreen (F)"
+                >
+                  {isFullscreen ? (
+                    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/>
+                    </svg>
+                  ) : (
+                    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>
+                    </svg>
+                  )}
+                </button>
+
+                {/* Watermark */}
+                <div className="text-white text-opacity-50 text-sm">
+                  {user?.email} • Exclusive Access
+                </div>
               </div>
             </div>
           </div>

@@ -134,22 +134,6 @@ export default function HeroSection() {
       {/* Enhanced Dark Overlay for Text Readability */}
       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent"></div>
 
-      {/* Floating Sparkles Effect */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 animate-pulse">
-          <Sparkles className="w-4 h-4 text-white/20" />
-        </div>
-        <div className="absolute top-1/3 right-1/4 animate-pulse delay-1000">
-          <Sparkles className="w-3 h-3 text-white/15" />
-        </div>
-        <div className="absolute bottom-1/3 left-1/3 animate-pulse delay-2000">
-          <Sparkles className="w-5 h-5 text-white/25" />
-        </div>
-        <div className="absolute bottom-1/4 right-1/3 animate-pulse delay-1500">
-          <Sparkles className="w-2 h-2 text-white/10" />
-        </div>
-      </div>
-
       {/* Content */}
       <div className="relative z-10 h-full flex items-center justify-center pt-14 sm:pt-16">
         <div className="text-center text-white max-w-4xl mx-auto px-4">
