@@ -876,3 +876,130 @@ div[style*="center"] {
     animation: fade-in 1s ease-out forwards;
   }
 }
+
+/* Disable video controls on hero pages and general areas, but allow on watch pages */
+.hero-container video::-webkit-media-controls,
+.hero-section video::-webkit-media-controls,
+[class*="hero"] video::-webkit-media-controls {
+  display: none !important;
+}
+
+.hero-container video::-webkit-media-controls-panel,
+.hero-section video::-webkit-media-controls-panel,
+[class*="hero"] video::-webkit-media-controls-panel {
+  display: none !important;
+}
+
+.hero-container video::-webkit-media-controls-play-button,
+.hero-section video::-webkit-media-controls-play-button,
+[class*="hero"] video::-webkit-media-controls-play-button {
+  display: none !important;
+}
+
+.hero-container video::-webkit-media-controls-start-playback-button,
+.hero-section video::-webkit-media-controls-start-playback-button,
+[class*="hero"] video::-webkit-media-controls-start-playback-button {
+  display: none !important;
+}
+
+.hero-container video::-webkit-media-controls-timeline,
+.hero-section video::-webkit-media-controls-timeline,
+[class*="hero"] video::-webkit-media-controls-timeline {
+  display: none !important;
+}
+
+.hero-container video::-webkit-media-controls-volume-slider,
+.hero-section video::-webkit-media-controls-volume-slider,
+[class*="hero"] video::-webkit-media-controls-volume-slider {
+  display: none !important;
+}
+
+.hero-container video::-webkit-media-controls-mute-button,
+.hero-section video::-webkit-media-controls-mute-button,
+[class*="hero"] video::-webkit-media-controls-mute-button {
+  display: none !important;
+}
+
+.hero-container video::-webkit-media-controls-fullscreen-button,
+.hero-section video::-webkit-media-controls-fullscreen-button,
+[class*="hero"] video::-webkit-media-controls-fullscreen-button {
+  display: none !important;
+}
+
+.hero-container video::-webkit-media-controls-overlay-play-button,
+.hero-section video::-webkit-media-controls-overlay-play-button,
+[class*="hero"] video::-webkit-media-controls-overlay-play-button {
+  display: none !important;
+}
+
+/* Hide any overlay play buttons on hero sections */
+.hero-container .video-overlay,
+.hero-section .video-overlay,
+[class*="hero"] .video-overlay,
+.hero-container [class*="play-button"],
+.hero-section [class*="play-button"],
+[class*="hero"] [class*="play-button"],
+.hero-container [class*="playButton"],
+.hero-section [class*="playButton"],
+[class*="hero"] [class*="playButton"],
+.hero-container [class*="play_overlay"],
+.hero-section [class*="play_overlay"],
+[class*="hero"] [class*="play_overlay"],
+.hero-container [class*="play-overlay"],
+.hero-section [class*="play-overlay"],
+[class*="hero"] [class*="play-overlay"] {
+  display: none !important;
+}
+
+/* Hide any elements with play/pause icons on hero sections */
+.hero-container svg[class*="play"],
+.hero-section svg[class*="play"],
+[class*="hero"] svg[class*="play"],
+.hero-container svg[class*="pause"],
+.hero-section svg[class*="pause"],
+[class*="hero"] svg[class*="pause"],
+.hero-container button[class*="play"],
+.hero-section button[class*="play"],
+[class*="hero"] button[class*="play"],
+.hero-container button[class*="pause"],
+.hero-section button[class*="pause"],
+[class*="hero"] button[class*="pause"] {
+  display: none !important;
+}
+
+/* Hide any circular play buttons on hero sections */
+.hero-container [class*="rounded-full"][class*="play"],
+.hero-section [class*="rounded-full"][class*="play"],
+[class*="hero"] [class*="rounded-full"][class*="play"],
+.hero-container [class*="rounded-full"][class*="pause"],
+.hero-section [class*="rounded-full"][class*="pause"],
+[class*="hero"] [class*="rounded-full"][class*="pause"] {
+  display: none !important;
+}
+
+/* AGGRESSIVE OVERLAY REMOVAL - ONLY FOR HERO SECTION */
+.hero-container .absolute.inset-0.flex.items-center.justify-center,
+.hero-section .absolute.inset-0.flex.items-center.justify-center,
+[class*="hero"] .absolute.inset-0.flex.items-center.justify-center,
+.hero-container .absolute.inset-0.flex.items-center.justify-center *,
+.hero-section .absolute.inset-0.flex.items-center.justify-center *,
+[class*="hero"] .absolute.inset-0.flex.items-center.justify-center * {
+  display: none !important;
+}
+
+/* Hide any white circular buttons - ONLY FOR HERO SECTION */
+.hero-container .bg-white.bg-opacity-20.backdrop-blur-sm.rounded-full,
+.hero-section .bg-white.bg-opacity-20.backdrop-blur-sm.rounded-full,
+[class*="hero"] .bg-white.bg-opacity-20.backdrop-blur-sm.rounded-full,
+.hero-container .bg-white.bg-opacity-20.backdrop-blur-sm.rounded-full *,
+.hero-section .bg-white.bg-opacity-20.backdrop-blur-sm.rounded-full *,
+[class*="hero"] .bg-white.bg-opacity-20.backdrop-blur-sm.rounded-full * {
+  display: none !important;
+}
+
+/* Hide any play/pause button overlays - ONLY FOR HERO SECTION */
+.hero-container [class*="absolute"][class*="inset-0"][class*="flex"][class*="items-center"][class*="justify-center"],
+.hero-section [class*="absolute"][class*="inset-0"][class*="flex"][class*="items-center"][class*="justify-center"],
+[class*="hero"] [class*="absolute"][class*="inset-0"][class*="flex"][class*="items-center"][class*="justify-center"] {
+  display: none !important;
+}
