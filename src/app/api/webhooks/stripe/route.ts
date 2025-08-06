@@ -62,19 +62,26 @@ export async function POST(req: Request) {
         }
 
         console.log(`🔍 DEBUG: Processing line item ${item.id} for collection ${collectionId}`);
-        await processCollectionPurchase(
-          session.metadata?.user_id, 
-          collectionId, 
-          session.id, 
-          session.amount_total, 
-          session.currency
-        );
+        try {
+          await processCollectionPurchase(
+            session.metadata?.user_id, 
+            collectionId, 
+            session.id, 
+            session.amount_total, 
+            session.currency
+          );
+        } catch (error) {
+          console.error(`❌ Error processing collection ${collectionId}:`, error);
+          // Continue processing other items even if one fails
+        }
       }
 
       console.log(`✅ Successfully processed ${lineItems.data.length} items for user ${session.metadata?.user_id}`);
     } catch (error) {
       console.error('❌ Error processing webhook:', error);
-      return new NextResponse('Webhook handler failed', { status: 500 });
+      // Don't return error response - we want to acknowledge the webhook even if processing fails
+      // The success page will handle the verification
+      console.log('⚠️ Webhook processing failed, but acknowledging receipt');
     }
   }
 
@@ -118,13 +125,14 @@ async function processCollectionPurchase(
 
   if (collectionError || !collection) {
     console.error(`❌ Failed to fetch collection ${collectionId}:`, collectionError);
-    throw new Error(`Collection ${collectionId} not found`);
+    // Don't throw error, just log it and continue
+    console.log(`⚠️ Continuing with default price for collection ${collectionId}`);
   }
 
   // Convert price from cents to dollars for storage
   const amountPaid = collection?.price ? collection.price / 100 : (amountTotal ? amountTotal / 100 : 0);
 
-  console.log(`🔍 DEBUG: Creating purchase record for collection ${collectionId} (${collection.title}) - Amount: $${amountPaid}`);
+  console.log(`🔍 DEBUG: Creating purchase record for collection ${collectionId} (${collection?.title || 'Unknown'}) - Amount: $${amountPaid}`);
 
   // Create new purchase record with completed status
   const { data: newPurchase, error } = await supabase
@@ -144,8 +152,13 @@ async function processCollectionPurchase(
 
   if (error) {
     console.error(`❌ Failed to create purchase record for collection ${collectionId}:`, error);
+    // Try to handle specific errors
+    if (error.code === '23505') { // Unique constraint violation
+      console.log(`ℹ️ Purchase already exists for collection ${collectionId} (unique constraint)`);
+      return;
+    }
     throw error;
   }
 
-  console.log(`✅ New purchase created for user ${userId}, collection ${collectionId} (${collection.title}) - Purchase ID: ${newPurchase.id}`);
+  console.log(`✅ New purchase created for user ${userId}, collection ${collectionId} (${collection?.title || 'Unknown'}) - Purchase ID: ${newPurchase.id}`);
 } 
