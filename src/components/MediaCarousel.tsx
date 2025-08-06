@@ -16,9 +16,18 @@ interface MediaCarouselProps {
   initialIndex?: number;
   onClose?: () => void;
   title?: string;
+  mode?: 'modal' | 'inline';
+  className?: string;
 }
 
-export default function MediaCarousel({ items, initialIndex = 0, onClose, title }: MediaCarouselProps) {
+export default function MediaCarousel({ 
+  items, 
+  initialIndex = 0, 
+  onClose, 
+  title, 
+  mode = 'modal',
+  className = ''
+}: MediaCarouselProps) {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -185,10 +194,15 @@ export default function MediaCarousel({ items, initialIndex = 0, onClose, title 
 
   if (!currentItem) return null;
 
+  const isModal = mode === 'modal';
+  const containerClasses = isModal 
+    ? `fixed inset-0 bg-black z-50 ${isFullscreen ? 'fullscreen' : ''}`
+    : `relative bg-black ${className}`;
+
   return (
     <div 
       ref={containerRef}
-      className={`fixed inset-0 bg-black z-50 ${isFullscreen ? 'fullscreen' : ''}`}
+      className={containerClasses}
       onKeyDown={handleKeyDown}
       tabIndex={0}
       onMouseMove={handleMouseMove}
@@ -215,7 +229,7 @@ export default function MediaCarousel({ items, initialIndex = 0, onClose, title 
             >
               {isFullscreen ? <Minimize2 size={20} /> : <Maximize2 size={20} />}
             </button>
-            {onClose && (
+            {onClose && isModal && (
               <button
                 onClick={onClose}
                 className="p-2 hover:bg-white/20 rounded-full transition-colors"
