@@ -292,7 +292,9 @@ export default function MediaCarousel({
                     onClick={handleVideoClick}
                     className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white p-6 rounded-full transition-all duration-300 backdrop-blur-sm hover:scale-110"
                   >
-                    <Play size={48} />
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor">
+                      <polygon points="5,3 19,12 5,21" />
+                    </svg>
                   </button>
                 </div>
               )}
@@ -319,7 +321,9 @@ export default function MediaCarousel({
                       onClick={handleVideoClick}
                       className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white bg-opacity-90 hover:bg-opacity-100 text-black p-2 rounded-full transition-all duration-300 shadow-lg hover:scale-110 z-10"
                     >
-                      <Play size={16} />
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <polygon points="5,3 19,12 5,21" />
+                      </svg>
                     </button>
                   )}
                 </div>
@@ -329,9 +333,18 @@ export default function MediaCarousel({
                   <div className="flex items-center space-x-4">
                     <button
                       onClick={handleVideoClick}
-                      className="text-white hover:text-gray-300 transition-colors bg-white bg-opacity-20 hover:bg-opacity-30 p-2 rounded-full"
+                      className="text-white hover:text-gray-300 transition-colors bg-white bg-opacity-20 hover:bg-opacity-30 p-2 rounded-full flex items-center justify-center"
                     >
-                      {isPlaying ? <Pause size={24} /> : <Play size={24} />}
+                      {isPlaying ? (
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                          <rect x="6" y="4" width="4" height="16" />
+                          <rect x="14" y="4" width="4" height="16" />
+                        </svg>
+                      ) : (
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                          <polygon points="5,3 19,12 5,21" />
+                        </svg>
+                      )}
                     </button>
 
                     <button
