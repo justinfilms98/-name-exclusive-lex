@@ -121,7 +121,8 @@ async function processCollectionPurchase(
     throw new Error(`Collection ${collectionId} not found`);
   }
 
-  const amountPaid = collection?.price || (amountTotal ? amountTotal / 100 : 0);
+  // Convert price from cents to dollars for storage
+  const amountPaid = collection?.price ? collection.price / 100 : (amountTotal ? amountTotal / 100 : 0);
 
   console.log(`🔍 DEBUG: Creating purchase record for collection ${collectionId} (${collection.title}) - Amount: $${amountPaid}`);
 

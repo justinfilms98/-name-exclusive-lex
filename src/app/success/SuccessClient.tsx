@@ -284,7 +284,7 @@ export default function SuccessClient() {
               <div className="border-t-2 border-gray-200 pt-6 mt-6">
                 <div className="flex justify-between items-center">
                   <span className="text-xl font-semibold text-lex-brown">Total Amount</span>
-                  <span className="text-3xl font-bold text-lex-brown">${(totalAmount / 100).toFixed(2)}</span>
+                  <span className="text-3xl font-bold text-lex-brown">${totalAmount.toFixed(2)}</span>
                 </div>
               </div>
             )}
