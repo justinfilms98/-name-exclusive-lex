@@ -41,13 +41,27 @@ export async function POST(req: Request) {
 
       // Process each line item
       for (const item of lineItems.data) {
-        const collectionId = item.price?.metadata?.collection_id;
+        let collectionId = item.price?.metadata?.collection_id;
+        
+        // If not in price metadata, try product metadata
+        if (!collectionId && item.price?.product && typeof item.price.product === 'object') {
+          const product = item.price.product as any;
+          collectionId = product.metadata?.collection_id;
+        }
 
         if (!collectionId) {
           console.warn(`⚠️ Missing collection_id in metadata for item ${item.id}`);
+          console.log(`🔍 DEBUG: Item details:`, {
+            id: item.id,
+            price: item.price?.id,
+            price_metadata: item.price?.metadata,
+            product: item.price?.product,
+            description: item.description
+          });
           continue;
         }
 
+        console.log(`🔍 DEBUG: Processing line item ${item.id} for collection ${collectionId}`);
         await processCollectionPurchase(
           session.metadata?.user_id, 
           collectionId, 
