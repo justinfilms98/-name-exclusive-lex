@@ -285,7 +285,7 @@ export default function MediaCarousel({
               />
               
               {/* Play Button Overlay */}
-              {!isPlaying && (
+              {(!isPlaying || currentTime === 0) && (
                 <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30">
                   <button
                     onClick={handleVideoClick}
