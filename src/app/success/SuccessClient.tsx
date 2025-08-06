@@ -150,6 +150,36 @@ export default function SuccessClient() {
           }
         }
 
+        // Method 4: Call the verify-purchase API as a fallback
+        if (!purchaseData || purchaseData.length === 0) {
+          console.log('🔍 Trying API verification as fallback...');
+          try {
+            const response = await fetch('/api/verify-purchase', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                sessionId: sessionId,
+                userId: session.user.id
+              }),
+            });
+
+            if (response.ok) {
+              const apiData = await response.json();
+              if (apiData.success && apiData.purchases && apiData.purchases.length > 0) {
+                console.log('✅ API verification successful:', apiData.purchases.length, 'purchases found');
+                purchaseData = apiData.purchases;
+                break;
+              }
+            } else {
+              console.error('API verification failed:', response.status, response.statusText);
+            }
+          } catch (apiError) {
+            console.error('API verification error:', apiError);
+          }
+        }
+
         // If no purchases found, wait and retry
         if (!purchaseData || purchaseData.length === 0) {
           if (attempts < maxAttempts) {

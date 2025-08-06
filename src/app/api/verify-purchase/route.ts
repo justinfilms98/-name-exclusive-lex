@@ -55,14 +55,61 @@ export async function POST(request: NextRequest) {
         const lineItems = await stripe.checkout.sessions.listLineItems(sessionId);
         const collectionIds: string[] = [];
         
+        console.log('🔍 DEBUG: Processing line items:', lineItems.data.length);
+        
         for (const item of lineItems.data) {
           let collectionId = item.price?.metadata?.collection_id;
+          
+          console.log('🔍 DEBUG: Processing item:', {
+            itemId: item.id,
+            priceId: item.price?.id,
+            priceMetadata: item.price?.metadata,
+            product: item.price?.product,
+            description: item.description
+          });
+          
+          // If not in price metadata, try product metadata
           if (!collectionId && item.price?.product && typeof item.price.product === 'object') {
             const product = item.price.product as any;
             collectionId = product.metadata?.collection_id;
+            console.log('🔍 DEBUG: Found collection_id in product metadata:', collectionId);
           }
+          
+          // If still not found, try to extract from product_data metadata
+          if (!collectionId && item.price?.product && typeof item.price.product === 'object') {
+            const product = item.price.product as any;
+            // Check if the product has metadata or if we need to look deeper
+            if (product.metadata && product.metadata.collection_id) {
+              collectionId = product.metadata.collection_id;
+              console.log('🔍 DEBUG: Found collection_id in product metadata (deep):', collectionId);
+            }
+          }
+          
+          // If still not found, try to get from the session metadata
+          if (!collectionId && stripeSession.metadata?.collection_ids) {
+            try {
+              const sessionCollectionIds = JSON.parse(stripeSession.metadata.collection_ids);
+              if (Array.isArray(sessionCollectionIds) && sessionCollectionIds.length > 0) {
+                // Use the first collection ID as a fallback
+                collectionId = sessionCollectionIds[0];
+                console.log('🔍 DEBUG: Found collection_id in session metadata:', collectionId);
+              }
+            } catch (e) {
+              console.error('Error parsing collection_ids from session metadata:', e);
+            }
+          }
+          
           if (collectionId && !collectionIds.includes(collectionId)) {
             collectionIds.push(collectionId);
+            console.log('✅ Added collection_id:', collectionId);
+          } else if (!collectionId) {
+            console.warn(`⚠️ Could not extract collection_id from line item:`, {
+              itemId: item.id,
+              priceId: item.price?.id,
+              priceMetadata: item.price?.metadata,
+              product: item.price?.product,
+              description: item.description
+            });
           }
         }
 
