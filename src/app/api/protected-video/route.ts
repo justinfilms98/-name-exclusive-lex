@@ -75,7 +75,7 @@ export async function GET(request: Request) {
     .select('id, user_id, collection_id, stripe_session_id, created_at, amount_paid')
     .eq('stripe_session_id', sessionId)
     .eq('is_active', true)
-    .single()
+    .maybeSingle()
 
   console.log('🔍 DEBUG: Exact match result:', exactMatch);
   console.log('🔍 DEBUG: Exact match error:', exactError);
@@ -92,7 +92,7 @@ export async function GET(request: Request) {
       .eq('is_active', true)
       .order('created_at', { ascending: false })
       .limit(1)
-      .single()
+      .maybeSingle()
 
     console.log('🔍 DEBUG: Any active result:', anyActive);
     console.log('🔍 DEBUG: Any active error:', anyError);
