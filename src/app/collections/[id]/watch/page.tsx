@@ -4,6 +4,15 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { supabase, getCollection, checkAccess, getSignedUrl, logWatchActivity } from '@/lib/supabase';
 import PurchaseLegalDisclaimer from '@/components/PurchaseLegalDisclaimer';
+import MediaCarousel from '@/components/MediaCarousel';
+
+interface MediaItem {
+  id: string;
+  type: 'video' | 'photo';
+  url: string;
+  title?: string;
+  description?: string;
+}
 
 export default function WatchPage() {
   const [user, setUser] = useState<any>(null);
@@ -13,24 +22,13 @@ export default function WatchPage() {
   const [photoUrls, setPhotoUrls] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
-  const [videoLoading, setVideoLoading] = useState(true);
-  const [videoError, setVideoError] = useState<string | null>(null);
   const [showLegalDisclaimer, setShowLegalDisclaimer] = useState(false);
   const [contentReady, setContentReady] = useState(false);
-  const [fullscreenPhoto, setFullscreenPhoto] = useState<string | null>(null);
-  const [videoFullscreen, setVideoFullscreen] = useState(false);
-  const [photoFullscreen, setPhotoFullscreen] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [showControls, setShowControls] = useState(true);
-  const [isMuted, setIsMuted] = useState(false);
+  const [showCarousel, setShowCarousel] = useState(false);
+  const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
   
   const router = useRouter();
   const params = useParams();
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const videoContainerRef = useRef<HTMLDivElement>(null);
-  const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const id = params?.id as string;
 
   useEffect(() => {
@@ -163,242 +161,36 @@ export default function WatchPage() {
     }
   }, [id, router]);
 
-  // Handle video URL changes
+  // Prepare media items for carousel
   useEffect(() => {
-    if (videoUrl && videoRef.current) {
-      console.log('Video URL changed, updating video element');
-      console.log('New video URL:', videoUrl);
+    if (videoUrl || photoUrls.length > 0) {
+      const items: MediaItem[] = [];
       
-      setVideoLoading(true);
-      setVideoError(null);
+      // Add video as first item if available
+      if (videoUrl) {
+        items.push({
+          id: 'video',
+          type: 'video',
+          url: videoUrl,
+          title: collection?.title || 'Video',
+          description: collection?.description
+        });
+      }
       
-      // Force the video element to reload
-      videoRef.current.load();
+      // Add photos
+      photoUrls.forEach((url, index) => {
+        items.push({
+          id: `photo-${index}`,
+          type: 'photo',
+          url: url,
+          title: `${collection?.title || 'Photo'} ${index + 1}`,
+          description: collection?.description
+        });
+      });
       
-      // Add a small delay to ensure the video element is ready
-      setTimeout(() => {
-        if (videoRef.current) {
-          console.log('Video element after load:', {
-            src: videoRef.current.src,
-            readyState: videoRef.current.readyState,
-            networkState: videoRef.current.networkState,
-            error: videoRef.current.error
-          });
-        }
-      }, 1000);
+      setMediaItems(items);
     }
-  }, [videoUrl]);
-
-  // Handle video events
-  const handleVideoLoad = () => {
-    console.log('Video loaded successfully');
-    setVideoLoading(false);
-  };
-
-  const handleVideoError = (e: any) => {
-    console.error('Video loading error:', e);
-    setVideoError('Failed to load video content. Please try refreshing the page.');
-    setVideoLoading(false);
-  };
-
-  const handlePlay = () => {
-    setIsPlaying(true);
-  };
-
-  const handlePause = () => {
-    setIsPlaying(false);
-  };
-
-  const handleTimeUpdate = () => {
-    if (videoRef.current) {
-      setCurrentTime(videoRef.current.currentTime);
-    }
-  };
-
-  const handleLoadedMetadata = () => {
-    if (videoRef.current) {
-      setDuration(videoRef.current.duration);
-    }
-  };
-
-  const handleVideoClick = () => {
-    if (videoRef.current) {
-      if (isPlaying) {
-        videoRef.current.pause();
-      } else {
-        videoRef.current.play();
-      }
-    }
-  };
-
-  const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (videoRef.current && duration > 0) {
-      const rect = e.currentTarget.getBoundingClientRect();
-      const clickX = e.clientX - rect.left;
-      const percentage = clickX / rect.width;
-      const newTime = percentage * duration;
-      videoRef.current.currentTime = newTime;
-    }
-  };
-
-  const handleMuteToggle = () => {
-    if (videoRef.current) {
-      videoRef.current.muted = !isMuted;
-      setIsMuted(!isMuted);
-    }
-  };
-
-  const handleMouseMove = () => {
-    setShowControls(true);
-    if (controlsTimeoutRef.current) {
-      clearTimeout(controlsTimeoutRef.current);
-    }
-    controlsTimeoutRef.current = setTimeout(() => {
-      if (isPlaying) {
-        setShowControls(false);
-      }
-    }, 3000);
-  };
-
-  const formatTime = (seconds: number): string => {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = Math.floor(seconds % 60);
-    
-    if (hours > 0) {
-      return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-    }
-    return `${minutes}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const handleVideoDoubleClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    toggleVideoFullscreen();
-  };
-
-  const toggleVideoFullscreen = () => {
-    if (!videoContainerRef.current) return;
-
-    try {
-      if (!document.fullscreenElement) {
-        // Try to request fullscreen on the container
-        if (videoContainerRef.current.requestFullscreen) {
-          videoContainerRef.current.requestFullscreen().then(() => {
-            setVideoFullscreen(true);
-          }).catch((err) => {
-            console.error('Fullscreen request failed:', err);
-          });
-        } else if ((videoContainerRef.current as any).webkitRequestFullscreen) {
-          (videoContainerRef.current as any).webkitRequestFullscreen().then(() => {
-            setVideoFullscreen(true);
-          }).catch((err) => {
-            console.error('Webkit fullscreen request failed:', err);
-          });
-        } else if ((videoContainerRef.current as any).msRequestFullscreen) {
-          (videoContainerRef.current as any).msRequestFullscreen().then(() => {
-            setVideoFullscreen(true);
-          }).catch((err) => {
-            console.error('MS fullscreen request failed:', err);
-          });
-        } else {
-          console.error('Fullscreen API not supported');
-        }
-      } else {
-        // Exit fullscreen
-        if (document.exitFullscreen) {
-          document.exitFullscreen().then(() => {
-            setVideoFullscreen(false);
-          }).catch((err) => {
-            console.error('Exit fullscreen failed:', err);
-          });
-        } else if ((document as any).webkitExitFullscreen) {
-          (document as any).webkitExitFullscreen().then(() => {
-            setVideoFullscreen(false);
-          }).catch((err) => {
-            console.error('Webkit exit fullscreen failed:', err);
-          });
-        } else if ((document as any).msExitFullscreen) {
-          (document as any).msExitFullscreen().then(() => {
-            setVideoFullscreen(false);
-          }).catch((err) => {
-            console.error('MS exit fullscreen failed:', err);
-          });
-        }
-      }
-    } catch (err) {
-      console.error('Fullscreen error:', err);
-      // Fallback: try to request fullscreen on the video element itself
-      if (videoRef.current) {
-        try {
-          if (!document.fullscreenElement) {
-            if (videoRef.current.requestFullscreen) {
-              videoRef.current.requestFullscreen().then(() => {
-                setVideoFullscreen(true);
-              }).catch((fallbackErr) => {
-                console.error('Fallback fullscreen error:', fallbackErr);
-              });
-            } else if ((videoRef.current as any).webkitRequestFullscreen) {
-              (videoRef.current as any).webkitRequestFullscreen().then(() => {
-                setVideoFullscreen(true);
-              }).catch((fallbackErr) => {
-                console.error('Fallback webkit fullscreen error:', fallbackErr);
-              });
-            } else if ((videoRef.current as any).msRequestFullscreen) {
-              (videoRef.current as any).msRequestFullscreen().then(() => {
-                setVideoFullscreen(true);
-              }).catch((fallbackErr) => {
-                console.error('Fallback MS fullscreen error:', fallbackErr);
-              });
-            }
-          } else {
-            if (document.exitFullscreen) {
-              document.exitFullscreen().then(() => {
-                setVideoFullscreen(false);
-              }).catch((fallbackErr) => {
-                console.error('Fallback exit fullscreen error:', fallbackErr);
-              });
-            } else if ((document as any).webkitExitFullscreen) {
-              (document as any).webkitExitFullscreen().then(() => {
-                setVideoFullscreen(false);
-              }).catch((fallbackErr) => {
-                console.error('Fallback webkit exit fullscreen error:', fallbackErr);
-              });
-            } else if ((document as any).msExitFullscreen) {
-              (document as any).msExitFullscreen().then(() => {
-                setVideoFullscreen(false);
-              }).catch((fallbackErr) => {
-                console.error('Fallback MS exit fullscreen error:', fallbackErr);
-              });
-            }
-          }
-        } catch (fallbackErr) {
-          console.error('Fallback fullscreen error:', fallbackErr);
-        }
-      }
-    }
-  };
-
-  const handleVideoFullscreenButton = (e: React.MouseEvent | React.TouchEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    toggleVideoFullscreen();
-  };
-
-  const openPhotoFullscreen = (photoUrl: string) => {
-    // Don't open photo fullscreen if video is in fullscreen
-    if (videoFullscreen) {
-      return;
-    }
-    
-    setFullscreenPhoto(photoUrl);
-    setPhotoFullscreen(true);
-  };
-
-  const closePhotoFullscreen = () => {
-    console.log('🔍 DEBUG: Closing photo fullscreen');
-    setFullscreenPhoto(null);
-    setPhotoFullscreen(false);
-  };
+  }, [videoUrl, photoUrls, collection]);
 
   const handleLegalAccept = () => {
     localStorage.setItem('exclusive-lex-purchase-terms-accepted', 'true');
@@ -410,70 +202,13 @@ export default function WatchPage() {
     router.push('/collections');
   };
 
-  useEffect(() => {
-    const handleContextMenu = (e: MouseEvent) => e.preventDefault();
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'f' || e.key === 'F') {
-        e.preventDefault();
-        toggleVideoFullscreen();
-      }
-      // Handle escape key for custom fullscreen
-      if (e.key === 'Escape' && videoFullscreen) {
-        console.log('🔍 DEBUG: Escape key pressed, exiting fullscreen');
-        setVideoFullscreen(false);
-        
-        // Restore everything
-        const video = videoRef.current;
-        const container = videoContainerRef.current;
-        
-        if (container) {
-          container.style.position = '';
-          container.style.top = '';
-          container.style.left = '';
-          container.style.width = '';
-          container.style.height = '';
-          container.style.zIndex = '';
-          container.style.backgroundColor = '';
-          container.style.display = '';
-          container.style.alignItems = '';
-          container.style.justifyContent = '';
-          container.style.padding = '';
-          container.style.margin = '';
-        }
-        
-        if (video) {
-          video.style.width = '';
-          video.style.height = '';
-          video.style.objectFit = '';
-          video.style.maxWidth = '';
-          video.style.maxHeight = '';
-        }
-        
-        // Restore body
-        document.body.style.overflow = '';
-        document.body.style.margin = '';
-        document.body.style.padding = '';
-      }
-    };
+  const openCarousel = () => {
+    setShowCarousel(true);
+  };
 
-    const handleFullscreenChange = () => {
-      // setIsFullscreen(!!document.fullscreenElement); // This state variable is no longer used
-    };
-
-    document.addEventListener('contextmenu', handleContextMenu);
-    document.addEventListener('keydown', handleKeyDown);
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
-    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
-    document.addEventListener('msfullscreenchange', handleFullscreenChange);
-
-    return () => {
-      document.removeEventListener('contextmenu', handleContextMenu);
-      document.removeEventListener('keydown', handleKeyDown);
-      document.removeEventListener('fullscreenchange', handleFullscreenChange);
-      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
-      document.removeEventListener('msfullscreenchange', handleFullscreenChange);
-    };
-  }, [videoFullscreen]);
+  const closeCarousel = () => {
+    setShowCarousel(false);
+  };
 
   if (loading) {
     return (
@@ -508,8 +243,8 @@ export default function WatchPage() {
     );
   }
 
-  if (!hasAccess || !videoUrl) {
-    console.log('Render - No access or no video URL. hasAccess:', hasAccess, 'videoUrl:', !!videoUrl);
+  if (!hasAccess || (!videoUrl && photoUrls.length === 0)) {
+    console.log('Render - No access or no media. hasAccess:', hasAccess, 'videoUrl:', !!videoUrl, 'photoUrls:', photoUrls.length);
     return null;
   }
 
@@ -537,7 +272,7 @@ export default function WatchPage() {
     );
   }
 
-  console.log('Render - Showing video content');
+  console.log('Render - Showing media content');
 
   return (
     <div className="min-h-screen bg-black">
@@ -555,224 +290,89 @@ export default function WatchPage() {
 
       {/* Main Content */}
       <div className="pt-20">
-        {/* Video Player */}
-        <div 
-          ref={videoContainerRef}
-          className={`relative bg-black ${videoFullscreen ? 'fixed inset-0 z-50' : ''}`}
-          style={videoFullscreen ? {
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            zIndex: 9999,
-            overflow: 'hidden'
-          } : {}}
-          onMouseMove={handleMouseMove}
-          onMouseLeave={() => {
-            if (isPlaying) {
-              setShowControls(false);
-            }
-          }}
-        >
-          <video
-            ref={videoRef}
-            src={videoUrl}
-            className="w-full h-screen object-contain"
-            onContextMenu={(e) => e.preventDefault()}
-            onError={handleVideoError}
-            onPlay={handlePlay}
-            onPause={handlePause}
-            onTimeUpdate={handleTimeUpdate}
-            onLoadedMetadata={handleLoadedMetadata}
-            onEnded={() => setIsPlaying(false)}
-            onLoadedData={handleVideoLoad}
-            onDoubleClick={handleVideoDoubleClick}
-            preload="metadata"
-            autoPlay
-            muted
-            playsInline
-            crossOrigin="anonymous"
-          >
-            Your browser does not support the video tag.
-          </video>
-
-          {/* Custom Video Controls */}
-          <div className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/50 to-transparent p-4 transition-opacity duration-300 ${showControls ? 'opacity-100' : 'opacity-0'}`}>
-            {/* Progress Bar */}
-            <div 
-              className="w-full h-1 bg-gray-600 rounded-full cursor-pointer mb-4"
-              onClick={handleProgressClick}
-            >
-              <div 
-                className="h-full bg-red-500 rounded-full relative"
-                style={{ width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
-              >
-                <div className="absolute right-0 top-1/2 transform -translate-y-1/2 w-3 h-3 bg-red-500 rounded-full shadow-lg"></div>
-              </div>
-            </div>
-
-            {/* Controls */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                {/* Play/Pause Button */}
-                <button
-                  onClick={handleVideoClick}
-                  className="text-white hover:text-gray-300 transition-colors"
-                >
-                  {isPlaying ? (
-                    <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/>
-                    </svg>
-                  ) : (
-                    <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
+        {/* Media Preview */}
+        <div className="relative bg-black min-h-screen">
+          {/* Video Preview */}
+          {videoUrl && (
+            <div className="relative w-full h-screen">
+              <video
+                src={videoUrl}
+                className="w-full h-full object-contain"
+                onContextMenu={(e) => e.preventDefault()}
+                preload="metadata"
+                muted
+                playsInline
+                poster={collection?.thumbnail_path ? `/api/thumbnail/${collection.thumbnail_path}` : undefined}
+              />
+              
+              {/* Overlay with play button and info */}
+              <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30">
+                <div className="text-center text-white">
+                  <button
+                    onClick={openCarousel}
+                    className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white p-4 rounded-full transition-all duration-300 backdrop-blur-sm"
+                  >
+                    <svg className="w-12 h-12" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M8 5v14l11-7z"/>
                     </svg>
-                  )}
-                </button>
-
-                {/* Volume Button */}
-                <button
-                  onClick={handleMuteToggle}
-                  className="text-white hover:text-gray-300 transition-colors"
-                >
-                  {isMuted ? (
-                    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>
-                    </svg>
-                  ) : (
-                    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
-                    </svg>
-                  )}
-                </button>
-
-                {/* Time Display */}
-                <div className="text-white text-sm">
-                  {formatTime(currentTime)} / {formatTime(duration)}
+                  </button>
+                  <p className="mt-4 text-lg font-semibold">Click to view in carousel</p>
+                  <p className="text-sm text-gray-300">
+                    {mediaItems.length} {mediaItems.length === 1 ? 'item' : 'items'} available
+                  </p>
                 </div>
-              </div>
-
-              <div className="flex items-center space-x-4">
-                {/* Fullscreen Button */}
-                <button
-                  onClick={handleVideoFullscreenButton}
-                  onTouchEnd={handleVideoFullscreenButton}
-                  className="text-white hover:text-gray-300 transition-colors touch-manipulation"
-                  title="Toggle fullscreen (F key or double-click video)"
-                >
-                  {videoFullscreen ? (
-                    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/>
-                    </svg>
-                  ) : (
-                    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>
-                    </svg>
-                  )}
-                </button>
-
-                {/* Watermark */}
-                <div className="text-white text-opacity-50 text-sm">
-                  {user?.email} • Exclusive Access
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Video Fullscreen Hint (only when not in fullscreen) */}
-          {!videoFullscreen && (
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="bg-black bg-opacity-50 text-white px-4 py-2 rounded-lg text-sm">
-                Double-click to enter fullscreen
               </div>
             </div>
           )}
 
-          {/* Fullscreen Exit Hint */}
-          {videoFullscreen && (
-            <div className="absolute top-4 right-4 bg-black bg-opacity-75 text-white px-3 py-1 rounded text-sm">
-              Press ESC or double-click to exit fullscreen
-            </div>
-          )}
-        </div>
-
-        {/* Additional Photos */}
-        {photoUrls.length > 0 && (
-          <div className="bg-gray-900 p-8">
-            <div className="max-w-7xl mx-auto">
-              <h3 className="text-white text-2xl font-semibold mb-6 text-center">
-                Additional Content ({photoUrls.length} photos)
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {photoUrls.map((url, index) => (
-                  <div key={index} className="relative group">
-                    <div 
-                      className="bg-white rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 cursor-pointer"
-                      onClick={() => openPhotoFullscreen(url)}
-                    >
-                      <img
-                        src={url}
-                        alt={`Content ${index + 1}`}
-                        className="w-full h-64 object-cover"
-                        onContextMenu={(e) => e.preventDefault()}
-                        style={{
-                          WebkitUserSelect: 'none',
-                          MozUserSelect: 'none',
-                          msUserSelect: 'none',
-                          userSelect: 'none',
-                        }}
-                      />
-                      {/* Photo number overlay */}
-                      <div className="absolute top-2 right-2 bg-black bg-opacity-75 text-white px-2 py-1 rounded text-xs font-medium">
-                        Photo {index + 1}
-                      </div>
-                      {/* Fullscreen icon overlay */}
-                      <div className="absolute top-2 left-2 bg-black bg-opacity-75 text-white p-1 rounded">
-                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>
-                        </svg>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Photo Fullscreen Modal */}
-        {photoFullscreen && fullscreenPhoto && !videoFullscreen && (
-          <div 
-            className="fixed inset-0 bg-black bg-opacity-95 z-40 flex items-center justify-center"
-            onClick={closePhotoFullscreen}
-          >
-            <div className="relative max-w-full max-h-full p-4">
+          {/* Photo Preview (if no video) */}
+          {!videoUrl && photoUrls.length > 0 && (
+            <div className="relative w-full h-screen">
               <img
-                src={fullscreenPhoto}
-                alt="Fullscreen photo"
-                className="max-w-full max-h-full object-contain"
+                src={photoUrls[0]}
+                alt={collection?.title || 'Collection photo'}
+                className="w-full h-full object-contain"
                 onContextMenu={(e) => e.preventDefault()}
-                style={{
-                  WebkitUserSelect: 'none',
-                  MozUserSelect: 'none',
-                  msUserSelect: 'none',
-                  userSelect: 'none',
-                }}
               />
-              {/* Close button */}
-              <button
-                onClick={closePhotoFullscreen}
-                className="absolute top-4 right-4 bg-black bg-opacity-75 text-white p-2 rounded-full hover:bg-opacity-100 transition-all"
-              >
-                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
-                </svg>
-              </button>
+              
+              {/* Overlay with info */}
+              <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30">
+                <div className="text-center text-white">
+                  <button
+                    onClick={openCarousel}
+                    className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-6 py-3 rounded-lg transition-all duration-300 backdrop-blur-sm"
+                  >
+                    View All Photos ({photoUrls.length})
+                  </button>
+                </div>
+              </div>
             </div>
+          )}
+
+          {/* Carousel Button */}
+          <div className="absolute bottom-4 right-4">
+            <button
+              onClick={openCarousel}
+              className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-4 py-2 rounded-lg transition-all duration-300 backdrop-blur-sm flex items-center space-x-2"
+            >
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>
+              </svg>
+              <span>View Carousel</span>
+            </button>
           </div>
-        )}
+        </div>
       </div>
+
+      {/* Media Carousel Modal */}
+      {showCarousel && mediaItems.length > 0 && (
+        <MediaCarousel
+          items={mediaItems}
+          initialIndex={0}
+          onClose={closeCarousel}
+          title={collection?.title}
+        />
+      )}
     </div>
   );
 } 

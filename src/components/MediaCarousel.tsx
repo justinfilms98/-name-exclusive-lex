@@ -1,554 +1,339 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Play, Pause, Maximize2, Minimize2 } from 'lucide-react';
-import { getSignedUrl } from '@/lib/supabase';
-import ProtectedContentWrapper from './ProtectedContentWrapper';
+import { useState, useEffect, useRef } from 'react';
+import { ChevronLeft, ChevronRight, X, Play, Pause, Volume2, VolumeX, Maximize2, Minimize2 } from 'lucide-react';
 
 interface MediaItem {
   id: string;
-  type: 'video' | 'image';
-  path: string;
-  signedUrl?: string;
+  type: 'video' | 'photo';
+  url: string;
+  title?: string;
+  description?: string;
 }
 
 interface MediaCarouselProps {
-  videoPath: string;
-  photoPaths: string[];
-  onPlay?: () => void;
-  onPause?: () => void;
+  items: MediaItem[];
+  initialIndex?: number;
+  onClose?: () => void;
+  title?: string;
 }
 
-export default function MediaCarousel({ videoPath, photoPaths, onPlay, onPause }: MediaCarouselProps) {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(true); // Start muted for autoplay
+export default function MediaCarousel({ items, initialIndex = 0, onClose, title }: MediaCarouselProps) {
+  const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [fullscreenMedia, setFullscreenMedia] = useState<MediaItem | null>(null);
-  const [showMobileHint, setShowMobileHint] = useState(false);
-  const [isMobileFullscreen, setIsMobileFullscreen] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [showControls, setShowControls] = useState(true);
+  const [videoLoaded, setVideoLoaded] = useState(false);
+  
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const currentItem = items[currentIndex];
 
   useEffect(() => {
-    const loadMedia = async () => {
-      console.log('MediaCarousel: Loading media');
-      console.log('Video path:', videoPath);
-      console.log('Photo paths:', photoPaths);
-      console.log('Photo paths length:', photoPaths.length);
-      
-      const items: MediaItem[] = [];
-      
-      // Add video as first item
-      if (videoPath) {
-        console.log('Loading video signed URL...');
-        const { data: signedUrl } = await getSignedUrl('media', videoPath);
-        console.log('Video signed URL:', signedUrl?.signedUrl);
-        items.push({
-          id: 'video',
-          type: 'video',
-          path: videoPath,
-          signedUrl: signedUrl?.signedUrl
-        });
-      }
+    if (currentItem?.type === 'video' && videoRef.current) {
+      setVideoLoaded(false);
+      setCurrentTime(0);
+      setDuration(0);
+      setIsPlaying(false);
+    }
+  }, [currentIndex, currentItem]);
 
-      // Add photos
-      console.log('Loading photos...');
-      for (let i = 0; i < photoPaths.length; i++) {
-        console.log(`Loading photo ${i + 1}:`, photoPaths[i]);
-        const { data: signedUrl } = await getSignedUrl('media', photoPaths[i]);
-        console.log(`Photo ${i + 1} signed URL:`, signedUrl?.signedUrl);
-        items.push({
-          id: `photo-${i}`,
-          type: 'image',
-          path: photoPaths[i],
-          signedUrl: signedUrl?.signedUrl
-        });
-      }
-
-      console.log('Final media items:', items);
-      setMediaItems(items);
-      setLoading(false);
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
     };
 
-    loadMedia();
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    document.addEventListener('msfullscreenchange', handleFullscreenChange);
 
-    // Show fullscreen hint briefly
-    setShowMobileHint(true);
-    setTimeout(() => setShowMobileHint(false), 3000);
-
-    // Add screenshot protection
-    const blurMedia = () => {
-      const container = document.querySelector('.video-container') as HTMLElement;
-      if (container) {
-        container.style.filter = 'blur(20px)';
-        container.style.transition = 'filter 0.3s ease';
-        
-        // Show warning
-        const warning = document.createElement('div');
-        warning.className = 'fixed inset-0 bg-red-900 bg-opacity-90 flex items-center justify-center z-50';
-        warning.innerHTML = `
-          <div class="text-center text-white p-8">
-            <h2 class="text-2xl font-bold mb-4">⚠️ SCREENSHOT DETECTED</h2>
-            <p class="text-lg">Screenshot attempts are not allowed for this private content.</p>
-            <p class="text-sm mt-2">Content has been blurred for security.</p>
-          </div>
-        `;
-        document.body.appendChild(warning);
-        
-        // Remove warning after 5 seconds
-        setTimeout(() => {
-          if (warning.parentNode) {
-            warning.parentNode.removeChild(warning);
-          }
-        }, 5000);
-        
-        // Unblur after 10 seconds
-        setTimeout(() => {
-          if (container) {
-            container.style.filter = 'none';
-          }
-        }, 10000);
-      }
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('msfullscreenchange', handleFullscreenChange);
     };
+  }, []);
 
-    // Screenshot detection
-    const detectScreenshotAttempts = () => {
-      let screenshotAttempts = 0;
-      let lastAttemptTime = 0;
-      
-      const handleScreenshotAttempt = () => {
-        const now = Date.now();
-        if (now - lastAttemptTime < 1000) {
-          screenshotAttempts++;
-        } else {
-          screenshotAttempts = 1;
-        }
-        lastAttemptTime = now;
-        
-        if (screenshotAttempts >= 2) {
-          blurMedia();
-          screenshotAttempts = 0;
-        }
-      };
-
-      // Monitor for screenshot triggers
-      const handleKeyDown = (e: KeyboardEvent) => {
-        if (
-          e.key === 'PrintScreen' ||
-          (e.ctrlKey && e.key === 's') ||
-          (e.ctrlKey && e.key === 'p') ||
-          (e.metaKey && e.key === 's') ||
-          (e.metaKey && e.key === 'p') ||
-          e.key === 'F12' ||
-          e.key === 'F11'
-        ) {
-          e.preventDefault();
-          handleScreenshotAttempt();
-        }
-      };
-
-      // Monitor window focus/blur
-      let focusTimeout: NodeJS.Timeout;
-      const handleBlur = () => {
-        focusTimeout = setTimeout(() => {
-          handleScreenshotAttempt();
-        }, 100);
-      };
-
-      const handleFocus = () => {
-        if (focusTimeout) {
-          clearTimeout(focusTimeout);
-        }
-      };
-
-      // Monitor for clipboard operations
-      const handleCopy = (e: ClipboardEvent) => {
-        e.preventDefault();
-        handleScreenshotAttempt();
-      };
-
-      const handleCut = (e: ClipboardEvent) => {
-        e.preventDefault();
-        handleScreenshotAttempt();
-      };
-
-      // Monitor for context menu
-      const handleContextMenu = (e: MouseEvent) => {
-        e.preventDefault();
-        handleScreenshotAttempt();
-      };
-
-      // Monitor for selection
-      const handleSelectStart = (e: Event) => {
-        e.preventDefault();
-        handleScreenshotAttempt();
-      };
-
-      // Monitor for drag operations
-      const handleDragStart = (e: DragEvent) => {
-        e.preventDefault();
-        handleScreenshotAttempt();
-      };
-
-      // Add event listeners
-      document.addEventListener('keydown', handleKeyDown);
-      window.addEventListener('blur', handleBlur);
-      window.addEventListener('focus', handleFocus);
-      document.addEventListener('copy', handleCopy);
-      document.addEventListener('cut', handleCut);
-      document.addEventListener('contextmenu', handleContextMenu);
-      document.addEventListener('selectstart', handleSelectStart);
-      document.addEventListener('dragstart', handleDragStart);
-
-      // Cleanup function
-      return () => {
-        document.removeEventListener('keydown', handleKeyDown);
-        window.removeEventListener('blur', handleBlur);
-        window.removeEventListener('focus', handleFocus);
-        document.removeEventListener('copy', handleCopy);
-        document.removeEventListener('cut', handleCut);
-        document.removeEventListener('contextmenu', handleContextMenu);
-        document.removeEventListener('selectstart', handleSelectStart);
-        document.removeEventListener('dragstart', handleDragStart);
-      };
-    };
-
-    const cleanup = detectScreenshotAttempts();
-    return cleanup;
-  }, [videoPath, photoPaths]);
-
-  const nextSlide = () => {
-    console.log('Next slide clicked, current index:', currentIndex, 'total items:', mediaItems.length);
-    setCurrentIndex((prev) => (prev + 1) % mediaItems.length);
+  const nextItem = () => {
+    setCurrentIndex((prev) => (prev + 1) % items.length);
   };
 
-  const prevSlide = () => {
-    console.log('Previous slide clicked, current index:', currentIndex, 'total items:', mediaItems.length);
-    setCurrentIndex((prev) => (prev - 1 + mediaItems.length) % mediaItems.length);
+  const prevItem = () => {
+    setCurrentIndex((prev) => (prev - 1 + items.length) % items.length);
   };
 
-  const handlePlayPause = () => {
-    const video = document.querySelector('video') as HTMLVideoElement;
-    if (video) {
-      if (video.paused) {
-        // Enable audio on first user interaction
-        video.muted = false;
-        setIsMuted(false);
-        video.play();
-        setIsPlaying(true);
-        onPlay?.();
+  const toggleFullscreen = async () => {
+    if (!containerRef.current) return;
+
+    try {
+      if (!document.fullscreenElement) {
+        if (containerRef.current.requestFullscreen) {
+          await containerRef.current.requestFullscreen();
+        } else if ((containerRef.current as any).webkitRequestFullscreen) {
+          await (containerRef.current as any).webkitRequestFullscreen();
+        } else if ((containerRef.current as any).msRequestFullscreen) {
+          await (containerRef.current as any).msRequestFullscreen();
+        }
       } else {
-        video.pause();
-        setIsPlaying(false);
-        onPause?.();
-      }
-    }
-  };
-
-  // Auto-unmute on first user interaction
-  const handleVideoInteraction = () => {
-    if (isMuted) {
-      const video = document.querySelector('video') as HTMLVideoElement;
-      if (video) {
-        video.muted = false;
-        setIsMuted(false);
-      }
-    }
-  };
-
-  const openFullscreen = (mediaItem: MediaItem) => {
-    console.log('🔍 Fullscreen requested for:', mediaItem.type);
-    
-    // Check if we're on mobile
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    
-    if (isMobile) {
-      // Mobile approach: open in new tab for better fullscreen experience
-      console.log('📱 Mobile detected - opening in new tab');
-      if (mediaItem.signedUrl) {
-        window.open(mediaItem.signedUrl, '_blank');
-      }
-    } else {
-      // Desktop approach: use modal fullscreen
-      console.log('🖥️ Desktop detected - using modal fullscreen');
-      setFullscreenMedia(mediaItem);
-      setIsFullscreen(true);
-      document.body.style.overflow = 'hidden';
-    }
-  };
-
-  const closeFullscreen = () => {
-    console.log('🔍 Closing fullscreen');
-    
-    // Close modal fullscreen
-    setFullscreenMedia(null);
-    setIsFullscreen(false);
-    setIsMobileFullscreen(false);
-    
-    // Restore scrolling
-    document.body.style.overflow = '';
-  };
-
-  const handleMediaClick = (mediaItem: MediaItem) => {
-    if (mediaItem.type === 'video') {
-      handlePlayPause();
-    } else {
-      openFullscreen(mediaItem);
-    }
-  };
-
-  const handleMediaDoubleClick = (mediaItem: MediaItem) => {
-    openFullscreen(mediaItem);
-  };
-
-  const handleFullscreenButtonClick = (e: React.MouseEvent, mediaItem: MediaItem) => {
-    e.preventDefault();
-    e.stopPropagation();
-    console.log('🔍 Fullscreen button clicked for:', mediaItem.type);
-    openFullscreen(mediaItem);
-  };
-
-  // Keyboard navigation
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (mediaItems.length <= 1) return;
-      
-      if (e.key === 'ArrowLeft') {
-        e.preventDefault();
-        prevSlide();
-      } else if (e.key === 'ArrowRight') {
-        e.preventDefault();
-        nextSlide();
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [mediaItems.length]);
-
-  // Fullscreen keyboard support
-  useEffect(() => {
-    const handleFullscreenKeyDown = (e: KeyboardEvent) => {
-      if (fullscreenMedia) {
-        if (e.key === 'Escape') {
-          e.preventDefault();
-          closeFullscreen();
+        if (document.exitFullscreen) {
+          await document.exitFullscreen();
+        } else if ((document as any).webkitExitFullscreen) {
+          await (document as any).webkitExitFullscreen();
+        } else if ((document as any).msExitFullscreen) {
+          await (document as any).msExitFullscreen();
         }
       }
-    };
+    } catch (err) {
+      console.error('Fullscreen error:', err);
+    }
+  };
 
-    document.addEventListener('keydown', handleFullscreenKeyDown);
-    return () => document.removeEventListener('keydown', handleFullscreenKeyDown);
-  }, [fullscreenMedia]);
+  const handleVideoClick = () => {
+    if (videoRef.current) {
+      if (isPlaying) {
+        videoRef.current.pause();
+      } else {
+        videoRef.current.play();
+      }
+    }
+  };
 
-  if (loading) {
-    return (
-      <div className="aspect-video bg-stone-700 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-12 h-12 spinner mx-auto mb-4"></div>
-          <p className="text-stone-300">Loading media...</p>
-        </div>
-      </div>
-    );
-  }
+  const handleMuteToggle = () => {
+    if (videoRef.current) {
+      videoRef.current.muted = !isMuted;
+      setIsMuted(!isMuted);
+    }
+  };
 
-  if (mediaItems.length === 0) {
-    return (
-      <div className="aspect-video bg-stone-700 flex items-center justify-center">
-        <p className="text-stone-300">No media available</p>
-      </div>
-    );
-  }
+  const handleTimeUpdate = () => {
+    if (videoRef.current) {
+      setCurrentTime(videoRef.current.currentTime);
+    }
+  };
 
-  const currentItem = mediaItems[currentIndex];
+  const handleLoadedMetadata = () => {
+    if (videoRef.current) {
+      setDuration(videoRef.current.duration);
+      setVideoLoaded(true);
+    }
+  };
+
+  const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (videoRef.current && duration > 0) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      const percentage = clickX / rect.width;
+      const newTime = percentage * duration;
+      videoRef.current.currentTime = newTime;
+    }
+  };
+
+  const handleMouseMove = () => {
+    setShowControls(true);
+    if (controlsTimeoutRef.current) {
+      clearTimeout(controlsTimeoutRef.current);
+    }
+    controlsTimeoutRef.current = setTimeout(() => {
+      if (isPlaying) {
+        setShowControls(false);
+      }
+    }, 3000);
+  };
+
+  const formatTime = (seconds: number): string => {
+    const minutes = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${minutes}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    switch (e.key) {
+      case 'ArrowLeft':
+        e.preventDefault();
+        prevItem();
+        break;
+      case 'ArrowRight':
+        e.preventDefault();
+        nextItem();
+        break;
+      case 'Escape':
+        e.preventDefault();
+        if (isFullscreen) {
+          toggleFullscreen();
+        } else if (onClose) {
+          onClose();
+        }
+        break;
+      case 'f':
+      case 'F':
+        e.preventDefault();
+        toggleFullscreen();
+        break;
+      case ' ':
+        e.preventDefault();
+        if (currentItem?.type === 'video') {
+          handleVideoClick();
+        }
+        break;
+    }
+  };
+
+  if (!currentItem) return null;
 
   return (
-    <ProtectedContentWrapper>
-      <div className="relative bg-stone-800 rounded-lg overflow-hidden video-container">
-        {/* Media Display */}
-        <div className="relative aspect-video">
-        {currentItem.type === 'video' ? (
-          <video
-            className="w-full h-full object-cover cursor-pointer"
-            controls={false}
-            autoPlay={currentIndex === 0}
-            muted={isMuted}
-            loop
-            playsInline
-            onPlay={() => setIsPlaying(true)}
-            onPause={() => setIsPlaying(false)}
-            onClick={() => handleMediaClick(currentItem)}
-            onDoubleClick={() => handleMediaDoubleClick(currentItem)}
-            onContextMenu={(e) => e.preventDefault()}
-            style={{ userSelect: 'none', WebkitUserSelect: 'none' }}
-          >
-            <source src={currentItem.signedUrl} type="video/mp4" />
-            Your browser does not support the video tag.
-          </video>
-        ) : (
-          <img
-            src={currentItem.signedUrl}
-            alt="Collection photo"
-            className="w-full h-full object-cover cursor-pointer"
-            onClick={() => handleMediaClick(currentItem)}
-            onDoubleClick={() => handleMediaDoubleClick(currentItem)}
-            onContextMenu={(e) => e.preventDefault()}
-            style={{ userSelect: 'none', WebkitUserSelect: 'none' }}
-          />
-        )}
-
-        {/* Custom Controls Overlay */}
-        <div className="video-overlay flex items-center justify-center">
-          {currentItem.type === 'video' && (
+    <div 
+      ref={containerRef}
+      className={`fixed inset-0 bg-black z-50 ${isFullscreen ? 'fullscreen' : ''}`}
+      onKeyDown={handleKeyDown}
+      tabIndex={0}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={() => {
+        if (isPlaying) {
+          setShowControls(false);
+        }
+      }}
+    >
+      {/* Header */}
+      <div className={`absolute top-0 left-0 right-0 z-10 bg-gradient-to-b from-black/80 to-transparent p-4 ${showControls ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300`}>
+        <div className="flex items-center justify-between text-white">
+          <div>
+            <h1 className="text-lg font-semibold">{title || currentItem.title}</h1>
+            <p className="text-sm text-gray-300">
+              {currentIndex + 1} of {items.length} • {currentItem.type === 'video' ? 'Video' : 'Photo'}
+            </p>
+          </div>
+          <div className="flex items-center space-x-2">
             <button
-              onClick={handlePlayPause}
-              className="bg-black bg-opacity-50 text-white p-4 rounded-full hover:bg-opacity-70 transition-all"
+              onClick={toggleFullscreen}
+              className="p-2 hover:bg-white/20 rounded-full transition-colors"
+              title="Toggle fullscreen (F)"
             >
-              {isPlaying ? <Pause className="w-8 h-8" /> : <Play className="w-8 h-8" />}
+              {isFullscreen ? <Minimize2 size={20} /> : <Maximize2 size={20} />}
             </button>
-          )}
+            {onClose && (
+              <button
+                onClick={onClose}
+                className="p-2 hover:bg-white/20 rounded-full transition-colors"
+                title="Close (ESC)"
+              >
+                <X size={20} />
+              </button>
+            )}
+          </div>
         </div>
+      </div>
 
+      {/* Main Content */}
+      <div className="relative w-full h-full flex items-center justify-center">
         {/* Navigation Arrows */}
-        {mediaItems.length > 1 && (
+        {items.length > 1 && (
           <>
             <button
-              onClick={prevSlide}
-              className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-70 text-white p-3 rounded-full hover:bg-opacity-90 transition-all z-10 hover:scale-110"
-              aria-label="Previous media"
+              onClick={prevItem}
+              className="absolute left-4 top-1/2 -translate-y-1/2 z-10 p-3 bg-black/50 hover:bg-black/70 rounded-full transition-colors text-white"
+              title="Previous (←)"
             >
-              <ChevronLeft className="w-6 h-6" />
+              <ChevronLeft size={24} />
             </button>
             <button
-              onClick={nextSlide}
-              className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-70 text-white p-3 rounded-full hover:bg-opacity-90 transition-all z-10 hover:scale-110"
-              aria-label="Next media"
+              onClick={nextItem}
+              className="absolute right-4 top-1/2 -translate-y-1/2 z-10 p-3 bg-black/50 hover:bg-black/70 rounded-full transition-colors text-white"
+              title="Next (→)"
             >
-              <ChevronRight className="w-6 h-6" />
+              <ChevronRight size={24} />
             </button>
           </>
         )}
+
+        {/* Media Content */}
+        <div className="relative w-full h-full flex items-center justify-center">
+          {currentItem.type === 'video' ? (
+            <div className="relative w-full h-full">
+              <video
+                ref={videoRef}
+                src={currentItem.url}
+                className="w-full h-full object-contain"
+                onContextMenu={(e) => e.preventDefault()}
+                onLoadedMetadata={handleLoadedMetadata}
+                onTimeUpdate={handleTimeUpdate}
+                onPlay={() => setIsPlaying(true)}
+                onPause={() => setIsPlaying(false)}
+                onEnded={() => setIsPlaying(false)}
+                onError={() => setVideoLoaded(true)}
+                preload="metadata"
+                muted={isMuted}
+                playsInline
+              />
+              
+              {/* Video Controls */}
+              <div className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 ${showControls ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300`}>
+                {/* Progress Bar */}
+                <div 
+                  className="w-full h-1 bg-gray-600 rounded-full cursor-pointer mb-4"
+                  onClick={handleProgressClick}
+                >
+                  <div 
+                    className="h-full bg-red-500 rounded-full relative"
+                    style={{ width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
+                  >
+                    <div className="absolute right-0 top-1/2 transform -translate-y-1/2 w-3 h-3 bg-red-500 rounded-full shadow-lg"></div>
+                  </div>
+                </div>
+
+                {/* Controls */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    <button
+                      onClick={handleVideoClick}
+                      className="text-white hover:text-gray-300 transition-colors"
+                    >
+                      {isPlaying ? <Pause size={24} /> : <Play size={24} />}
+                    </button>
+
+                    <button
+                      onClick={handleMuteToggle}
+                      className="text-white hover:text-gray-300 transition-colors"
+                    >
+                      {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
+                    </button>
+
+                    <div className="text-white text-sm">
+                      {formatTime(currentTime)} / {formatTime(duration)}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <img
+              src={currentItem.url}
+              alt={currentItem.title || `Photo ${currentIndex + 1}`}
+              className="max-w-full max-h-full object-contain"
+              onContextMenu={(e) => e.preventDefault()}
+            />
+          )}
+        </div>
       </div>
 
       {/* Dots Indicator */}
-      {mediaItems.length > 1 && (
-        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
-          {mediaItems.map((_, index) => (
+      {items.length > 1 && (
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 flex space-x-2">
+          {items.map((_, index) => (
             <button
               key={index}
               onClick={() => setCurrentIndex(index)}
-              className={`w-2 h-2 rounded-full transition-all ${
-                index === currentIndex ? 'bg-white' : 'bg-white bg-opacity-50'
+              className={`w-2 h-2 rounded-full transition-colors ${
+                index === currentIndex ? 'bg-white' : 'bg-white/50 hover:bg-white/75'
               }`}
             />
           ))}
         </div>
       )}
-
-      {/* Media Type Indicator */}
-      <div className="absolute top-4 right-4 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-sm">
-        {currentItem.type === 'video' ? 'VIDEO' : 'PHOTO'} {currentIndex + 1}/{mediaItems.length}
-      </div>
-
-      {/* Fullscreen Button */}
-      <button
-        onClick={(e) => handleFullscreenButtonClick(e, currentItem)}
-        className="absolute top-4 left-4 bg-black bg-opacity-75 text-white p-3 rounded-full hover:bg-opacity-100 transition-all duration-200 z-50 md:p-2"
-        title="Fullscreen"
-        style={{ 
-          minWidth: '48px', 
-          minHeight: '48px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          pointerEvents: 'auto',
-          touchAction: 'manipulation',
-        }}
-      >
-        <Maximize2 className="w-6 h-6 md:w-5 md:h-5" />
-        {/* Mobile indicator */}
-        <div className="absolute -bottom-1 -right-1 bg-blue-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center sm:hidden">
-          ↗
-        </div>
-      </button>
-
-      {/* Fullscreen Hint */}
-      {showMobileHint && (
-        <div className="absolute bottom-4 left-4 right-4 bg-black bg-opacity-80 text-white p-3 rounded-lg text-center text-sm z-30">
-          <div className="flex items-center justify-center space-x-2">
-            <Maximize2 className="w-4 h-4" />
-            <span className="hidden sm:inline">Tap the fullscreen button to view in fullscreen</span>
-            <span className="sm:hidden">Tap the fullscreen button to open in new tab</span>
-          </div>
-        </div>
-      )}
-
-      {/* Fullscreen Modal */}
-      {fullscreenMedia && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-95 z-[9999] flex items-center justify-center"
-          onClick={closeFullscreen}
-        >
-          <div className="relative w-full h-full flex items-center justify-center p-2">
-            {fullscreenMedia.type === 'video' ? (
-              <video
-                src={fullscreenMedia.signedUrl}
-                className="w-full h-full object-contain"
-                controls
-                autoPlay
-                muted={isMuted}
-                playsInline
-                onContextMenu={(e) => e.preventDefault()}
-                style={{
-                  WebkitUserSelect: 'none',
-                  MozUserSelect: 'none',
-                  msUserSelect: 'none',
-                  userSelect: 'none',
-                  maxWidth: '100vw',
-                  maxHeight: '100vh',
-                }}
-              />
-            ) : (
-              <img
-                src={fullscreenMedia.signedUrl}
-                alt="Fullscreen content"
-                className="w-full h-full object-contain"
-                onContextMenu={(e) => e.preventDefault()}
-                style={{
-                  WebkitUserSelect: 'none',
-                  MozUserSelect: 'none',
-                  msUserSelect: 'none',
-                  userSelect: 'none',
-                  maxWidth: '100vw',
-                  maxHeight: '100vh',
-                }}
-              />
-            )}
-            
-            {/* Close button */}
-            <button
-              onClick={closeFullscreen}
-              className="absolute top-4 right-4 bg-black bg-opacity-75 text-white p-4 rounded-full hover:bg-opacity-100 transition-all duration-200 z-[10000]"
-              style={{ 
-                minWidth: '48px', 
-                minHeight: '48px',
-              }}
-            >
-              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
-              </svg>
-            </button>
-            
-            {/* Watermark */}
-            <div className="absolute bottom-4 left-4 text-white text-opacity-50 text-sm">
-              Exclusive Content
-            </div>
-          </div>
-        </div>
-      )}
-
-      </div>
-    </ProtectedContentWrapper>
+    </div>
   );
 } 

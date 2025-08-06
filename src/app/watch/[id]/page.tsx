@@ -7,6 +7,14 @@ import { getSignedUrl } from '@/lib/supabase';
 import MediaCarousel from '@/components/MediaCarousel';
 import PurchaseDisclaimer from '@/components/PurchaseDisclaimer';
 
+interface MediaItem {
+  id: string;
+  type: 'video' | 'photo';
+  url: string;
+  title?: string;
+  description?: string;
+}
+
 interface Purchase {
   id: string;
   user_id: string;
@@ -45,6 +53,7 @@ function WatchPageClient({ collectionId }: { collectionId: string }) {
   const [isMuted, setIsMuted] = useState(false);
   const [showControls, setShowControls] = useState(true);
   const [showDisclaimer, setShowDisclaimer] = useState(true);
+  const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
 
   useEffect(() => {
     if (!sessionId) {
@@ -116,12 +125,11 @@ function WatchPageClient({ collectionId }: { collectionId: string }) {
       }
     };
 
-    // Enhanced screenshot detection
+    // Screenshot detection
     const detectScreenshotAttempts = () => {
       let screenshotAttempts = 0;
       let lastAttemptTime = 0;
       
-      // Monitor for screenshot-related activities
       const handleScreenshotAttempt = () => {
         const now = Date.now();
         if (now - lastAttemptTime < 1000) {
@@ -137,8 +145,8 @@ function WatchPageClient({ collectionId }: { collectionId: string }) {
         }
       };
 
-      // Listen for various screenshot triggers
-      document.addEventListener('keydown', (e) => {
+      // Monitor for screenshot triggers
+      const handleKeyDown = (e: KeyboardEvent) => {
         if (
           e.key === 'PrintScreen' ||
           (e.ctrlKey && e.key === 's') ||
@@ -151,130 +159,114 @@ function WatchPageClient({ collectionId }: { collectionId: string }) {
           e.preventDefault();
           handleScreenshotAttempt();
         }
-      });
+      };
 
-      // Monitor window focus/blur (indicates screenshot tools)
+      // Monitor window focus/blur
       let focusTimeout: NodeJS.Timeout;
-      window.addEventListener('blur', () => {
+      const handleBlur = () => {
         focusTimeout = setTimeout(() => {
           handleScreenshotAttempt();
         }, 100);
-      });
+      };
 
-      window.addEventListener('focus', () => {
+      const handleFocus = () => {
         if (focusTimeout) {
           clearTimeout(focusTimeout);
         }
-      });
+      };
 
       // Monitor for clipboard operations
-      document.addEventListener('copy', (e) => {
+      const handleCopy = (e: ClipboardEvent) => {
         e.preventDefault();
         handleScreenshotAttempt();
-      });
+      };
 
-      document.addEventListener('cut', (e) => {
+      const handleCut = (e: ClipboardEvent) => {
         e.preventDefault();
         handleScreenshotAttempt();
-      });
+      };
 
-      // Monitor for right-click context menu
-      document.addEventListener('contextmenu', (e) => {
+      // Monitor for context menu
+      const handleContextMenu = (e: MouseEvent) => {
         e.preventDefault();
         handleScreenshotAttempt();
-      });
+      };
 
-      // Monitor for selection (screenshot tools often select areas)
-      document.addEventListener('selectstart', (e) => {
+      // Monitor for selection
+      const handleSelectStart = (e: Event) => {
         e.preventDefault();
         handleScreenshotAttempt();
-      });
+      };
 
       // Monitor for drag operations
-      document.addEventListener('dragstart', (e) => {
+      const handleDragStart = (e: DragEvent) => {
         e.preventDefault();
         handleScreenshotAttempt();
-      });
+      };
 
-      // Monitor for mouse events that might indicate screenshot tools
-      let mouseDownTime = 0;
-      document.addEventListener('mousedown', () => {
-        mouseDownTime = Date.now();
-      });
+      // Add event listeners
+      document.addEventListener('keydown', handleKeyDown);
+      window.addEventListener('blur', handleBlur);
+      window.addEventListener('focus', handleFocus);
+      document.addEventListener('copy', handleCopy);
+      document.addEventListener('cut', handleCut);
+      document.addEventListener('contextmenu', handleContextMenu);
+      document.addEventListener('selectstart', handleSelectStart);
+      document.addEventListener('dragstart', handleDragStart);
 
-      document.addEventListener('mouseup', () => {
-        const duration = Date.now() - mouseDownTime;
-        if (duration > 2000) { // Long press might indicate screenshot tool
-          handleScreenshotAttempt();
-        }
-      });
-
-      // Monitor for touch events on mobile
-      let touchStartTime = 0;
-      document.addEventListener('touchstart', () => {
-        touchStartTime = Date.now();
-      });
-
-      document.addEventListener('touchend', () => {
-        const duration = Date.now() - touchStartTime;
-        if (duration > 2000) { // Long touch might indicate screenshot
-          handleScreenshotAttempt();
-        }
-      });
+      // Cleanup function
+      return () => {
+        document.removeEventListener('keydown', handleKeyDown);
+        window.removeEventListener('blur', handleBlur);
+        window.removeEventListener('focus', handleFocus);
+        document.removeEventListener('copy', handleCopy);
+        document.removeEventListener('cut', handleCut);
+        document.removeEventListener('contextmenu', handleContextMenu);
+        document.removeEventListener('selectstart', handleSelectStart);
+        document.removeEventListener('dragstart', handleDragStart);
+      };
     };
 
-    // Initialize screenshot detection
-    detectScreenshotAttempts();
-
-    // Create dynamic watermark (less visible but still present)
-    const createWatermark = () => {
-      const watermark = document.createElement('div');
-      watermark.className = 'watermark-overlay';
-      watermark.innerHTML = `
-        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
-                    color: rgba(255,0,0,0.3); font-size: 16px; font-weight: bold; 
-                    text-align: center; pointer-events: none; z-index: 10002;">
-          PRIVATE CONTENT<br>
-          ${new Date().toLocaleString()}
-        </div>
-      `;
-      document.body.appendChild(watermark);
-    };
-
-    // Add event listeners
-    document.addEventListener('contextmenu', preventRightClick);
-    document.addEventListener('keydown', preventKeyboardShortcuts);
-    document.addEventListener('selectstart', preventDownload);
-    document.addEventListener('dragstart', preventDownload);
-    
-    // Initialize watermark
-    createWatermark();
-    
-    // Update watermark every second
-    const watermarkInterval = setInterval(() => {
-      const watermark = document.querySelector('.watermark-overlay');
-      if (watermark) {
-        watermark.innerHTML = `
-          <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
-                      color: rgba(255,0,0,0.3); font-size: 16px; font-weight: bold; 
-                      text-align: center; pointer-events: none; z-index: 10002;">
-            PRIVATE CONTENT<br>
-            ${new Date().toLocaleString()}
-          </div>
-        `;
-      }
-    }, 1000);
-
-    loadPurchase();
-
-    return () => {
-      document.removeEventListener('contextmenu', preventRightClick);
-      document.removeEventListener('keydown', preventKeyboardShortcuts);
-      document.removeEventListener('selectstart', preventDownload);
-      document.removeEventListener('dragstart', preventDownload);
-      clearInterval(watermarkInterval);
-    };
+    const cleanup = detectScreenshotAttempts();
+    return cleanup;
   }, [sessionId]);
+
+  useEffect(() => {
+    if (sessionId) {
+      loadPurchase();
+    }
+  }, [sessionId]);
+
+  // Prepare media items for carousel
+  useEffect(() => {
+    if (videoUrl || photoUrls.length > 0) {
+      const items: MediaItem[] = [];
+      
+      // Add video as first item if available
+      if (videoUrl) {
+        items.push({
+          id: 'video',
+          type: 'video',
+          url: videoUrl,
+          title: purchase?.collection?.title || 'Video',
+          description: purchase?.collection?.description
+        });
+      }
+      
+      // Add photos
+      photoUrls.forEach((url, index) => {
+        items.push({
+          id: `photo-${index}`,
+          type: 'photo',
+          url: url,
+          title: `${purchase?.collection?.title || 'Photo'} ${index + 1}`,
+          description: purchase?.collection?.description
+        });
+      });
+      
+      setMediaItems(items);
+    }
+  }, [videoUrl, photoUrls, purchase]);
 
   const loadPurchase = async () => {
     try {
@@ -452,14 +444,15 @@ function WatchPageClient({ collectionId }: { collectionId: string }) {
       )}
 
       {/* Media Carousel */}
-      <div className="max-w-7xl mx-auto p-4">
-        <MediaCarousel
-          videoPath={purchase.collection.video_path}
-          photoPaths={purchase.collection.photo_paths || []}
-          onPlay={handleVideoPlay}
-          onPause={handleVideoPause}
-        />
-      </div>
+      {mediaItems.length > 0 && (
+        <div className="max-w-7xl mx-auto p-4">
+          <MediaCarousel
+            items={mediaItems}
+            initialIndex={0}
+            title={purchase.collection.title}
+          />
+        </div>
+      )}
 
       {/* Video Info */}
       <div className="max-w-7xl mx-auto p-4">
