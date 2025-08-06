@@ -68,6 +68,8 @@ export async function GET(request: Request) {
   let purchase: any = null;
   let error: any = null;
 
+  console.log('🔍 DEBUG: Starting purchase verification for session:', sessionId);
+
   // First try: exact session_id match
   console.log('🔍 DEBUG: Trying exact session_id match for:', sessionId);
   const { data: exactMatch, error: exactError } = await supabase
@@ -106,11 +108,17 @@ export async function GET(request: Request) {
     }
   }
 
-  if (error || !purchase) {
-    console.error('Protected video API error:', error);
-    console.error('Session ID:', sessionId);
+  if (error) {
+    console.error('🔍 DEBUG: Database error during purchase lookup:', error);
+    return NextResponse.json({ error: 'Database error during purchase lookup' }, { status: 500 })
+  }
+
+  if (!purchase) {
+    console.error('🔍 DEBUG: No purchase found for session:', sessionId);
     return NextResponse.json({ error: 'Purchase not found or inactive' }, { status: 404 })
   }
+
+  console.log('🔍 DEBUG: Purchase found:', purchase);
 
   // Get collection data to get video URL
   console.log('🔍 DEBUG: Getting collection data for ID:', purchase.collection_id);
@@ -123,9 +131,19 @@ export async function GET(request: Request) {
   console.log('🔍 DEBUG: Collection data result:', collection);
   console.log('🔍 DEBUG: Collection error:', collectionError);
 
-  if (collectionError || !collection?.video_path) {
-    console.error('🔍 DEBUG: Video not found in collection:', collection);
-    return NextResponse.json({ error: 'Video not found' }, { status: 404 })
+  if (collectionError) {
+    console.error('🔍 DEBUG: Collection error:', collectionError);
+    return NextResponse.json({ error: 'Collection not found' }, { status: 404 })
+  }
+
+  if (!collection) {
+    console.error('🔍 DEBUG: Collection not found for ID:', purchase.collection_id);
+    return NextResponse.json({ error: 'Collection not found' }, { status: 404 })
+  }
+
+  if (!collection.video_path && !collection.media_filename) {
+    console.error('🔍 DEBUG: No video path or media_filename found in collection:', collection);
+    return NextResponse.json({ error: 'Video not found in collection' }, { status: 404 })
   }
 
   console.log('🔍 DEBUG: Video path from collection:', collection.video_path);
@@ -138,20 +156,30 @@ export async function GET(request: Request) {
     const filePath = collection.media_filename || collection.video_path;
     console.log('🔍 DEBUG: Using file path for signed URL:', filePath);
     
+    if (!filePath) {
+      console.error('🔍 DEBUG: No file path available for signed URL generation');
+      return NextResponse.json({ error: 'No video file path available' }, { status: 500 });
+    }
+    
     const { data: signedUrlData, error: signedUrlError } = await supabase.storage
       .from('media')
       .createSignedUrl(filePath, 3600); // 1 hour expiry
 
-    if (signedUrlError || !signedUrlData?.signedUrl) {
+    if (signedUrlError) {
       console.error('🔍 DEBUG: Failed to generate signed URL:', signedUrlError);
-      return NextResponse.json({ error: 'Failed to generate video URL' }, { status: 500 });
+      return NextResponse.json({ error: `Failed to generate video URL: ${signedUrlError.message}` }, { status: 500 });
+    }
+
+    if (!signedUrlData?.signedUrl) {
+      console.error('🔍 DEBUG: No signed URL returned from Supabase');
+      return NextResponse.json({ error: 'Failed to generate video URL: No signed URL returned' }, { status: 500 });
     }
 
     signedUrl = signedUrlData.signedUrl;
     console.log('🔍 DEBUG: Generated signed URL successfully');
   } catch (urlError) {
     console.error('🔍 DEBUG: Error generating signed URL:', urlError);
-    return NextResponse.json({ error: 'Failed to generate video URL' }, { status: 500 });
+    return NextResponse.json({ error: `Failed to generate video URL: ${urlError instanceof Error ? urlError.message : 'Unknown error'}` }, { status: 500 });
   }
 
   // Create response with security headers
