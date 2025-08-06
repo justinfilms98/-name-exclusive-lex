@@ -122,9 +122,10 @@ export async function POST(request: NextRequest) {
 
     // Fetch all collections and validate they exist
     console.log('Fetching collection details for IDs:', collectionIds);
+    // Get collection details
     const { data: collections, error: collectionsError } = await supabase
-      .from('collections')
-      .select('*')
+      .from('Collection')
+      .select('id, title, description, price')
       .in('id', collectionIds);
 
     if (collectionsError) {
@@ -163,50 +164,21 @@ export async function POST(request: NextRequest) {
     const lineItems: any[] = [];
     
     for (const collection of collections) {
-      let stripePriceId = collection.stripe_price_id; // Use stripe_price_id instead of stripe_product_id
-      
-      // If no Stripe price ID, we'll create one during checkout
-      if (!stripePriceId) {
-        lineItems.push({
-          price_data: {
-            currency: 'usd',
-            product_data: {
-              name: collection.title,
-              description: collection.description,
-              metadata: {
-                collection_id: collection.id,
-              },
+      // Create price data for each collection since we don't store stripe_price_id
+      lineItems.push({
+        price_data: {
+          currency: 'usd',
+          product_data: {
+            name: collection.title,
+            description: collection.description,
+            metadata: {
+              collection_id: collection.id,
             },
-            unit_amount: Math.round(collection.price), // Price is already in cents
           },
-          quantity: 1,
-        });
-      } else {
-        // Verify the price exists in Stripe, if not create a new one
-        try {
-          await stripe.prices.retrieve(stripePriceId);
-          lineItems.push({
-            price: stripePriceId,
-            quantity: 1,
-          });
-        } catch (error) {
-          console.log(`Price ${stripePriceId} not found in Stripe, creating new price for collection ${collection.id}`);
-          lineItems.push({
-            price_data: {
-              currency: 'usd',
-              product_data: {
-                name: collection.title,
-                description: collection.description,
-                metadata: {
-                  collection_id: collection.id,
-                },
-              },
-              unit_amount: Math.round(collection.price), // Price is already in cents
-            },
-            quantity: 1,
-          });
-        }
-      }
+          unit_amount: Math.round(collection.price || 0), // Price is already in cents
+        },
+        quantity: 1,
+      });
     }
 
     // Add tip as a separate line item if provided
