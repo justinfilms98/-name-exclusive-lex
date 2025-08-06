@@ -50,83 +50,98 @@ export async function POST(req: Request) {
       console.log(`🔍 DEBUG: Found ${lineItems.data.length} line items`);
       console.log(`🔍 DEBUG: Line items:`, JSON.stringify(lineItems.data, null, 2));
 
-      // Process each line item
-      for (const item of lineItems.data) {
-        let collectionId = item.price?.metadata?.collection_id;
-        
-        console.log('🔍 DEBUG: Processing line item:', {
-          itemId: item.id,
-          priceId: item.price?.id,
-          priceMetadata: item.price?.metadata,
-          product: item.price?.product,
-          description: item.description
-        });
-        
-        // If not in price metadata, try product metadata
-        if (!collectionId && item.price?.product && typeof item.price.product === 'object') {
-          const product = item.price.product as any;
-          collectionId = product.metadata?.collection_id;
-          console.log('🔍 DEBUG: Found collection_id in product metadata:', collectionId);
-        }
-        
-        // If still not found, try to extract from product_data metadata
-        if (!collectionId && item.price?.product && typeof item.price.product === 'object') {
-          const product = item.price.product as any;
-          // Check if the product has metadata or if we need to look deeper
-          if (product.metadata && product.metadata.collection_id) {
-            collectionId = product.metadata.collection_id;
-            console.log('🔍 DEBUG: Found collection_id in product metadata (deep):', collectionId);
+      // Extract collection IDs from session metadata first (most reliable)
+      let collectionIds: string[] = [];
+      if (session.metadata?.collection_ids) {
+        try {
+          const sessionCollectionIds = JSON.parse(session.metadata.collection_ids);
+          if (Array.isArray(sessionCollectionIds)) {
+            collectionIds = sessionCollectionIds;
+            console.log('🔍 DEBUG: Found collection_ids in session metadata:', collectionIds);
           }
+        } catch (e) {
+          console.error('Error parsing collection_ids from session metadata:', e);
         }
-        
-        // If still not found, try to get from the session metadata
-        if (!collectionId && session.metadata?.collection_ids) {
-          try {
-            const sessionCollectionIds = JSON.parse(session.metadata.collection_ids);
-            if (Array.isArray(sessionCollectionIds) && sessionCollectionIds.length > 0) {
-              // Use the first collection ID as a fallback
-              collectionId = sessionCollectionIds[0];
-              console.log('🔍 DEBUG: Found collection_id in session metadata:', collectionId);
-            }
-          } catch (e) {
-            console.error('Error parsing collection_ids from session metadata:', e);
-          }
-        }
+      }
 
-        if (!collectionId) {
-          console.warn(`⚠️ Missing collection_id in metadata for item ${item.id}`);
-          console.log(`🔍 DEBUG: Item details:`, {
-            id: item.id,
-            price: item.price?.id,
-            price_metadata: item.price?.metadata,
+      // If no collection IDs from session metadata, extract from line items
+      if (collectionIds.length === 0) {
+        console.log('🔍 DEBUG: No collection_ids in session metadata, extracting from line items...');
+        
+        // Process each line item
+        for (const item of lineItems.data) {
+          let collectionId = item.price?.metadata?.collection_id;
+          
+          console.log('🔍 DEBUG: Processing line item:', {
+            itemId: item.id,
+            priceId: item.price?.id,
+            priceMetadata: item.price?.metadata,
             product: item.price?.product,
             description: item.description
           });
-          continue;
+          
+          // If not in price metadata, try product metadata
+          if (!collectionId && item.price?.product && typeof item.price.product === 'object') {
+            const product = item.price.product as any;
+            collectionId = product.metadata?.collection_id;
+            console.log('🔍 DEBUG: Found collection_id in product metadata:', collectionId);
+          }
+          
+          // If still not found, try to extract from product_data metadata
+          if (!collectionId && item.price?.product && typeof item.price.product === 'object') {
+            const product = item.price.product as any;
+            // Check if the product has metadata or if we need to look deeper
+            if (product.metadata && product.metadata.collection_id) {
+              collectionId = product.metadata.collection_id;
+              console.log('🔍 DEBUG: Found collection_id in product metadata (deep):', collectionId);
+            }
+          }
+          
+          if (collectionId && !collectionIds.includes(collectionId)) {
+            collectionIds.push(collectionId);
+            console.log('✅ Added collection_id from line item:', collectionId);
+          } else if (!collectionId) {
+            console.warn(`⚠️ Could not extract collection_id from line item:`, {
+              itemId: item.id,
+              priceId: item.price?.id,
+              priceMetadata: item.price?.metadata,
+              product: item.price?.product,
+              description: item.description
+            });
+          }
         }
-        
-        console.log(`✅ Found collection_id: ${collectionId} for item ${item.id}`);
+      }
 
-        console.log(`🔍 DEBUG: Processing line item ${item.id} for collection ${collectionId}`);
+      console.log('🔍 DEBUG: Final collection IDs to process:', collectionIds);
+
+      // Process each collection ID
+      const processedCollections: string[] = [];
+      for (const collectionId of collectionIds) {
         try {
-          // Calculate individual item amount (in cents)
-          const itemAmount = item.amount_total || 0;
+          console.log(`🔍 DEBUG: Processing collection ${collectionId} for user ${session.metadata?.user_id}`);
+          
+          // Calculate individual item amount (divide total by number of collections)
+          const itemAmount = session.amount_total ? Math.round(session.amount_total / collectionIds.length) : 0;
           console.log(`🔍 DEBUG: Item amount: ${itemAmount} cents for collection ${collectionId}`);
           
           await processCollectionPurchase(
             session.metadata?.user_id, 
             collectionId, 
             session.id, 
-            itemAmount, // Use individual item amount, not session total
+            itemAmount,
             session.currency
           );
+          
+          processedCollections.push(collectionId);
+          console.log(`✅ Successfully processed collection ${collectionId}`);
         } catch (error) {
           console.error(`❌ Error processing collection ${collectionId}:`, error);
-          // Continue processing other items even if one fails
+          // Continue processing other collections even if one fails
         }
       }
 
-      console.log(`✅ Successfully processed ${lineItems.data.length} items for user ${session.metadata?.user_id}`);
+      console.log(`✅ Successfully processed ${processedCollections.length}/${collectionIds.length} collections for user ${session.metadata?.user_id}`);
+      console.log(`✅ Processed collections:`, processedCollections);
     } catch (error) {
       console.error('❌ Error processing webhook:', error);
       // Don't return error response - we want to acknowledge the webhook even if processing fails

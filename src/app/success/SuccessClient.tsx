@@ -83,10 +83,19 @@ export default function SuccessClient() {
             created_at,
             status,
             is_active,
-            amount_paid
+            amount_paid,
+            collections (
+              id,
+              title,
+              description,
+              price,
+              thumbnail_path,
+              media_filename
+            )
           `)
           .eq('stripe_session_id', sessionId)
-          .eq('user_id', session.user.id);
+          .eq('user_id', session.user.id)
+          .eq('is_active', true);
 
         if (sessionError) {
           console.error('Session query error:', sessionError);
@@ -96,7 +105,7 @@ export default function SuccessClient() {
           break;
         }
 
-        // Method 2: Check for pending purchases for this specific session (SECONDARY METHOD)
+        // Method 2: Check for any active purchases for this user in the last 30 minutes
         if (!purchaseData || purchaseData.length === 0) {
           console.log('No completed purchases found, checking for any active purchases...');
           const { data: anyPurchases, error: anyError } = await supabase
@@ -109,52 +118,34 @@ export default function SuccessClient() {
               created_at,
               status,
               is_active,
-              amount_paid
+              amount_paid,
+              collections (
+                id,
+                title,
+                description,
+                price,
+                thumbnail_path,
+                media_filename
+              )
             `)
-            .eq('stripe_session_id', sessionId)
-            .eq('user_id', session.user.id);
+            .eq('user_id', session.user.id)
+            .eq('is_active', true)
+            .gte('created_at', new Date(Date.now() - 30 * 60 * 1000).toISOString())
+            .order('created_at', { ascending: false });
 
           if (anyError) {
             console.error('Any purchases check error:', anyError);
           } else if (anyPurchases && anyPurchases.length > 0) {
-            console.log('Found active purchases (not completed):', anyPurchases.length);
+            console.log('Found active purchases:', anyPurchases.length);
             purchaseData = anyPurchases;
           }
         }
 
-        // Method 3: If still no purchases, check for recent purchases for this user (last 30 minutes)
+        // Method 3: If still no purchases, try API verification
         if (!purchaseData || purchaseData.length === 0) {
-          console.log('No active purchases found, checking for recent purchases...');
-          const { data: recentPurchases, error: recentError } = await supabase
-            .from('purchases')
-            .select(`
-              id,
-              user_id,
-              collection_id,
-              stripe_session_id,
-              created_at,
-              status,
-              is_active,
-              amount_paid
-            `)
-            .eq('user_id', session.user.id)
-            .gte('created_at', new Date(Date.now() - 30 * 60 * 1000).toISOString())
-            .order('created_at', { ascending: false })
-            .limit(5);
-
-          if (recentError) {
-            console.error('Recent purchases check error:', recentError);
-          } else if (recentPurchases && recentPurchases.length > 0) {
-            console.log('Found recent purchases:', recentPurchases.length);
-            purchaseData = recentPurchases;
-          }
-        }
-
-        // Method 4: If still no purchases, try to get from Stripe session metadata
-        if (!purchaseData || purchaseData.length === 0) {
-          console.log('No purchases found in database, checking Stripe session metadata...');
+          console.log('No active purchases found, trying API verification...');
           try {
-            const stripeResponse = await fetch('/api/verify-purchase', {
+            const response = await fetch('/api/verify-purchase', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -162,19 +153,19 @@ export default function SuccessClient() {
               body: JSON.stringify({
                 sessionId: sessionId,
                 userId: session.user.id
-              }),
+              })
             });
 
-            if (stripeResponse.ok) {
-              const stripeData = await stripeResponse.json();
-              if (stripeData.success && stripeData.purchases && stripeData.purchases.length > 0) {
-                console.log('✅ Found purchases from Stripe verification:', stripeData.purchases.length);
-                purchaseData = stripeData.purchases;
+            if (response.ok) {
+              const result = await response.json();
+              if (result.purchases && result.purchases.length > 0) {
+                console.log('✅ API verification successful:', result.purchases.length, 'purchases found');
+                purchaseData = result.purchases;
                 break;
               }
             }
-          } catch (stripeError) {
-            console.error('Stripe verification error:', stripeError);
+          } catch (apiError) {
+            console.error('API verification failed:', apiError);
           }
         }
 
@@ -207,97 +198,25 @@ export default function SuccessClient() {
         console.warn('Failed to clear cart:', error);
       }
 
-      // Check if any purchases are pending and complete them
-      const pendingPurchases = purchaseData.filter(p => p.status === 'pending');
-      if (pendingPurchases.length > 0) {
-        console.log('Found pending purchases, completing them...');
-        const { error: updateError } = await supabase
-          .from('purchases')
-          .update({ status: 'completed', is_active: true })
-          .eq('stripe_session_id', sessionId)
-          .eq('user_id', session.user.id)
-          .eq('status', 'pending');
-        
-        if (updateError) {
-          console.error('Failed to complete pending purchases:', updateError);
-        } else {
-          console.log('Successfully completed pending purchases');
-          // Refresh the purchase data
-          const { data: refreshedData } = await supabase
-            .from('purchases')
-            .select(`
-              id,
-              user_id,
-              collection_id,
-              stripe_session_id,
-              created_at,
-              status,
-              is_active,
-              amount_paid
-            `)
-            .eq('stripe_session_id', sessionId)
-            .eq('user_id', session.user.id);
-          
-          if (refreshedData) {
-            purchaseData = refreshedData;
-          }
-        }
-      }
-
-      // Get collection details for all purchases (if not already included)
-      const purchasesWithCollections: Purchase[] = [];
-      for (const purchase of purchaseData) {
-        if (purchase.collection) {
-          // Collection data already included from API
-          purchasesWithCollections.push(purchase as Purchase);
-        } else {
-          // Need to fetch collection data
-          const { data: collection, error: collectionError } = await supabase
-            .from('collections')
-            .select('id, title, description, price')
-            .eq('id', purchase.collection_id)
-            .single();
-
-          if (collection) {
-            purchasesWithCollections.push({
-              ...purchase,
-              collection: collection
-            } as Purchase);
-          } else {
-            console.error('Collection not found for purchase:', purchase.collection_id);
-            // Create a temporary collection object
-            purchasesWithCollections.push({
-              ...purchase,
-              collection: {
-                id: purchase.collection_id,
-                title: 'Unknown Collection',
-                description: 'Collection details not available',
-                price: 0
-              }
-            } as Purchase);
-          }
-        }
-      }
-
-      console.log('Final purchases with collections:', purchasesWithCollections);
-
-      setPurchases(purchasesWithCollections);
-      
-      // Calculate total amount from collection prices (more reliable than amount_paid)
-      const total = purchasesWithCollections.reduce((sum, p) => {
-        if (p.collection && p.collection.price) {
-          return sum + (p.collection.price / 100); // Convert from cents to dollars
-        }
-        return sum + (p.amount_paid || 0); // Fallback to amount_paid if collection price not available
-      }, 0);
+      // Calculate total amount
+      const total = purchaseData.reduce((sum, purchase) => sum + (purchase.amount_paid || 0), 0);
       setTotalAmount(total);
-      
-      console.log(`💰 Total calculated: $${total} from ${purchasesWithCollections.length} purchases`);
-      
+
+      // Set purchases with collection data
+      setPurchases(purchaseData.map(purchase => ({
+        ...purchase,
+        collection: purchase.collections || {
+          id: purchase.collection_id,
+          title: 'Unknown Collection',
+          description: 'Collection details not available',
+          price: purchase.amount_paid || 0
+        }
+      })));
+
       setLoading(false);
-    } catch (error) {
-      console.error('Purchase verification error:', error);
-      setError('Purchase verification failed. Please try refreshing the page in a few minutes.');
+    } catch (err: any) {
+      console.error('Purchase verification failed:', err);
+      setError(err.message || 'Failed to verify purchases');
       setLoading(false);
     }
   };
