@@ -284,6 +284,18 @@ export default function MediaCarousel({
                 playsInline
               />
               
+              {/* Play Button Overlay */}
+              {!isPlaying && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30">
+                  <button
+                    onClick={handleVideoClick}
+                    className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white p-6 rounded-full transition-all duration-300 backdrop-blur-sm hover:scale-110"
+                  >
+                    <Play size={48} className="ml-1" />
+                  </button>
+                </div>
+              )}
+              
               {/* Video Controls */}
               <div className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 ${showControls ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300`}>
                 {/* Progress Bar */}
