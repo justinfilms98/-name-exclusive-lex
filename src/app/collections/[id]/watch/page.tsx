@@ -263,6 +263,8 @@ export default function WatchPage() {
 
   const toggleFullscreen = () => {
     console.log('🔍 DEBUG: toggleFullscreen called, isFullscreen:', isFullscreen);
+    console.log('🔍 DEBUG: customFullscreen state:', customFullscreen);
+    console.log('🔍 DEBUG: fullscreenPhoto state:', fullscreenPhoto);
     
     if (!videoRef.current) {
       console.log('❌ DEBUG: No video element found');
@@ -334,8 +336,18 @@ export default function WatchPage() {
 
   const handleFullscreenButtonClick = (e: React.MouseEvent | React.TouchEvent) => {
     console.log('🔍 DEBUG: Fullscreen button clicked');
+    console.log('🔍 DEBUG: Event target:', e.target);
+    console.log('🔍 DEBUG: Event currentTarget:', e.currentTarget);
+    console.log('🔍 DEBUG: Button text content:', (e.currentTarget as HTMLElement).textContent);
     e.preventDefault();
     e.stopPropagation();
+    
+    // Ensure we're not in photo fullscreen mode
+    if (fullscreenPhoto) {
+      console.log('🔍 DEBUG: Photo fullscreen is active, closing it first');
+      closePhotoFullscreen();
+    }
+    
     toggleFullscreen();
   };
 
@@ -499,7 +511,7 @@ export default function WatchPage() {
         {/* Video Player */}
         <div 
           ref={videoContainerRef}
-          className={`relative bg-black ${customFullscreen ? 'fixed inset-0 z-50' : ''}`}
+          className={`relative bg-black ${customFullscreen ? 'fixed inset-0 z-[9999]' : ''}`}
           onMouseMove={handleMouseMove}
           onMouseLeave={() => {
             if (isPlaying) {
@@ -692,7 +704,7 @@ export default function WatchPage() {
         )}
 
         {/* Photo Fullscreen Modal */}
-        {fullscreenPhoto && (
+        {fullscreenPhoto && !customFullscreen && (
           <div 
             className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center"
             onClick={closePhotoFullscreen}
