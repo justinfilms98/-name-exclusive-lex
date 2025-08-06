@@ -124,7 +124,7 @@ export async function GET(request: Request) {
   console.log('🔍 DEBUG: Getting collection data for ID:', purchase.collection_id);
   const { data: collection, error: collectionError } = await supabase
     .from('collections')
-    .select('video_path, media_filename')
+    .select('video_path, media_filename, thumbnail_path, photo_paths')
     .eq('id', purchase.collection_id)
     .single()
 
@@ -208,6 +208,7 @@ export async function GET(request: Request) {
       const uniqueDirs = Array.from(new Set(possibleDirs));
       
       for (const dir of uniqueDirs) {
+        if (!dir) continue;
         console.log('🔍 DEBUG: Scanning directory:', dir);
         const { data: directoryFiles, error: listError } = await supabase.storage
           .from('media')
