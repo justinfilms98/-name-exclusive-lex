@@ -15,6 +15,10 @@ export async function POST(request: NextRequest) {
   const body = await request.text();
   const signature = request.headers.get('stripe-signature');
   
+  console.log('🔍 DEBUG: Root POST request received');
+  console.log('🔍 DEBUG: Has stripe-signature:', !!signature);
+  console.log('🔍 DEBUG: Request headers:', Object.fromEntries(request.headers.entries()));
+  
   // If this is a Stripe webhook (has stripe-signature header), process it
   if (signature) {
     console.log('🔍 DEBUG: Stripe webhook detected at root, processing directly');
@@ -27,14 +31,19 @@ export async function POST(request: NextRequest) {
       );
 
       console.log(`🔍 DEBUG: Processing webhook event: ${event.type}`);
+      console.log(`🔍 DEBUG: Event ID: ${event.id}`);
       
       if (event.type === 'checkout.session.completed') {
         const session = event.data.object as Stripe.Checkout.Session;
         console.log(`🔍 DEBUG: Processing checkout session: ${session.id}`);
+        console.log(`🔍 DEBUG: Session metadata:`, session.metadata);
+        console.log(`🔍 DEBUG: Session amount_total:`, session.amount_total);
+        console.log(`🔍 DEBUG: Session currency:`, session.currency);
         
         // Get all line items from the checkout session
         const lineItems = await stripe.checkout.sessions.listLineItems(session.id);
         console.log(`🔍 DEBUG: Found ${lineItems.data.length} line items`);
+        console.log(`🔍 DEBUG: Line items:`, lineItems.data);
 
         // Process each line item
         for (const item of lineItems.data) {
@@ -45,6 +54,13 @@ export async function POST(request: NextRequest) {
             const product = item.price.product as any;
             collectionId = product.metadata?.collection_id;
           }
+
+          console.log(`🔍 DEBUG: Processing item ${item.id}:`, {
+            collectionId,
+            price_metadata: item.price?.metadata,
+            product_metadata: item.price?.product && typeof item.price.product === 'object' ? (item.price.product as any).metadata : undefined,
+            description: item.description
+          });
 
           if (!collectionId) {
             console.warn(`⚠️ Missing collection_id in metadata for item ${item.id}`);
@@ -84,6 +100,7 @@ export async function POST(request: NextRequest) {
   }
   
   // For non-Stripe requests, return 405 Method Not Allowed
+  console.log('🔍 DEBUG: Non-Stripe request, returning 405');
   return NextResponse.json(
     { error: 'Method not allowed' },
     { status: 405 }

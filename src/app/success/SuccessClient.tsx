@@ -47,12 +47,17 @@ export default function SuccessClient() {
 
   const verifyPurchases = async (sessionId: string) => {
     try {
+      console.log('🔍 DEBUG: Starting purchase verification for session:', sessionId);
+      
       // Get current user
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) {
+        console.log('❌ DEBUG: No user session found');
         router.push('/login');
         return;
       }
+
+      console.log('🔍 DEBUG: User authenticated:', session.user.id);
 
       // Get all purchase records for this session
       const { data: purchaseData, error } = await supabase
@@ -62,16 +67,41 @@ export default function SuccessClient() {
           user_id,
           collection_id,
           stripe_session_id,
-          created_at
+          created_at,
+          status,
+          is_active
         `)
         .eq('stripe_session_id', sessionId)
         .eq('user_id', session.user.id);
 
-      if (error || !purchaseData || purchaseData.length === 0) {
+      console.log('🔍 DEBUG: Purchase query result:', { purchaseData, error });
+
+      if (error) {
+        console.error('❌ DEBUG: Database error:', error);
+        setError('Database error occurred');
+        setLoading(false);
+        return;
+      }
+
+      if (!purchaseData || purchaseData.length === 0) {
+        console.log('❌ DEBUG: No purchases found for session:', sessionId);
+        
+        // Let's also check if there are any purchases for this user at all
+        const { data: allUserPurchases } = await supabase
+          .from('purchases')
+          .select('stripe_session_id, created_at')
+          .eq('user_id', session.user.id)
+          .order('created_at', { ascending: false })
+          .limit(5);
+        
+        console.log('🔍 DEBUG: Recent purchases for user:', allUserPurchases);
+        
         setError('Purchase not found or access denied');
         setLoading(false);
         return;
       }
+
+      console.log('🔍 DEBUG: Found purchases:', purchaseData);
 
       // Get collection details for all purchases
       const collectionIds = purchaseData.map(p => p.collection_id);
@@ -80,7 +110,10 @@ export default function SuccessClient() {
         .select('id, title, description, price')
         .in('id', collectionIds);
 
+      console.log('🔍 DEBUG: Collections query result:', { collections, collectionError });
+
       if (collectionError || !collections) {
+        console.error('❌ DEBUG: Collections error:', collectionError);
         setError('Collections not found');
         setLoading(false);
         return;
@@ -95,6 +128,8 @@ export default function SuccessClient() {
         };
       });
 
+      console.log('🔍 DEBUG: Final purchases with collections:', purchasesWithCollections);
+
       setPurchases(purchasesWithCollections);
       
       // Check if there was a tip (we'll need to get this from Stripe session metadata)
@@ -105,7 +140,7 @@ export default function SuccessClient() {
       
       setLoading(false);
     } catch (error) {
-      console.error('Purchase verification error:', error);
+      console.error('❌ DEBUG: Purchase verification error:', error);
       setError('Failed to verify purchase');
       setLoading(false);
     }
