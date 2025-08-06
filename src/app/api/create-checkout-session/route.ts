@@ -175,6 +175,9 @@ export async function POST(request: NextRequest) {
               description: collection.description,
             },
             unit_amount: Math.round(collection.price), // Price is already in cents
+            metadata: {
+              collection_id: collection.id,
+            },
           },
           quantity: 1,
         });
@@ -196,6 +199,9 @@ export async function POST(request: NextRequest) {
                 description: collection.description,
               },
               unit_amount: Math.round(collection.price), // Price is already in cents
+              metadata: {
+                collection_id: collection.id,
+              },
             },
             quantity: 1,
           });

@@ -34,7 +34,6 @@ export default function WatchPage() {
   useEffect(() => {
     const checkUserAccess = async () => {
       try {
-        console.log('=== WATCH PAGE DEBUG START ===');
         console.log('Starting checkUserAccess for collection:', id);
         
         // Get current user
@@ -72,11 +71,10 @@ export default function WatchPage() {
         setHasAccess(true);
 
         // Get protected video URL through our API
-        console.log('🔍 DEBUG: Calling protected-video API with session_id:', accessData.stripe_session_id);
+        console.log('Calling protected-video API with session_id:', accessData.stripe_session_id);
         const videoRes = await fetch(`/api/protected-video?session_id=${accessData.stripe_session_id}`);
-        console.log('🔍 DEBUG: Protected video API response status:', videoRes.status);
+        console.log('Protected video API response status:', videoRes.status);
         const videoJson = await videoRes.json();
-        console.log('🔍 DEBUG: Protected video API response:', videoJson);
         
         if (!videoRes.ok || !videoJson.videoUrl) {
           console.error('Failed to get protected video URL:', videoJson);
@@ -86,10 +84,8 @@ export default function WatchPage() {
         }
 
         // Get signed URL for the video path
-        console.log('🔍 DEBUG: Getting signed URL for video path:', videoJson.videoUrl);
+        console.log('Getting signed URL for video path:', videoJson.videoUrl);
         const { data: videoSignedUrl, error: videoError } = await getSignedUrl('media', videoJson.videoUrl, 3600);
-        console.log('🔍 DEBUG: Signed URL result:', videoSignedUrl);
-        console.log('🔍 DEBUG: Signed URL error:', videoError);
         
         if (videoError || !videoSignedUrl) {
           console.error('Failed to get signed URL for video:', videoError);
@@ -98,7 +94,7 @@ export default function WatchPage() {
           return;
         }
 
-        console.log('🔍 DEBUG: Setting video URL to:', videoSignedUrl.signedUrl);
+        console.log('Setting video URL to:', videoSignedUrl.signedUrl);
         setVideoUrl(videoSignedUrl.signedUrl);
 
         // Get signed URLs for photos if they exist
@@ -138,16 +134,11 @@ export default function WatchPage() {
         // Check if user has accepted purchase terms
         const hasAcceptedPurchaseTerms = localStorage.getItem('exclusive-lex-purchase-terms-accepted') === 'true';
         
-        console.log('🔍 DEBUG: DMCA check - hasAcceptedPurchaseTerms:', hasAcceptedPurchaseTerms);
-        
-        // TEMPORARY: Bypass DMCA check for testing
-        const bypassDMCA = true; // Set to false to re-enable DMCA check
-        
-        if (!hasAcceptedPurchaseTerms && !bypassDMCA) {
-          console.log('🔍 DEBUG: Showing legal disclaimer');
+        if (!hasAcceptedPurchaseTerms) {
+          console.log('Showing legal disclaimer');
           setShowLegalDisclaimer(true);
         } else {
-          console.log('🔍 DEBUG: Terms already accepted or bypassed, setting content ready');
+          console.log('Terms already accepted, setting content ready');
           setContentReady(true);
         }
 
@@ -168,7 +159,7 @@ export default function WatchPage() {
   // Handle video URL changes
   useEffect(() => {
     if (videoUrl && videoRef.current) {
-      console.log('🔍 DEBUG: Video URL changed, updating video element');
+      console.log('Video URL changed, updating video element');
       console.log('New video URL:', videoUrl);
       
       setVideoLoading(true);
@@ -180,7 +171,7 @@ export default function WatchPage() {
       // Add a small delay to ensure the video element is ready
       setTimeout(() => {
         if (videoRef.current) {
-          console.log('🔍 DEBUG: Video element after load:', {
+          console.log('Video element after load:', {
             src: videoRef.current.src,
             readyState: videoRef.current.readyState,
             networkState: videoRef.current.networkState,
@@ -286,6 +277,12 @@ export default function WatchPage() {
     }
   };
 
+  const handleFullscreenButtonClick = (e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    toggleFullscreen();
+  };
+
   const openPhotoFullscreen = (photoUrl: string) => {
     setFullscreenPhoto(photoUrl);
   };
@@ -366,13 +363,13 @@ export default function WatchPage() {
   }
 
   if (!hasAccess || !videoUrl) {
-    console.log('🔍 DEBUG: Render - No access or no video URL. hasAccess:', hasAccess, 'videoUrl:', !!videoUrl);
+    console.log('Render - No access or no video URL. hasAccess:', hasAccess, 'videoUrl:', !!videoUrl);
     return null;
   }
 
   // Show legal disclaimer if needed
   if (showLegalDisclaimer) {
-    console.log('🔍 DEBUG: Render - Showing legal disclaimer');
+    console.log('Render - Showing legal disclaimer');
     return (
       <PurchaseLegalDisclaimer
         onAccept={handleLegalAccept}
@@ -383,7 +380,7 @@ export default function WatchPage() {
 
   // Only show content when ready
   if (!contentReady) {
-    console.log('🔍 DEBUG: Render - Content not ready, showing loading');
+    console.log('Render - Content not ready, showing loading');
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center text-white">
@@ -394,7 +391,7 @@ export default function WatchPage() {
     );
   }
 
-  console.log('🔍 DEBUG: Render - Showing video content');
+  console.log('Render - Showing video content');
 
   return (
     <div className="min-h-screen bg-black">
@@ -531,8 +528,9 @@ export default function WatchPage() {
               <div className="flex items-center space-x-4">
                 {/* Fullscreen Button */}
                 <button
-                  onClick={toggleFullscreen}
-                  className="text-white hover:text-gray-300 transition-colors"
+                  onClick={handleFullscreenButtonClick}
+                  onTouchEnd={handleFullscreenButtonClick}
+                  className="text-white hover:text-gray-300 transition-colors touch-manipulation"
                   title="Toggle Fullscreen (F)"
                 >
                   {isFullscreen ? (

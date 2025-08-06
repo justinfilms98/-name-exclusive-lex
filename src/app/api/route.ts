@@ -42,9 +42,16 @@ export async function POST(request: NextRequest) {
 
           if (!collectionId) {
             console.warn(`⚠️ Missing collection_id in metadata for item ${item.id}`);
+            console.log(`🔍 DEBUG: Item details:`, {
+              id: item.id,
+              price: item.price?.id,
+              metadata: item.price?.metadata,
+              description: item.description
+            });
             continue;
           }
 
+          console.log(`🔍 DEBUG: Processing line item ${item.id} for collection ${collectionId}`);
           await processCollectionPurchase(
             session.metadata?.user_id, 
             collectionId, 
