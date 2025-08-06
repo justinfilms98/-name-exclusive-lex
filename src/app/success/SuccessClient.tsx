@@ -72,7 +72,7 @@ export default function SuccessClient() {
         attempts++;
         console.log(`🔍 Verification attempt ${attempts}/${maxAttempts}`);
 
-        // Method 1: Try to get purchases by session ID
+        // Method 1: Try to get purchases by session ID (PRIMARY METHOD)
         let { data: sessionPurchases, error: sessionError } = await supabase
           .from('purchases')
           .select(`
@@ -96,65 +96,7 @@ export default function SuccessClient() {
           break;
         }
 
-        // Method 2: Try to get recent purchases for this user (fallback)
-        if (!purchaseData || purchaseData.length === 0) {
-          console.log('🔍 Trying fallback: recent purchases for user');
-          const { data: recentPurchases, error: recentError } = await supabase
-            .from('purchases')
-            .select(`
-              id,
-              user_id,
-              collection_id,
-              stripe_session_id,
-              created_at,
-              status,
-              is_active,
-              amount_paid
-            `)
-            .eq('user_id', session.user.id)
-            .gte('created_at', new Date(Date.now() - 30 * 60 * 1000).toISOString()) // Last 30 minutes
-            .order('created_at', { ascending: false })
-            .limit(10);
-
-          if (recentError) {
-            console.error('Recent purchases query error:', recentError);
-          } else if (recentPurchases && recentPurchases.length > 0) {
-            console.log('✅ Found recent purchases:', recentPurchases.length);
-            purchaseData = recentPurchases;
-            break;
-          }
-        }
-
-        // Method 3: Try to get any active purchases for this user (last resort)
-        if (!purchaseData || purchaseData.length === 0) {
-          console.log('🔍 Trying last resort: any active purchases for user');
-          const { data: activePurchases, error: activeError } = await supabase
-            .from('purchases')
-            .select(`
-              id,
-              user_id,
-              collection_id,
-              stripe_session_id,
-              created_at,
-              status,
-              is_active,
-              amount_paid
-            `)
-            .eq('user_id', session.user.id)
-            .eq('is_active', true)
-            .order('created_at', { ascending: false })
-            .limit(5);
-
-          if (activeError) {
-            console.error('Active purchases query error:', activeError);
-          } else if (activePurchases && activePurchases.length > 0) {
-            console.log('✅ Found active purchases:', activePurchases.length);
-            purchaseData = activePurchases;
-            break;
-          }
-        }
-
-        // Method 4: Use server-side verification API
+        // Method 2: Use server-side verification API (SECONDARY METHOD)
         if (!purchaseData || purchaseData.length === 0) {
           console.log('🔍 Trying server-side verification API...');
           try {
@@ -184,10 +126,38 @@ export default function SuccessClient() {
           }
         }
 
+        // Method 3: Check for pending purchases for this specific session (TERTIARY METHOD)
+        if (!purchaseData || purchaseData.length === 0) {
+          console.log('🔍 Trying to find pending purchases for this session...');
+          const { data: pendingPurchases, error: pendingError } = await supabase
+            .from('purchases')
+            .select(`
+              id,
+              user_id,
+              collection_id,
+              stripe_session_id,
+              created_at,
+              status,
+              is_active,
+              amount_paid
+            `)
+            .eq('stripe_session_id', sessionId)
+            .eq('user_id', session.user.id)
+            .eq('status', 'pending');
+
+          if (pendingError) {
+            console.error('Pending purchases query error:', pendingError);
+          } else if (pendingPurchases && pendingPurchases.length > 0) {
+            console.log('✅ Found pending purchases for this session:', pendingPurchases.length);
+            purchaseData = pendingPurchases;
+            break;
+          }
+        }
+
         // If no purchases found, wait and retry
         if (!purchaseData || purchaseData.length === 0) {
           if (attempts < maxAttempts) {
-            console.log(`⏳ No purchases found, waiting ${retryDelay}ms before retry...`);
+            console.log(`⏳ No purchases found for session ${sessionId}, waiting ${retryDelay}ms before retry...`);
             await new Promise(resolve => setTimeout(resolve, retryDelay));
           }
         }
@@ -279,9 +249,16 @@ export default function SuccessClient() {
 
       setPurchases(purchasesWithCollections);
       
-      // Calculate total amount
-      const total = purchasesWithCollections.reduce((sum, p) => sum + (p.amount_paid || 0), 0);
+      // Calculate total amount from collection prices (more reliable than amount_paid)
+      const total = purchasesWithCollections.reduce((sum, p) => {
+        if (p.collection && p.collection.price) {
+          return sum + (p.collection.price / 100); // Convert from cents to dollars
+        }
+        return sum + (p.amount_paid || 0); // Fallback to amount_paid if collection price not available
+      }, 0);
       setTotalAmount(total);
+      
+      console.log(`💰 Total calculated: $${total} from ${purchasesWithCollections.length} purchases`);
       
       setLoading(false);
     } catch (error) {

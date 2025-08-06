@@ -63,11 +63,15 @@ export async function POST(req: Request) {
 
         console.log(`🔍 DEBUG: Processing line item ${item.id} for collection ${collectionId}`);
         try {
+          // Calculate individual item amount (in cents)
+          const itemAmount = item.amount_total || 0;
+          console.log(`🔍 DEBUG: Item amount: ${itemAmount} cents for collection ${collectionId}`);
+          
           await processCollectionPurchase(
             session.metadata?.user_id, 
             collectionId, 
             session.id, 
-            session.amount_total, 
+            itemAmount, // Use individual item amount, not session total
             session.currency
           );
         } catch (error) {
@@ -145,7 +149,7 @@ async function processCollectionPurchase(
   // Convert price from cents to dollars for storage
   const amountPaid = collection?.price ? collection.price / 100 : (amountTotal ? amountTotal / 100 : 0);
 
-  console.log(`🔍 DEBUG: Creating purchase record for collection ${collectionId} (${collection?.title || 'Unknown'}) - Amount: $${amountPaid}`);
+  console.log(`🔍 DEBUG: Creating purchase record for collection ${collectionId} (${collection?.title || 'Unknown'}) - Amount: $${amountPaid} (from collection price: ${collection?.price || 'N/A'}, item amount: ${amountTotal || 'N/A'})`);
 
   // Create new purchase record with completed status
   const { data: newPurchase, error } = await supabase
