@@ -115,19 +115,9 @@ export default function WatchPage() {
           return;
         }
 
-        // Get signed URL for the video path
-        console.log('Getting signed URL for video path:', videoJson.videoUrl);
-        const { data: videoSignedUrl, error: videoError } = await getSignedUrl('media', videoJson.videoUrl, 3600);
-        
-        if (videoError || !videoSignedUrl) {
-          console.error('Failed to get signed URL for video:', videoError);
-          setError('Failed to load video content');
-          setLoading(false);
-          return;
-        }
-
-        console.log('Setting video URL to:', videoSignedUrl.signedUrl);
-        setVideoUrl(videoSignedUrl.signedUrl);
+        // Use the signed URL directly from the protected-video API
+        console.log('Using signed URL from protected-video API:', videoJson.videoUrl);
+        setVideoUrl(videoJson.videoUrl);
 
         // Get signed URLs for photos if they exist
         if (collectionData.photo_paths && collectionData.photo_paths.length > 0) {
