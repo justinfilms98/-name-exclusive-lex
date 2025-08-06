@@ -362,6 +362,20 @@ export default function WatchPage() {
     toggleFullscreen();
   };
 
+  const handleVideoDoubleClick = (e: React.MouseEvent) => {
+    console.log('🔍 DEBUG: Video double-clicked');
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Ensure we're not in photo fullscreen mode
+    if (fullscreenPhoto) {
+      console.log('🔍 DEBUG: Photo fullscreen is active, closing it first');
+      closePhotoFullscreen();
+    }
+    
+    toggleFullscreen();
+  };
+
   const openPhotoFullscreen = (photoUrl: string) => {
     setFullscreenPhoto(photoUrl);
   };
@@ -535,6 +549,7 @@ export default function WatchPage() {
               setShowControls(false);
             }
           }}
+          onDoubleClick={handleVideoDoubleClick}
           style={customFullscreen ? {
             position: 'fixed',
             top: 0,
@@ -600,6 +615,7 @@ export default function WatchPage() {
             onLoadedMetadata={handleLoadedMetadata}
             onLoadedData={handleVideoLoad}
             onEnded={() => setIsPlaying(false)}
+            onDoubleClick={handleVideoDoubleClick}
             preload="metadata"
             controls={false}
             playsInline
@@ -610,6 +626,7 @@ export default function WatchPage() {
               MozUserSelect: 'none',
               msUserSelect: 'none',
               userSelect: 'none',
+              cursor: 'pointer'
             }}
           >
             Your browser does not support the video tag.
@@ -660,8 +677,8 @@ export default function WatchPage() {
                 <button
                   onClick={handleFullscreenButtonClick}
                   onTouchEnd={handleFullscreenButtonClick}
-                  className="text-white hover:text-gray-300 transition-colors touch-manipulation"
-                  title="Toggle Fullscreen (F)"
+                  className="text-white hover:text-gray-300 transition-colors touch-manipulation opacity-75 hover:opacity-100"
+                  title="Double-click video to toggle fullscreen"
                 >
                   {customFullscreen ? (
                     <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
@@ -682,10 +699,19 @@ export default function WatchPage() {
             </div>
           </div>
 
+          {/* Video Double-Click Hint (only when not in fullscreen) */}
+          {!customFullscreen && !isPlaying && (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="bg-black bg-opacity-50 text-white px-4 py-2 rounded-lg text-sm">
+                Double-click to enter fullscreen
+              </div>
+            </div>
+          )}
+
           {/* Fullscreen Exit Hint */}
           {customFullscreen && (
             <div className="absolute top-4 right-4 bg-black bg-opacity-75 text-white px-3 py-1 rounded text-sm">
-              Press ESC to exit fullscreen
+              Press ESC or double-click to exit fullscreen
             </div>
           )}
         </div>
