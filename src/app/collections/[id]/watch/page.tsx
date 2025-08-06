@@ -367,20 +367,23 @@ export default function WatchPage() {
     e.preventDefault();
     e.stopPropagation();
     
-    // Ensure we're not in photo fullscreen mode
-    if (fullscreenPhoto) {
-      console.log('🔍 DEBUG: Photo fullscreen is active, closing it first');
-      closePhotoFullscreen();
-    }
-    
+    // Only handle video fullscreen, ignore photo fullscreen
+    console.log('🔍 DEBUG: Handling video fullscreen only');
     toggleFullscreen();
   };
 
   const openPhotoFullscreen = (photoUrl: string) => {
-    setFullscreenPhoto(photoUrl);
+    console.log('🔍 DEBUG: Opening photo fullscreen for:', photoUrl);
+    // Only open photo fullscreen if video is not in fullscreen
+    if (!customFullscreen) {
+      setFullscreenPhoto(photoUrl);
+    } else {
+      console.log('🔍 DEBUG: Video is in fullscreen, ignoring photo fullscreen');
+    }
   };
 
   const closePhotoFullscreen = () => {
+    console.log('🔍 DEBUG: Closing photo fullscreen');
     setFullscreenPhoto(null);
   };
 
@@ -562,7 +565,8 @@ export default function WatchPage() {
             alignItems: 'center',
             justifyContent: 'center',
             padding: 0,
-            margin: 0
+            margin: 0,
+            isolation: 'isolate'
           } : {}}
         >
           {/* Loading overlay */}
@@ -728,7 +732,14 @@ export default function WatchPage() {
                   <div key={index} className="relative group">
                     <div 
                       className="bg-white rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 cursor-pointer"
-                      onClick={() => openPhotoFullscreen(url)}
+                      onClick={() => {
+                        // Only allow photo fullscreen if video is not in fullscreen
+                        if (!customFullscreen) {
+                          openPhotoFullscreen(url);
+                        } else {
+                          console.log('🔍 DEBUG: Video is in fullscreen, ignoring photo click');
+                        }
+                      }}
                     >
                       <img
                         src={url}
@@ -763,7 +774,7 @@ export default function WatchPage() {
         {/* Photo Fullscreen Modal */}
         {fullscreenPhoto && !customFullscreen && (
           <div 
-            className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center"
+            className="fixed inset-0 bg-black bg-opacity-90 z-40 flex items-center justify-center"
             onClick={closePhotoFullscreen}
           >
             <div className="relative max-w-full max-h-full p-4">
