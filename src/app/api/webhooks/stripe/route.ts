@@ -15,6 +15,12 @@ export async function POST(req: Request) {
   const sig = req.headers.get('stripe-signature') as string;
   const rawBody = await req.text();
 
+  console.log('🔍 Webhook received:', {
+    hasSignature: !!sig,
+    bodyLength: rawBody.length,
+    headers: Object.fromEntries(req.headers.entries())
+  });
+
   let event: Stripe.Event;
 
   try {
@@ -28,16 +34,21 @@ export async function POST(req: Request) {
     return new NextResponse(`Webhook Error: ${err.message}`, { status: 400 });
   }
 
+  console.log('🔍 Webhook event type:', event.type);
+
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object as Stripe.Checkout.Session;
 
     try {
       console.log(`🔍 DEBUG: Processing checkout session ${session.id} for user ${session.metadata?.user_id}`);
       console.log(`🔍 DEBUG: Session metadata:`, session.metadata);
+      console.log(`🔍 DEBUG: Session amount_total:`, session.amount_total);
+      console.log(`🔍 DEBUG: Session currency:`, session.currency);
 
       // Get all line items from the checkout session
       const lineItems = await stripe.checkout.sessions.listLineItems(session.id);
       console.log(`🔍 DEBUG: Found ${lineItems.data.length} line items`);
+      console.log(`🔍 DEBUG: Line items:`, JSON.stringify(lineItems.data, null, 2));
 
       // Process each line item
       for (const item of lineItems.data) {
