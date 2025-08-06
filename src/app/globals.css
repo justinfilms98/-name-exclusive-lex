@@ -88,7 +88,7 @@
   }
 }
 
-/* Disable video controls but allow volume controls */
+/* Disable ALL video controls completely */
 video::-webkit-media-controls {
   display: none !important;
 }
@@ -109,13 +109,13 @@ video::-webkit-media-controls-timeline {
   display: none !important;
 }
 
-/* Allow volume controls for audio access */
+/* Hide ALL volume controls too */
 video::-webkit-media-controls-volume-slider {
-  display: block !important;
+  display: none !important;
 }
 
 video::-webkit-media-controls-mute-button {
-  display: block !important;
+  display: none !important;
 }
 
 video::-webkit-media-controls-fullscreen-button {

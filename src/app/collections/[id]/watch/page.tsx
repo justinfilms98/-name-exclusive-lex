@@ -205,20 +205,100 @@ export default function WatchPage() {
 
     try {
       if (!document.fullscreenElement) {
-        videoContainerRef.current.requestFullscreen().then(() => {
-          setVideoFullscreen(true);
-        }).catch((err) => {
-          console.error('Fullscreen request failed:', err);
-        });
+        // Try to request fullscreen on the container
+        if (videoContainerRef.current.requestFullscreen) {
+          videoContainerRef.current.requestFullscreen().then(() => {
+            setVideoFullscreen(true);
+          }).catch((err) => {
+            console.error('Fullscreen request failed:', err);
+          });
+        } else if ((videoContainerRef.current as any).webkitRequestFullscreen) {
+          (videoContainerRef.current as any).webkitRequestFullscreen().then(() => {
+            setVideoFullscreen(true);
+          }).catch((err) => {
+            console.error('Webkit fullscreen request failed:', err);
+          });
+        } else if ((videoContainerRef.current as any).msRequestFullscreen) {
+          (videoContainerRef.current as any).msRequestFullscreen().then(() => {
+            setVideoFullscreen(true);
+          }).catch((err) => {
+            console.error('MS fullscreen request failed:', err);
+          });
+        } else {
+          console.error('Fullscreen API not supported');
+        }
       } else {
-        document.exitFullscreen().then(() => {
-          setVideoFullscreen(false);
-        }).catch((err) => {
-          console.error('Exit fullscreen failed:', err);
-        });
+        // Exit fullscreen
+        if (document.exitFullscreen) {
+          document.exitFullscreen().then(() => {
+            setVideoFullscreen(false);
+          }).catch((err) => {
+            console.error('Exit fullscreen failed:', err);
+          });
+        } else if ((document as any).webkitExitFullscreen) {
+          (document as any).webkitExitFullscreen().then(() => {
+            setVideoFullscreen(false);
+          }).catch((err) => {
+            console.error('Webkit exit fullscreen failed:', err);
+          });
+        } else if ((document as any).msExitFullscreen) {
+          (document as any).msExitFullscreen().then(() => {
+            setVideoFullscreen(false);
+          }).catch((err) => {
+            console.error('MS exit fullscreen failed:', err);
+          });
+        }
       }
     } catch (err) {
       console.error('Fullscreen error:', err);
+      // Fallback: try to request fullscreen on the video element itself
+      if (videoRef.current) {
+        try {
+          if (!document.fullscreenElement) {
+            if (videoRef.current.requestFullscreen) {
+              videoRef.current.requestFullscreen().then(() => {
+                setVideoFullscreen(true);
+              }).catch((fallbackErr) => {
+                console.error('Fallback fullscreen error:', fallbackErr);
+              });
+            } else if ((videoRef.current as any).webkitRequestFullscreen) {
+              (videoRef.current as any).webkitRequestFullscreen().then(() => {
+                setVideoFullscreen(true);
+              }).catch((fallbackErr) => {
+                console.error('Fallback webkit fullscreen error:', fallbackErr);
+              });
+            } else if ((videoRef.current as any).msRequestFullscreen) {
+              (videoRef.current as any).msRequestFullscreen().then(() => {
+                setVideoFullscreen(true);
+              }).catch((fallbackErr) => {
+                console.error('Fallback MS fullscreen error:', fallbackErr);
+              });
+            }
+          } else {
+            if (document.exitFullscreen) {
+              document.exitFullscreen().then(() => {
+                setVideoFullscreen(false);
+              }).catch((fallbackErr) => {
+                console.error('Fallback exit fullscreen error:', fallbackErr);
+              });
+            } else if ((document as any).webkitExitFullscreen) {
+              (document as any).webkitExitFullscreen().then(() => {
+                setVideoFullscreen(false);
+              }).catch((fallbackErr) => {
+                console.error('Fallback webkit exit fullscreen error:', fallbackErr);
+              });
+            } else if ((document as any).msExitFullscreen) {
+              (document as any).msExitFullscreen().then(() => {
+                setVideoFullscreen(false);
+              }).catch((fallbackErr) => {
+                console.error('Fallback MS exit fullscreen error:', fallbackErr);
+              });
+            }
+          }
+        } catch (fallbackErr) {
+          console.error('Fallback fullscreen error:', fallbackErr);
+        }
+      }
     }
   };
 
