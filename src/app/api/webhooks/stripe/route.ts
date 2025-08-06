@@ -111,7 +111,7 @@ async function processCollectionPurchase(
 
   // Get collection details to calculate individual price
   const { data: collection, error: collectionError } = await supabase
-    .from('Collection')
+    .from('collections')
     .select('price, title')
     .eq('id', collectionId)
     .single();

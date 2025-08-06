@@ -134,7 +134,7 @@ export default function SuccessClient() {
       // Get collection details for all purchases
       const collectionIds = purchaseData.map(p => p.collection_id);
       const { data: collections, error: collectionError } = await supabase
-        .from('Collection')
+        .from('collections')
         .select('id, title, description, price')
         .in('id', collectionIds);
 

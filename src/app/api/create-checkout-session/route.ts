@@ -124,7 +124,7 @@ export async function POST(request: NextRequest) {
     console.log('Fetching collection details for IDs:', collectionIds);
     // Get collection details
     const { data: collections, error: collectionsError } = await supabase
-      .from('Collection')
+      .from('collections')
       .select('id, title, description, price')
       .in('id', collectionIds);
 
