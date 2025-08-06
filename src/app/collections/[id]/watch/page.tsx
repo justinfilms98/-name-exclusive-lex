@@ -23,7 +23,8 @@ export default function WatchPage() {
   const [contentReady, setContentReady] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [fullscreenPhoto, setFullscreenPhoto] = useState<string | null>(null);
-  const [customFullscreen, setCustomFullscreen] = useState(false);
+  const [videoFullscreen, setVideoFullscreen] = useState(false);
+  const [photoFullscreen, setPhotoFullscreen] = useState(false);
   
   const router = useRouter();
   const params = useParams();
@@ -261,25 +262,21 @@ export default function WatchPage() {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const toggleFullscreen = () => {
-    console.log('🔍 DEBUG: toggleFullscreen called');
+  const toggleVideoFullscreen = () => {
+    console.log('🔍 DEBUG: Toggling video fullscreen');
     
     if (!videoRef.current) {
       console.log('❌ DEBUG: No video element found');
       return;
     }
     
-    // Simple video-only fullscreen
-    if (!customFullscreen) {
-      console.log('🔍 DEBUG: Entering video fullscreen mode');
-      setCustomFullscreen(true);
+    if (!videoFullscreen) {
+      console.log('🔍 DEBUG: Entering video fullscreen');
+      setVideoFullscreen(true);
       
-      // Make video take up the entire viewport
-      const video = videoRef.current;
+      // Simple approach: just make the video container take up the full screen
       const container = videoContainerRef.current;
-      
       if (container) {
-        // Hide everything except the video container
         container.style.position = 'fixed';
         container.style.top = '0';
         container.style.left = '0';
@@ -290,31 +287,17 @@ export default function WatchPage() {
         container.style.display = 'flex';
         container.style.alignItems = 'center';
         container.style.justifyContent = 'center';
-        container.style.padding = '0';
-        container.style.margin = '0';
       }
       
-      if (video) {
-        video.style.width = '100%';
-        video.style.height = '100%';
-        video.style.objectFit = 'contain';
-        video.style.maxWidth = '100vw';
-        video.style.maxHeight = '100vh';
-      }
-      
-      // Hide body scroll and other elements
+      // Hide body scroll
       document.body.style.overflow = 'hidden';
-      document.body.style.margin = '0';
-      document.body.style.padding = '0';
       
     } else {
-      console.log('🔍 DEBUG: Exiting video fullscreen mode');
-      setCustomFullscreen(false);
+      console.log('🔍 DEBUG: Exiting video fullscreen');
+      setVideoFullscreen(false);
       
-      // Restore everything
-      const video = videoRef.current;
+      // Restore normal state
       const container = videoContainerRef.current;
-      
       if (container) {
         container.style.position = '';
         container.style.top = '';
@@ -326,65 +309,37 @@ export default function WatchPage() {
         container.style.display = '';
         container.style.alignItems = '';
         container.style.justifyContent = '';
-        container.style.padding = '';
-        container.style.margin = '';
       }
       
-      if (video) {
-        video.style.width = '';
-        video.style.height = '';
-        video.style.objectFit = '';
-        video.style.maxWidth = '';
-        video.style.maxHeight = '';
-      }
-      
-      // Restore body
+      // Restore body scroll
       document.body.style.overflow = '';
-      document.body.style.margin = '';
-      document.body.style.padding = '';
     }
-  };
-
-  const handleFullscreenButtonClick = (e: React.MouseEvent | React.TouchEvent) => {
-    console.log('🔍 DEBUG: Fullscreen button clicked');
-    console.log('🔍 DEBUG: Event target:', e.target);
-    console.log('🔍 DEBUG: Event currentTarget:', e.currentTarget);
-    console.log('🔍 DEBUG: Button text content:', (e.currentTarget as HTMLElement).textContent);
-    e.preventDefault();
-    e.stopPropagation();
-    
-    // Ensure we're not in photo fullscreen mode
-    if (fullscreenPhoto) {
-      console.log('🔍 DEBUG: Photo fullscreen is active, closing it first');
-      closePhotoFullscreen();
-    }
-    
-    toggleFullscreen();
   };
 
   const handleVideoDoubleClick = (e: React.MouseEvent) => {
     console.log('🔍 DEBUG: Video double-clicked');
     e.preventDefault();
     e.stopPropagation();
-    
-    // Only handle video fullscreen, ignore photo fullscreen
-    console.log('🔍 DEBUG: Handling video fullscreen only');
-    toggleFullscreen();
+    toggleVideoFullscreen();
+  };
+
+  const handleVideoFullscreenButton = (e: React.MouseEvent | React.TouchEvent) => {
+    console.log('🔍 DEBUG: Video fullscreen button clicked');
+    e.preventDefault();
+    e.stopPropagation();
+    toggleVideoFullscreen();
   };
 
   const openPhotoFullscreen = (photoUrl: string) => {
     console.log('🔍 DEBUG: Opening photo fullscreen for:', photoUrl);
-    // Only open photo fullscreen if video is not in fullscreen
-    if (!customFullscreen) {
-      setFullscreenPhoto(photoUrl);
-    } else {
-      console.log('🔍 DEBUG: Video is in fullscreen, ignoring photo fullscreen');
-    }
+    setFullscreenPhoto(photoUrl);
+    setPhotoFullscreen(true);
   };
 
   const closePhotoFullscreen = () => {
     console.log('🔍 DEBUG: Closing photo fullscreen');
     setFullscreenPhoto(null);
+    setPhotoFullscreen(false);
   };
 
   const handleLegalAccept = () => {
@@ -402,12 +357,12 @@ export default function WatchPage() {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'f' || e.key === 'F') {
         e.preventDefault();
-        toggleFullscreen();
+        toggleVideoFullscreen();
       }
       // Handle escape key for custom fullscreen
-      if (e.key === 'Escape' && customFullscreen) {
+      if (e.key === 'Escape' && videoFullscreen) {
         console.log('🔍 DEBUG: Escape key pressed, exiting fullscreen');
-        setCustomFullscreen(false);
+        setVideoFullscreen(false);
         
         // Restore everything
         const video = videoRef.current;
@@ -460,7 +415,7 @@ export default function WatchPage() {
       document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
       document.removeEventListener('msfullscreenchange', handleFullscreenChange);
     };
-  }, [customFullscreen]);
+  }, [videoFullscreen]);
 
   if (loading) {
     return (
@@ -545,7 +500,7 @@ export default function WatchPage() {
         {/* Video Player */}
         <div 
           ref={videoContainerRef}
-          className={`relative bg-black ${customFullscreen ? 'fixed inset-0 z-[99999]' : ''}`}
+          className="relative bg-black"
           onMouseMove={handleMouseMove}
           onMouseLeave={() => {
             if (isPlaying) {
@@ -553,21 +508,6 @@ export default function WatchPage() {
             }
           }}
           onDoubleClick={handleVideoDoubleClick}
-          style={customFullscreen ? {
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            width: '100vw',
-            height: '100vh',
-            zIndex: 99999,
-            backgroundColor: '#000000',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: 0,
-            margin: 0,
-            isolation: 'isolate'
-          } : {}}
         >
           {/* Loading overlay */}
           {videoLoading && (
@@ -610,7 +550,7 @@ export default function WatchPage() {
             ref={videoRef}
             key={videoUrl}
             src={videoUrl}
-            className={`${customFullscreen ? 'w-full h-full object-contain' : 'w-full h-screen object-contain'}`}
+            className="w-full h-screen object-contain"
             onContextMenu={(e) => e.preventDefault()}
             onError={handleVideoError}
             onPlay={handlePlay}
@@ -679,12 +619,12 @@ export default function WatchPage() {
               <div className="flex items-center space-x-4">
                 {/* Fullscreen Button */}
                 <button
-                  onClick={handleFullscreenButtonClick}
-                  onTouchEnd={handleFullscreenButtonClick}
-                  className="text-white hover:text-gray-300 transition-colors touch-manipulation opacity-75 hover:opacity-100"
-                  title="Double-click video to toggle fullscreen"
+                  onClick={handleVideoFullscreenButton}
+                  onTouchEnd={handleVideoFullscreenButton}
+                  className="text-white hover:text-gray-300 transition-colors touch-manipulation"
+                  title="Toggle fullscreen (F key or double-click video)"
                 >
-                  {customFullscreen ? (
+                  {videoFullscreen ? (
                     <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/>
                     </svg>
@@ -703,8 +643,8 @@ export default function WatchPage() {
             </div>
           </div>
 
-          {/* Video Double-Click Hint (only when not in fullscreen) */}
-          {!customFullscreen && !isPlaying && (
+          {/* Video Fullscreen Hint (only when not in fullscreen) */}
+          {!videoFullscreen && !isPlaying && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               <div className="bg-black bg-opacity-50 text-white px-4 py-2 rounded-lg text-sm">
                 Double-click to enter fullscreen
@@ -713,7 +653,7 @@ export default function WatchPage() {
           )}
 
           {/* Fullscreen Exit Hint */}
-          {customFullscreen && (
+          {videoFullscreen && (
             <div className="absolute top-4 right-4 bg-black bg-opacity-75 text-white px-3 py-1 rounded text-sm">
               Press ESC or double-click to exit fullscreen
             </div>
@@ -732,14 +672,7 @@ export default function WatchPage() {
                   <div key={index} className="relative group">
                     <div 
                       className="bg-white rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 cursor-pointer"
-                      onClick={() => {
-                        // Only allow photo fullscreen if video is not in fullscreen
-                        if (!customFullscreen) {
-                          openPhotoFullscreen(url);
-                        } else {
-                          console.log('🔍 DEBUG: Video is in fullscreen, ignoring photo click');
-                        }
-                      }}
+                      onClick={() => openPhotoFullscreen(url)}
                     >
                       <img
                         src={url}
@@ -772,9 +705,9 @@ export default function WatchPage() {
         )}
 
         {/* Photo Fullscreen Modal */}
-        {fullscreenPhoto && !customFullscreen && (
+        {photoFullscreen && fullscreenPhoto && (
           <div 
-            className="fixed inset-0 bg-black bg-opacity-90 z-40 flex items-center justify-center"
+            className="fixed inset-0 bg-black bg-opacity-95 z-50 flex items-center justify-center"
             onClick={closePhotoFullscreen}
           >
             <div className="relative max-w-full max-h-full p-4">
