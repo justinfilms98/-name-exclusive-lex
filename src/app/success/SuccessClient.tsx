@@ -59,8 +59,17 @@ export default function SuccessClient() {
 
       console.log('🔍 DEBUG: User authenticated:', session.user.id);
 
-      // Get all purchase records for this session
-      const { data: purchaseData, error } = await supabase
+      // First, let's check if there are any purchases for this session at all
+      const { data: allSessionPurchases, error: sessionError } = await supabase
+        .from('purchases')
+        .select('*')
+        .eq('stripe_session_id', sessionId);
+
+      console.log('🔍 DEBUG: All purchases for session:', allSessionPurchases);
+      console.log('🔍 DEBUG: Session error:', sessionError);
+
+      // Get all purchase records for this session and user
+      let { data: purchaseData, error } = await supabase
         .from('purchases')
         .select(`
           id,
@@ -69,10 +78,12 @@ export default function SuccessClient() {
           stripe_session_id,
           created_at,
           status,
-          is_active
+          is_active,
+          amount_paid
         `)
         .eq('stripe_session_id', sessionId)
-        .eq('user_id', session.user.id);
+        .eq('user_id', session.user.id)
+        .eq('status', 'completed');
 
       console.log('🔍 DEBUG: Purchase query result:', { purchaseData, error });
 
@@ -84,21 +95,76 @@ export default function SuccessClient() {
       }
 
       if (!purchaseData || purchaseData.length === 0) {
-        console.log('❌ DEBUG: No purchases found for session:', sessionId);
+        console.log('❌ DEBUG: No completed purchases found for session:', sessionId);
         
         // Let's also check if there are any purchases for this user at all
         const { data: allUserPurchases } = await supabase
           .from('purchases')
-          .select('stripe_session_id, created_at')
+          .select('stripe_session_id, created_at, status')
           .eq('user_id', session.user.id)
           .order('created_at', { ascending: false })
           .limit(5);
         
         console.log('🔍 DEBUG: Recent purchases for user:', allUserPurchases);
         
-        setError('Purchase not found or access denied');
-        setLoading(false);
-        return;
+        // Check if there are pending purchases that might need to be completed
+        const { data: pendingPurchases } = await supabase
+          .from('purchases')
+          .select('*')
+          .eq('stripe_session_id', sessionId)
+          .eq('user_id', session.user.id)
+          .eq('status', 'pending');
+        
+        console.log('🔍 DEBUG: Pending purchases:', pendingPurchases);
+        
+        if (pendingPurchases && pendingPurchases.length > 0) {
+          console.log('🔍 DEBUG: Found pending purchases, attempting to complete them');
+          // Try to complete pending purchases
+          const { error: updateError } = await supabase
+            .from('purchases')
+            .update({ status: 'completed', is_active: true })
+            .eq('stripe_session_id', sessionId)
+            .eq('user_id', session.user.id)
+            .eq('status', 'pending');
+          
+          if (!updateError) {
+            console.log('✅ DEBUG: Successfully completed pending purchases');
+            // Retry the query
+            const { data: retryData } = await supabase
+              .from('purchases')
+              .select(`
+                id,
+                user_id,
+                collection_id,
+                stripe_session_id,
+                created_at,
+                status,
+                is_active,
+                amount_paid
+              `)
+              .eq('stripe_session_id', sessionId)
+              .eq('user_id', session.user.id)
+              .eq('status', 'completed');
+            
+            if (retryData && retryData.length > 0) {
+              console.log('✅ DEBUG: Found purchases after completion:', retryData);
+              purchaseData = retryData;
+            } else {
+              setError('Purchase verification failed - purchases not found');
+              setLoading(false);
+              return;
+            }
+          } else {
+            console.error('❌ DEBUG: Failed to complete pending purchases:', updateError);
+            setError('Purchase verification failed - could not complete purchases');
+            setLoading(false);
+            return;
+          }
+        } else {
+          setError('Purchase not found or access denied');
+          setLoading(false);
+          return;
+        }
       }
 
       console.log('🔍 DEBUG: Found purchases:', purchaseData);

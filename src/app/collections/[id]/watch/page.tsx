@@ -262,51 +262,56 @@ export default function WatchPage() {
   };
 
   const toggleFullscreen = () => {
-    console.log('🔍 DEBUG: toggleFullscreen called, isFullscreen:', isFullscreen);
-    console.log('🔍 DEBUG: customFullscreen state:', customFullscreen);
-    console.log('🔍 DEBUG: fullscreenPhoto state:', fullscreenPhoto);
+    console.log('🔍 DEBUG: toggleFullscreen called');
     
     if (!videoRef.current) {
       console.log('❌ DEBUG: No video element found');
       return;
     }
     
-    // Use custom fullscreen for better control and reliability
+    // Simple video-only fullscreen
     if (!customFullscreen) {
-      console.log('🔍 DEBUG: Entering custom fullscreen mode');
+      console.log('🔍 DEBUG: Entering video fullscreen mode');
       setCustomFullscreen(true);
       
-      // Store original styles
+      // Make video take up the entire viewport
       const video = videoRef.current;
       const container = videoContainerRef.current;
       
       if (container) {
+        // Hide everything except the video container
         container.style.position = 'fixed';
         container.style.top = '0';
         container.style.left = '0';
         container.style.width = '100vw';
         container.style.height = '100vh';
-        container.style.zIndex = '9999';
-        container.style.backgroundColor = 'black';
+        container.style.zIndex = '99999';
+        container.style.backgroundColor = '#000000';
         container.style.display = 'flex';
         container.style.alignItems = 'center';
         container.style.justifyContent = 'center';
+        container.style.padding = '0';
+        container.style.margin = '0';
       }
       
       if (video) {
         video.style.width = '100%';
         video.style.height = '100%';
         video.style.objectFit = 'contain';
+        video.style.maxWidth = '100vw';
+        video.style.maxHeight = '100vh';
       }
       
-      // Hide body scroll
+      // Hide body scroll and other elements
       document.body.style.overflow = 'hidden';
+      document.body.style.margin = '0';
+      document.body.style.padding = '0';
       
     } else {
-      console.log('🔍 DEBUG: Exiting custom fullscreen mode');
+      console.log('🔍 DEBUG: Exiting video fullscreen mode');
       setCustomFullscreen(false);
       
-      // Restore original styles
+      // Restore everything
       const video = videoRef.current;
       const container = videoContainerRef.current;
       
@@ -321,16 +326,22 @@ export default function WatchPage() {
         container.style.display = '';
         container.style.alignItems = '';
         container.style.justifyContent = '';
+        container.style.padding = '';
+        container.style.margin = '';
       }
       
       if (video) {
         video.style.width = '';
         video.style.height = '';
         video.style.objectFit = '';
+        video.style.maxWidth = '';
+        video.style.maxHeight = '';
       }
       
-      // Restore body scroll
+      // Restore body
       document.body.style.overflow = '';
+      document.body.style.margin = '';
+      document.body.style.padding = '';
     }
   };
 
@@ -381,7 +392,7 @@ export default function WatchPage() {
         console.log('🔍 DEBUG: Escape key pressed, exiting fullscreen');
         setCustomFullscreen(false);
         
-        // Restore original styles
+        // Restore everything
         const video = videoRef.current;
         const container = videoContainerRef.current;
         
@@ -396,16 +407,22 @@ export default function WatchPage() {
           container.style.display = '';
           container.style.alignItems = '';
           container.style.justifyContent = '';
+          container.style.padding = '';
+          container.style.margin = '';
         }
         
         if (video) {
           video.style.width = '';
           video.style.height = '';
           video.style.objectFit = '';
+          video.style.maxWidth = '';
+          video.style.maxHeight = '';
         }
         
-        // Restore body scroll
+        // Restore body
         document.body.style.overflow = '';
+        document.body.style.margin = '';
+        document.body.style.padding = '';
       }
     };
 
@@ -511,13 +528,27 @@ export default function WatchPage() {
         {/* Video Player */}
         <div 
           ref={videoContainerRef}
-          className={`relative bg-black ${customFullscreen ? 'fixed inset-0 z-[9999]' : ''}`}
+          className={`relative bg-black ${customFullscreen ? 'fixed inset-0 z-[99999]' : ''}`}
           onMouseMove={handleMouseMove}
           onMouseLeave={() => {
             if (isPlaying) {
               setShowControls(false);
             }
           }}
+          style={customFullscreen ? {
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            zIndex: 99999,
+            backgroundColor: '#000000',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 0,
+            margin: 0
+          } : {}}
         >
           {/* Loading overlay */}
           {videoLoading && (
