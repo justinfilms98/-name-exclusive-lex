@@ -477,7 +477,20 @@ export default function WatchPage() {
         {/* Video Player */}
         <div 
           ref={videoContainerRef}
-          className={`relative bg-black ${videoFullscreen ? 'fixed inset-0 z-[99999] bg-black flex items-center justify-center overflow-hidden' : ''}`}
+          className={`relative bg-black ${videoFullscreen ? 'fixed inset-0 z-[99999] bg-black flex items-center justify-center overflow-hidden w-screen h-screen' : ''}`}
+          style={videoFullscreen ? {
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            zIndex: 99999,
+            backgroundColor: '#000000',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            overflow: 'hidden'
+          } : {}}
           onMouseMove={handleMouseMove}
           onMouseLeave={() => {
             if (isPlaying) {
@@ -527,7 +540,21 @@ export default function WatchPage() {
             ref={videoRef}
             key={videoUrl}
             src={videoUrl}
-            className={`${videoFullscreen ? 'w-full h-full object-contain' : 'w-full h-screen object-contain'}`}
+            className={`${videoFullscreen ? 'w-full h-full object-contain max-w-full max-h-full' : 'w-full h-screen object-contain'}`}
+            style={{
+              WebkitUserSelect: 'none',
+              MozUserSelect: 'none',
+              msUserSelect: 'none',
+              userSelect: 'none',
+              cursor: 'pointer',
+              ...(videoFullscreen && {
+                width: '100%',
+                height: '100%',
+                maxWidth: '100vw',
+                maxHeight: '100vh',
+                objectFit: 'contain'
+              })
+            }}
             onContextMenu={(e) => e.preventDefault()}
             onError={handleVideoError}
             onPlay={handlePlay}
@@ -542,13 +569,6 @@ export default function WatchPage() {
             playsInline
             muted
             crossOrigin="anonymous"
-            style={{
-              WebkitUserSelect: 'none',
-              MozUserSelect: 'none',
-              msUserSelect: 'none',
-              userSelect: 'none',
-              cursor: 'pointer'
-            }}
           >
             Your browser does not support the video tag.
           </video>
