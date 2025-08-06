@@ -21,7 +21,19 @@ export async function POST(request: NextRequest) {
     // Method 1: Check for active completed purchases
     let { data: purchases, error } = await supabase
       .from('purchases')
-      .select('*')
+      .select(`
+        *,
+        collections (
+          id,
+          title,
+          description,
+          price,
+          media_filename,
+          video_path,
+          thumbnail_path,
+          photo_paths
+        )
+      `)
       .eq('user_id', userId)
       .eq('collection_id', collectionId)
       .eq('is_active', true)
@@ -39,7 +51,19 @@ export async function POST(request: NextRequest) {
       console.log('No completed purchases found, checking for any active purchases...');
       const { data: anyPurchases, error: anyError } = await supabase
         .from('purchases')
-        .select('*')
+        .select(`
+          *,
+          collections (
+            id,
+            title,
+            description,
+            price,
+            media_filename,
+            video_path,
+            thumbnail_path,
+            photo_paths
+          )
+        `)
         .eq('user_id', userId)
         .eq('collection_id', collectionId)
         .eq('is_active', true);
@@ -57,7 +81,19 @@ export async function POST(request: NextRequest) {
       console.log('No active purchases found, checking for recent purchases...');
       const { data: recentPurchases, error: recentError } = await supabase
         .from('purchases')
-        .select('*')
+        .select(`
+          *,
+          collections (
+            id,
+            title,
+            description,
+            price,
+            media_filename,
+            video_path,
+            thumbnail_path,
+            photo_paths
+          )
+        `)
         .eq('user_id', userId)
         .gte('created_at', new Date(Date.now() - 30 * 60 * 1000).toISOString())
         .order('created_at', { ascending: false })

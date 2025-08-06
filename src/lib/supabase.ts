@@ -254,7 +254,19 @@ export const getUserPurchases = async (userId: string) => {
 export const checkAccess = async (userId: string, collectionId: string) => {
   const { data, error } = await supabase
     .from('purchases')
-    .select('*')
+    .select(`
+      *,
+      collections (
+        id,
+        title,
+        description,
+        price,
+        media_filename,
+        video_path,
+        thumbnail_path,
+        photo_paths
+      )
+    `)
     .eq('user_id', userId)
     .eq('collection_id', collectionId)
     .eq('is_active', true)

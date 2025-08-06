@@ -116,7 +116,7 @@ export async function GET(request: Request) {
   console.log('🔍 DEBUG: Getting collection data for ID:', purchase.collection_id);
   const { data: collection, error: collectionError } = await supabase
     .from('collections')
-    .select('video_path')
+    .select('video_path, media_filename')
     .eq('id', purchase.collection_id)
     .single()
 
@@ -129,10 +129,30 @@ export async function GET(request: Request) {
   }
 
   console.log('🔍 DEBUG: Video path from collection:', collection.video_path);
+  console.log('🔍 DEBUG: Media filename from collection:', collection.media_filename);
+
+  // Generate signed URL for the video
+  let signedUrl: string;
+  try {
+    const { data: signedUrlData, error: signedUrlError } = await supabase.storage
+      .from('media')
+      .createSignedUrl(collection.video_path, 3600); // 1 hour expiry
+
+    if (signedUrlError || !signedUrlData?.signedUrl) {
+      console.error('🔍 DEBUG: Failed to generate signed URL:', signedUrlError);
+      return NextResponse.json({ error: 'Failed to generate video URL' }, { status: 500 });
+    }
+
+    signedUrl = signedUrlData.signedUrl;
+    console.log('🔍 DEBUG: Generated signed URL successfully');
+  } catch (urlError) {
+    console.error('🔍 DEBUG: Error generating signed URL:', urlError);
+    return NextResponse.json({ error: 'Failed to generate video URL' }, { status: 500 });
+  }
 
   // Create response with security headers
   const response = NextResponse.json({ 
-    videoUrl: collection.video_path
+    videoUrl: signedUrl
   })
 
   // Add security headers

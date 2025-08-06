@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from 'react';
-import { uploadFile, createCollection } from '@/lib/supabase';
+import { uploadFile, createCollection, supabase } from '@/lib/supabase';
 import { requireAdmin } from '@/lib/auth';
 import QualityComparison from './QualityComparison';
 
@@ -146,7 +146,7 @@ export default function UploadForm() {
         }
       }
       
-      // Create collection record
+      // Create collection record with media_filename
       const collection = {
         id: collectionId,
         title: formData.title,
@@ -155,6 +155,7 @@ export default function UploadForm() {
         video_path: videoPath,
         thumbnail_path: thumbnailPath,
         photo_paths: photoPaths,
+        media_filename: files.video!.name, // Auto-insert filename
         created_at: new Date().toISOString(),
       };
       
@@ -164,6 +165,41 @@ export default function UploadForm() {
       if (dbError) {
         console.error('Database error:', dbError);
         throw new Error(`Failed to save collection: ${dbError.message}`);
+      }
+      
+      // Auto-generate Stripe Price for collection
+      console.log('Creating Stripe price for collection:', collectionId);
+      const stripePriceRes = await fetch('/api/create-stripe-price', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          product_name: formData.title,
+          amount: collection.price, // Already in cents
+          collection_id: collectionId
+        })
+      });
+      
+      if (!stripePriceRes.ok) {
+        const errorData = await stripePriceRes.json();
+        console.error('Stripe price creation failed:', errorData);
+        throw new Error(`Failed to create Stripe price: ${errorData.error}`);
+      }
+      
+      const { price_id } = await stripePriceRes.json();
+      console.log('Stripe price created:', price_id);
+      
+      // Update collection with stripe_price_id
+      const { error: updateError } = await supabase
+        .from('collections')
+        .update({ stripe_price_id: price_id })
+        .eq('id', collectionId);
+      
+      if (updateError) {
+        console.error('Failed to update collection with stripe_price_id:', updateError);
+        // Don't throw error here as the collection was created successfully
+        console.warn('Collection created but stripe_price_id update failed');
       }
       
       console.log('Collection created successfully!');

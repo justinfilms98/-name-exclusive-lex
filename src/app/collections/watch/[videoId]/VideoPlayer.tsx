@@ -43,6 +43,33 @@ export default function VideoPlayer({ src, title, expiresAt }: VideoPlayerProps)
     return () => subscription.unsubscribe();
   }, []);
 
+  // Dev tools detection and prevention
+  useEffect(() => {
+    const detectDevTools = () => {
+      const threshold = 160;
+      const widthThreshold = window.outerWidth - window.innerWidth > threshold;
+      const heightThreshold = window.outerHeight - window.innerHeight > threshold;
+      
+      if (widthThreshold || heightThreshold) {
+        console.warn('Dev tools detected - video playback may be restricted');
+        // Optionally redirect or show warning
+        setError('Developer tools detected. Please close them to continue watching.');
+      }
+    };
+
+    // Check on load and resize
+    detectDevTools();
+    window.addEventListener('resize', detectDevTools);
+    
+    // Check periodically
+    const interval = setInterval(detectDevTools, 1000);
+    
+    return () => {
+      window.removeEventListener('resize', detectDevTools);
+      clearInterval(interval);
+    };
+  }, []);
+
   useEffect(() => {
     if (!user) {
       router.push("/login");
@@ -271,15 +298,36 @@ export default function VideoPlayer({ src, title, expiresAt }: VideoPlayerProps)
             autoPlay
             muted
             playsInline
+            disablePictureInPicture
+            controlsList="nodownload nofullscreen noremoteplayback"
             style={{
               WebkitUserSelect: 'none',
               MozUserSelect: 'none',
               msUserSelect: 'none',
               userSelect: 'none',
+              pointerEvents: 'auto',
             }}
           >
             Your browser does not support the video tag.
           </video>
+
+          {/* Secure Watermark */}
+          <div
+            style={{
+              position: 'absolute',
+              bottom: '6px',
+              right: '12px',
+              fontSize: '12px',
+              color: 'rgba(255, 255, 255, 0.6)',
+              pointerEvents: 'none',
+              userSelect: 'none',
+              zIndex: 20,
+              fontFamily: 'Arial, sans-serif',
+              textShadow: '1px 1px 2px rgba(0,0,0,0.8)',
+            }}
+          >
+            © ExclusiveLex.com
+          </div>
 
           {/* Loading overlay */}
           {!videoLoaded && !error && (
