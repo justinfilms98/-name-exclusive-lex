@@ -292,7 +292,7 @@ export default function MediaCarousel({
                     onClick={handleVideoClick}
                     className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white p-6 rounded-full transition-all duration-300 backdrop-blur-sm hover:scale-110"
                   >
-                    <Play size={48} className="ml-1" />
+                    <Play size={48} />
                   </button>
                 </div>
               )}
@@ -319,7 +319,7 @@ export default function MediaCarousel({
                       onClick={handleVideoClick}
                       className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white bg-opacity-90 hover:bg-opacity-100 text-black p-2 rounded-full transition-all duration-300 shadow-lg hover:scale-110 z-10"
                     >
-                      <Play size={16} className="ml-0.5" />
+                      <Play size={16} />
                     </button>
                   )}
                 </div>
