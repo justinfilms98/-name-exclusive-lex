@@ -154,6 +154,36 @@ export default function SuccessClient() {
           }
         }
 
+        // Method 4: Use server-side verification API
+        if (!purchaseData || purchaseData.length === 0) {
+          console.log('🔍 Trying server-side verification API...');
+          try {
+            const response = await fetch('/api/verify-purchase', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                sessionId,
+                userId: session.user.id
+              }),
+            });
+
+            if (response.ok) {
+              const result = await response.json();
+              if (result.success && result.purchases && result.purchases.length > 0) {
+                console.log('✅ Server-side verification successful:', result.purchases.length);
+                purchaseData = result.purchases;
+                break;
+              }
+            } else {
+              console.error('Server-side verification failed:', response.status);
+            }
+          } catch (apiError) {
+            console.error('Error calling verification API:', apiError);
+          }
+        }
+
         // If no purchases found, wait and retry
         if (!purchaseData || purchaseData.length === 0) {
           if (attempts < maxAttempts) {
@@ -163,185 +193,12 @@ export default function SuccessClient() {
         }
       }
 
-      // If still no purchases found, try to create them manually from session data
+      // Final check - if still no purchases, show error
       if (!purchaseData || purchaseData.length === 0) {
-        console.log('🔍 No purchases found, attempting to create from session data...');
-        
-        try {
-          // Get session data from Stripe
-          const stripe = new (await import('stripe')).default(process.env.STRIPE_SECRET_KEY!);
-          const stripeSession = await stripe.checkout.sessions.retrieve(sessionId);
-          
-          if (stripeSession && stripeSession.status === 'complete') {
-            console.log('✅ Stripe session is complete, creating purchase records...');
-            
-            // Try to get collection IDs from metadata
-            let collectionIds: string[] = [];
-            
-            if (stripeSession.metadata?.collection_ids) {
-              try {
-                collectionIds = JSON.parse(stripeSession.metadata.collection_ids);
-              } catch (e) {
-                console.error('Error parsing collection_ids from metadata:', e);
-              }
-            }
-            
-            // If no collection IDs in metadata, try to get from line items
-            if (collectionIds.length === 0) {
-              const lineItems = await stripe.checkout.sessions.listLineItems(sessionId);
-              for (const item of lineItems.data) {
-                let collectionId = item.price?.metadata?.collection_id;
-                if (!collectionId && item.price?.product && typeof item.price.product === 'object') {
-                  const product = item.price.product as any;
-                  collectionId = product.metadata?.collection_id;
-                }
-                if (collectionId && !collectionIds.includes(collectionId)) {
-                  collectionIds.push(collectionId);
-                }
-              }
-            }
-            
-            console.log('🔍 Found collection IDs:', collectionIds);
-            
-            // If we still don't have collection IDs, try to get them from the URL or session
-            if (collectionIds.length === 0) {
-              // Try to get from URL parameters
-              const urlParams = new URLSearchParams(window.location.search);
-              const collectionIdFromUrl = urlParams.get('collection_id');
-              if (collectionIdFromUrl) {
-                collectionIds = [collectionIdFromUrl];
-              }
-            }
-            
-            // Create purchase records manually
-            for (const collectionId of collectionIds) {
-              const { data: collection } = await supabase
-                .from('collections')
-                .select('price, title')
-                .eq('id', collectionId)
-                .single();
-
-              if (collection) {
-                // Check if purchase already exists
-                const { data: existingPurchase } = await supabase
-                  .from('purchases')
-                  .select('id')
-                  .eq('user_id', session.user.id)
-                  .eq('collection_id', collectionId)
-                  .eq('stripe_session_id', sessionId)
-                  .maybeSingle();
-
-                if (!existingPurchase) {
-                  const { data: newPurchase, error: createError } = await supabase
-                    .from('purchases')
-                    .insert({
-                      user_id: session.user.id,
-                      collection_id: collectionId,
-                      stripe_session_id: sessionId,
-                      amount_paid: collection.price ? collection.price / 100 : 0,
-                      currency: 'usd',
-                      status: 'completed',
-                      is_active: true,
-                      created_at: new Date().toISOString(),
-                    })
-                    .select()
-                    .single();
-
-                  if (!createError && newPurchase) {
-                    console.log('✅ Created purchase record manually:', newPurchase.id);
-                    purchaseData.push(newPurchase);
-                  } else {
-                    console.error('Error creating purchase record:', createError);
-                    // Even if creation fails, we should still grant access since Stripe payment succeeded
-                    console.log('⚠️ Purchase creation failed but Stripe payment succeeded - granting access anyway');
-                    purchaseData.push({
-                      id: `temp-${collectionId}`,
-                      user_id: session.user.id,
-                      collection_id: collectionId,
-                      stripe_session_id: sessionId,
-                      amount_paid: collection.price ? collection.price / 100 : 0,
-                      currency: 'usd',
-                      status: 'completed',
-                      is_active: true,
-                      created_at: new Date().toISOString(),
-                      collection: collection
-                    });
-                  }
-                } else {
-                  console.log('✅ Purchase record already exists for collection:', collectionId);
-                  purchaseData.push(existingPurchase);
-                }
-              } else {
-                // Collection not found, but payment succeeded - create a temporary record
-                console.log('⚠️ Collection not found but payment succeeded - creating temporary record');
-                purchaseData.push({
-                  id: `temp-${collectionId}`,
-                  user_id: session.user.id,
-                  collection_id: collectionId,
-                  stripe_session_id: sessionId,
-                  amount_paid: 0,
-                  currency: 'usd',
-                  status: 'completed',
-                  is_active: true,
-                  created_at: new Date().toISOString(),
-                  collection: {
-                    id: collectionId,
-                    title: 'Unknown Collection',
-                    description: 'Collection details not available',
-                    price: 0
-                  }
-                });
-              }
-            }
-          } else {
-            console.log('⚠️ Stripe session is not complete:', stripeSession.status);
-          }
-        } catch (stripeError) {
-          console.error('Error retrieving Stripe session:', stripeError);
-        }
-      }
-
-      // Final check - if still no purchases, but Stripe payment succeeded, grant access anyway
-      if (!purchaseData || purchaseData.length === 0) {
-        console.log('🔍 No purchases found after all attempts, checking Stripe session...');
-        
-        try {
-          const stripe = new (await import('stripe')).default(process.env.STRIPE_SECRET_KEY!);
-          const stripeSession = await stripe.checkout.sessions.retrieve(sessionId);
-          
-          if (stripeSession && stripeSession.status === 'complete') {
-            console.log('✅ Stripe payment succeeded - granting access despite database issues');
-            
-            // Create a temporary purchase record to grant access
-            purchaseData = [{
-              id: `temp-${sessionId}`,
-              user_id: session.user.id,
-              collection_id: 'unknown',
-              stripe_session_id: sessionId,
-              amount_paid: stripeSession.amount_total ? stripeSession.amount_total / 100 : 0,
-              currency: stripeSession.currency || 'usd',
-              status: 'completed',
-              is_active: true,
-              created_at: new Date().toISOString(),
-              collection: {
-                id: 'unknown',
-                title: 'Purchased Content',
-                description: 'Your purchased content is now available',
-                price: stripeSession.amount_total ? stripeSession.amount_total : 0
-              }
-            }];
-          } else {
-            console.error('❌ No purchases found and Stripe session not complete');
-            setError('Purchase verification is taking longer than expected. Please try refreshing the page in a few minutes.');
-            setLoading(false);
-            return;
-          }
-        } catch (stripeError) {
-          console.error('Error checking Stripe session:', stripeError);
-          setError('Purchase verification is taking longer than expected. Please try refreshing the page in a few minutes.');
-          setLoading(false);
-          return;
-        }
+        console.error('❌ No purchases found after all attempts');
+        setError('Purchase verification is taking longer than expected. Please try refreshing the page in a few minutes.');
+        setLoading(false);
+        return;
       }
 
       console.log('✅ Purchase verification successful:', purchaseData.length, 'purchases found');
@@ -383,28 +240,40 @@ export default function SuccessClient() {
         }
       }
 
-      // Get collection details for all purchases
-      const collectionIds = purchaseData.map(p => p.collection_id);
-      const { data: collections, error: collectionError } = await supabase
-        .from('collections')
-        .select('id, title, description, price')
-        .in('id', collectionIds);
+      // Get collection details for all purchases (if not already included)
+      const purchasesWithCollections: Purchase[] = [];
+      for (const purchase of purchaseData) {
+        if (purchase.collection) {
+          // Collection data already included from API
+          purchasesWithCollections.push(purchase as Purchase);
+        } else {
+          // Need to fetch collection data
+          const { data: collection, error: collectionError } = await supabase
+            .from('collections')
+            .select('id, title, description, price')
+            .eq('id', purchase.collection_id)
+            .single();
 
-      if (collectionError || !collections) {
-        console.error('Collections error:', collectionError);
-        setError('Collections not found');
-        setLoading(false);
-        return;
+          if (collection) {
+            purchasesWithCollections.push({
+              ...purchase,
+              collection: collection
+            } as Purchase);
+          } else {
+            console.error('Collection not found for purchase:', purchase.collection_id);
+            // Create a temporary collection object
+            purchasesWithCollections.push({
+              ...purchase,
+              collection: {
+                id: purchase.collection_id,
+                title: 'Unknown Collection',
+                description: 'Collection details not available',
+                price: 0
+              }
+            } as Purchase);
+          }
+        }
       }
-
-      // Combine the data
-      const purchasesWithCollections = purchaseData.map(purchase => {
-        const collection = collections.find(c => c.id === purchase.collection_id);
-        return {
-          ...purchase,
-          collection: collection!
-        };
-      });
 
       console.log('Final purchases with collections:', purchasesWithCollections);
 
@@ -417,7 +286,7 @@ export default function SuccessClient() {
       setLoading(false);
     } catch (error) {
       console.error('Purchase verification error:', error);
-      setError('Purchase verification failed. Please contact support if you were charged.');
+      setError('Purchase verification failed. Please try refreshing the page in a few minutes.');
       setLoading(false);
     }
   };
