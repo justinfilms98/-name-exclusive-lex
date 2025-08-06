@@ -261,28 +261,76 @@ export default function WatchPage() {
   };
 
   const toggleFullscreen = () => {
-    if (!videoRef.current) return;
+    console.log('🔍 DEBUG: toggleFullscreen called, isFullscreen:', isFullscreen);
+    console.log('🔍 DEBUG: videoRef.current:', videoRef.current);
+    console.log('🔍 DEBUG: videoContainerRef.current:', videoContainerRef.current);
+    
+    if (!videoRef.current) {
+      console.log('❌ DEBUG: No video element found');
+      return;
+    }
     
     if (!isFullscreen) {
-      if (videoRef.current.requestFullscreen) {
-        videoRef.current.requestFullscreen();
-      } else if ((videoRef.current as any).webkitRequestFullscreen) {
-        (videoRef.current as any).webkitRequestFullscreen();
-      } else if ((videoRef.current as any).msRequestFullscreen) {
-        (videoRef.current as any).msRequestFullscreen();
+      console.log('🔍 DEBUG: Attempting to enter fullscreen');
+      try {
+        // Try video element first
+        if (videoRef.current.requestFullscreen) {
+          console.log('🔍 DEBUG: Using standard requestFullscreen on video');
+          videoRef.current.requestFullscreen();
+        } else if ((videoRef.current as any).webkitRequestFullscreen) {
+          console.log('🔍 DEBUG: Using webkitRequestFullscreen on video');
+          (videoRef.current as any).webkitRequestFullscreen();
+        } else if ((videoRef.current as any).msRequestFullscreen) {
+          console.log('🔍 DEBUG: Using msRequestFullscreen on video');
+          (videoRef.current as any).msRequestFullscreen();
+        } else {
+          console.log('❌ DEBUG: No fullscreen method available on video, trying container');
+          // Fallback to container
+          if (videoContainerRef.current) {
+            if (videoContainerRef.current.requestFullscreen) {
+              videoContainerRef.current.requestFullscreen();
+            } else if ((videoContainerRef.current as any).webkitRequestFullscreen) {
+              (videoContainerRef.current as any).webkitRequestFullscreen();
+            } else if ((videoContainerRef.current as any).msRequestFullscreen) {
+              (videoContainerRef.current as any).msRequestFullscreen();
+            }
+          }
+        }
+      } catch (error) {
+        console.error('❌ DEBUG: Fullscreen error:', error);
+        // Try container as fallback
+        if (videoContainerRef.current) {
+          try {
+            if (videoContainerRef.current.requestFullscreen) {
+              videoContainerRef.current.requestFullscreen();
+            } else if ((videoContainerRef.current as any).webkitRequestFullscreen) {
+              (videoContainerRef.current as any).webkitRequestFullscreen();
+            } else if ((videoContainerRef.current as any).msRequestFullscreen) {
+              (videoContainerRef.current as any).msRequestFullscreen();
+            }
+          } catch (containerError) {
+            console.error('❌ DEBUG: Container fullscreen error:', containerError);
+          }
+        }
       }
     } else {
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
-      } else if ((document as any).webkitExitFullscreen) {
-        (document as any).webkitExitFullscreen();
-      } else if ((document as any).msExitFullscreen) {
-        (document as any).msExitFullscreen();
+      console.log('🔍 DEBUG: Attempting to exit fullscreen');
+      try {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        } else if ((document as any).webkitExitFullscreen) {
+          (document as any).webkitExitFullscreen();
+        } else if ((document as any).msExitFullscreen) {
+          (document as any).msExitFullscreen();
+        }
+      } catch (error) {
+        console.error('❌ DEBUG: Exit fullscreen error:', error);
       }
     }
   };
 
   const handleFullscreenButtonClick = (e: React.MouseEvent | React.TouchEvent) => {
+    console.log('🔍 DEBUG: Fullscreen button clicked');
     e.preventDefault();
     e.stopPropagation();
     toggleFullscreen();
