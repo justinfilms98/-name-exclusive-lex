@@ -148,6 +148,7 @@ export default function MediaCarousel({
       clearTimeout(controlsTimeoutRef.current);
     }
     controlsTimeoutRef.current = setTimeout(() => {
+      // Only hide controls if video is playing
       if (isPlaying) {
         setShowControls(false);
       }
@@ -297,18 +298,30 @@ export default function MediaCarousel({
               )}
               
               {/* Video Controls */}
-              <div className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 ${showControls ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300`}>
-                {/* Progress Bar */}
-                <div 
-                  className="w-full h-1 bg-gray-600 rounded-full cursor-pointer mb-4"
-                  onClick={handleProgressClick}
-                >
+              <div className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 ${(showControls || !isPlaying) ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300`}>
+                {/* Progress Bar with Play Button */}
+                <div className="relative mb-4">
                   <div 
-                    className="h-full bg-red-500 rounded-full relative"
-                    style={{ width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
+                    className="w-full h-1 bg-gray-600 rounded-full cursor-pointer"
+                    onClick={handleProgressClick}
                   >
-                    <div className="absolute right-0 top-1/2 transform -translate-y-1/2 w-3 h-3 bg-red-500 rounded-full shadow-lg"></div>
+                    <div 
+                      className="h-full bg-red-500 rounded-full relative"
+                      style={{ width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
+                    >
+                      <div className="absolute right-0 top-1/2 transform -translate-y-1/2 w-3 h-3 bg-red-500 rounded-full shadow-lg"></div>
+                    </div>
                   </div>
+                  
+                  {/* Play Button on Timeline */}
+                  {(!isPlaying || currentTime === 0) && (
+                    <button
+                      onClick={handleVideoClick}
+                      className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white bg-opacity-90 hover:bg-opacity-100 text-black p-2 rounded-full transition-all duration-300 shadow-lg hover:scale-110 z-10"
+                    >
+                      <Play size={16} className="ml-0.5" />
+                    </button>
+                  )}
                 </div>
 
                 {/* Controls */}
@@ -316,7 +329,7 @@ export default function MediaCarousel({
                   <div className="flex items-center space-x-4">
                     <button
                       onClick={handleVideoClick}
-                      className="text-white hover:text-gray-300 transition-colors"
+                      className="text-white hover:text-gray-300 transition-colors bg-white bg-opacity-20 hover:bg-opacity-30 p-2 rounded-full"
                     >
                       {isPlaying ? <Pause size={24} /> : <Play size={24} />}
                     </button>
