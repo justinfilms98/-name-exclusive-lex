@@ -15,13 +15,8 @@ export default function WatchPage() {
   const [error, setError] = useState<string>('');
   const [videoLoading, setVideoLoading] = useState(true);
   const [videoError, setVideoError] = useState<string | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [showControls, setShowControls] = useState(true);
   const [showLegalDisclaimer, setShowLegalDisclaimer] = useState(false);
   const [contentReady, setContentReady] = useState(false);
-  const [isFullscreen, setIsFullscreen] = useState(false);
   const [fullscreenPhoto, setFullscreenPhoto] = useState<string | null>(null);
   const [videoFullscreen, setVideoFullscreen] = useState(false);
   const [photoFullscreen, setPhotoFullscreen] = useState(false);
@@ -30,7 +25,6 @@ export default function WatchPage() {
   const params = useParams();
   const videoRef = useRef<HTMLVideoElement>(null);
   const videoContainerRef = useRef<HTMLDivElement>(null);
-  const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const id = params?.id as string;
 
   useEffect(() => {
@@ -191,117 +185,46 @@ export default function WatchPage() {
 
   // Handle video events
   const handleVideoLoad = () => {
-    console.log('✅ Video loaded successfully');
+    console.log('Video loaded successfully');
     setVideoLoading(false);
-    setVideoError(null);
   };
 
   const handleVideoError = (e: any) => {
-    console.error('❌ Video loading error:', e);
-    setVideoError('⚠️ Failed to load video. Please try again.');
+    console.error('Video loading error:', e);
+    setVideoError('Failed to load video content. Please try refreshing the page.');
     setVideoLoading(false);
   };
 
-  const handlePlay = () => {
-    console.log('Video play event triggered');
-    setIsPlaying(true);
-  };
-
-  const handlePause = () => {
-    console.log('Video pause event triggered');
-    setIsPlaying(false);
-  };
-
-  const handleTimeUpdate = () => {
-    if (videoRef.current) {
-      setCurrentTime(videoRef.current.currentTime);
-    }
-  };
-
-  const handleLoadedMetadata = () => {
-    if (videoRef.current) {
-      setDuration(videoRef.current.duration);
-    }
-  };
-
-  const handleVideoClick = () => {
-    if (videoRef.current) {
-      if (isPlaying) {
-        videoRef.current.pause();
-      } else {
-        videoRef.current.play();
-      }
-    }
-  };
-
-  const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (videoRef.current && duration > 0) {
-      const rect = e.currentTarget.getBoundingClientRect();
-      const clickX = e.clientX - rect.left;
-      const percentage = clickX / rect.width;
-      const newTime = percentage * duration;
-      videoRef.current.currentTime = newTime;
-    }
-  };
-
-  const handleMouseMove = () => {
-    setShowControls(true);
-    if (controlsTimeoutRef.current) {
-      clearTimeout(controlsTimeoutRef.current);
-    }
-    controlsTimeoutRef.current = setTimeout(() => {
-      if (isPlaying) {
-        setShowControls(false);
-      }
-    }, 3000);
-  };
-
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  const handleVideoDoubleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    toggleVideoFullscreen();
   };
 
   const toggleVideoFullscreen = () => {
-    if (!videoRef.current) {
-      return;
-    }
-    
-    if (!videoFullscreen) {
-      // Close photo fullscreen if it's open
-      if (photoFullscreen) {
-        closePhotoFullscreen();
-      }
-      
-      setVideoFullscreen(true);
-      
-      // Hide body scroll
-      document.body.style.overflow = 'hidden';
-      
-    } else {
-      setVideoFullscreen(false);
-      
-      // Restore body scroll
-      document.body.style.overflow = '';
-    }
-  };
+    if (!videoContainerRef.current) return;
 
-  const handleVideoDoubleClick = (e: React.MouseEvent) => {
-    console.log('🔍 DEBUG: Video double-clicked');
-    e.preventDefault();
-    e.stopPropagation();
-    toggleVideoFullscreen();
+    try {
+      if (!document.fullscreenElement) {
+        videoContainerRef.current.requestFullscreen().then(() => {
+          setVideoFullscreen(true);
+        }).catch((err) => {
+          console.error('Fullscreen request failed:', err);
+        });
+      } else {
+        document.exitFullscreen().then(() => {
+          setVideoFullscreen(false);
+        }).catch((err) => {
+          console.error('Exit fullscreen failed:', err);
+        });
+      }
+    } catch (err) {
+      console.error('Fullscreen error:', err);
+    }
   };
 
   const handleVideoFullscreenButton = (e: React.MouseEvent | React.TouchEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
-    // Ensure we're not in photo fullscreen mode
-    if (photoFullscreen) {
-      closePhotoFullscreen();
-    }
-    
     toggleVideoFullscreen();
   };
 
@@ -378,7 +301,7 @@ export default function WatchPage() {
     };
 
     const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
+      // setIsFullscreen(!!document.fullscreenElement); // This state variable is no longer used
     };
 
     document.addEventListener('contextmenu', handleContextMenu);
@@ -479,171 +402,70 @@ export default function WatchPage() {
         {/* Video Player */}
         <div 
           ref={videoContainerRef}
-          className={`relative bg-black ${videoFullscreen ? 'fixed inset-0 z-[999999] bg-black flex items-center justify-center overflow-hidden w-screen h-screen' : ''}`}
+          className={`relative bg-black ${videoFullscreen ? 'fixed inset-0 z-50' : ''}`}
           style={videoFullscreen ? {
             position: 'fixed',
             top: 0,
             left: 0,
-            width: '100vw',
-            height: '100vh',
-            zIndex: 999999,
-            backgroundColor: '#000000',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
+            right: 0,
+            bottom: 0,
+            zIndex: 9999,
             overflow: 'hidden'
           } : {}}
-          onMouseMove={handleMouseMove}
-          onMouseLeave={() => {
-            if (isPlaying) {
-              setShowControls(false);
-            }
-          }}
-          onDoubleClick={handleVideoDoubleClick}
         >
-          {/* Loading overlay */}
-          {videoLoading && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-75 z-10">
-              <div className="text-center text-white">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white mx-auto mb-4"></div>
-                <p>Loading video...</p>
-              </div>
-            </div>
-          )}
-
-          {/* Error overlay */}
-          {videoError && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-75 z-10">
-              <div className="text-center text-white max-w-md mx-4">
-                <div className="text-red-400 mb-4">
-                  <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                  </svg>
-                </div>
-                <h2 className="text-xl font-semibold mb-2">Video Error</h2>
-                <p className="text-gray-300 mb-6">{videoError}</p>
-                <button
-                  onClick={() => {
-                    setVideoLoading(true);
-                    setVideoError(null);
-                    if (videoRef.current) {
-                      videoRef.current.load();
-                    }
-                  }}
-                  className="bg-white text-black px-6 py-2 rounded-md hover:bg-gray-100 transition-colors"
-                >
-                  Try Again
-                </button>
-              </div>
-            </div>
-          )}
-
           <video
             ref={videoRef}
-            key={videoUrl}
             src={videoUrl}
-            className={`${videoFullscreen ? 'w-full h-full object-contain max-w-full max-h-full' : 'w-full h-screen object-contain'}`}
-            style={{
-              WebkitUserSelect: 'none',
-              MozUserSelect: 'none',
-              msUserSelect: 'none',
-              userSelect: 'none',
-              cursor: 'pointer',
-              ...(videoFullscreen && {
-                width: '100%',
-                height: '100%',
-                maxWidth: '100vw',
-                maxHeight: '100vh',
-                objectFit: 'contain'
-              })
-            }}
+            className="w-full h-screen object-contain"
             onContextMenu={(e) => e.preventDefault()}
             onError={handleVideoError}
-            onPlay={handlePlay}
-            onPause={handlePause}
-            onTimeUpdate={handleTimeUpdate}
-            onLoadedMetadata={handleLoadedMetadata}
             onLoadedData={handleVideoLoad}
-            onEnded={() => setIsPlaying(false)}
             onDoubleClick={handleVideoDoubleClick}
             preload="metadata"
             controls={false}
-            playsInline
+            autoPlay
             muted
+            playsInline
             crossOrigin="anonymous"
           >
             Your browser does not support the video tag.
           </video>
 
-          {/* Custom Video Controls */}
-          <div className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/50 to-transparent p-4 transition-opacity duration-300 ${showControls ? 'opacity-100' : 'opacity-0'}`}>
-            {/* Progress Bar */}
-            <div 
-              className="w-full h-1 bg-gray-600 rounded-full cursor-pointer mb-4"
-              onClick={handleProgressClick}
+          {/* Fullscreen Button */}
+          <div className="absolute bottom-4 right-4 z-20">
+            <button
+              onClick={handleVideoFullscreenButton}
+              onTouchEnd={handleVideoFullscreenButton}
+              className="text-white hover:text-gray-300 transition-colors touch-manipulation bg-black bg-opacity-75 p-3 rounded-lg hover:bg-opacity-90 flex items-center space-x-2"
+              title="Toggle fullscreen (F key or double-click video)"
             >
-              <div 
-                className="h-full bg-red-500 rounded-full relative"
-                style={{ width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
-              >
-                <div className="absolute right-0 top-1/2 transform -translate-y-1/2 w-3 h-3 bg-red-500 rounded-full shadow-lg"></div>
-              </div>
-            </div>
+              {videoFullscreen ? (
+                <>
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/>
+                  </svg>
+                  <span className="text-sm">Exit Fullscreen</span>
+                </>
+              ) : (
+                <>
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>
+                  </svg>
+                  <span className="text-sm">Fullscreen</span>
+                </>
+              )}
+            </button>
+          </div>
 
-            {/* Controls */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                {/* Play/Pause Button */}
-                <button
-                  onClick={handleVideoClick}
-                  className="text-white hover:text-gray-300 transition-colors"
-                >
-                  {isPlaying ? (
-                    <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/>
-                    </svg>
-                  ) : (
-                    <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M8 5v14l11-7z"/>
-                    </svg>
-                  )}
-                </button>
-
-                {/* Time Display */}
-                <div className="text-white text-sm">
-                  {formatTime(currentTime)} / {formatTime(duration)}
-                </div>
-              </div>
-
-              <div className="flex items-center space-x-4">
-                {/* Fullscreen Button */}
-                <button
-                  onClick={handleVideoFullscreenButton}
-                  onTouchEnd={handleVideoFullscreenButton}
-                  className="text-white hover:text-gray-300 transition-colors touch-manipulation"
-                  title="Toggle fullscreen (F key or double-click video)"
-                >
-                  {videoFullscreen ? (
-                    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/>
-                    </svg>
-                  ) : (
-                    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>
-                    </svg>
-                  )}
-                </button>
-
-                {/* Watermark */}
-                <div className="text-white text-opacity-50 text-sm">
-                  {user?.email} • Exclusive Access
-                </div>
-              </div>
+          {/* Watermark */}
+          <div className="absolute bottom-4 left-4 z-20">
+            <div className="text-white text-opacity-50 text-sm bg-black bg-opacity-75 px-3 py-2 rounded-lg">
+              {user?.email} • Exclusive Access
             </div>
           </div>
 
           {/* Video Fullscreen Hint (only when not in fullscreen) */}
-          {!videoFullscreen && !isPlaying && (
+          {!videoFullscreen && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               <div className="bg-black bg-opacity-50 text-white px-4 py-2 rounded-lg text-sm">
                 Double-click to enter fullscreen

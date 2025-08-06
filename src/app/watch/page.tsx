@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { supabase, getSignedUrl } from '@/lib/supabase';
-import { Clock, AlertCircle, Play, Pause, Volume2, VolumeX, Maximize2, Minimize2 } from 'lucide-react';
+import { Maximize2, Minimize2, AlertCircle } from 'lucide-react';
 import { useToast } from '@/components/Toast';
 
 interface Purchase {
@@ -39,14 +39,11 @@ function WatchPageContent() {
   const [error, setError] = useState<string | null>(null);
   const [timeRemaining, setTimeRemaining] = useState<number>(0);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
-  const [showControls, setShowControls] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [isBlurred, setIsBlurred] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!sessionId) {
@@ -99,69 +96,56 @@ function WatchPageContent() {
         // Skip if it's in the hero section
         if (overlay.closest('[class*="hero"]')) return;
         
-        if (overlay.innerHTML.includes('play') || overlay.innerHTML.includes('pause')) {
+        // Check if this overlay contains play button elements
+        const playButtons = overlay.querySelectorAll('button, [role="button"], .play-button, .play-overlay');
+        if (playButtons.length > 0) {
+          console.log('🔍 DEBUG: Removing overlay with play buttons');
           overlay.remove();
         }
       });
-
-      // Remove any white circular buttons
-      const whiteButtons = document.querySelectorAll('.bg-white.bg-opacity-20.backdrop-blur-sm.rounded-full');
-      whiteButtons.forEach(button => {
-        // Skip if it's in the hero section
-        if (button.closest('[class*="hero"]')) return;
-        button.remove();
-      });
-
-      // Remove any elements with play/pause icons
-      const playIcons = document.querySelectorAll('svg[class*="play"], svg[class*="pause"]');
-      playIcons.forEach(icon => {
-        // Skip if it's in the hero section
-        if (icon.closest('[class*="hero"]')) return;
-        
-        const parent = icon.closest('.absolute');
-        if (parent) parent.remove();
-      });
     };
 
-    // Run immediately and then every second
+    // Run immediately and then periodically
     removeOverlays();
     const interval = setInterval(removeOverlays, 1000);
-
-    // Add fullscreen change listener
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
-    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
-    document.addEventListener('msfullscreenchange', handleFullscreenChange);
-
-    return () => {
-      clearInterval(interval);
-      document.removeEventListener('fullscreenchange', handleFullscreenChange);
-      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
-      document.removeEventListener('msfullscreenchange', handleFullscreenChange);
-    };
+    
+    return () => clearInterval(interval);
   }, [sessionId]);
 
+  // Handle fullscreen changes
   useEffect(() => {
-    if (timeRemaining <= 0 && purchase) {
-      setError('Access has expired');
-      return;
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
+
+  const toggleFullscreen = async () => {
+    if (!containerRef.current) return;
+
+    try {
+      if (!document.fullscreenElement) {
+        await containerRef.current.requestFullscreen();
+      } else {
+        await document.exitFullscreen();
+      }
+    } catch (err) {
+      console.error('Fullscreen error:', err);
     }
+  };
 
-    const timer = setInterval(() => {
-      setTimeRemaining(prev => {
-        if (prev <= 1000) {
-          setError('Access has expired');
-          return 0;
-        }
-        return prev - 1000;
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [timeRemaining, purchase]);
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'f' || e.key === 'F') {
+      e.preventDefault();
+      toggleFullscreen();
+    }
+  };
 
   // Screenshot detection
   const report = async () => {
-    console.log('🚨 SCREEN CAPTURE DETECTED!')
+    console.log('�� SCREEN CAPTURE DETECTED!')
     addToast('Screen capture detected - access will be revoked', 'error')
     
     // Immediately expire access when screen capture detected
@@ -183,6 +167,25 @@ function WatchPageContent() {
       addToast(`Screen capture detected (${json.strike_count}/${json.threshold})`, 'error')
     }
   }
+
+  useEffect(() => {
+    if (timeRemaining <= 0 && purchase) {
+      setError('Access has expired');
+      return;
+    }
+
+    const timer = setInterval(() => {
+      setTimeRemaining(prev => {
+        if (prev <= 1000) {
+          setError('Access has expired');
+          return 0;
+        }
+        return prev - 1000;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [timeRemaining, purchase]);
 
   useEffect(() => {
     // Prevent screenshots with CSS
@@ -575,40 +578,102 @@ function WatchPageContent() {
   }, [sessionId, addToast, router, user])
 
   const loadPurchase = async (collectionId: string | undefined) => {
+    if (!collectionId || !sessionId) {
+      console.log('🔍 DEBUG: Missing collectionId or sessionId');
+      setError('Missing collection ID or session ID');
+      setLoading(false);
+      return;
+    }
+
     try {
-      console.log('🔍 DEBUG: Making API call with sessionId:', sessionId, 'collectionId:', collectionId);
-      console.log('🔍 DEBUG: Collection ID type:', typeof collectionId);
-      console.log('🔍 DEBUG: Collection ID value:', collectionId);
-      
-      const apiUrl = `/api/get-purchase?session_id=${sessionId}&collection_id=${collectionId}`;
-      console.log('🔍 DEBUG: Full API URL:', apiUrl);
-      
-      const res = await fetch(apiUrl)
-      const json = await res.json()
-      if (!res.ok) {
-        setError(json.error || 'Unknown error')
-        return
+      console.log('🔍 DEBUG: Loading purchase for collection:', collectionId);
+      console.log('🔍 DEBUG: Session ID:', sessionId);
+
+      // First, get the purchase
+      const { data: purchaseData, error: purchaseError } = await supabase
+        .from('purchases')
+        .select(`
+          id,
+          user_id,
+          collection_video_id,
+          stripe_session_id,
+          created_at,
+          amount_paid,
+          CollectionVideo (
+            id,
+            title,
+            description,
+            video_path,
+            thumbnail_path,
+            price
+          )
+        `)
+        .eq('stripe_session_id', sessionId)
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (purchaseError) {
+        console.error('❌ DEBUG: Purchase error:', purchaseError);
+        setError('Failed to load purchase data');
+        setLoading(false);
+        return;
       }
-      setPurchase(json.purchase)
 
-      // Set permanent access (no expiration)
-      setTimeRemaining(0); // No timer needed for permanent access
+      if (!purchaseData) {
+        console.log('❌ DEBUG: No purchase found for session:', sessionId);
+        setError('Purchase not found or expired');
+        setLoading(false);
+        return;
+      }
 
-      // Get protected video URL
-      if (json.purchase.CollectionVideo?.id) {
-        const videoRes = await fetch(`/api/protected-video?session_id=${sessionId}`)
-        const videoJson = await videoRes.json()
-        if (videoRes.ok) {
-          setVideoUrl(videoJson.videoUrl);
-        } else {
-          setError(videoJson.error || 'Failed to load video');
+      console.log('🔍 DEBUG: Purchase data loaded:', purchaseData);
+
+      let videoUrlToSet = '';
+      // Get signed URL for video
+      if (purchaseData.CollectionVideo && typeof purchaseData.CollectionVideo === 'object' && 'video_path' in purchaseData.CollectionVideo) {
+        const collectionVideo = purchaseData.CollectionVideo as any;
+        const { data: videoData, error: videoError } = await getSignedUrl(
+          'media',
+          collectionVideo.video_path,
+          3600
+        );
+
+        if (videoError || !videoData) {
+          console.error('❌ DEBUG: Video URL error:', videoError);
+          setError('Failed to load video');
+          setLoading(false);
+          return;
         }
+
+        console.log('🔍 DEBUG: Video URL obtained:', videoData.signedUrl);
+        videoUrlToSet = videoData.signedUrl;
+        setVideoUrl(videoData.signedUrl);
       }
 
-    } catch (err: any) {
-      console.error('Error loading purchase:', err);
-      setError(err.message || 'Failed to load purchase');
-    } finally {
+      // Transform the data to match the Purchase interface
+      const collectionVideo = purchaseData.CollectionVideo as any;
+      const transformedPurchase: Purchase = {
+        id: purchaseData.id,
+        user_id: purchaseData.user_id,
+        collection_video_id: purchaseData.collection_video_id,
+        stripe_session_id: purchaseData.stripe_session_id,
+        created_at: purchaseData.created_at,
+        amount_paid: purchaseData.amount_paid,
+        CollectionVideo: {
+          id: collectionVideo?.id || '',
+          title: collectionVideo?.title || '',
+          description: collectionVideo?.description || '',
+          videoUrl: videoUrlToSet,
+          thumbnail: collectionVideo?.thumbnail_path || '',
+          price: collectionVideo?.price || 0
+        }
+      };
+
+      setPurchase(transformedPurchase);
+      setLoading(false);
+    } catch (error) {
+      console.error('❌ DEBUG: Load purchase error:', error);
+      setError('Failed to load content');
       setLoading(false);
     }
   };
@@ -623,87 +688,53 @@ function WatchPageContent() {
   const handlePlayPause = () => {
     const video = document.getElementById('video-player') as HTMLVideoElement;
     if (video) {
-      if (isPlaying) {
-        video.pause();
-      } else {
+      if (video.paused) {
         video.play();
+      } else {
+        video.pause();
       }
-      setIsPlaying(!isPlaying);
     }
   };
 
   const handleMuteToggle = () => {
     const video = document.getElementById('video-player') as HTMLVideoElement;
     if (video) {
-      video.muted = !isMuted;
-      setIsMuted(!isMuted);
+      video.muted = !video.muted;
     }
   };
 
   const handleVideoEnded = () => {
-    setIsPlaying(false);
+    // No action needed, video will autoplay
   };
 
   const handleVideoPlay = () => {
-    setIsPlaying(true);
+    // No action needed, video will autoplay
   };
 
   const handleVideoPause = () => {
-    setIsPlaying(false);
+    // No action needed, video will autoplay
   };
 
   const handleTimeUpdate = () => {
     const video = document.getElementById('video-player') as HTMLVideoElement;
     if (video) {
-      setCurrentTime(video.currentTime);
-      setDuration(video.duration);
+      // setCurrentTime(video.currentTime); // Removed
+      // setDuration(video.duration); // Removed
     }
   };
 
   const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
     const video = document.getElementById('video-player') as HTMLVideoElement;
-    if (video && duration > 0) {
+    if (video && video.duration > 0) {
       const rect = e.currentTarget.getBoundingClientRect();
       const clickX = e.clientX - rect.left;
       const percentage = clickX / rect.width;
-      const newTime = percentage * duration;
+      const newTime = percentage * video.duration;
       video.currentTime = newTime;
     }
   };
 
-  const toggleFullscreen = () => {
-    console.log('🔍 DEBUG: toggleFullscreen called, isFullscreen:', isFullscreen);
-    const videoElement = document.getElementById('video-player') as HTMLVideoElement;
-    if (!videoElement) {
-      console.error('❌ Video element not found');
-      return;
-    }
-    console.log('✅ Video element found:', videoElement);
-
-    if (!isFullscreen) {
-      console.log('🚀 Attempting to enter fullscreen...');
-      if (videoElement.requestFullscreen) {
-        videoElement.requestFullscreen().then(() => {
-          console.log('✅ Fullscreen entered successfully');
-        }).catch((err) => {
-          console.error('❌ Fullscreen request failed:', err);
-        });
-      } else if ((videoElement as any).webkitRequestFullscreen) {
-        (videoElement as any).webkitRequestFullscreen();
-      } else if ((videoElement as any).msRequestFullscreen) {
-        (videoElement as any).msRequestFullscreen();
-      }
-    } else {
-      console.log('🚪 Attempting to exit fullscreen...');
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
-      } else if ((document as any).webkitExitFullscreen) {
-        (document as any).webkitExitFullscreen();
-      } else if ((document as any).msExitFullscreen) {
-        (document as any).msExitFullscreen();
-      }
-    }
-  };
+  // Removed toggleFullscreen function
 
   const handleFullscreenChange = () => {
     setIsFullscreen(!!document.fullscreenElement);
@@ -711,42 +742,27 @@ function WatchPageContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-stone-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-stone-800 mx-auto mb-4"></div>
-          <p className="text-stone-600">Loading your content...</p>
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-white text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white mx-auto mb-4"></div>
+          <p>Loading content...</p>
         </div>
       </div>
     );
   }
 
-  if (error) {
+  if (error || !purchase) {
     return (
-      <div className="min-h-screen bg-stone-50 flex items-center justify-center">
-        <div className="text-center max-w-md mx-auto p-6">
-          <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-          <h1 className="text-2xl font-semibold text-stone-800 mb-2">Access Error</h1>
-          <p className="text-stone-600 mb-6">{error}</p>
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-white text-center">
+          <div className="text-red-400 mb-4">
+            <AlertCircle className="w-12 h-12 mx-auto" />
+          </div>
+          <h2 className="text-xl font-semibold mb-2">Access Error</h2>
+          <p className="text-gray-300 mb-4">{error || 'Content not found'}</p>
           <button
             onClick={() => router.push('/collections')}
-            className="bg-stone-800 text-white px-6 py-2 rounded hover:bg-stone-900 transition-colors"
-          >
-            Back to Collections
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  if (!purchase) {
-    return (
-      <div className="min-h-screen bg-stone-50 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-semibold text-stone-800 mb-2">Purchase Not Found</h1>
-          <p className="text-stone-600 mb-6">The requested purchase could not be found.</p>
-          <button
-            onClick={() => router.push('/collections')}
-            className="bg-stone-800 text-white px-6 py-2 rounded hover:bg-stone-900 transition-colors"
+            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors"
           >
             Back to Collections
           </button>
@@ -756,361 +772,75 @@ function WatchPageContent() {
   }
 
   return (
-    <div className="min-h-screen bg-stone-900">
+    <div 
+      className="min-h-screen bg-black"
+      onKeyDown={handleKeyPress}
+      tabIndex={0}
+    >
       {/* Header */}
-      <div className="bg-stone-800 text-white p-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-semibold">{purchase.CollectionVideo.title}</h1>
-            <p className="text-stone-300 text-sm">{purchase.CollectionVideo.description}</p>
-          </div>
-          
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2 bg-stone-700 px-3 py-1 rounded">
-              <Clock className="w-4 h-4" />
-              <span className="text-sm font-mono">{formatTime(timeRemaining)}</span>
-            </div>
-            
-            <button
-              onClick={() => router.push('/collections')}
-              className="text-stone-300 hover:text-white transition-colors"
-            >
-              Back to Collections
-            </button>
-          </div>
+      <div className="bg-black bg-opacity-75 text-white p-4 flex justify-between items-center fixed top-0 left-0 right-0 z-50">
+        <div>
+          <h1 className="text-lg font-semibold">{purchase.CollectionVideo.title}</h1>
+          <p className="text-sm text-gray-300">Exclusive Content</p>
+        </div>
+        <div className="text-right">
+          <p className="text-sm text-gray-300">Permanent Access</p>
+          <p className="text-lg font-mono text-green-400">∞</p>
         </div>
       </div>
 
-      {/* Video Player */}
-      <div className="max-w-7xl mx-auto p-4">
-        <div className="relative aspect-video bg-black rounded-lg overflow-hidden screenshot-protected video-container" id="video-container">
-          {videoUrl ? (
-            <>
-              <video
-                id="video-player"
-                src={videoUrl}
-                className={`w-full h-full ${isBlurred ? 'blur-md' : ''}`}
-                onEnded={handleVideoEnded}
-                onPlay={handleVideoPlay}
-                onPause={handleVideoPause}
-                onTimeUpdate={handleTimeUpdate}
-                onLoadedMetadata={handleTimeUpdate}
-                onMouseMove={() => setShowControls(true)}
-                onMouseLeave={() => setShowControls(false)}
-                onDoubleClick={toggleFullscreen}
-                onContextMenu={(e) => {
-                  e.preventDefault()
-                  e.stopPropagation()
-                  report()
-                  return false
-                }}
-                onDragStart={(e) => {
-                  e.preventDefault()
-                  e.stopPropagation()
-                  return false
-                }}
+      {/* Main Content */}
+      <div className="pt-20">
+        {/* Video Player */}
+        <div 
+          ref={containerRef}
+          className="relative bg-black"
+        >
+          <video
+            ref={videoRef}
+            src={videoUrl || ''}
+            className="w-full h-screen object-contain"
+            onContextMenu={(e) => e.preventDefault()}
+            autoPlay
+            muted
+            playsInline
+            style={{
+              WebkitUserSelect: 'none',
+              MozUserSelect: 'none',
+              msUserSelect: 'none',
+              userSelect: 'none',
+            }}
+          >
+            Your browser does not support the video tag.
+          </video>
 
-                style={{
-                  WebkitUserSelect: 'none',
-                  MozUserSelect: 'none',
-                  msUserSelect: 'none',
-                  userSelect: 'none',
-                  WebkitTouchCallout: 'none',
-                  WebkitUserDrag: 'none',
-                  MozUserDrag: 'none',
-                  msUserDrag: 'none',
-                  userDrag: 'none',
-                  pointerEvents: 'auto',
-                  filter: 'contrast(1.05) brightness(1.02) saturate(1.05)',
-                  WebkitFilter: 'contrast(1.05) brightness(1.02) saturate(1.05)',
-                  transform: 'translateZ(0)',
-                  WebkitTransform: 'translateZ(0)'
-                } as React.CSSProperties}
-                crossOrigin="anonymous"
-                preload="metadata"
-              />
-              {/* Dynamic Watermark */}
-              <div style={{ 
-                position: 'absolute', 
-                top: '50%', 
-                left: '50%', 
-                transform: 'translate(-50%,-50%) rotate(-30deg)',
-                pointerEvents: 'none', 
-                opacity: 0.25, 
-                fontSize: '6vw', 
-                color: '#fff',
-                zIndex: 10,
-                textShadow: '3px 3px 6px rgba(0,0,0,0.9)',
-                fontWeight: 'bold',
-                letterSpacing: '2px'
-              }}>
-                {user?.email} — {new Date().toLocaleString()}
-              </div>
-              
-              {/* Large Center Watermark */}
-              <div style={{ 
-                position: 'absolute', 
-                top: '50%', 
-                left: '50%', 
-                transform: 'translate(-50%,-50%)',
-                pointerEvents: 'none', 
-                opacity: 0.4, 
-                fontSize: '12vw', 
-                color: '#fff',
-                zIndex: 9,
-                textShadow: '4px 4px 8px rgba(0,0,0,0.9), -2px -2px 4px rgba(0,0,0,0.9)',
-                fontWeight: 'bold',
-                textAlign: 'center',
-                fontFamily: 'Arial, sans-serif',
-                letterSpacing: '3px',
-                textTransform: 'uppercase'
-              }}>
-                EXCLUSIVE CONTENT
-              </div>
-              
-              {/* Diagonal Watermark */}
-              <div style={{ 
-                position: 'absolute', 
-                top: '50%', 
-                left: '50%', 
-                transform: 'translate(-50%,-50%) rotate(-30deg)',
-                pointerEvents: 'none', 
-                opacity: 0.5, 
-                fontSize: '8vw', 
-                color: '#fff',
-                zIndex: 10,
-                textShadow: '3px 3px 6px rgba(0,0,0,0.9)',
-                fontWeight: 'bold',
-                letterSpacing: '2px',
-                fontFamily: 'Arial, sans-serif'
-              }}>
-                {user?.email} — {new Date().toLocaleString()}
-              </div>
-              
-              {/* Corner Watermarks */}
-              <div style={{ 
-                position: 'absolute', 
-                top: '5%', 
-                right: '5%', 
-                pointerEvents: 'none', 
-                opacity: 0.6, 
-                fontSize: '4vw', 
-                color: '#fff',
-                zIndex: 10,
-                transform: 'rotate(15deg)',
-                textShadow: '2px 2px 4px rgba(0,0,0,0.9)',
-                fontWeight: 'bold',
-                fontFamily: 'Arial, sans-serif'
-              }}>
-                EXCLUSIVE LEX
-              </div>
-              
-              <div style={{ 
-                position: 'absolute', 
-                bottom: '5%', 
-                left: '5%', 
-                pointerEvents: 'none', 
-                opacity: 0.5, 
-                fontSize: '3vw', 
-                color: '#fff',
-                zIndex: 10,
-                transform: 'rotate(-15deg)',
-                textShadow: '2px 2px 4px rgba(0,0,0,0.9)',
-                fontWeight: 'bold',
-                fontFamily: 'Arial, sans-serif'
-              }}>
-                {new Date().toLocaleDateString()}
-              </div>
-              
-              {/* Diagonal Watermarks */}
-              <div style={{ 
-                position: 'absolute', 
-                top: '20%', 
-                left: '10%', 
-                pointerEvents: 'none', 
-                opacity: 0.4, 
-                fontSize: '3vw', 
-                color: '#fff',
-                zIndex: 10,
-                transform: 'rotate(45deg)',
-                textShadow: '2px 2px 4px rgba(0,0,0,0.9)',
-                fontWeight: 'bold',
-                fontFamily: 'Arial, sans-serif'
-              }}>
-                PRIVATE CONTENT
-              </div>
-              
-              <div style={{ 
-                position: 'absolute', 
-                bottom: '20%', 
-                right: '10%', 
-                pointerEvents: 'none', 
-                opacity: 0.4, 
-                fontSize: '3vw', 
-                color: '#fff',
-                zIndex: 10,
-                transform: 'rotate(-45deg)',
-                textShadow: '2px 2px 4px rgba(0,0,0,0.9)',
-                fontWeight: 'bold',
-                fontFamily: 'Arial, sans-serif'
-              }}>
-                COPYRIGHT PROTECTED
-              </div>
-              
-              {/* Additional Large Watermarks */}
-              <div style={{ 
-                position: 'absolute', 
-                top: '10%', 
-                left: '50%', 
-                transform: 'translateX(-50%)',
-                pointerEvents: 'none', 
-                opacity: 0.3, 
-                fontSize: '6vw', 
-                color: '#fff',
-                zIndex: 10,
-                textShadow: '3px 3px 6px rgba(0,0,0,0.9)',
-                fontWeight: 'bold',
-                fontFamily: 'Arial, sans-serif',
-                textAlign: 'center'
-              }}>
-                DO NOT DISTRIBUTE
-              </div>
-              
-              <div style={{ 
-                position: 'absolute', 
-                bottom: '10%', 
-                left: '50%', 
-                transform: 'translateX(-50%)',
-                pointerEvents: 'none', 
-                opacity: 0.3, 
-                fontSize: '5vw', 
-                color: '#fff',
-                zIndex: 10,
-                textShadow: '3px 3px 6px rgba(0,0,0,0.9)',
-                fontWeight: 'bold',
-                fontFamily: 'Arial, sans-serif',
-                textAlign: 'center'
-              }}>
-                EXCLUSIVE LEX CONTENT
-              </div>
-              
-              {/* Screenshot Warning Overlay */}
-              {isBlurred && (
-                <div className="absolute inset-0 bg-black bg-opacity-75 flex items-center justify-center z-20">
-                  <div className="text-center text-white p-6">
-                    <div className="text-6xl mb-4">⚠️</div>
-                    <h2 className="text-2xl font-bold mb-2">Screenshot Detected</h2>
-                    <p className="text-lg">Content has been temporarily blurred for security.</p>
-                    <p className="text-sm mt-2">Repeated attempts will result in access revocation.</p>
-                  </div>
-                </div>
+          {/* Fullscreen Button */}
+          <div className="absolute bottom-4 right-4 z-20">
+            <button
+              onClick={toggleFullscreen}
+              className="bg-black bg-opacity-75 text-white p-3 rounded-lg hover:bg-opacity-90 transition-all duration-200 flex items-center space-x-2"
+              title="Toggle Fullscreen (F)"
+            >
+              {isFullscreen ? (
+                <>
+                  <Minimize2 className="w-5 h-5" />
+                  <span className="text-sm">Exit Fullscreen</span>
+                </>
+              ) : (
+                <>
+                  <Maximize2 className="w-5 h-5" />
+                  <span className="text-sm">Fullscreen</span>
+                </>
               )}
-              
-              {/* Permanent Warning Overlay */}
-              <div className="absolute inset-0 bg-gradient-to-br from-red-500/10 to-blue-500/10 pointer-events-none z-5"></div>
-              
-              {/* Floating Warning */}
-              <div style={{
-                position: 'absolute',
-                top: '15%',
-                left: '50%',
-                transform: 'translateX(-50%)',
-                pointerEvents: 'none',
-                opacity: 0.7,
-                fontSize: '3vw',
-                color: '#ff0000',
-                zIndex: 15,
-                textShadow: '2px 2px 4px rgba(0,0,0,0.9)',
-                fontWeight: 'bold',
-                fontFamily: 'Arial, sans-serif',
-                textAlign: 'center',
-                backgroundColor: 'rgba(0,0,0,0.3)',
-                padding: '10px 20px',
-                borderRadius: '10px',
-                border: '2px solid #ff0000'
-              }}>
-                ⚠️ SCREENSHOT PROTECTION ACTIVE ⚠️
-              </div>
-            </>
-          ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <div className="text-center text-white">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
-                <p>Loading video...</p>
-              </div>
+            </button>
+          </div>
+
+          {/* Watermark */}
+          <div className="absolute bottom-4 left-4 z-20">
+            <div className="text-white text-opacity-50 text-sm bg-black bg-opacity-75 px-3 py-2 rounded-lg">
+              {user?.email} • Exclusive Access
             </div>
-          )}
-
-                        {/* Always Visible Fullscreen Button */}
-              {videoUrl && (
-                <button
-                  onClick={toggleFullscreen}
-                  className="absolute top-4 right-4 bg-black bg-opacity-75 text-white p-2 rounded-full hover:bg-opacity-100 transition-all duration-200 z-20"
-                  title="Toggle Fullscreen"
-                  style={{ display: 'block !important' }}
-                >
-                  {isFullscreen ? <Minimize2 className="w-6 h-6" /> : <Maximize2 className="w-6 h-6" />}
-                </button>
-              )}
-
-              {/* Custom Video Controls */}
-              {showControls && videoUrl && (
-                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/50 to-transparent p-4 transition-opacity duration-300">
-              {/* Progress Bar */}
-              <div 
-                className="w-full h-1 bg-gray-600 rounded-full cursor-pointer mb-4"
-                onClick={handleProgressClick}
-              >
-                <div 
-                  className="h-full bg-red-500 rounded-full relative"
-                  style={{ width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
-                >
-                  <div className="absolute right-0 top-1/2 transform -translate-y-1/2 w-3 h-3 bg-red-500 rounded-full shadow-lg"></div>
-                </div>
-              </div>
-
-              {/* Controls */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-4">
-                  {/* Play/Pause Button */}
-                  <button
-                    onClick={handlePlayPause}
-                    className="text-white hover:text-gray-300 transition-colors"
-                  >
-                    {isPlaying ? <Pause className="w-8 h-8" /> : <Play className="w-8 h-8" />}
-                  </button>
-
-                  {/* Volume Button */}
-                  <button
-                    onClick={handleMuteToggle}
-                    className="text-white hover:text-gray-300 transition-colors"
-                  >
-                    {isMuted ? <VolumeX className="w-6 h-6" /> : <Volume2 className="w-6 h-6" />}
-                  </button>
-
-                  {/* Time Display */}
-                  <div className="text-white text-sm">
-                    {formatTime(currentTime * 1000)} / {formatTime(duration * 1000)}
-                  </div>
-                </div>
-
-                <div className="flex items-center space-x-4">
-                  {/* Fullscreen Button */}
-                  <button
-                    onClick={toggleFullscreen}
-                    className="text-white hover:text-gray-300 transition-colors"
-                  >
-                    {isFullscreen ? <Minimize2 className="w-6 h-6" /> : <Maximize2 className="w-6 h-6" />}
-                  </button>
-
-                  {/* Watermark */}
-                  <div className="text-white text-opacity-50 text-sm">
-                    {user?.email} • Exclusive Access
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
+          </div>
         </div>
 
         {/* Content Info */}
@@ -1145,18 +875,6 @@ function WatchPageContent() {
             </button>
           </div>
         </div>
-
-        {/* Time Remaining Warning */}
-        {timeRemaining < 60000 && timeRemaining > 0 && (
-          <div className="mt-4 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-            <div className="flex items-center">
-              <AlertCircle className="w-5 h-5 text-yellow-600 mr-2" />
-              <span className="text-yellow-800">
-                Access expires in {formatTime(timeRemaining)}. Please finish watching soon.
-              </span>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
@@ -1165,10 +883,10 @@ function WatchPageContent() {
 export default function WatchPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-stone-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-stone-800 mx-auto mb-4"></div>
-          <p className="text-stone-600">Loading...</p>
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-white text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white mx-auto mb-4"></div>
+          <p>Loading...</p>
         </div>
       </div>
     }>

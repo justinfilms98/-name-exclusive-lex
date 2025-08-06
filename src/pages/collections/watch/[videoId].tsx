@@ -8,11 +8,9 @@ export default function WatchVideoPage() {
   const [videoUrl, setVideoUrl] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [showControls, setShowControls] = useState(true);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   async function handleAccess() {
     setLoading(true);
@@ -30,41 +28,43 @@ export default function WatchVideoPage() {
     }
   }
 
-  const handlePlayPause = () => {
-    if (videoRef.current) {
-      if (isPlaying) {
-        videoRef.current.pause();
+  // Handle fullscreen changes
+  React.useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
+
+  const toggleFullscreen = async () => {
+    if (!containerRef.current) return;
+
+    try {
+      if (!document.fullscreenElement) {
+        await containerRef.current.requestFullscreen();
       } else {
-        videoRef.current.play();
+        await document.exitFullscreen();
       }
+    } catch (err) {
+      console.error('Fullscreen error:', err);
     }
   };
 
-  const handleTimeUpdate = () => {
-    if (videoRef.current) {
-      setCurrentTime(videoRef.current.currentTime);
-      setDuration(videoRef.current.duration);
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'f' || e.key === 'F') {
+      e.preventDefault();
+      toggleFullscreen();
     }
-  };
-
-  const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (videoRef.current && duration > 0) {
-      const rect = e.currentTarget.getBoundingClientRect();
-      const clickX = e.clientX - rect.left;
-      const percentage = clickX / rect.width;
-      const newTime = percentage * duration;
-      videoRef.current.currentTime = newTime;
-    }
-  };
-
-  const formatTime = (seconds: number) => {
-    const minutes = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${minutes}:${secs.toString().padStart(2, '0')}`;
   };
 
   return (
-    <div className="min-h-screen bg-black">
+    <div 
+      className="min-h-screen bg-black"
+      onKeyDown={handleKeyPress}
+      tabIndex={0}
+    >
       <div className="max-w-4xl mx-auto p-4">
         <h2 className="text-white text-2xl font-semibold mb-4">Watch Video</h2>
         
@@ -87,18 +87,18 @@ export default function WatchVideoPage() {
             {error && <p className="text-red-500 mt-2">{error}</p>}
           </div>
         ) : (
-          <div className="relative bg-black rounded-lg overflow-hidden">
+          <div 
+            ref={containerRef}
+            className="relative bg-black rounded-lg overflow-hidden"
+          >
             <video
               ref={videoRef}
               src={videoUrl}
               className="w-full h-auto"
-              onPlay={() => setIsPlaying(true)}
-              onPause={() => setIsPlaying(false)}
-              onTimeUpdate={handleTimeUpdate}
-              onLoadedMetadata={handleTimeUpdate}
-              onMouseMove={() => setShowControls(true)}
-              onMouseLeave={() => setShowControls(false)}
               onContextMenu={(e) => e.preventDefault()}
+              autoPlay
+              muted
+              playsInline
               style={{
                 WebkitUserSelect: 'none',
                 MozUserSelect: 'none',
@@ -109,54 +109,37 @@ export default function WatchVideoPage() {
               Your browser does not support the video tag.
             </video>
 
-            {/* Custom Video Controls */}
-            {showControls && (
-              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/50 to-transparent p-4 transition-opacity duration-300">
-                {/* Progress Bar */}
-                <div 
-                  className="w-full h-1 bg-gray-600 rounded-full cursor-pointer mb-4"
-                  onClick={handleProgressClick}
-                >
-                  <div 
-                    className="h-full bg-red-500 rounded-full relative"
-                    style={{ width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
-                  >
-                    <div className="absolute right-0 top-1/2 transform -translate-y-1/2 w-3 h-3 bg-red-500 rounded-full shadow-lg"></div>
-                  </div>
-                </div>
+            {/* Fullscreen Button */}
+            <div className="absolute bottom-4 right-4 z-20">
+              <button
+                onClick={toggleFullscreen}
+                className="bg-black bg-opacity-75 text-white p-3 rounded-lg hover:bg-opacity-90 transition-all duration-200 flex items-center space-x-2"
+                title="Toggle Fullscreen (F)"
+              >
+                {isFullscreen ? (
+                  <>
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/>
+                    </svg>
+                    <span className="text-sm">Exit Fullscreen</span>
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>
+                    </svg>
+                    <span className="text-sm">Fullscreen</span>
+                  </>
+                )}
+              </button>
+            </div>
 
-                {/* Controls */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    {/* Play/Pause Button */}
-                    <button
-                      onClick={handlePlayPause}
-                      className="text-white hover:text-gray-300 transition-colors"
-                    >
-                      {isPlaying ? (
-                        <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/>
-                        </svg>
-                      ) : (
-                        <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M8 5v14l11-7z"/>
-                        </svg>
-                      )}
-                    </button>
-
-                    {/* Time Display */}
-                    <div className="text-white text-sm">
-                      {formatTime(currentTime)} / {formatTime(duration)}
-                    </div>
-                  </div>
-
-                  {/* Watermark */}
-                  <div className="text-white text-opacity-50 text-sm">
-                    {email} • Exclusive Access
-                  </div>
-                </div>
+            {/* Watermark */}
+            <div className="absolute bottom-4 left-4 z-20">
+              <div className="text-white text-opacity-50 text-sm bg-black bg-opacity-75 px-3 py-2 rounded-lg">
+                {email} • Exclusive Access
               </div>
-            )}
+            </div>
           </div>
         )}
       </div>
