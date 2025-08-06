@@ -312,21 +312,8 @@ export default function VideoPlayer({ src, title, expiresAt }: VideoPlayerProps)
           </video>
 
           {/* Secure Watermark */}
-          <div
-            style={{
-              position: 'absolute',
-              bottom: '6px',
-              right: '12px',
-              fontSize: '12px',
-              color: 'rgba(255, 255, 255, 0.6)',
-              pointerEvents: 'none',
-              userSelect: 'none',
-              zIndex: 20,
-              fontFamily: 'Arial, sans-serif',
-              textShadow: '1px 1px 2px rgba(0,0,0,0.8)',
-            }}
-          >
-            © ExclusiveLex.com
+          <div className="absolute bottom-2 right-2 text-xs opacity-60 pointer-events-none select-none z-50 text-white">
+            ExclusiveLex • {user?.email || 'Guest'}
           </div>
 
           {/* Loading overlay */}

@@ -98,35 +98,7 @@ export default function SuccessClient() {
 
         // Method 2: Check for pending purchases for this specific session (SECONDARY METHOD)
         if (!purchaseData || purchaseData.length === 0) {
-          console.log('🔍 Trying to find pending purchases for this session...');
-          const { data: pendingPurchases, error: pendingError } = await supabase
-            .from('purchases')
-            .select(`
-              id,
-              user_id,
-              collection_id,
-              stripe_session_id,
-              created_at,
-              status,
-              is_active,
-              amount_paid
-            `)
-            .eq('stripe_session_id', sessionId)
-            .eq('user_id', session.user.id)
-            .eq('status', 'pending');
-
-          if (pendingError) {
-            console.error('Pending purchases query error:', pendingError);
-          } else if (pendingPurchases && pendingPurchases.length > 0) {
-            console.log('✅ Found pending purchases for this session:', pendingPurchases.length);
-            purchaseData = pendingPurchases;
-            break;
-          }
-        }
-
-        // Method 3: Check for any purchases for this session (regardless of status)
-        if (!purchaseData || purchaseData.length === 0) {
-          console.log('🔍 Trying to find any purchases for this session...');
+          console.log('No completed purchases found, checking for any active purchases...');
           const { data: anyPurchases, error: anyError } = await supabase
             .from('purchases')
             .select(`
@@ -139,22 +111,50 @@ export default function SuccessClient() {
               is_active,
               amount_paid
             `)
-            .eq('stripe_session_id', sessionId);
+            .eq('stripe_session_id', sessionId)
+            .eq('user_id', session.user.id);
 
           if (anyError) {
-            console.error('Any purchases query error:', anyError);
+            console.error('Any purchases check error:', anyError);
           } else if (anyPurchases && anyPurchases.length > 0) {
-            console.log('✅ Found any purchases for this session:', anyPurchases.length);
+            console.log('Found active purchases (not completed):', anyPurchases.length);
             purchaseData = anyPurchases;
-            break;
           }
         }
 
-        // Method 4: Call the verify-purchase API as a fallback
+        // Method 3: If still no purchases, check for recent purchases for this user (last 30 minutes)
         if (!purchaseData || purchaseData.length === 0) {
-          console.log('🔍 Trying API verification as fallback...');
+          console.log('No active purchases found, checking for recent purchases...');
+          const { data: recentPurchases, error: recentError } = await supabase
+            .from('purchases')
+            .select(`
+              id,
+              user_id,
+              collection_id,
+              stripe_session_id,
+              created_at,
+              status,
+              is_active,
+              amount_paid
+            `)
+            .eq('user_id', session.user.id)
+            .gte('created_at', new Date(Date.now() - 30 * 60 * 1000).toISOString())
+            .order('created_at', { ascending: false })
+            .limit(5);
+
+          if (recentError) {
+            console.error('Recent purchases check error:', recentError);
+          } else if (recentPurchases && recentPurchases.length > 0) {
+            console.log('Found recent purchases:', recentPurchases.length);
+            purchaseData = recentPurchases;
+          }
+        }
+
+        // Method 4: If still no purchases, try to get from Stripe session metadata
+        if (!purchaseData || purchaseData.length === 0) {
+          console.log('No purchases found in database, checking Stripe session metadata...');
           try {
-            const response = await fetch('/api/verify-purchase', {
+            const stripeResponse = await fetch('/api/verify-purchase', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -165,18 +165,16 @@ export default function SuccessClient() {
               }),
             });
 
-            if (response.ok) {
-              const apiData = await response.json();
-              if (apiData.success && apiData.purchases && apiData.purchases.length > 0) {
-                console.log('✅ API verification successful:', apiData.purchases.length, 'purchases found');
-                purchaseData = apiData.purchases;
+            if (stripeResponse.ok) {
+              const stripeData = await stripeResponse.json();
+              if (stripeData.success && stripeData.purchases && stripeData.purchases.length > 0) {
+                console.log('✅ Found purchases from Stripe verification:', stripeData.purchases.length);
+                purchaseData = stripeData.purchases;
                 break;
               }
-            } else {
-              console.error('API verification failed:', response.status, response.statusText);
             }
-          } catch (apiError) {
-            console.error('API verification error:', apiError);
+          } catch (stripeError) {
+            console.error('Stripe verification error:', stripeError);
           }
         }
 
@@ -198,6 +196,16 @@ export default function SuccessClient() {
       }
 
       console.log('✅ Purchase verification successful:', purchaseData.length, 'purchases found');
+
+      // Clear cart after successful purchase
+      try {
+        localStorage.removeItem('cart');
+        // Dispatch event to notify other components that cart has been cleared
+        window.dispatchEvent(new Event('cartUpdated'));
+        console.log('🛒 Cart cleared after successful purchase');
+      } catch (error) {
+        console.warn('Failed to clear cart:', error);
+      }
 
       // Check if any purchases are pending and complete them
       const pendingPurchases = purchaseData.filter(p => p.status === 'pending');
@@ -470,27 +478,13 @@ export default function SuccessClient() {
 
             <div className="border-t-2 border-gray-200 pt-8">
               <label className="flex items-start space-x-4 cursor-pointer group">
-                <div className="relative flex-shrink-0">
-                  <input
-                    type="checkbox"
-                    checked={agreedToTerms}
-                    onChange={(e) => setAgreedToTerms(e.target.checked)}
-                    className="sr-only"
-                  />
-                  <div className={`
-                    w-8 h-8 border-2 rounded-lg flex items-center justify-center transition-all duration-200
-                    ${agreedToTerms 
-                      ? 'bg-lex-brown border-lex-brown shadow-lg' 
-                      : 'border-gray-300 group-hover:border-lex-brown bg-white'
-                    }
-                  `}>
-                    {agreedToTerms && (
-                      <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                      </svg>
-                    )}
-                  </div>
-                </div>
+                <input
+                  type="checkbox"
+                  id="termsCheckbox"
+                  checked={agreedToTerms}
+                  onChange={(e) => setAgreedToTerms(e.target.checked)}
+                  className="form-checkbox h-5 w-5 text-green-600 transition duration-150 ease-in-out"
+                />
                 <span className="text-lg text-lex-brown leading-relaxed font-medium">
                   I have read, understood, and agree to all terms and conditions above. 
                   I confirm that I am 18 years or older and will use this content responsibly.

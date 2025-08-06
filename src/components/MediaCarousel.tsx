@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { ChevronLeft, ChevronRight, X, Play, Pause, Volume2, VolumeX, Maximize2, Minimize2 } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 
 interface MediaItem {
   id: string;
@@ -38,12 +39,32 @@ export default function MediaCarousel({
   const [videoLoaded, setVideoLoaded] = useState(false);
   const [videoDimensions, setVideoDimensions] = useState({ width: 0, height: 0 });
   const [isVerticalVideo, setIsVerticalVideo] = useState(false);
+  const [user, setUser] = useState<any>(null);
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const currentItem = items[currentIndex];
+
+  useEffect(() => {
+    // Get current user
+    const getSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUser(session?.user || null);
+    };
+
+    getSession();
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        setUser(session?.user || null);
+      }
+    );
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   useEffect(() => {
     if (currentItem?.type === 'video' && videoRef.current) {
@@ -330,21 +351,8 @@ export default function MediaCarousel({
               />
               
               {/* Secure Watermark */}
-              <div
-                style={{
-                  position: 'absolute',
-                  bottom: '6px',
-                  right: '12px',
-                  fontSize: '12px',
-                  color: 'rgba(255, 255, 255, 0.6)',
-                  pointerEvents: 'none',
-                  userSelect: 'none',
-                  zIndex: 20,
-                  fontFamily: 'Arial, sans-serif',
-                  textShadow: '1px 1px 2px rgba(0,0,0,0.8)',
-                }}
-              >
-                © ExclusiveLex.com
+              <div className="absolute bottom-2 right-2 text-xs opacity-60 pointer-events-none select-none z-50 text-white">
+                ExclusiveLex • {user?.email || 'Guest'}
               </div>
               
               {/* Play Button Overlay */}
