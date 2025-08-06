@@ -234,13 +234,6 @@ export default function MediaCarousel({
             </p>
           </div>
           <div className="flex items-center space-x-2">
-            <button
-              onClick={toggleFullscreen}
-              className="p-2 hover:bg-white/20 rounded-full transition-colors"
-              title="Toggle fullscreen (F)"
-            >
-              {isFullscreen ? <Minimize2 size={20} /> : <Maximize2 size={20} />}
-            </button>
             {onClose && isModal && (
               <button
                 onClick={onClose}
