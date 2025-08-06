@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
         console.log('🔍 Found collection IDs:', collectionIds);
 
         // Create purchase records
-        const createdPurchases = [];
+        const createdPurchases: any[] = [];
         for (const collectionId of collectionIds) {
           const { data: collection } = await supabase
             .from('collections')
