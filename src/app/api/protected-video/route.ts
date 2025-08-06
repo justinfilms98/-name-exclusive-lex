@@ -153,7 +153,7 @@ export async function GET(request: Request) {
   let signedUrl: string;
   try {
     // ✅ Use media_filename if available, otherwise fall back to video_path
-    const filePath = collection.media_filename || collection.video_path;
+    let filePath = collection.media_filename || collection.video_path;
     console.log('🔍 DEBUG: Using file path for signed URL:', filePath);
     
     if (!filePath) {
@@ -161,12 +161,57 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'No video file path available' }, { status: 500 });
     }
     
-    const { data: signedUrlData, error: signedUrlError } = await supabase.storage
+    // Try to list files in the collection directory to see what's available
+    const collectionDir = filePath.split('/').slice(0, -1).join('/'); // Get directory path
+    console.log('🔍 DEBUG: Checking collection directory:', collectionDir);
+    
+    const { data: directoryFiles, error: listError } = await supabase.storage
+      .from('media')
+      .list(collectionDir);
+    
+    if (listError) {
+      console.error('🔍 DEBUG: Error listing directory:', listError);
+    } else {
+      console.log('🔍 DEBUG: Files in directory:', directoryFiles?.map(f => f.name));
+    }
+    
+    // Try to generate signed URL with the original path
+    let { data: signedUrlData, error: signedUrlError } = await supabase.storage
       .from('media')
       .createSignedUrl(filePath, 3600); // 1 hour expiry
 
+    // If the first attempt fails, try alternative paths
+    if (signedUrlError && directoryFiles && directoryFiles.length > 0) {
+      console.log('🔍 DEBUG: First attempt failed, trying alternative paths');
+      
+      // Look for video files in the directory
+      const videoFiles = directoryFiles.filter(f => 
+        f.name.toLowerCase().includes('video') || 
+        f.name.toLowerCase().endsWith('.mp4') || 
+        f.name.toLowerCase().endsWith('.mov') ||
+        f.name.toLowerCase().endsWith('.avi')
+      );
+      
+      if (videoFiles.length > 0) {
+        const alternativePath = `${collectionDir}/${videoFiles[0].name}`;
+        console.log('🔍 DEBUG: Trying alternative path:', alternativePath);
+        
+        const { data: altSignedUrlData, error: altSignedUrlError } = await supabase.storage
+          .from('media')
+          .createSignedUrl(alternativePath, 3600);
+        
+        if (!altSignedUrlError && altSignedUrlData?.signedUrl) {
+          signedUrlData = altSignedUrlData;
+          signedUrlError = null;
+          filePath = alternativePath;
+          console.log('🔍 DEBUG: Alternative path worked:', alternativePath);
+        }
+      }
+    }
+
     if (signedUrlError) {
       console.error('🔍 DEBUG: Failed to generate signed URL:', signedUrlError);
+      console.error('🔍 DEBUG: File path attempted:', filePath);
       return NextResponse.json({ error: `Failed to generate video URL: ${signedUrlError.message}` }, { status: 500 });
     }
 
