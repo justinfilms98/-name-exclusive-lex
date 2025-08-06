@@ -196,7 +196,7 @@ export default function MediaCarousel({
         toggleFullscreen();
         break;
       case ' ':
-        e.preventDefault();
+          e.preventDefault();
         if (currentItem?.type === 'video') {
           handleVideoClick();
         }
@@ -235,17 +235,17 @@ export default function MediaCarousel({
           </div>
           <div className="flex items-center space-x-2">
             {onClose && isModal && (
-              <button
+            <button
                 onClick={onClose}
                 className="p-2 hover:bg-white/20 rounded-full transition-colors"
                 title="Close (ESC)"
-              >
+            >
                 <X size={20} />
-              </button>
-            )}
+            </button>
+          )}
           </div>
         </div>
-      </div>
+        </div>
 
       {/* Main Content */}
       <div className="relative w-full h-full flex items-center justify-center">
@@ -394,6 +394,6 @@ export default function MediaCarousel({
           ))}
         </div>
       )}
-    </div>
+      </div>
   );
 } 

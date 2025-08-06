@@ -88,6 +88,17 @@ export async function POST(request: NextRequest) {
               .maybeSingle();
 
             if (!existingPurchase) {
+              // Validate user_id and collection_id before creating
+              if (!userId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+                console.error(`❌ Invalid user_id format: ${userId}`);
+                continue;
+              }
+
+              if (!collectionId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+                console.error(`❌ Invalid collection_id format: ${collectionId}`);
+                continue;
+              }
+
               const { data: newPurchase, error: createError } = await supabase
                 .from('purchases')
                 .insert({

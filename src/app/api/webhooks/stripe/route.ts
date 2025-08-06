@@ -100,7 +100,20 @@ async function processCollectionPurchase(
     return;
   }
 
+  // Validate user_id format (should be a UUID)
+  if (!userId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+    console.error(`❌ Invalid user_id format: ${userId}`);
+    return;
+  }
+
+  // Validate collection_id format (should be a UUID)
+  if (!collectionId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+    console.error(`❌ Invalid collection_id format: ${collectionId}`);
+    return;
+  }
+
   console.log(`🔍 DEBUG: Processing collection ${collectionId} for user ${userId}`);
+  console.log(`🔍 DEBUG: Validated user_id: ${userId}, collection_id: ${collectionId}`);
   
   // Check for duplicates using unique constraint
   const { data: existing } = await supabase
@@ -161,4 +174,17 @@ async function processCollectionPurchase(
   }
 
   console.log(`✅ New purchase created for user ${userId}, collection ${collectionId} (${collection?.title || 'Unknown'}) - Purchase ID: ${newPurchase.id}`);
+  
+  // Verify the purchase was created correctly
+  const { data: verifyPurchase, error: verifyError } = await supabase
+    .from('purchases')
+    .select('id, user_id, collection_id, stripe_session_id')
+    .eq('id', newPurchase.id)
+    .single();
+
+  if (verifyError || !verifyPurchase) {
+    console.error(`❌ Failed to verify purchase creation:`, verifyError);
+  } else {
+    console.log(`✅ Purchase verified: user_id=${verifyPurchase.user_id}, collection_id=${verifyPurchase.collection_id}`);
+  }
 } 
