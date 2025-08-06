@@ -274,42 +274,12 @@ export default function WatchPage() {
       console.log('🔍 DEBUG: Entering video fullscreen');
       setVideoFullscreen(true);
       
-      // Simple approach: just make the video container take up the full screen
-      const container = videoContainerRef.current;
-      if (container) {
-        container.style.position = 'fixed';
-        container.style.top = '0';
-        container.style.left = '0';
-        container.style.width = '100vw';
-        container.style.height = '100vh';
-        container.style.zIndex = '99999';
-        container.style.backgroundColor = '#000000';
-        container.style.display = 'flex';
-        container.style.alignItems = 'center';
-        container.style.justifyContent = 'center';
-      }
-      
       // Hide body scroll
       document.body.style.overflow = 'hidden';
       
     } else {
       console.log('🔍 DEBUG: Exiting video fullscreen');
       setVideoFullscreen(false);
-      
-      // Restore normal state
-      const container = videoContainerRef.current;
-      if (container) {
-        container.style.position = '';
-        container.style.top = '';
-        container.style.left = '';
-        container.style.width = '';
-        container.style.height = '';
-        container.style.zIndex = '';
-        container.style.backgroundColor = '';
-        container.style.display = '';
-        container.style.alignItems = '';
-        container.style.justifyContent = '';
-      }
       
       // Restore body scroll
       document.body.style.overflow = '';
@@ -332,6 +302,13 @@ export default function WatchPage() {
 
   const openPhotoFullscreen = (photoUrl: string) => {
     console.log('🔍 DEBUG: Opening photo fullscreen for:', photoUrl);
+    
+    // Don't open photo fullscreen if video is in fullscreen
+    if (videoFullscreen) {
+      console.log('🔍 DEBUG: Video is in fullscreen, preventing photo fullscreen');
+      return;
+    }
+    
     setFullscreenPhoto(photoUrl);
     setPhotoFullscreen(true);
   };
@@ -500,7 +477,7 @@ export default function WatchPage() {
         {/* Video Player */}
         <div 
           ref={videoContainerRef}
-          className="relative bg-black"
+          className={`relative bg-black ${videoFullscreen ? 'fixed inset-0 z-[99999] bg-black flex items-center justify-center overflow-hidden' : ''}`}
           onMouseMove={handleMouseMove}
           onMouseLeave={() => {
             if (isPlaying) {
@@ -550,7 +527,7 @@ export default function WatchPage() {
             ref={videoRef}
             key={videoUrl}
             src={videoUrl}
-            className="w-full h-screen object-contain"
+            className={`${videoFullscreen ? 'w-full h-full object-contain' : 'w-full h-screen object-contain'}`}
             onContextMenu={(e) => e.preventDefault()}
             onError={handleVideoError}
             onPlay={handlePlay}
@@ -707,7 +684,7 @@ export default function WatchPage() {
         {/* Photo Fullscreen Modal */}
         {photoFullscreen && fullscreenPhoto && (
           <div 
-            className="fixed inset-0 bg-black bg-opacity-95 z-50 flex items-center justify-center"
+            className="fixed inset-0 bg-black bg-opacity-95 z-40 flex items-center justify-center"
             onClick={closePhotoFullscreen}
           >
             <div className="relative max-w-full max-h-full p-4">
