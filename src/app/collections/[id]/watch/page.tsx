@@ -264,6 +264,8 @@ export default function WatchPage() {
 
   const toggleVideoFullscreen = () => {
     console.log('🔍 DEBUG: Toggling video fullscreen');
+    console.log('🔍 DEBUG: Current videoFullscreen state:', videoFullscreen);
+    console.log('🔍 DEBUG: Video ref exists:', !!videoRef.current);
     
     if (!videoRef.current) {
       console.log('❌ DEBUG: No video element found');
@@ -295,13 +297,27 @@ export default function WatchPage() {
 
   const handleVideoFullscreenButton = (e: React.MouseEvent | React.TouchEvent) => {
     console.log('🔍 DEBUG: Video fullscreen button clicked');
+    console.log('🔍 DEBUG: Event type:', e.type);
+    console.log('🔍 DEBUG: Current videoFullscreen state:', videoFullscreen);
+    console.log('🔍 DEBUG: Current photoFullscreen state:', photoFullscreen);
+    
     e.preventDefault();
     e.stopPropagation();
+    
+    // Ensure we're not in photo fullscreen mode
+    if (photoFullscreen) {
+      console.log('🔍 DEBUG: Photo is in fullscreen, closing it first');
+      closePhotoFullscreen();
+    }
+    
+    console.log('🔍 DEBUG: Calling toggleVideoFullscreen');
     toggleVideoFullscreen();
   };
 
   const openPhotoFullscreen = (photoUrl: string) => {
     console.log('🔍 DEBUG: Opening photo fullscreen for:', photoUrl);
+    console.log('🔍 DEBUG: Current videoFullscreen state:', videoFullscreen);
+    console.log('🔍 DEBUG: Current photoFullscreen state:', photoFullscreen);
     
     // Don't open photo fullscreen if video is in fullscreen
     if (videoFullscreen) {
@@ -309,6 +325,7 @@ export default function WatchPage() {
       return;
     }
     
+    console.log('🔍 DEBUG: Setting photo fullscreen states');
     setFullscreenPhoto(photoUrl);
     setPhotoFullscreen(true);
   };
