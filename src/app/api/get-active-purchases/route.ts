@@ -42,7 +42,7 @@ export async function GET(request: Request) {
       purchases.map(async (purchase) => {
         const { data: collection, error: collectionError } = await supabase
           .from('collections')
-          .select('id, title, description, video_path, thumbnail_path, photo_paths')
+          .select('id, title, description, video_path, media_filename, thumbnail_path, photo_paths')
           .eq('id', purchase.collection_id)
           .single()
 
@@ -55,9 +55,16 @@ export async function GET(request: Request) {
           }
         }
 
+        // ✅ Use media_filename if available, otherwise fall back to video_path
+        const videoUrl = collection.media_filename || collection.video_path;
+        const collectionWithVideoUrl = {
+          ...collection,
+          video_path: videoUrl // Update video_path to use media_filename if available
+        };
+
         return {
           ...purchase,
-          collection,
+          collection: collectionWithVideoUrl,
           isExpired: false, // Permanent access - never expires
           timeRemaining: null // No timer for permanent access
         }

@@ -29,6 +29,7 @@ interface Purchase {
     video_path: string;
     thumbnail_path: string;
     photo_paths: string[];
+    media_filename?: string; // Added for video_path fallback
   };
 }
 
@@ -289,8 +290,10 @@ function WatchPageClient({ collectionId }: { collectionId: string }) {
       setPurchase(purchase);
 
       // Get signed URL for video
-      if (purchase.collection?.video_path) {
-        const { data: signedUrl } = await getSignedUrl('media', purchase.collection.video_path);
+      if (purchase.collection?.video_path || purchase.collection?.media_filename) {
+        // ✅ Use media_filename if available, otherwise fall back to video_path
+        const videoPath = purchase.collection.media_filename || purchase.collection.video_path;
+        const { data: signedUrl } = await getSignedUrl('media', videoPath);
         if (signedUrl) {
           setVideoUrl(signedUrl.signedUrl);
         }

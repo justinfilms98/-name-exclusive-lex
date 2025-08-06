@@ -134,9 +134,13 @@ export async function GET(request: Request) {
   // Generate signed URL for the video
   let signedUrl: string;
   try {
+    // ✅ Use media_filename if available, otherwise fall back to video_path
+    const filePath = collection.media_filename || collection.video_path;
+    console.log('🔍 DEBUG: Using file path for signed URL:', filePath);
+    
     const { data: signedUrlData, error: signedUrlError } = await supabase.storage
       .from('media')
-      .createSignedUrl(collection.video_path, 3600); // 1 hour expiry
+      .createSignedUrl(filePath, 3600); // 1 hour expiry
 
     if (signedUrlError || !signedUrlData?.signedUrl) {
       console.error('🔍 DEBUG: Failed to generate signed URL:', signedUrlError);

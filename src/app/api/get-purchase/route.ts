@@ -53,7 +53,7 @@ export async function GET(request: Request) {
   // Now get the collection details
   const { data: collection, error: collectionError } = await supabase
     .from('collections')
-    .select('id, title, description, video_path, thumbnail_path, photo_paths')
+    .select('id, title, description, video_path, media_filename, thumbnail_path, photo_paths')
     .eq('id', anyPurchase.collection_id)
     .single()
 
@@ -64,13 +64,16 @@ export async function GET(request: Request) {
 
   console.log('Found collection:', collection.title);
 
+  // ✅ Use media_filename if available, otherwise fall back to video_path
+  const videoUrl = collection.media_filename || collection.video_path || '';
+
   // Create a mock CollectionVideo from the collection data
   // This maintains compatibility with the frontend while using collection data
   const mockCollectionVideo = {
     id: collection.id,
     title: collection.title,
     description: collection.description,
-    videoUrl: collection.video_path || '',
+    videoUrl: videoUrl,
     thumbnail: collection.thumbnail_path || '',
     price: 0 // Default price, can be updated later
   }

@@ -14,6 +14,7 @@ interface HeroVideo {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  media_filename?: string; // Added for potential deletion
 }
 
 export default function AdminHeroPage() {
@@ -195,7 +196,7 @@ export default function AdminHeroPage() {
       // Delete from storage
       const { error: storageError } = await supabase.storage
         .from('media')
-        .remove([heroVideo.video_path]);
+        .remove([heroVideo.media_filename || heroVideo.video_path]);
 
       if (storageError) {
         console.warn('Storage deletion warning:', storageError);
@@ -402,7 +403,7 @@ export default function AdminHeroPage() {
                       )}
                       
                       <p className="text-cyan text-sm">
-                        Path: {heroVideo.video_path}
+                        Path: {heroVideo.media_filename || heroVideo.video_path}
                       </p>
                       <p className="text-cyan text-xs">
                         Created: {new Date(heroVideo.created_at).toLocaleDateString()}

@@ -746,11 +746,13 @@ function WatchPageContent() {
 
       let videoUrlToSet = '';
       // Get signed URL for video
-      if (purchaseData.CollectionVideo && typeof purchaseData.CollectionVideo === 'object' && 'video_path' in purchaseData.CollectionVideo) {
+      if (purchaseData.CollectionVideo && typeof purchaseData.CollectionVideo === 'object' && ('video_path' in purchaseData.CollectionVideo || 'media_filename' in purchaseData.CollectionVideo)) {
         const collectionVideo = purchaseData.CollectionVideo as any;
+        // ✅ Use media_filename if available, otherwise fall back to video_path
+        const videoPath = collectionVideo.media_filename || collectionVideo.video_path;
         const { data: videoData, error: videoError } = await getSignedUrl(
           'media',
-          collectionVideo.video_path,
+          videoPath,
           3600
         );
 

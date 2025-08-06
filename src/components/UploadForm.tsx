@@ -155,7 +155,7 @@ export default function UploadForm() {
         video_path: videoPath,
         thumbnail_path: thumbnailPath,
         photo_paths: photoPaths,
-        media_filename: files.video!.name, // Auto-insert filename
+        media_filename: videoPath, // ✅ Store the full file path (e.g., collections/uuid/video_timestamp.mp4)
         created_at: new Date().toISOString(),
       };
       

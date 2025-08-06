@@ -17,6 +17,7 @@ interface Collection {
   photo_paths: string[];
   created_at: string;
   updated_at: string;
+  media_filename?: string; // Added for new logic
 }
 
 interface ExtractionResult {
@@ -323,7 +324,7 @@ export default function AdminCollectionsPage() {
       // First, get all collections to re-extract durations for accuracy
       const { data: collections, error: fetchError } = await supabase
         .from('collections')
-        .select('id, title, video_path, video_duration');
+        .select('id, title, video_path, video_duration, media_filename');
 
       if (fetchError) {
         alert(`Failed to fetch collections: ${fetchError.message}`);
@@ -341,7 +342,10 @@ export default function AdminCollectionsPage() {
       
       for (const collection of collections) {
         try {
-          if (!collection.video_path) {
+          // ✅ Use media_filename if available, otherwise fall back to video_path
+          const videoPath = collection.media_filename || collection.video_path;
+          
+          if (!videoPath) {
             results.push({
               id: collection.id,
               title: collection.title,
@@ -354,7 +358,7 @@ export default function AdminCollectionsPage() {
           // Get signed URL for the video
           const { data: signedUrlData, error: urlError } = await supabase.storage
             .from('media')
-            .createSignedUrl(collection.video_path, 60);
+            .createSignedUrl(videoPath, 60);
 
           if (urlError || !signedUrlData?.signedUrl) {
             results.push({

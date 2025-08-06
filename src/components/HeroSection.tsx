@@ -10,6 +10,7 @@ interface HeroVideo {
   title: string;
   subtitle?: string;
   video_path: string;
+  media_filename?: string; // ✅ Added for new logic
   order_index: number;
 }
 
@@ -74,7 +75,9 @@ export default function HeroSection() {
     try {
       const urls = await Promise.all(
         heroVideos.map(async (video) => {
-          const { data, error } = await getSignedUrl('media', video.video_path, 3600);
+          // ✅ Use media_filename if available, otherwise fall back to video_path
+          const videoPath = video.media_filename || video.video_path;
+          const { data, error } = await getSignedUrl('media', videoPath, 3600);
           if (error || !data) {
             console.error('Failed to get video URL:', error);
             return '';
