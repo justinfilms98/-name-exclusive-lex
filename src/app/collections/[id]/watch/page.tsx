@@ -61,14 +61,46 @@ export default function WatchPage() {
         setCollection(collectionData);
 
         // Check if user has access
-        const { data: accessData, error: accessError } = await checkAccess(session.user.id, id);
-        if (accessError || !accessData) {
+        console.log('Checking access for user:', session.user.id, 'collection:', id);
+        
+        let accessData;
+        try {
+          const accessResponse = await fetch('/api/check-access', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              userId: session.user.id,
+              collectionId: id
+            }),
+          });
+
+          if (!accessResponse.ok) {
+            console.error('Access check failed:', accessResponse.status);
+            setError('Access denied. Please purchase this collection first.');
+            setLoading(false);
+            return;
+          }
+
+          const accessResult = await accessResponse.json();
+          
+          if (!accessResult.hasAccess || !accessResult.purchases || accessResult.purchases.length === 0) {
+            console.log('No access found for user:', session.user.id, 'collection:', id);
+            setError('Access denied. Please purchase this collection first.');
+            setLoading(false);
+            return;
+          }
+
+          accessData = accessResult.purchases[0]; // Use the first purchase
+          console.log('Access granted for user:', session.user.id, 'purchase:', accessData);
+          setHasAccess(true);
+        } catch (error) {
+          console.error('Access check error:', error);
           setError('Access denied. Please purchase this collection first.');
           setLoading(false);
           return;
         }
-
-        setHasAccess(true);
 
         // Get protected video URL through our API
         console.log('Calling protected-video API with session_id:', accessData.stripe_session_id);

@@ -258,7 +258,7 @@ export const checkAccess = async (userId: string, collectionId: string) => {
     .eq('user_id', userId)
     .eq('collection_id', collectionId)
     .eq('is_active', true)
-    .single()
+    .maybeSingle()
   return { data, error }
 }
 
