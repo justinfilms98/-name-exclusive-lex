@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { ChevronLeft, ChevronRight, X, Play, Pause, Volume2, VolumeX, Maximize2, Minimize2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import MobileFullscreenVideo from './MobileFullscreenVideo';
 
 interface MediaItem {
   id: string;
@@ -30,17 +31,18 @@ export default function MediaCarousel({
   className = ''
 }: MediaCarouselProps) {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
-  const [isFullscreen, setIsFullscreen] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [showControls, setShowControls] = useState(true);
   const [videoLoaded, setVideoLoaded] = useState(false);
   const [videoDimensions, setVideoDimensions] = useState({ width: 0, height: 0 });
   const [isVerticalVideo, setIsVerticalVideo] = useState(false);
-  const [user, setUser] = useState<any>(null);
   const [isMobile, setIsMobile] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const [showMobileFullscreen, setShowMobileFullscreen] = useState(false);
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -146,6 +148,12 @@ export default function MediaCarousel({
 
   const toggleFullscreen = async () => {
     try {
+      if (isMobile) {
+        // Use mobile-specific fullscreen video player
+        setShowMobileFullscreen(true);
+        return;
+      }
+
       if (!document.fullscreenElement) {
         // Try to make video fullscreen first (better for mobile)
         if (videoRef.current && videoRef.current.requestFullscreen) {
@@ -160,21 +168,6 @@ export default function MediaCarousel({
           await (containerRef.current as any).webkitRequestFullscreen();
         } else if (containerRef.current && (containerRef.current as any).msRequestFullscreen) {
           await (containerRef.current as any).msRequestFullscreen();
-        }
-        
-        // For mobile devices, also try to make the video element fullscreen
-        if (isMobile && videoRef.current) {
-          try {
-            if (videoRef.current.requestFullscreen) {
-              await videoRef.current.requestFullscreen();
-            } else if ((videoRef.current as any).webkitRequestFullscreen) {
-              await (videoRef.current as any).webkitRequestFullscreen();
-            } else if ((videoRef.current as any).msRequestFullscreen) {
-              await (videoRef.current as any).msRequestFullscreen();
-            }
-          } catch (mobileError) {
-            console.log('Mobile fullscreen failed, trying container:', mobileError);
-          }
         }
       } else {
         if (document.exitFullscreen) {
@@ -525,6 +518,17 @@ export default function MediaCarousel({
           ))}
         </div>
       )}
-      </div>
+
+      {/* Mobile Fullscreen Video Player */}
+      {currentItem?.type === 'video' && (
+        <MobileFullscreenVideo
+          videoUrl={currentItem.url}
+          isOpen={showMobileFullscreen}
+          onClose={() => setShowMobileFullscreen(false)}
+          title={currentItem.title || title}
+          isVertical={isVerticalVideo}
+        />
+      )}
+    </div>
   );
 } 
