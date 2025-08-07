@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { supabase, getSignedUrl } from '@/lib/supabase';
 import { User, Clock, Video, Shield, LogOut, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 
@@ -24,6 +24,7 @@ export default function AccountPage() {
   const [user, setUser] = useState<any>(null);
   const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [loading, setLoading] = useState(true);
+  const [thumbnailUrls, setThumbnailUrls] = useState<{[key: string]: string}>({});
   const router = useRouter();
 
   useEffect(() => {
@@ -58,6 +59,9 @@ export default function AccountPage() {
 
       if (!error && purchaseData) {
         setPurchases(purchaseData);
+        
+        // Load thumbnail URLs
+        await loadThumbnails(purchaseData);
       }
 
     } catch (error) {
@@ -65,6 +69,31 @@ export default function AccountPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const loadThumbnails = async (purchaseData: Purchase[]) => {
+    const thumbnailPromises = purchaseData.map(async (purchase) => {
+      if (purchase.collections.thumbnail_path) {
+        try {
+          const { data, error } = await getSignedUrl('media', purchase.collections.thumbnail_path, 3600);
+          if (!error && data) {
+            return { id: purchase.collections.id, url: data.signedUrl };
+          }
+        } catch (error) {
+          console.error('Failed to load thumbnail for', purchase.collections.id, error);
+        }
+      }
+      return { id: purchase.collections.id, url: null };
+    });
+
+    const results = await Promise.all(thumbnailPromises);
+    const urlMap: {[key: string]: string} = {};
+    results.forEach(result => {
+      if (result.url) {
+        urlMap[result.id] = result.url;
+      }
+    });
+    setThumbnailUrls(urlMap);
   };
 
   const handleSignOut = async () => {
@@ -158,7 +187,7 @@ export default function AccountPage() {
                 <Link href={`/collections/${purchase.collections.id}/watch`} key={purchase.collections.id}>
                   <div className="border rounded shadow-sm p-2 hover:shadow-md transition-shadow">
                     <img 
-                      src={purchase.collections.thumbnail_path || '/placeholder-image.jpg'} 
+                      src={thumbnailUrls[purchase.collections.id] || '/placeholder-image.jpg'} 
                       alt={purchase.collections.title} 
                       className="rounded w-full h-32 object-cover"
                     />

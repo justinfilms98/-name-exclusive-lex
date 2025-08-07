@@ -145,16 +145,36 @@ export default function MediaCarousel({
   };
 
   const toggleFullscreen = async () => {
-    if (!containerRef.current) return;
-
     try {
       if (!document.fullscreenElement) {
-        if (containerRef.current.requestFullscreen) {
+        // Try to make video fullscreen first (better for mobile)
+        if (videoRef.current && videoRef.current.requestFullscreen) {
+          await videoRef.current.requestFullscreen();
+        } else if (videoRef.current && (videoRef.current as any).webkitRequestFullscreen) {
+          await (videoRef.current as any).webkitRequestFullscreen();
+        } else if (videoRef.current && (videoRef.current as any).msRequestFullscreen) {
+          await (videoRef.current as any).msRequestFullscreen();
+        } else if (containerRef.current && containerRef.current.requestFullscreen) {
           await containerRef.current.requestFullscreen();
-        } else if ((containerRef.current as any).webkitRequestFullscreen) {
+        } else if (containerRef.current && (containerRef.current as any).webkitRequestFullscreen) {
           await (containerRef.current as any).webkitRequestFullscreen();
-        } else if ((containerRef.current as any).msRequestFullscreen) {
+        } else if (containerRef.current && (containerRef.current as any).msRequestFullscreen) {
           await (containerRef.current as any).msRequestFullscreen();
+        }
+        
+        // For mobile devices, also try to make the video element fullscreen
+        if (isMobile && videoRef.current) {
+          try {
+            if (videoRef.current.requestFullscreen) {
+              await videoRef.current.requestFullscreen();
+            } else if ((videoRef.current as any).webkitRequestFullscreen) {
+              await (videoRef.current as any).webkitRequestFullscreen();
+            } else if ((videoRef.current as any).msRequestFullscreen) {
+              await (videoRef.current as any).msRequestFullscreen();
+            }
+          } catch (mobileError) {
+            console.log('Mobile fullscreen failed, trying container:', mobileError);
+          }
         }
       } else {
         if (document.exitFullscreen) {
@@ -384,7 +404,7 @@ export default function MediaCarousel({
               />
               
               {/* Secure Watermark */}
-              <div className="absolute bottom-2 right-2 text-xs opacity-60 pointer-events-none select-none z-50 text-white">
+              <div className="absolute bottom-4 right-4 text-xs opacity-30 pointer-events-none select-none z-50 text-white bg-black bg-opacity-20 px-2 py-1 rounded">
                 ExclusiveLex • {user?.email || 'Guest'}
               </div>
               
@@ -461,6 +481,15 @@ export default function MediaCarousel({
                       {formatTime(currentTime)} / {formatTime(duration)}
                     </div>
                   </div>
+
+                  {/* Fullscreen Button */}
+                  <button
+                    onClick={toggleFullscreen}
+                    className="text-white hover:text-gray-300 transition-colors bg-white bg-opacity-20 hover:bg-opacity-30 p-2 rounded-full flex items-center justify-center"
+                    title="Toggle Fullscreen"
+                  >
+                    {isFullscreen ? <Minimize2 size={20} /> : <Maximize2 size={20} />}
+                  </button>
                 </div>
               </div>
             </div>
