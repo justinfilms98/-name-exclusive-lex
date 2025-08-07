@@ -86,31 +86,14 @@ export async function GET(request: Request) {
     purchase = exactMatch;
     console.log('🔍 DEBUG: Using exact match purchase:', purchase);
   } else {
-    // Second try: find any active purchase for this session (in case session_id is null)
-    console.log('🔍 DEBUG: Trying fallback - any active purchase');
-    const { data: anyActive, error: anyError } = await supabase
-      .from('purchases')
-      .select('id, user_id, collection_id, stripe_session_id, created_at, amount_paid')
-      .eq('is_active', true)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle()
-
-    console.log('🔍 DEBUG: Any active result:', anyActive);
-    console.log('🔍 DEBUG: Any active error:', anyError);
-
-    if (anyActive && !anyError) {
-      purchase = anyActive;
-      console.log('🔍 DEBUG: Using fallback purchase:', purchase);
-    } else {
-      error = anyError || exactError;
-      console.log('🔍 DEBUG: Both attempts failed, error:', error);
-    }
+    // If no exact match found, return error - don't fallback to any purchase
+    console.log('🔍 DEBUG: No exact match found for session:', sessionId);
+    error = new Error('Purchase not found for this session');
   }
 
   if (error) {
     console.error('🔍 DEBUG: Database error during purchase lookup:', error);
-    return NextResponse.json({ error: 'Database error during purchase lookup' }, { status: 500 })
+    return NextResponse.json({ error: 'Purchase not found for this session' }, { status: 404 })
   }
 
   if (!purchase) {

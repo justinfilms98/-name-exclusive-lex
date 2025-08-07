@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
-import { X, Play, Pause, Volume2, VolumeX, Maximize2, Minimize2 } from 'lucide-react';
+import { X, Play, Pause, Volume2, VolumeX, Maximize2, Minimize2, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface MobileFullscreenVideoProps {
   videoUrl: string;
@@ -9,6 +9,10 @@ interface MobileFullscreenVideoProps {
   onClose: () => void;
   title?: string;
   isVertical?: boolean;
+  onNext?: () => void;
+  onPrevious?: () => void;
+  hasNext?: boolean;
+  hasPrevious?: boolean;
 }
 
 export default function MobileFullscreenVideo({ 
@@ -16,13 +20,19 @@ export default function MobileFullscreenVideo({
   isOpen, 
   onClose, 
   title,
-  isVertical = false 
+  isVertical = false,
+  onNext,
+  onPrevious,
+  hasNext = false,
+  hasPrevious = false
 }: MobileFullscreenVideoProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [showControls, setShowControls] = useState(true);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [videoDimensions, setVideoDimensions] = useState({ width: 0, height: 0 });
   const videoRef = useRef<HTMLVideoElement>(null);
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -30,6 +40,8 @@ export default function MobileFullscreenVideo({
     if (isOpen && videoRef.current) {
       // Auto-play when opened
       videoRef.current.play().catch(console.error);
+      // Auto-request fullscreen for iOS
+      requestFullscreen();
     }
 
     // Cleanup timeout on unmount
@@ -42,7 +54,14 @@ export default function MobileFullscreenVideo({
 
   useEffect(() => {
     const handleFullscreenChange = () => {
-      if (!document.fullscreenElement && !(document as any).webkitFullscreenElement && !(document as any).mozFullScreenElement && !(document as any).msFullscreenElement) {
+      const isFullscreenNow = !!(document.fullscreenElement || 
+        (document as any).webkitFullscreenElement || 
+        (document as any).mozFullScreenElement || 
+        (document as any).msFullscreenElement);
+      
+      setIsFullscreen(isFullscreenNow);
+      
+      if (!isFullscreenNow) {
         onClose();
       }
     };
@@ -59,6 +78,30 @@ export default function MobileFullscreenVideo({
       document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
     };
   }, [onClose]);
+
+  const requestFullscreen = async () => {
+    if (!videoRef.current) return;
+
+    try {
+      // For iOS, we need to use the video element's requestFullscreen
+      if (videoRef.current.requestFullscreen) {
+        await videoRef.current.requestFullscreen();
+      } else if ((videoRef.current as any).webkitRequestFullscreen) {
+        await (videoRef.current as any).webkitRequestFullscreen();
+      } else if ((videoRef.current as any).mozRequestFullScreen) {
+        await (videoRef.current as any).mozRequestFullScreen();
+      } else if ((videoRef.current as any).msRequestFullscreen) {
+        await (videoRef.current as any).msRequestFullscreen();
+      } else {
+        console.log('Native fullscreen not supported, using fallback');
+        // Fallback: try to make the video element fullscreen
+        onClose();
+      }
+    } catch (err) {
+      console.error('Fullscreen request error:', err);
+      onClose();
+    }
+  };
 
   const handleVideoClick = () => {
     if (videoRef.current) {
@@ -86,6 +129,10 @@ export default function MobileFullscreenVideo({
   const handleLoadedMetadata = () => {
     if (videoRef.current) {
       setDuration(videoRef.current.duration);
+      // Detect video dimensions for proper orientation handling
+      const width = videoRef.current.videoWidth;
+      const height = videoRef.current.videoHeight;
+      setVideoDimensions({ width, height });
     }
   };
 
@@ -123,50 +170,31 @@ export default function MobileFullscreenVideo({
         await document.exitFullscreen();
       } else if ((document as any).webkitExitFullscreen) {
         await (document as any).webkitExitFullscreen();
+      } else if ((document as any).mozCancelFullScreen) {
+        await (document as any).mozCancelFullScreen();
       } else if ((document as any).msExitFullscreen) {
         await (document as any).msExitFullscreen();
       }
     } catch (err) {
       console.error('Exit fullscreen error:', err);
     }
-    // Always call onClose to ensure the component closes
     onClose();
   };
 
-  const requestFullscreen = async () => {
-    if (!videoRef.current) return;
-
-    try {
-      // Try native video fullscreen first (best for mobile)
-      if (videoRef.current.requestFullscreen) {
-        await videoRef.current.requestFullscreen();
-      } else if ((videoRef.current as any).webkitRequestFullscreen) {
-        await (videoRef.current as any).webkitRequestFullscreen();
-      } else if ((videoRef.current as any).mozRequestFullScreen) {
-        await (videoRef.current as any).mozRequestFullScreen();
-      } else if ((videoRef.current as any).msRequestFullscreen) {
-        await (videoRef.current as any).msRequestFullscreen();
-      } else {
-        // Fallback: try to make the video element fullscreen
-        console.log('Native fullscreen not supported, using fallback');
-        onClose();
-      }
-    } catch (err) {
-      console.error('Fullscreen request error:', err);
-      onClose();
+  const handleNext = () => {
+    if (onNext && hasNext) {
+      onNext();
     }
   };
 
-  // Auto-request fullscreen when component opens
-  useEffect(() => {
-    if (isOpen) {
-      // Small delay to ensure video is loaded
-      const timer = setTimeout(() => {
-        requestFullscreen();
-      }, 100);
-      return () => clearTimeout(timer);
+  const handlePrevious = () => {
+    if (onPrevious && hasPrevious) {
+      onPrevious();
     }
-  }, [isOpen]);
+  };
+
+  // Determine if video is vertical based on dimensions
+  const isVideoVertical = videoDimensions.height > videoDimensions.width || isVertical;
 
   if (!isOpen) return null;
 
@@ -200,7 +228,7 @@ export default function MobileFullscreenVideo({
           ref={videoRef}
           src={videoUrl}
           className={`w-full h-full ${
-            isVertical 
+            isVideoVertical 
               ? 'object-cover' 
               : 'object-contain'
           }`}
@@ -221,7 +249,7 @@ export default function MobileFullscreenVideo({
             msUserSelect: 'none',
             userSelect: 'none',
             pointerEvents: 'auto',
-            ...(isVertical && {
+            ...(isVideoVertical && {
               objectFit: 'cover',
               width: '100vw',
               height: '100vh',
@@ -241,6 +269,25 @@ export default function MobileFullscreenVideo({
               <Play size={48} />
             </button>
           </div>
+        )}
+
+        {/* Navigation Arrows */}
+        {hasPrevious && (
+          <button
+            onClick={handlePrevious}
+            className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 hover:bg-opacity-70 text-white p-3 rounded-full transition-all duration-300 z-20"
+          >
+            <ChevronLeft size={24} />
+          </button>
+        )}
+
+        {hasNext && (
+          <button
+            onClick={handleNext}
+            className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 hover:bg-opacity-70 text-white p-3 rounded-full transition-all duration-300 z-20"
+          >
+            <ChevronRight size={24} />
+          </button>
         )}
       </div>
 

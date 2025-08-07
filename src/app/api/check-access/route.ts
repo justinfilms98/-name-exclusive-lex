@@ -22,7 +22,15 @@ export async function POST(request: NextRequest) {
     let { data: purchases, error } = await supabase
       .from('purchases')
       .select(`
-        *,
+        id,
+        user_id,
+        collection_id,
+        stripe_session_id,
+        amount_paid,
+        currency,
+        status,
+        is_active,
+        created_at,
         collections (
           id,
           title,
@@ -45,6 +53,14 @@ export async function POST(request: NextRequest) {
     }
 
     console.log(`🔍 Method 1 results: ${purchases?.length || 0} completed purchases found`);
+    if (purchases && purchases.length > 0) {
+      console.log('🔍 Purchase details:', purchases.map(p => ({
+        id: p.id,
+        stripe_session_id: p.stripe_session_id,
+        collection_id: p.collection_id,
+        status: p.status
+      })));
+    }
 
     // Method 2: If no completed purchases, check for any active purchases (including pending)
     if (!purchases || purchases.length === 0) {
@@ -52,7 +68,15 @@ export async function POST(request: NextRequest) {
       const { data: anyPurchases, error: anyError } = await supabase
         .from('purchases')
         .select(`
-          *,
+          id,
+          user_id,
+          collection_id,
+          stripe_session_id,
+          amount_paid,
+          currency,
+          status,
+          is_active,
+          created_at,
           collections (
             id,
             title,
@@ -82,7 +106,15 @@ export async function POST(request: NextRequest) {
       const { data: recentPurchases, error: recentError } = await supabase
         .from('purchases')
         .select(`
-          *,
+          id,
+          user_id,
+          collection_id,
+          stripe_session_id,
+          amount_paid,
+          currency,
+          status,
+          is_active,
+          created_at,
           collections (
             id,
             title,

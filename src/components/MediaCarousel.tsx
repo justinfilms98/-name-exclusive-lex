@@ -590,6 +590,10 @@ export default function MediaCarousel({
           onClose={() => setShowMobileFullscreen(false)}
           title={currentItem.title || title}
           isVertical={isVerticalVideo}
+          onNext={items.length > 1 ? nextItem : undefined}
+          onPrevious={items.length > 1 ? prevItem : undefined}
+          hasNext={items.length > 1 && currentIndex < items.length - 1}
+          hasPrevious={items.length > 1 && currentIndex > 0}
         />
       )}
     </div>
