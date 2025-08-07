@@ -354,7 +354,9 @@ export default function MediaCarousel({
         )}
 
         {/* Media Content */}
-        <div className="relative w-full h-full flex items-center justify-center">
+        <div className={`relative w-full h-full flex items-center justify-center ${
+          isVerticalVideo && isMobile ? 'vertical-video-container mobile-vertical-video' : ''
+        }`}>
           {currentItem.type === 'video' ? (
             <div className={`relative w-full h-full ${isVerticalVideo ? 'vertical-video-container' : ''}`}>
               <video
@@ -395,6 +397,11 @@ export default function MediaCarousel({
                       height: '100vh',
                       maxWidth: '100vw',
                       maxHeight: '100vh',
+                      position: 'absolute',
+                      top: '0',
+                      left: '0',
+                      right: '0',
+                      bottom: '0',
                       WebkitObjectFit: 'cover',
                       WebkitTransform: 'translateZ(0)',
                       transform: 'translateZ(0)',

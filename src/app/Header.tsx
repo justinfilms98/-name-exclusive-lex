@@ -11,6 +11,40 @@ export default function Header() {
   const [loading, setLoading] = useState(true);
   const [cartCount, setCartCount] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [bannerHeight, setBannerHeight] = useState(40);
+
+  useEffect(() => {
+    // Check banner state from localStorage
+    const checkBannerState = () => {
+      const bannerMinimized = localStorage.getItem('construction-banner-minimized');
+      const bannerDismissed = localStorage.getItem('construction-banner-dismissed');
+      
+      if (bannerDismissed === 'true') {
+        setBannerHeight(0);
+      } else if (bannerMinimized === 'true') {
+        setBannerHeight(32); // 8 * 4 = 32px for h-8
+      } else {
+        setBannerHeight(40); // Default height
+      }
+    };
+
+    checkBannerState();
+
+    // Listen for storage changes
+    const handleStorageChange = () => {
+      checkBannerState();
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Also check periodically for changes
+    const interval = setInterval(checkBannerState, 1000);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(interval);
+    };
+  }, []);
 
   useEffect(() => {
     // Get initial session
@@ -122,7 +156,10 @@ export default function Header() {
 
   return (
     <>
-      <header className="bg-blanc/90 backdrop-blur-md border-b border-mushroom/30 fixed top-0 left-0 right-0 z-50 shadow-soft safe-top" style={{ top: '40px' }}>
+      <header 
+        className="bg-blanc/90 backdrop-blur-md border-b border-mushroom/30 fixed top-0 left-0 right-0 z-50 shadow-soft safe-top transition-all duration-300" 
+        style={{ top: `${bannerHeight}px` }}
+      >
         <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8">
           <div className="flex justify-between items-center h-14 sm:h-16">
             
