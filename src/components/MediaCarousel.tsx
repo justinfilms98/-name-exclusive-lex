@@ -181,8 +181,35 @@ export default function MediaCarousel({
   const toggleFullscreen = async () => {
     try {
       if (isMobile) {
-        // Use mobile-specific fullscreen video player
-        setShowMobileFullscreen(true);
+        // Use native video fullscreen for mobile (better for iPhone)
+        if (videoRef.current) {
+          if (!document.fullscreenElement && !(document as any).webkitFullscreenElement) {
+            // Request fullscreen on the video element
+            if (videoRef.current.requestFullscreen) {
+              await videoRef.current.requestFullscreen();
+            } else if ((videoRef.current as any).webkitRequestFullscreen) {
+              await (videoRef.current as any).webkitRequestFullscreen();
+            } else if ((videoRef.current as any).mozRequestFullScreen) {
+              await (videoRef.current as any).mozRequestFullScreen();
+            } else if ((videoRef.current as any).msRequestFullscreen) {
+              await (videoRef.current as any).msRequestFullscreen();
+            } else {
+              // Fallback to custom fullscreen if native not supported
+              setShowMobileFullscreen(true);
+            }
+          } else {
+            // Exit fullscreen
+            if (document.exitFullscreen) {
+              await document.exitFullscreen();
+            } else if ((document as any).webkitExitFullscreen) {
+              await (document as any).webkitExitFullscreen();
+            } else if ((document as any).mozCancelFullScreen) {
+              await (document as any).mozCancelFullScreen();
+            } else if ((document as any).msExitFullscreen) {
+              await (document as any).msExitFullscreen();
+            }
+          }
+        }
         return;
       }
 

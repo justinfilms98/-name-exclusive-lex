@@ -133,6 +133,41 @@ export default function MobileFullscreenVideo({
     onClose();
   };
 
+  const requestFullscreen = async () => {
+    if (!videoRef.current) return;
+
+    try {
+      // Try native video fullscreen first (best for mobile)
+      if (videoRef.current.requestFullscreen) {
+        await videoRef.current.requestFullscreen();
+      } else if ((videoRef.current as any).webkitRequestFullscreen) {
+        await (videoRef.current as any).webkitRequestFullscreen();
+      } else if ((videoRef.current as any).mozRequestFullScreen) {
+        await (videoRef.current as any).mozRequestFullScreen();
+      } else if ((videoRef.current as any).msRequestFullscreen) {
+        await (videoRef.current as any).msRequestFullscreen();
+      } else {
+        // Fallback: try to make the video element fullscreen
+        console.log('Native fullscreen not supported, using fallback');
+        onClose();
+      }
+    } catch (err) {
+      console.error('Fullscreen request error:', err);
+      onClose();
+    }
+  };
+
+  // Auto-request fullscreen when component opens
+  useEffect(() => {
+    if (isOpen) {
+      // Small delay to ensure video is loaded
+      const timer = setTimeout(() => {
+        requestFullscreen();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   return (

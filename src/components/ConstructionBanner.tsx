@@ -43,13 +43,13 @@ export default function ConstructionBanner() {
         <div className="flex-1 text-center">
           {!isMinimized && (
             <span>
-              🚧 <strong>Heads up:</strong> We are currently upgrading our checkout system. 
-              Please only purchase one collection at a time. Multi-item checkout access is temporarily unavailable.
+              🚧 <strong>Heads up:</strong> This site is new and while we start up, please be aware of bugs that we may not be aware of yet. 
+              If you encounter any issues, please let us know!
             </span>
           )}
           {isMinimized && (
             <span className="font-medium">
-              🚧 Construction Notice - Click to expand
+              🚧 Site Notice - Click to expand
             </span>
           )}
         </div>
