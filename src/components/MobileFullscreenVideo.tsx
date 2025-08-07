@@ -42,7 +42,7 @@ export default function MobileFullscreenVideo({
 
   useEffect(() => {
     const handleFullscreenChange = () => {
-      if (!document.fullscreenElement) {
+      if (!document.fullscreenElement && !(document as any).webkitFullscreenElement && !(document as any).mozFullScreenElement && !(document as any).msFullscreenElement) {
         onClose();
       }
     };
@@ -128,15 +128,16 @@ export default function MobileFullscreenVideo({
       }
     } catch (err) {
       console.error('Exit fullscreen error:', err);
-      onClose();
     }
+    // Always call onClose to ensure the component closes
+    onClose();
   };
 
   if (!isOpen) return null;
 
   return (
     <div 
-      className="fixed inset-0 bg-black z-[9999] flex flex-col"
+      className="fixed inset-0 bg-black z-[99999] flex flex-col"
       onMouseMove={handleMouseMove}
       onTouchMove={handleMouseMove}
     >
@@ -145,7 +146,7 @@ export default function MobileFullscreenVideo({
         <div className="flex items-center justify-between">
           <button
             onClick={handleExitFullscreen}
-            className="text-white hover:text-gray-300 transition-colors p-2"
+            className="text-white hover:text-gray-300 transition-colors p-2 bg-black bg-opacity-50 rounded-full z-20"
           >
             <X size={24} />
           </button>
@@ -249,7 +250,7 @@ export default function MobileFullscreenVideo({
 
           <button
             onClick={handleExitFullscreen}
-            className="text-white hover:text-gray-300 transition-colors bg-white bg-opacity-20 hover:bg-opacity-30 p-2 rounded-full flex items-center justify-center"
+            className="text-white hover:text-gray-300 transition-colors bg-white bg-opacity-20 hover:bg-opacity-30 p-2 rounded-full flex items-center justify-center z-20"
           >
             <Minimize2 size={20} />
           </button>

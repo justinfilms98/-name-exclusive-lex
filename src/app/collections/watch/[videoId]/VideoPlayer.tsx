@@ -184,7 +184,7 @@ export default function VideoPlayer({ src, title, expiresAt }: VideoPlayerProps)
 
     try {
       if (!document.fullscreenElement) {
-        // Try to request fullscreen on the container
+        // Request fullscreen on the container
         if (containerRef.current.requestFullscreen) {
           await containerRef.current.requestFullscreen();
         } else if ((containerRef.current as any).webkitRequestFullscreen) {
@@ -206,30 +206,6 @@ export default function VideoPlayer({ src, title, expiresAt }: VideoPlayerProps)
       }
     } catch (err) {
       console.error('Fullscreen error:', err);
-      // Fallback: try to request fullscreen on the video element itself
-      if (videoRef.current) {
-        try {
-          if (!document.fullscreenElement) {
-            if (videoRef.current.requestFullscreen) {
-              await videoRef.current.requestFullscreen();
-            } else if ((videoRef.current as any).webkitRequestFullscreen) {
-              await (videoRef.current as any).webkitRequestFullscreen();
-            } else if ((videoRef.current as any).msRequestFullscreen) {
-              await (videoRef.current as any).msRequestFullscreen();
-            }
-          } else {
-            if (document.exitFullscreen) {
-              await document.exitFullscreen();
-            } else if ((document as any).webkitExitFullscreen) {
-              await (document as any).webkitExitFullscreen();
-            } else if ((document as any).msExitFullscreen) {
-              await (document as any).msExitFullscreen();
-            }
-          }
-        } catch (fallbackErr) {
-          console.error('Fallback fullscreen error:', fallbackErr);
-        }
-      }
     }
   };
 

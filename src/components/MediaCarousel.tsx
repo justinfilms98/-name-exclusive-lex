@@ -82,19 +82,33 @@ export default function MediaCarousel({
 
   useEffect(() => {
     const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
+      const isInFullscreen = !!(
+        document.fullscreenElement || 
+        (document as any).webkitFullscreenElement || 
+        (document as any).mozFullScreenElement || 
+        (document as any).msFullscreenElement
+      );
+      
+      setIsFullscreen(isInFullscreen);
+      
+      // If we're not in fullscreen and mobile fullscreen is open, close it
+      if (!isInFullscreen && showMobileFullscreen) {
+        setShowMobileFullscreen(false);
+      }
     };
 
     document.addEventListener('fullscreenchange', handleFullscreenChange);
     document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
-    document.addEventListener('msfullscreenchange', handleFullscreenChange);
+    document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+    document.addEventListener('MSFullscreenChange', handleFullscreenChange);
 
     return () => {
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
       document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
-      document.removeEventListener('msfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
     };
-  }, []);
+  }, [showMobileFullscreen]);
 
   // Dev tools detection and prevention
   useEffect(() => {
@@ -138,6 +152,24 @@ export default function MediaCarousel({
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
+  // Cleanup mobile fullscreen on unmount or navigation
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (showMobileFullscreen) {
+        setShowMobileFullscreen(false);
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      if (showMobileFullscreen) {
+        setShowMobileFullscreen(false);
+      }
+    };
+  }, [showMobileFullscreen]);
+
   const nextItem = () => {
     setCurrentIndex((prev) => (prev + 1) % items.length);
   };
@@ -180,6 +212,10 @@ export default function MediaCarousel({
       }
     } catch (err) {
       console.error('Fullscreen error:', err);
+      // Fallback: try to close mobile fullscreen if it's open
+      if (showMobileFullscreen) {
+        setShowMobileFullscreen(false);
+      }
     }
   };
 
