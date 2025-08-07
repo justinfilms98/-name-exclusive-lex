@@ -24,13 +24,20 @@ export default function MobileFullscreenVideo({
   const [duration, setDuration] = useState(0);
   const [showControls, setShowControls] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const controlsTimeoutRef = useRef<NodeJS.Timeout>();
+  const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (isOpen && videoRef.current) {
       // Auto-play when opened
       videoRef.current.play().catch(console.error);
     }
+
+    // Cleanup timeout on unmount
+    return () => {
+      if (controlsTimeoutRef.current) {
+        clearTimeout(controlsTimeoutRef.current);
+      }
+    };
   }, [isOpen]);
 
   useEffect(() => {
