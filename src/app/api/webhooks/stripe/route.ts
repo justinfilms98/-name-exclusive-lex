@@ -112,6 +112,34 @@ export async function POST(req: Request) {
         }
       }
 
+      // If still no collection IDs, try to extract from line items more aggressively
+      if (collectionIds.length === 0) {
+        console.log('🔍 DEBUG: Still no collection_ids found, trying aggressive extraction from line items...');
+        
+        for (const item of lineItems.data) {
+          // Skip tip items
+          if (item.description?.toLowerCase().includes('tip')) {
+            console.log('🔍 DEBUG: Skipping tip item:', item.description);
+            continue;
+          }
+          
+          let collectionId: string | null = null;
+          
+          // Try multiple extraction methods
+          if (item.price?.metadata?.collection_id) {
+            collectionId = item.price.metadata.collection_id;
+          } else if (item.price?.product && typeof item.price.product === 'object') {
+            const product = item.price.product as any;
+            collectionId = product.metadata?.collection_id;
+          }
+          
+          if (collectionId && !collectionIds.includes(collectionId)) {
+            collectionIds.push(collectionId);
+            console.log('✅ Added collection_id from aggressive extraction:', collectionId);
+          }
+        }
+      }
+
       console.log('🔍 DEBUG: Final collection IDs to process:', collectionIds);
 
       // Process each collection ID

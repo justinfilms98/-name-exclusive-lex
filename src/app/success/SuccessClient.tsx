@@ -310,7 +310,7 @@ export default function SuccessClient() {
   }
 
   const isMultiplePurchases = purchases.length > 1;
-  const totalPrice = purchases.reduce((sum, purchase) => sum + ((purchase.collection.price || 0) / 100), 0);
+  const totalPrice = purchases.reduce((sum, purchase) => sum + (purchase.amount_paid || 0), 0);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-almond to-blanc">
@@ -346,7 +346,7 @@ export default function SuccessClient() {
                 </div>
                 <div className="text-right ml-4">
                   <span className="text-2xl font-bold text-lex-brown">
-                    ${((purchase.collection.price || 0) / 100).toFixed(2)}
+                    ${(purchase.amount_paid || 0).toFixed(2)}
                   </span>
                 </div>
               </div>
@@ -356,7 +356,7 @@ export default function SuccessClient() {
               <div className="border-t-2 border-gray-200 pt-6 mt-6">
                 <div className="flex justify-between items-center">
                   <span className="text-xl font-semibold text-lex-brown">Total Amount</span>
-                  <span className="text-3xl font-bold text-lex-brown">${totalAmount.toFixed(2)}</span>
+                  <span className="text-3xl font-bold text-lex-brown">${totalPrice.toFixed(2)}</span>
                 </div>
               </div>
             )}
@@ -396,15 +396,30 @@ export default function SuccessClient() {
             </div>
 
             <div className="border-t-2 border-gray-200 pt-8">
-              <label className="flex items-start space-x-4 cursor-pointer group">
-                <input
-                  type="checkbox"
-                  id="termsCheckbox"
-                  checked={agreedToTerms}
-                  onChange={(e) => setAgreedToTerms(e.target.checked)}
-                  className="form-checkbox h-5 w-5 text-green-600 transition duration-150 ease-in-out"
-                />
-                <span className="text-lg text-lex-brown leading-relaxed font-medium">
+              <label className="flex items-start space-x-4 cursor-pointer group hover:bg-gray-50 p-4 rounded-lg transition-all duration-200">
+                <div className="relative">
+                  <input
+                    type="checkbox"
+                    id="termsCheckbox"
+                    checked={agreedToTerms}
+                    onChange={(e) => setAgreedToTerms(e.target.checked)}
+                    className="sr-only"
+                  />
+                  <div className={`
+                    w-8 h-8 border-2 rounded-lg flex items-center justify-center transition-all duration-200
+                    ${agreedToTerms 
+                      ? 'bg-lex-brown border-lex-brown text-white' 
+                      : 'bg-white border-gray-300 text-transparent hover:border-lex-brown'
+                    }
+                  `}>
+                    {agreedToTerms && (
+                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    )}
+                  </div>
+                </div>
+                <span className="text-lg text-lex-brown leading-relaxed font-medium flex-1">
                   I have read, understood, and agree to all terms and conditions above. 
                   I confirm that I am 18 years or older and will use this content responsibly.
                 </span>
