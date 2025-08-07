@@ -103,8 +103,8 @@ export default function WatchPage() {
         }
 
         // Get protected video URL through our API
-        console.log('Calling protected-video API with session_id:', accessData.stripe_session_id);
-        const videoRes = await fetch(`/api/protected-video?session_id=${accessData.stripe_session_id}`);
+        console.log('Calling protected-video API with session_id:', accessData.stripe_session_id, 'collection_id:', id);
+        const videoRes = await fetch(`/api/protected-video?session_id=${accessData.stripe_session_id}&collection_id=${id}`);
         console.log('Protected video API response status:', videoRes.status);
         const videoJson = await videoRes.json();
         

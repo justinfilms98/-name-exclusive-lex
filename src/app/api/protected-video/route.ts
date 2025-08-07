@@ -46,7 +46,9 @@ export async function GET(request: Request) {
   console.log('🔍 DEBUG: Protected video API called');
   const { searchParams } = new URL(request.url)
   const sessionId = searchParams.get('session_id')
+  const collectionId = searchParams.get('collection_id')
   console.log('🔍 DEBUG: Session ID received:', sessionId);
+  console.log('🔍 DEBUG: Collection ID received:', collectionId);
 
   if (!sessionId) {
     console.log('🔍 DEBUG: Missing session_id parameter');
@@ -70,25 +72,66 @@ export async function GET(request: Request) {
 
   console.log('🔍 DEBUG: Starting purchase verification for session:', sessionId);
 
-  // First try: exact session_id match
-  console.log('🔍 DEBUG: Trying exact session_id match for:', sessionId);
-  const { data: exactMatch, error: exactError } = await supabase
-    .from('purchases')
-    .select('id, user_id, collection_id, stripe_session_id, created_at, amount_paid')
-    .eq('stripe_session_id', sessionId)
-    .eq('is_active', true)
-    .maybeSingle()
+  // First try: exact session_id and collection_id match (if collection_id provided)
+  if (collectionId) {
+    console.log('🔍 DEBUG: Trying exact session_id and collection_id match for:', sessionId, collectionId);
+    const { data: exactMatch, error: exactError } = await supabase
+      .from('purchases')
+      .select('id, user_id, collection_id, stripe_session_id, created_at, amount_paid')
+      .eq('stripe_session_id', sessionId)
+      .eq('collection_id', collectionId)
+      .eq('is_active', true)
+      .maybeSingle();
 
-  console.log('🔍 DEBUG: Exact match result:', exactMatch);
-  console.log('🔍 DEBUG: Exact match error:', exactError);
+    console.log('🔍 DEBUG: Exact match result:', exactMatch);
+    console.log('🔍 DEBUG: Exact match error:', exactError);
 
-  if (exactMatch && !exactError) {
-    purchase = exactMatch;
-    console.log('🔍 DEBUG: Using exact match purchase:', purchase);
-  } else {
-    // If no exact match found, return error - don't fallback to any purchase
-    console.log('🔍 DEBUG: No exact match found for session:', sessionId);
-    error = new Error('Purchase not found for this session');
+    if (exactMatch && !exactError) {
+      purchase = exactMatch;
+      console.log('🔍 DEBUG: Using exact match purchase:', purchase);
+    } else if (exactError) {
+      console.error('🔍 DEBUG: Database error during exact match lookup:', exactError);
+      error = exactError;
+    }
+  }
+
+  // If no exact match found or no collection_id provided, try session_id only
+  if (!purchase && !error) {
+    console.log('🔍 DEBUG: Trying session_id only match for:', sessionId);
+    const { data: exactMatches, error: exactError } = await supabase
+      .from('purchases')
+      .select('id, user_id, collection_id, stripe_session_id, created_at, amount_paid')
+      .eq('stripe_session_id', sessionId)
+      .eq('is_active', true);
+
+    console.log('🔍 DEBUG: Session matches results:', exactMatches);
+    console.log('🔍 DEBUG: Session matches error:', exactError);
+
+    if (exactError) {
+      console.error('🔍 DEBUG: Database error during session match lookup:', exactError);
+      error = exactError;
+    } else if (exactMatches && exactMatches.length > 0) {
+      // If multiple purchases found, we need to determine which one to use
+      if (collectionId) {
+        // Try to find the specific collection
+        const specificPurchase = exactMatches.find(p => p.collection_id === collectionId);
+        if (specificPurchase) {
+          purchase = specificPurchase;
+          console.log('🔍 DEBUG: Using specific collection purchase:', purchase);
+        } else {
+          console.log('🔍 DEBUG: Collection not found in session purchases');
+          error = new Error('Collection not found in session purchases');
+        }
+      } else {
+        // Use the first one (most recent)
+        purchase = exactMatches[0];
+        console.log('🔍 DEBUG: Using first purchase from session matches:', purchase);
+      }
+    } else {
+      // If no exact match found, return error
+      console.log('🔍 DEBUG: No exact match found for session:', sessionId);
+      error = new Error('Purchase not found for this session');
+    }
   }
 
   if (error) {
