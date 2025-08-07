@@ -169,6 +169,65 @@ export default function SuccessClient() {
           }
         }
 
+        // Method 4: Try to get collection_ids from session metadata and create purchases
+        if (!purchaseData || purchaseData.length === 0) {
+          console.log('No purchases found, trying to get collection_ids from session metadata...');
+          try {
+            // First, try to get the session metadata directly
+            const response = await fetch(`/api/verify-purchase`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                sessionId: sessionId,
+                userId: session.user.id
+              })
+            });
+
+            if (response.ok) {
+              const result = await response.json();
+              if (result.purchases && result.purchases.length > 0) {
+                console.log('✅ Metadata verification successful:', result.purchases.length, 'purchases found');
+                purchaseData = result.purchases;
+                break;
+              }
+            }
+          } catch (metadataError) {
+            console.error('Metadata verification failed:', metadataError);
+          }
+        }
+
+        // Method 5: If still no purchases, try to create them from session metadata
+        if (!purchaseData || purchaseData.length === 0) {
+          console.log('No purchases found, trying to create purchases from session metadata...');
+          try {
+            // This will be handled by the verify-purchase API which already handles collection_ids
+            const response = await fetch(`/api/verify-purchase`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                sessionId: sessionId,
+                userId: session.user.id,
+                forceCreate: true
+              })
+            });
+
+            if (response.ok) {
+              const result = await response.json();
+              if (result.purchases && result.purchases.length > 0) {
+                console.log('✅ Force creation successful:', result.purchases.length, 'purchases found');
+                purchaseData = result.purchases;
+                break;
+              }
+            }
+          } catch (forceCreateError) {
+            console.error('Force creation failed:', forceCreateError);
+          }
+        }
+
         // If no purchases found, wait and retry
         if (!purchaseData || purchaseData.length === 0) {
           if (attempts < maxAttempts) {
@@ -226,10 +285,8 @@ export default function SuccessClient() {
       // Store agreement in localStorage
       localStorage.setItem('exclusive-lex-purchase-terms-accepted', 'true');
       
-      // Redirect to the first collection's watch page
-      if (purchases.length > 0) {
-        router.push(`/collections/${purchases[0].collection.id}/watch`);
-      }
+      // Redirect to account page to view all purchases
+      router.push('/account');
     }
   };
 
@@ -441,7 +498,7 @@ export default function SuccessClient() {
               }
             `}
           >
-            {agreedToTerms ? '🎬 Start Watching Now' : '☐ Accept Terms to Continue'}
+            {agreedToTerms ? '🎬 View My Purchases' : '☐ Accept Terms to Continue'}
           </button>
           
           <div className="flex justify-center space-x-4">
@@ -459,6 +516,10 @@ export default function SuccessClient() {
               Browse More Collections
             </Link>
           </div>
+          
+          <p className="text-sm text-gray-500 mt-4 text-center">
+            You can access all your unlocked content from your <Link href="/account" className="underline">account page</Link>.
+          </p>
           
           <p className="text-sm text-lex-brown opacity-75 mt-8">
             Purchase completed on {new Date(purchases[0].created_at).toLocaleDateString('en-US', {

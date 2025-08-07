@@ -90,7 +90,14 @@ export async function POST(request: NextRequest) {
             try {
               const sessionCollectionIds = JSON.parse(stripeSession.metadata.collection_ids);
               if (Array.isArray(sessionCollectionIds) && sessionCollectionIds.length > 0) {
-                // Use the first collection ID as a fallback
+                // Add all collection IDs from session metadata
+                for (const sessionCollectionId of sessionCollectionIds) {
+                  if (!collectionIds.includes(sessionCollectionId)) {
+                    collectionIds.push(sessionCollectionId);
+                    console.log('🔍 DEBUG: Added collection_id from session metadata:', sessionCollectionId);
+                  }
+                }
+                // Use the first collection ID as a fallback for this line item
                 collectionId = sessionCollectionIds[0];
                 console.log('🔍 DEBUG: Found collection_id in session metadata:', collectionId);
               }
@@ -114,6 +121,19 @@ export async function POST(request: NextRequest) {
         }
 
         console.log('🔍 Found collection IDs:', collectionIds);
+
+        // If no collection IDs found in line items, try to get them from session metadata
+        if (collectionIds.length === 0 && stripeSession.metadata?.collection_ids) {
+          try {
+            const sessionCollectionIds = JSON.parse(stripeSession.metadata.collection_ids);
+            if (Array.isArray(sessionCollectionIds) && sessionCollectionIds.length > 0) {
+              console.log('🔍 No collection IDs found in line items, using session metadata:', sessionCollectionIds);
+              collectionIds.push(...sessionCollectionIds);
+            }
+          } catch (e) {
+            console.error('Error parsing collection_ids from session metadata:', e);
+          }
+        }
 
         // Create purchase records
         const createdPurchases: any[] = [];

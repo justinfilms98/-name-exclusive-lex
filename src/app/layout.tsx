@@ -25,6 +25,11 @@ export default function RootLayout({
       <body className={inter.className}>
         <Providers>
           <AgeVerificationWrapper>
+            {/* Temporary Global Banner Warning */}
+            <div className="bg-yellow-200 text-yellow-900 text-sm py-2 px-4 text-center z-50">
+              🚧 <strong>Heads up:</strong> We are currently upgrading our checkout system. 
+              Please only purchase one collection at a time. Multi-item checkout access is temporarily unavailable.
+            </div>
             <Header />
             <main className="pt-14 sm:pt-16">
               {children}

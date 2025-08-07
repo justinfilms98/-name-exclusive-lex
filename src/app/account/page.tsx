@@ -16,6 +16,7 @@ interface Purchase {
     id: string;
     title: string;
     description: string;
+    thumbnail_path?: string; // Added for new grid display
   };
 }
 
@@ -48,7 +49,8 @@ export default function AccountPage() {
           collections (
             id,
             title,
-            description
+            description,
+            thumbnail_path
           )
         `)
         .eq('user_id', session.user.id)
@@ -151,37 +153,18 @@ export default function AccountPage() {
               </Link>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               {activePurchases.map((purchase) => (
-                <div key={purchase.id} className="card p-6">
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <h3 className="text-lg font-serif text-earth mb-1">
-                        {purchase.collections.title}
-                      </h3>
-                      <p className="text-sage text-sm mb-2">
-                        {purchase.collections.description}
-                      </p>
-                      <div className="flex items-center space-x-4 text-xs text-sage">
-                        <span>Purchased: {new Date(purchase.created_at).toLocaleDateString()}</span>
-                        <span>Paid: ${purchase.amount_paid.toFixed(2)}</span>
-                      </div>
-                    </div>
-                    
-                    <div className="ml-6 text-right">
-                      <div className="text-sm text-sage mb-2">
-                        Permanent Access
-                      </div>
-                      <Link
-                        href={`/collections/${purchase.collection_id}/watch`}
-                        className="btn-primary text-sm flex items-center space-x-2"
-                      >
-                        <span>Watch Now</span>
-                        <ArrowRight className="w-3 h-3" />
-                      </Link>
-                    </div>
+                <Link href={`/collections/${purchase.collections.id}/watch`} key={purchase.collections.id}>
+                  <div className="border rounded shadow-sm p-2 hover:shadow-md transition-shadow">
+                    <img 
+                      src={purchase.collections.thumbnail_path || '/placeholder-image.jpg'} 
+                      alt={purchase.collections.title} 
+                      className="rounded w-full h-32 object-cover"
+                    />
+                    <h3 className="text-center mt-2 text-sm font-medium">{purchase.collections.title}</h3>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           )}

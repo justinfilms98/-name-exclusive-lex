@@ -40,6 +40,7 @@ export default function MediaCarousel({
   const [videoDimensions, setVideoDimensions] = useState({ width: 0, height: 0 });
   const [isVerticalVideo, setIsVerticalVideo] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [isMobile, setIsMobile] = useState(false);
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -118,6 +119,21 @@ export default function MediaCarousel({
       window.removeEventListener('resize', detectDevTools);
       clearInterval(interval);
     };
+  }, []);
+
+  useEffect(() => {
+    // Check if device is mobile
+    const checkMobile = () => {
+      const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera;
+      const isMobileDevice = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent.toLowerCase());
+      const isMobileViewport = window.innerWidth <= 768;
+      const isIOS = /iPad|iPhone|iPod/.test(userAgent) && !(window as any).MSStream;
+      setIsMobile(isMobileDevice || isMobileViewport || isIOS);
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
   const nextItem = () => {
@@ -256,8 +272,8 @@ export default function MediaCarousel({
 
   const isModal = mode === 'modal';
   const containerClasses = isModal 
-    ? `fixed inset-0 bg-black z-50 ${isFullscreen ? 'fullscreen' : ''} ${isFullscreen && isVerticalVideo ? 'vertical-video-fullscreen' : ''}`
-    : `relative bg-black ${className}`;
+    ? `fixed inset-0 bg-black z-50 ${isFullscreen ? 'fullscreen' : ''} ${isVerticalVideo ? 'vertical-video-container' : ''} ${isMobile && isVerticalVideo ? 'mobile-vertical-video' : ''}`
+    : `relative bg-black ${className} ${isVerticalVideo ? 'vertical-video-container' : ''} ${isMobile && isVerticalVideo ? 'mobile-vertical-video' : ''}`;
 
   return (
     <div 
@@ -320,14 +336,16 @@ export default function MediaCarousel({
         {/* Media Content */}
         <div className="relative w-full h-full flex items-center justify-center">
           {currentItem.type === 'video' ? (
-            <div className="relative w-full h-full">
+            <div className={`relative w-full h-full ${isVerticalVideo ? 'vertical-video-container' : ''}`}>
               <video
                 ref={videoRef}
                 src={currentItem.url}
                 className={`w-full h-full ${
-                  isFullscreen && isVerticalVideo 
-                    ? 'object-cover' // Fill entire screen for vertical videos in fullscreen
-                    : 'object-contain' // Maintain aspect ratio for horizontal videos
+                  isVerticalVideo 
+                    ? 'object-cover' // Fill entire screen for vertical videos (mobile-friendly)
+                    : isFullscreen 
+                      ? 'object-contain' // Maintain aspect ratio for horizontal videos in fullscreen
+                      : 'object-contain' // Maintain aspect ratio for horizontal videos in normal mode
                 }`}
                 onContextMenu={(e) => e.preventDefault()}
                 onLoadedMetadata={handleLoadedMetadata}
@@ -347,6 +365,21 @@ export default function MediaCarousel({
                   msUserSelect: 'none',
                   userSelect: 'none',
                   pointerEvents: 'auto',
+                  // Ensure vertical videos fill the entire screen on mobile
+                  ...(isVerticalVideo && {
+                    objectFit: 'cover',
+                    width: '100%',
+                    height: '100%',
+                    ...(isMobile && {
+                      width: '100vw',
+                      height: '100vh',
+                      maxWidth: '100vw',
+                      maxHeight: '100vh',
+                      WebkitObjectFit: 'cover',
+                      WebkitTransform: 'translateZ(0)',
+                      transform: 'translateZ(0)',
+                    }),
+                  }),
                 }}
               />
               
