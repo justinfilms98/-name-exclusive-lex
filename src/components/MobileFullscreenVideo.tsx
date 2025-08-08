@@ -40,8 +40,6 @@ export default function MobileFullscreenVideo({
     if (isOpen && videoRef.current) {
       // Auto-play when opened
       videoRef.current.play().catch(console.error);
-      // Auto-request fullscreen for iOS
-      requestFullscreen();
     }
 
     // Cleanup timeout on unmount
@@ -78,30 +76,6 @@ export default function MobileFullscreenVideo({
       document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
     };
   }, [onClose]);
-
-  const requestFullscreen = async () => {
-    if (!videoRef.current) return;
-
-    try {
-      // For iOS, we need to use the video element's requestFullscreen
-      if (videoRef.current.requestFullscreen) {
-        await videoRef.current.requestFullscreen();
-      } else if ((videoRef.current as any).webkitRequestFullscreen) {
-        await (videoRef.current as any).webkitRequestFullscreen();
-      } else if ((videoRef.current as any).mozRequestFullScreen) {
-        await (videoRef.current as any).mozRequestFullScreen();
-      } else if ((videoRef.current as any).msRequestFullscreen) {
-        await (videoRef.current as any).msRequestFullscreen();
-      } else {
-        console.log('Native fullscreen not supported, using fallback');
-        // Fallback: try to make the video element fullscreen
-        onClose();
-      }
-    } catch (err) {
-      console.error('Fullscreen request error:', err);
-      onClose();
-    }
-  };
 
   const handleVideoClick = () => {
     if (videoRef.current) {
@@ -249,13 +223,11 @@ export default function MobileFullscreenVideo({
             msUserSelect: 'none',
             userSelect: 'none',
             pointerEvents: 'auto',
-            ...(isVideoVertical && {
-              objectFit: 'cover',
-              width: '100vw',
-              height: '100vh',
-              maxWidth: '100vw',
-              maxHeight: '100vh',
-            }),
+            width: '100vw',
+            height: '100vh',
+            maxWidth: '100vw',
+            maxHeight: '100vh',
+            objectFit: isVideoVertical ? 'cover' : 'contain',
           }}
         />
 
