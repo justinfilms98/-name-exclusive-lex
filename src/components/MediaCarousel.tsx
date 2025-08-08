@@ -181,8 +181,41 @@ export default function MediaCarousel({
   const toggleFullscreen = async () => {
     try {
       if (isMobile) {
-        // Use custom fullscreen component for mobile (better for iOS)
-        setShowMobileFullscreen(true);
+        // For mobile, try native fullscreen first (like Instagram stories)
+        if (videoRef.current) {
+          // Check if we're already in fullscreen
+          const isCurrentlyFullscreen = !!(document.fullscreenElement || 
+            (document as any).webkitFullscreenElement || 
+            (document as any).mozFullScreenElement || 
+            (document as any).msFullscreenElement);
+          
+          if (!isCurrentlyFullscreen) {
+            // Request fullscreen on the video element (works better on iOS)
+            if (videoRef.current.requestFullscreen) {
+              await videoRef.current.requestFullscreen();
+            } else if ((videoRef.current as any).webkitRequestFullscreen) {
+              await (videoRef.current as any).webkitRequestFullscreen();
+            } else if ((videoRef.current as any).mozRequestFullScreen) {
+              await (videoRef.current as any).mozRequestFullScreen();
+            } else if ((videoRef.current as any).msRequestFullscreen) {
+              await (videoRef.current as any).msRequestFullscreen();
+            } else {
+              // Fallback to custom fullscreen if native not supported
+              setShowMobileFullscreen(true);
+            }
+          } else {
+            // Exit fullscreen
+            if (document.exitFullscreen) {
+              await document.exitFullscreen();
+            } else if ((document as any).webkitExitFullscreen) {
+              await (document as any).webkitExitFullscreen();
+            } else if ((document as any).mozCancelFullScreen) {
+              await (document as any).mozCancelFullScreen();
+            } else if ((document as any).msExitFullscreen) {
+              await (document as any).msExitFullscreen();
+            }
+          }
+        }
         return;
       }
 
@@ -408,6 +441,8 @@ export default function MediaCarousel({
                 preload="metadata"
                 muted={isMuted}
                 playsInline
+                webkit-playsinline="true"
+                x-webkit-airplay="allow"
                 disablePictureInPicture
                 controlsList="nodownload nofullscreen noremoteplayback"
                 style={{

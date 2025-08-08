@@ -50,33 +50,6 @@ export default function MobileFullscreenVideo({
     };
   }, [isOpen]);
 
-  useEffect(() => {
-    const handleFullscreenChange = () => {
-      const isFullscreenNow = !!(document.fullscreenElement || 
-        (document as any).webkitFullscreenElement || 
-        (document as any).mozFullScreenElement || 
-        (document as any).msFullscreenElement);
-      
-      setIsFullscreen(isFullscreenNow);
-      
-      if (!isFullscreenNow) {
-        onClose();
-      }
-    };
-
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
-    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
-    document.addEventListener('mozfullscreenchange', handleFullscreenChange);
-    document.addEventListener('MSFullscreenChange', handleFullscreenChange);
-
-    return () => {
-      document.removeEventListener('fullscreenchange', handleFullscreenChange);
-      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
-      document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
-      document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
-    };
-  }, [onClose]);
-
   const handleVideoClick = () => {
     if (videoRef.current) {
       if (isPlaying) {
@@ -138,20 +111,7 @@ export default function MobileFullscreenVideo({
     return `${minutes}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const handleExitFullscreen = async () => {
-    try {
-      if (document.exitFullscreen) {
-        await document.exitFullscreen();
-      } else if ((document as any).webkitExitFullscreen) {
-        await (document as any).webkitExitFullscreen();
-      } else if ((document as any).mozCancelFullScreen) {
-        await (document as any).mozCancelFullScreen();
-      } else if ((document as any).msExitFullscreen) {
-        await (document as any).msExitFullscreen();
-      }
-    } catch (err) {
-      console.error('Exit fullscreen error:', err);
-    }
+  const handleExitFullscreen = () => {
     onClose();
   };
 
