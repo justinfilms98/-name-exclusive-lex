@@ -41,6 +41,7 @@ export default function MediaCarousel({
   const [videoDimensions, setVideoDimensions] = useState({ width: 0, height: 0 });
   const [isVerticalVideo, setIsVerticalVideo] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [isIOS, setIsIOS] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [showMobileFullscreen, setShowMobileFullscreen] = useState(false);
   
@@ -143,14 +144,40 @@ export default function MediaCarousel({
       const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera;
       const isMobileDevice = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent.toLowerCase());
       const isMobileViewport = window.innerWidth <= 768;
-      const isIOS = /iPad|iPhone|iPod/.test(userAgent) && !(window as any).MSStream;
-      setIsMobile(isMobileDevice || isMobileViewport || isIOS);
+      const isIOSDevice = /iPad|iPhone|iPod/.test(userAgent) && !(window as any).MSStream;
+      setIsMobile(isMobileDevice || isMobileViewport || isIOSDevice);
+      setIsIOS(isIOSDevice);
     };
 
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
+
+  // iOS fullscreen event listeners to keep state in sync
+  useEffect(() => {
+    const videoEl = videoRef.current as any;
+    if (!videoEl || !isIOS) return;
+
+    const handleBegin = () => setIsFullscreen(true);
+    const handleEnd = () => setIsFullscreen(false);
+
+    try {
+      videoEl.addEventListener('webkitbeginfullscreen', handleBegin);
+      videoEl.addEventListener('webkitendfullscreen', handleEnd);
+    } catch (_) {
+      // no-op
+    }
+
+    return () => {
+      try {
+        videoEl.removeEventListener('webkitbeginfullscreen', handleBegin);
+        videoEl.removeEventListener('webkitendfullscreen', handleEnd);
+      } catch (_) {
+        // no-op
+      }
+    };
+  }, [isIOS, currentItem?.id]);
 
   // Cleanup mobile fullscreen on unmount or navigation
   useEffect(() => {
@@ -180,40 +207,59 @@ export default function MediaCarousel({
 
   const toggleFullscreen = async () => {
     try {
-      if (isMobile) {
-        // For mobile, try native fullscreen first (like Instagram stories)
-        if (videoRef.current) {
-          // Check if we're already in fullscreen
-          const isCurrentlyFullscreen = !!(document.fullscreenElement || 
-            (document as any).webkitFullscreenElement || 
-            (document as any).mozFullScreenElement || 
-            (document as any).msFullscreenElement);
-          
-          if (!isCurrentlyFullscreen) {
-            // Request fullscreen on the video element (works better on iOS)
-            if (videoRef.current.requestFullscreen) {
-              await videoRef.current.requestFullscreen();
-            } else if ((videoRef.current as any).webkitRequestFullscreen) {
-              await (videoRef.current as any).webkitRequestFullscreen();
-            } else if ((videoRef.current as any).mozRequestFullScreen) {
-              await (videoRef.current as any).mozRequestFullScreen();
-            } else if ((videoRef.current as any).msRequestFullscreen) {
-              await (videoRef.current as any).msRequestFullscreen();
+      if (isMobile && videoRef.current) {
+        const videoEl = videoRef.current as any;
+
+        // iOS-specific path using HTMLVideoElement.webkitEnterFullscreen
+        if (isIOS) {
+          try {
+            const displaying = !!videoEl.webkitDisplayingFullscreen;
+            if (!displaying && typeof videoEl.webkitEnterFullscreen === 'function') {
+              // Ensure playback is primed (some iOS versions require play before entering fullscreen)
+              try { await videoEl.play(); } catch (_) {}
+              videoEl.webkitEnterFullscreen();
+            } else if (displaying && typeof videoEl.webkitExitFullscreen === 'function') {
+              videoEl.webkitExitFullscreen();
+            } else if (typeof videoEl.webkitEnterFullScreen === 'function') {
+              // Fallback older API spelling
+              try { await videoEl.play(); } catch (_) {}
+              videoEl.webkitEnterFullScreen();
             } else {
-              // Fallback to custom fullscreen if native not supported
               setShowMobileFullscreen(true);
             }
+          } catch (_) {
+            setShowMobileFullscreen(true);
+          }
+          return;
+        }
+
+        // Non-iOS mobile: try Fullscreen API, then fallback
+        const isCurrentlyFullscreen = !!(document.fullscreenElement || 
+          (document as any).webkitFullscreenElement || 
+          (document as any).mozFullScreenElement || 
+          (document as any).msFullscreenElement);
+
+        if (!isCurrentlyFullscreen) {
+          if (videoEl.requestFullscreen) {
+            await videoEl.requestFullscreen();
+          } else if (videoEl.webkitRequestFullscreen) {
+            await videoEl.webkitRequestFullscreen();
+          } else if (videoEl.mozRequestFullScreen) {
+            await videoEl.mozRequestFullScreen();
+          } else if (videoEl.msRequestFullscreen) {
+            await videoEl.msRequestFullscreen();
           } else {
-            // Exit fullscreen
-            if (document.exitFullscreen) {
-              await document.exitFullscreen();
-            } else if ((document as any).webkitExitFullscreen) {
-              await (document as any).webkitExitFullscreen();
-            } else if ((document as any).mozCancelFullScreen) {
-              await (document as any).mozCancelFullScreen();
-            } else if ((document as any).msExitFullscreen) {
-              await (document as any).msExitFullscreen();
-            }
+            setShowMobileFullscreen(true);
+          }
+        } else {
+          if (document.exitFullscreen) {
+            await document.exitFullscreen();
+          } else if ((document as any).webkitExitFullscreen) {
+            await (document as any).webkitExitFullscreen();
+          } else if ((document as any).mozCancelFullScreen) {
+            await (document as any).mozCancelFullScreen();
+          } else if ((document as any).msExitFullscreen) {
+            await (document as any).msExitFullscreen();
           }
         }
         return;
