@@ -44,6 +44,9 @@ export default function ConstructionBanner() {
           {!isMinimized && (
             <span>
               🚧 <strong>Heads up:</strong> This site is new and while we start up, please be aware of bugs that we may not be aware of yet. 
+              <br />
+              📱 <strong>Mobile users:</strong> Fullscreen video may not work optimally on mobile devices - we're actively fixing this!
+              <br />
               If you encounter any issues, please let us know!
             </span>
           )}
