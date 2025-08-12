@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { supabase, getSignedUrl } from '@/lib/supabase';
 import { Maximize2, Minimize2, AlertCircle } from 'lucide-react';
 import { useToast } from '@/components/Toast';
+import MobileFullscreenVideo from '@/components/MobileFullscreenVideo';
 
 interface Purchase {
   id: string;
@@ -50,6 +51,7 @@ function WatchPageContent() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [showMobileFullscreen, setShowMobileFullscreen] = useState(false);
 
   useEffect(() => {
     if (!sessionId) {
@@ -130,37 +132,12 @@ function WatchPageContent() {
 
   const toggleFullscreen = async () => {
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+    if (isIOS) {
+      setShowMobileFullscreen(true);
+      return;
+    }
 
     try {
-      if (isIOS && videoRef.current) {
-        const el: any = videoRef.current;
-        const displaying = !!el.webkitDisplayingFullscreen;
-        if (!displaying) {
-          if (el.readyState < 2) {
-            await new Promise<void>((resolve) => {
-              const onReady = () => resolve();
-              el.addEventListener('loadeddata', onReady, { once: true });
-              el.addEventListener('canplay', onReady, { once: true });
-            });
-          }
-          const originalMuted = el.muted;
-          if (el.paused) {
-            try { el.muted = true; await el.play(); } catch (_) {}
-          }
-          try { const t = el.currentTime; el.currentTime = Math.max(0, t + 0.001); } catch (_) {}
-          await new Promise((r) => requestAnimationFrame(() => r(undefined)));
-          if (typeof el.webkitEnterFullscreen === 'function') {
-            el.webkitEnterFullscreen();
-          } else if (typeof el.webkitEnterFullScreen === 'function') {
-            el.webkitEnterFullScreen();
-          }
-          el.muted = originalMuted;
-        } else if (typeof el.webkitExitFullscreen === 'function') {
-          el.webkitExitFullscreen();
-        }
-        return;
-      }
-
       if (!containerRef.current) return;
       if (!document.fullscreenElement) {
         if (containerRef.current.requestFullscreen) {
@@ -169,8 +146,6 @@ function WatchPageContent() {
           await (containerRef.current as any).webkitRequestFullscreen();
         } else if ((containerRef.current as any).msRequestFullscreen) {
           await (containerRef.current as any).msRequestFullscreen();
-        } else {
-          console.error('Fullscreen API not supported');
         }
       } else {
         if (document.exitFullscreen) {

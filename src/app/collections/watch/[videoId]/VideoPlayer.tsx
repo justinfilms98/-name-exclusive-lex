@@ -2,6 +2,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import MobileFullscreenVideo from "@/components/MobileFullscreenVideo";
 
 interface VideoPlayerProps {
   src: string;
@@ -23,6 +24,7 @@ export default function VideoPlayer({ src, title, expiresAt }: VideoPlayerProps)
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [showMobileFullscreen, setShowMobileFullscreen] = useState(false);
 
   useEffect(() => {
     // Get current user
@@ -188,42 +190,17 @@ export default function VideoPlayer({ src, title, expiresAt }: VideoPlayerProps)
   };
 
   const toggleFullscreen = async () => {
-    // iOS: prefer native video fullscreen to avoid Safari black-screen bug
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
 
-    try {
-      if (isIOS && videoRef.current) {
-        const el: any = videoRef.current;
-        const displaying = !!el.webkitDisplayingFullscreen;
-        if (!displaying) {
-          // Ensure render-ready, prime playback, and nudge currentTime for repaint
-          if (el.readyState < 2) {
-            await new Promise<void>((resolve) => {
-              const onReady = () => resolve();
-              el.addEventListener('loadeddata', onReady, { once: true });
-              el.addEventListener('canplay', onReady, { once: true });
-            });
-          }
-          const originalMuted = el.muted;
-          if (el.paused) {
-            try { el.muted = true; await el.play(); } catch (_) {}
-          }
-          try { const t = el.currentTime; el.currentTime = Math.max(0, t + 0.001); } catch (_) {}
-          await new Promise((r) => requestAnimationFrame(() => r(undefined)));
-          if (typeof el.webkitEnterFullscreen === 'function') {
-            el.webkitEnterFullscreen();
-          } else if (typeof el.webkitEnterFullScreen === 'function') {
-            el.webkitEnterFullScreen();
-          }
-          el.muted = originalMuted;
-        } else if (typeof el.webkitExitFullscreen === 'function') {
-          el.webkitExitFullscreen();
-        }
-        return;
-      }
+    // On iOS, use custom fullscreen modal to avoid Safari black-screen bug and overlays
+    if (isIOS) {
+      setShowMobileFullscreen(true);
+      return;
+    }
 
-      // Non-iOS: use standard Fullscreen API on container
-      if (!containerRef.current) return;
+    // Non-iOS: use standard Fullscreen API on container
+    if (!containerRef.current) return;
+    try {
       if (!document.fullscreenElement) {
         if (containerRef.current.requestFullscreen) {
           await containerRef.current.requestFullscreen();
@@ -451,6 +428,14 @@ export default function VideoPlayer({ src, title, expiresAt }: VideoPlayerProps)
           <h2 className="text-xl font-semibold text-white">{title}</h2>
         </div>
       </div>
+
+      {/* iOS Mobile Fullscreen Modal */}
+      <MobileFullscreenVideo
+        videoUrl={src}
+        isOpen={showMobileFullscreen}
+        onClose={() => setShowMobileFullscreen(false)}
+        title={title}
+      />
     </div>
   );
 } 
