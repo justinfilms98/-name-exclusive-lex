@@ -215,14 +215,50 @@ export default function MediaCarousel({
           try {
             const displaying = !!videoEl.webkitDisplayingFullscreen;
             if (!displaying && typeof videoEl.webkitEnterFullscreen === 'function') {
-              // Ensure playback is primed (some iOS versions require play before entering fullscreen)
-              try { await videoEl.play(); } catch (_) {}
+              // Ensure the video is render-ready before entering fullscreen to avoid iOS black screen
+              const ensureReady = async () => {
+                if (!videoEl) return;
+                // Wait for video to have data to play
+                if (videoEl.readyState < 2) {
+                  await new Promise<void>((resolve) => {
+                    const onReady = () => resolve();
+                    videoEl.addEventListener('loadeddata', onReady, { once: true });
+                    videoEl.addEventListener('canplay', onReady, { once: true });
+                  });
+                }
+              };
+
+              await ensureReady();
+
+              // Prime playback (muted if needed) then trigger a tiny seek to force a repaint on iOS
+              const originalMuted = videoEl.muted;
+              if (videoEl.paused) {
+                try {
+                  videoEl.muted = true;
+                  await videoEl.play();
+                } catch (_) { /* no-op */ }
+              }
+              try {
+                const t = videoEl.currentTime;
+                videoEl.currentTime = Math.max(0, t + 0.001);
+              } catch (_) { /* no-op */ }
+
+              // Enter native fullscreen on the next frame for stability
+              await new Promise((r) => requestAnimationFrame(() => r(undefined)));
               videoEl.webkitEnterFullscreen();
+
+              // Restore user mute preference
+              videoEl.muted = originalMuted;
             } else if (displaying && typeof videoEl.webkitExitFullscreen === 'function') {
               videoEl.webkitExitFullscreen();
             } else if (typeof videoEl.webkitEnterFullScreen === 'function') {
               // Fallback older API spelling
-              try { await videoEl.play(); } catch (_) {}
+              try {
+                if (videoEl.paused) {
+                  videoEl.muted = true;
+                  await videoEl.play();
+                }
+              } catch (_) { /* no-op */ }
               videoEl.webkitEnterFullScreen();
             } else {
               setShowMobileFullscreen(true);

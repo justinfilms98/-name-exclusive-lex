@@ -102,6 +102,14 @@ export default function VideoPlayer({ src, title, expiresAt }: VideoPlayerProps)
   const handleVideoLoad = () => {
     console.log('Video loaded successfully');
     setVideoLoaded(true);
+    // Nudge currentTime slightly to avoid iOS black frame when entering fullscreen
+    const el = videoRef.current;
+    if (el) {
+      try {
+        const t = el.currentTime;
+        el.currentTime = Math.max(0, t + 0.001);
+      } catch (_) { /* ignore */ }
+    }
   };
 
   const handleVideoError = (e: any) => {
@@ -270,10 +278,11 @@ export default function VideoPlayer({ src, title, expiresAt }: VideoPlayerProps)
             onTimeUpdate={handleTimeUpdate}
             onLoadedMetadata={handleLoadedMetadata}
             onEnded={() => setIsPlaying(false)}
-            preload="metadata"
+            preload="auto"
             autoPlay
             muted
             playsInline
+            webkit-playsinline="true"
             disablePictureInPicture
             controlsList="nodownload nofullscreen noremoteplayback"
             style={{

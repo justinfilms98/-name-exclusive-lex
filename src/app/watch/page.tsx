@@ -868,9 +868,10 @@ function WatchPageContent() {
                 onTimeUpdate={handleTimeUpdate}
             onLoadedMetadata={handleLoadedMetadata}
             onEnded={() => setIsPlaying(false)}
-            autoPlay
-            muted
-            playsInline
+                autoPlay
+                muted
+                playsInline
+                webkit-playsinline="true"
                 style={{
                   WebkitUserSelect: 'none',
                   MozUserSelect: 'none',

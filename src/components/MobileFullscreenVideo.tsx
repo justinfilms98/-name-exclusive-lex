@@ -38,8 +38,19 @@ export default function MobileFullscreenVideo({
 
   useEffect(() => {
     if (isOpen && videoRef.current) {
-      // Auto-play when opened
-      videoRef.current.play().catch(console.error);
+      // Auto-play when opened (muted first to satisfy autoplay policies)
+      const el = videoRef.current;
+      el.muted = true;
+      el.play().catch(() => {/* ignore */});
+      // Ensure we avoid iOS initial black frame by forcing a tiny seek once ready
+      const onReady = () => {
+        try {
+          const t = el.currentTime;
+          el.currentTime = Math.max(0, t + 0.001);
+        } catch (_) {/* ignore */}
+      };
+      el.addEventListener('loadeddata', onReady, { once: true });
+      el.addEventListener('canplay', onReady, { once: true });
     }
 
     // Cleanup timeout on unmount
@@ -172,9 +183,10 @@ export default function MobileFullscreenVideo({
           onPlay={() => setIsPlaying(true)}
           onPause={() => setIsPlaying(false)}
           onEnded={() => setIsPlaying(false)}
-          preload="metadata"
+          preload="auto"
           muted={isMuted}
           playsInline
+          webkit-playsinline="true"
           disablePictureInPicture
           controlsList="nodownload nofullscreen noremoteplayback"
           style={{
