@@ -188,11 +188,43 @@ export default function VideoPlayer({ src, title, expiresAt }: VideoPlayerProps)
   };
 
   const toggleFullscreen = async () => {
-    if (!containerRef.current) return;
+    // iOS: prefer native video fullscreen to avoid Safari black-screen bug
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
 
     try {
+      if (isIOS && videoRef.current) {
+        const el: any = videoRef.current;
+        const displaying = !!el.webkitDisplayingFullscreen;
+        if (!displaying) {
+          // Ensure render-ready, prime playback, and nudge currentTime for repaint
+          if (el.readyState < 2) {
+            await new Promise<void>((resolve) => {
+              const onReady = () => resolve();
+              el.addEventListener('loadeddata', onReady, { once: true });
+              el.addEventListener('canplay', onReady, { once: true });
+            });
+          }
+          const originalMuted = el.muted;
+          if (el.paused) {
+            try { el.muted = true; await el.play(); } catch (_) {}
+          }
+          try { const t = el.currentTime; el.currentTime = Math.max(0, t + 0.001); } catch (_) {}
+          await new Promise((r) => requestAnimationFrame(() => r(undefined)));
+          if (typeof el.webkitEnterFullscreen === 'function') {
+            el.webkitEnterFullscreen();
+          } else if (typeof el.webkitEnterFullScreen === 'function') {
+            el.webkitEnterFullScreen();
+          }
+          el.muted = originalMuted;
+        } else if (typeof el.webkitExitFullscreen === 'function') {
+          el.webkitExitFullscreen();
+        }
+        return;
+      }
+
+      // Non-iOS: use standard Fullscreen API on container
+      if (!containerRef.current) return;
       if (!document.fullscreenElement) {
-        // Request fullscreen on the container
         if (containerRef.current.requestFullscreen) {
           await containerRef.current.requestFullscreen();
         } else if ((containerRef.current as any).webkitRequestFullscreen) {
@@ -203,7 +235,6 @@ export default function VideoPlayer({ src, title, expiresAt }: VideoPlayerProps)
           console.error('Fullscreen API not supported');
         }
       } else {
-        // Exit fullscreen
         if (document.exitFullscreen) {
           await document.exitFullscreen();
         } else if ((document as any).webkitExitFullscreen) {

@@ -129,11 +129,40 @@ function WatchPageContent() {
   }, []);
 
   const toggleFullscreen = async () => {
-    if (!containerRef.current) return;
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
 
     try {
+      if (isIOS && videoRef.current) {
+        const el: any = videoRef.current;
+        const displaying = !!el.webkitDisplayingFullscreen;
+        if (!displaying) {
+          if (el.readyState < 2) {
+            await new Promise<void>((resolve) => {
+              const onReady = () => resolve();
+              el.addEventListener('loadeddata', onReady, { once: true });
+              el.addEventListener('canplay', onReady, { once: true });
+            });
+          }
+          const originalMuted = el.muted;
+          if (el.paused) {
+            try { el.muted = true; await el.play(); } catch (_) {}
+          }
+          try { const t = el.currentTime; el.currentTime = Math.max(0, t + 0.001); } catch (_) {}
+          await new Promise((r) => requestAnimationFrame(() => r(undefined)));
+          if (typeof el.webkitEnterFullscreen === 'function') {
+            el.webkitEnterFullscreen();
+          } else if (typeof el.webkitEnterFullScreen === 'function') {
+            el.webkitEnterFullScreen();
+          }
+          el.muted = originalMuted;
+        } else if (typeof el.webkitExitFullscreen === 'function') {
+          el.webkitExitFullscreen();
+        }
+        return;
+      }
+
+      if (!containerRef.current) return;
       if (!document.fullscreenElement) {
-        // Try to request fullscreen on the container
         if (containerRef.current.requestFullscreen) {
           await containerRef.current.requestFullscreen();
         } else if ((containerRef.current as any).webkitRequestFullscreen) {
@@ -144,7 +173,6 @@ function WatchPageContent() {
           console.error('Fullscreen API not supported');
         }
       } else {
-        // Exit fullscreen
         if (document.exitFullscreen) {
           await document.exitFullscreen();
         } else if ((document as any).webkitExitFullscreen) {
@@ -155,30 +183,6 @@ function WatchPageContent() {
       }
     } catch (err) {
       console.error('Fullscreen error:', err);
-      // Fallback: try to request fullscreen on the video element itself
-      if (videoRef.current) {
-        try {
-          if (!document.fullscreenElement) {
-            if (videoRef.current.requestFullscreen) {
-              await videoRef.current.requestFullscreen();
-            } else if ((videoRef.current as any).webkitRequestFullscreen) {
-              await (videoRef.current as any).webkitRequestFullscreen();
-            } else if ((videoRef.current as any).msRequestFullscreen) {
-              await (videoRef.current as any).msRequestFullscreen();
-            }
-          } else {
-            if (document.exitFullscreen) {
-              await document.exitFullscreen();
-            } else if ((document as any).webkitExitFullscreen) {
-              await (document as any).webkitExitFullscreen();
-            } else if ((document as any).msExitFullscreen) {
-              await (document as any).msExitFullscreen();
-            }
-          }
-        } catch (fallbackErr) {
-          console.error('Fallback fullscreen error:', fallbackErr);
-        }
-      }
     }
   };
 
