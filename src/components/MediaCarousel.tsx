@@ -208,91 +208,16 @@ export default function MediaCarousel({
   };
 
   const toggleFullscreen = async () => {
-    try {
-      if (isMobile && videoRef.current) {
-        const videoEl = videoRef.current as any;
-
-        // iOS-specific path using HTMLVideoElement.webkitEnterFullscreen
-        if (isIOS) {
-          // Always use custom fullscreen on iOS to avoid black overlay and audio bleed
-          try {
-            lastMobileTimeRef.current = videoEl.currentTime || 0;
-            lastMobileWasPlayingRef.current = !videoEl.paused;
-            videoEl.pause();
-          } catch (_) { /* no-op */ }
-          setShowMobileFullscreen(true);
-          return;
-        }
-
-        // Non-iOS mobile: try Fullscreen API, then fallback
-        const isCurrentlyFullscreen = !!(document.fullscreenElement || 
-          (document as any).webkitFullscreenElement || 
-          (document as any).mozFullScreenElement || 
-          (document as any).msFullscreenElement);
-
-        if (!isCurrentlyFullscreen) {
-          if (videoEl.requestFullscreen) {
-            await videoEl.requestFullscreen();
-          } else if (videoEl.webkitRequestFullscreen) {
-            await videoEl.webkitRequestFullscreen();
-          } else if (videoEl.mozRequestFullScreen) {
-            await videoEl.mozRequestFullScreen();
-          } else if (videoEl.msRequestFullscreen) {
-            await videoEl.msRequestFullscreen();
-          } else {
-            // Fallback to custom modal
-            try {
-              lastMobileTimeRef.current = videoEl.currentTime || 0;
-              lastMobileWasPlayingRef.current = !videoEl.paused;
-              videoEl.pause();
-            } catch (_) { /* no-op */ }
-            setShowMobileFullscreen(true);
-          }
-        } else {
-          if (document.exitFullscreen) {
-            await document.exitFullscreen();
-          } else if ((document as any).webkitExitFullscreen) {
-            await (document as any).webkitExitFullscreen();
-          } else if ((document as any).mozCancelFullScreen) {
-            await (document as any).mozCancelFullScreen();
-          } else if ((document as any).msExitFullscreen) {
-            await (document as any).msExitFullscreen();
-          }
-        }
-        return;
-      }
-
-      if (!document.fullscreenElement) {
-        // Try to make video fullscreen first (better for mobile)
-        if (videoRef.current && videoRef.current.requestFullscreen) {
-          await videoRef.current.requestFullscreen();
-        } else if (videoRef.current && (videoRef.current as any).webkitRequestFullscreen) {
-          await (videoRef.current as any).webkitRequestFullscreen();
-        } else if (videoRef.current && (videoRef.current as any).msRequestFullscreen) {
-          await (videoRef.current as any).msRequestFullscreen();
-        } else if (containerRef.current && containerRef.current.requestFullscreen) {
-          await containerRef.current.requestFullscreen();
-        } else if (containerRef.current && (containerRef.current as any).webkitRequestFullscreen) {
-          await (containerRef.current as any).webkitRequestFullscreen();
-        } else if (containerRef.current && (containerRef.current as any).msRequestFullscreen) {
-          await (containerRef.current as any).msRequestFullscreen();
-        }
-      } else {
-        if (document.exitFullscreen) {
-          await document.exitFullscreen();
-        } else if ((document as any).webkitExitFullscreen) {
-          await (document as any).webkitExitFullscreen();
-        } else if ((document as any).msExitFullscreen) {
-          await (document as any).msExitFullscreen();
-        }
-      }
-    } catch (err) {
-      console.error('Fullscreen error:', err);
-      // Fallback: try to close mobile fullscreen if it's open
-      if (showMobileFullscreen) {
-        setShowMobileFullscreen(false);
-      }
+    // Always use custom fullscreen modal across platforms
+    const videoEl = videoRef.current as any;
+    if (videoEl) {
+      try {
+        lastMobileTimeRef.current = videoEl.currentTime || 0;
+        lastMobileWasPlayingRef.current = !videoEl.paused;
+        videoEl.pause();
+      } catch (_) { /* no-op */ }
     }
+    setShowMobileFullscreen(true);
   };
 
   const handleVideoClick = () => {

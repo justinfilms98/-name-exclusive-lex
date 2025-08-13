@@ -192,47 +192,15 @@ export default function VideoPlayer({ src, title, expiresAt }: VideoPlayerProps)
   };
 
   const toggleFullscreen = async () => {
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
-
-    // On iOS, use custom fullscreen modal to avoid Safari black-screen bug and overlays
-    if (isIOS) {
-      // Always use custom modal on iOS to avoid black overlay and audio bleed
-      if (videoRef.current) {
-        try {
-          lastMobileTimeRef.current = videoRef.current.currentTime || 0;
-          lastMobileWasPlayingRef.current = !videoRef.current.paused;
-          videoRef.current.pause();
-        } catch (_) { /* no-op */ }
-      }
-      setShowMobileFullscreen(true);
-      return;
+    // Use custom fullscreen modal on ALL platforms
+    if (videoRef.current) {
+      try {
+        lastMobileTimeRef.current = videoRef.current.currentTime || 0;
+        lastMobileWasPlayingRef.current = !videoRef.current.paused;
+        videoRef.current.pause();
+      } catch (_) { /* no-op */ }
     }
-
-    // Non-iOS: use standard Fullscreen API on container
-    if (!containerRef.current) return;
-    try {
-      if (!document.fullscreenElement) {
-        if (containerRef.current.requestFullscreen) {
-          await containerRef.current.requestFullscreen();
-        } else if ((containerRef.current as any).webkitRequestFullscreen) {
-          await (containerRef.current as any).webkitRequestFullscreen();
-        } else if ((containerRef.current as any).msRequestFullscreen) {
-          await (containerRef.current as any).msRequestFullscreen();
-        } else {
-          console.error('Fullscreen API not supported');
-        }
-      } else {
-        if (document.exitFullscreen) {
-          await document.exitFullscreen();
-        } else if ((document as any).webkitExitFullscreen) {
-          await (document as any).webkitExitFullscreen();
-        } else if ((document as any).msExitFullscreen) {
-          await (document as any).msExitFullscreen();
-        }
-      }
-    } catch (err) {
-      console.error('Fullscreen error:', err);
-    }
+    setShowMobileFullscreen(true);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
