@@ -44,6 +44,8 @@ export default function MediaCarousel({
   const [isIOS, setIsIOS] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [showMobileFullscreen, setShowMobileFullscreen] = useState(false);
+  const lastMobileTimeRef = useRef<number>(0);
+  const lastMobileWasPlayingRef = useRef<boolean>(false);
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -212,60 +214,13 @@ export default function MediaCarousel({
 
         // iOS-specific path using HTMLVideoElement.webkitEnterFullscreen
         if (isIOS) {
+          // Always use custom fullscreen on iOS to avoid black overlay and audio bleed
           try {
-            const displaying = !!videoEl.webkitDisplayingFullscreen;
-            if (!displaying && typeof videoEl.webkitEnterFullscreen === 'function') {
-              // Ensure the video is render-ready before entering fullscreen to avoid iOS black screen
-              const ensureReady = async () => {
-                if (!videoEl) return;
-                // Wait for video to have data to play
-                if (videoEl.readyState < 2) {
-                  await new Promise<void>((resolve) => {
-                    const onReady = () => resolve();
-                    videoEl.addEventListener('loadeddata', onReady, { once: true });
-                    videoEl.addEventListener('canplay', onReady, { once: true });
-                  });
-                }
-              };
-
-              await ensureReady();
-
-              // Prime playback (muted if needed) then trigger a tiny seek to force a repaint on iOS
-              const originalMuted = videoEl.muted;
-              if (videoEl.paused) {
-                try {
-                  videoEl.muted = true;
-                  await videoEl.play();
-                } catch (_) { /* no-op */ }
-              }
-              try {
-                const t = videoEl.currentTime;
-                videoEl.currentTime = Math.max(0, t + 0.001);
-              } catch (_) { /* no-op */ }
-
-              // Enter native fullscreen on the next frame for stability
-              await new Promise((r) => requestAnimationFrame(() => r(undefined)));
-              videoEl.webkitEnterFullscreen();
-
-              // Restore user mute preference
-              videoEl.muted = originalMuted;
-            } else if (displaying && typeof videoEl.webkitExitFullscreen === 'function') {
-              videoEl.webkitExitFullscreen();
-            } else if (typeof videoEl.webkitEnterFullScreen === 'function') {
-              // Fallback older API spelling
-              try {
-                if (videoEl.paused) {
-                  videoEl.muted = true;
-                  await videoEl.play();
-                }
-              } catch (_) { /* no-op */ }
-              videoEl.webkitEnterFullScreen();
-            } else {
-              setShowMobileFullscreen(true);
-            }
-          } catch (_) {
-            setShowMobileFullscreen(true);
-          }
+            lastMobileTimeRef.current = videoEl.currentTime || 0;
+            lastMobileWasPlayingRef.current = !videoEl.paused;
+            videoEl.pause();
+          } catch (_) { /* no-op */ }
+          setShowMobileFullscreen(true);
           return;
         }
 
@@ -285,6 +240,12 @@ export default function MediaCarousel({
           } else if (videoEl.msRequestFullscreen) {
             await videoEl.msRequestFullscreen();
           } else {
+            // Fallback to custom modal
+            try {
+              lastMobileTimeRef.current = videoEl.currentTime || 0;
+              lastMobileWasPlayingRef.current = !videoEl.paused;
+              videoEl.pause();
+            } catch (_) { /* no-op */ }
             setShowMobileFullscreen(true);
           }
         } else {
@@ -677,7 +638,17 @@ export default function MediaCarousel({
         <MobileFullscreenVideo
           videoUrl={currentItem.url}
           isOpen={showMobileFullscreen}
-          onClose={() => setShowMobileFullscreen(false)}
+          startTime={lastMobileTimeRef.current || currentTime}
+          onClose={(lastTime = 0, wasPlaying = false) => {
+            setShowMobileFullscreen(false);
+            // Sync back to inline player
+            if (videoRef.current) {
+              try { videoRef.current.currentTime = lastTime; } catch (_) { /* no-op */ }
+              if (wasPlaying || lastMobileWasPlayingRef.current) {
+                videoRef.current.play().catch(() => {/* ignore */});
+              }
+            }
+          }}
           title={currentItem.title || title}
           isVertical={isVerticalVideo}
           onNext={items.length > 1 ? nextItem : undefined}

@@ -25,6 +25,8 @@ export default function VideoPlayer({ src, title, expiresAt }: VideoPlayerProps)
   const containerRef = useRef<HTMLDivElement>(null);
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [showMobileFullscreen, setShowMobileFullscreen] = useState(false);
+  const lastMobileTimeRef = useRef<number>(0);
+  const lastMobileWasPlayingRef = useRef<boolean>(false);
 
   useEffect(() => {
     // Get current user
@@ -194,6 +196,14 @@ export default function VideoPlayer({ src, title, expiresAt }: VideoPlayerProps)
 
     // On iOS, use custom fullscreen modal to avoid Safari black-screen bug and overlays
     if (isIOS) {
+      // Always use custom modal on iOS to avoid black overlay and audio bleed
+      if (videoRef.current) {
+        try {
+          lastMobileTimeRef.current = videoRef.current.currentTime || 0;
+          lastMobileWasPlayingRef.current = !videoRef.current.paused;
+          videoRef.current.pause();
+        } catch (_) { /* no-op */ }
+      }
       setShowMobileFullscreen(true);
       return;
     }
@@ -433,7 +443,17 @@ export default function VideoPlayer({ src, title, expiresAt }: VideoPlayerProps)
       <MobileFullscreenVideo
         videoUrl={src}
         isOpen={showMobileFullscreen}
-        onClose={() => setShowMobileFullscreen(false)}
+        startTime={lastMobileTimeRef.current}
+        onClose={(lastTime = 0, wasPlaying = false) => {
+          setShowMobileFullscreen(false);
+          // Sync time back and optionally resume
+          if (videoRef.current) {
+            try { videoRef.current.currentTime = lastTime; } catch (_) { /* no-op */ }
+            if (wasPlaying || lastMobileWasPlayingRef.current) {
+              videoRef.current.play().catch(() => {/* ignore */});
+            }
+          }
+        }}
         title={title}
       />
     </div>

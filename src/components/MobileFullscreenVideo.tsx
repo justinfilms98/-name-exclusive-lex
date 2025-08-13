@@ -6,13 +6,16 @@ import { X, Play, Pause, Volume2, VolumeX, Maximize2, Minimize2, ChevronLeft, Ch
 interface MobileFullscreenVideoProps {
   videoUrl: string;
   isOpen: boolean;
-  onClose: () => void;
+  // Called when user exits fullscreen. Provides last playback time and whether it was playing.
+  onClose: (lastTime?: number, wasPlaying?: boolean) => void;
   title?: string;
   isVertical?: boolean;
   onNext?: () => void;
   onPrevious?: () => void;
   hasNext?: boolean;
   hasPrevious?: boolean;
+  // Optional start time to resume from when opening
+  startTime?: number;
 }
 
 export default function MobileFullscreenVideo({ 
@@ -24,7 +27,8 @@ export default function MobileFullscreenVideo({
   onNext,
   onPrevious,
   hasNext = false,
-  hasPrevious = false
+  hasPrevious = false,
+  startTime,
 }: MobileFullscreenVideoProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
@@ -38,19 +42,30 @@ export default function MobileFullscreenVideo({
 
   useEffect(() => {
     if (isOpen && videoRef.current) {
-      // Auto-play when opened (muted first to satisfy autoplay policies)
       const el = videoRef.current;
+      // Start muted to satisfy autoplay; user can unmute via control
       el.muted = true;
-      el.play().catch(() => {/* ignore */});
-      // Ensure we avoid iOS initial black frame by forcing a tiny seek once ready
-      const onReady = () => {
+      // Seek to requested start time once metadata is ready
+      const onLoadedMetadata = () => {
+        if (typeof startTime === 'number' && !Number.isNaN(startTime)) {
+          try {
+            el.currentTime = Math.max(0, startTime);
+          } catch (_) { /* no-op */ }
+        }
+        // Nudge a frame to avoid black frame on iOS
         try {
           const t = el.currentTime;
           el.currentTime = Math.max(0, t + 0.001);
-        } catch (_) {/* ignore */}
+        } catch (_) { /* no-op */ }
       };
-      el.addEventListener('loadeddata', onReady, { once: true });
-      el.addEventListener('canplay', onReady, { once: true });
+      el.addEventListener('loadedmetadata', onLoadedMetadata, { once: true });
+
+      // Begin playback
+      el.play().catch(() => {/* ignore */});
+
+      return () => {
+        el.removeEventListener('loadedmetadata', onLoadedMetadata as any);
+      };
     }
 
     // Cleanup timeout on unmount
@@ -59,7 +74,7 @@ export default function MobileFullscreenVideo({
         clearTimeout(controlsTimeoutRef.current);
       }
     };
-  }, [isOpen]);
+  }, [isOpen, startTime]);
 
   const handleVideoClick = () => {
     if (videoRef.current) {
@@ -123,7 +138,15 @@ export default function MobileFullscreenVideo({
   };
 
   const handleExitFullscreen = () => {
-    onClose();
+    if (videoRef.current) {
+      const t = videoRef.current.currentTime || 0;
+      const wasPlaying = isPlaying;
+      // Ensure we stop audio before closing
+      try { videoRef.current.pause(); } catch (_) { /* no-op */ }
+      onClose(t, wasPlaying);
+    } else {
+      onClose(0, false);
+    }
   };
 
   const handleNext = () => {
