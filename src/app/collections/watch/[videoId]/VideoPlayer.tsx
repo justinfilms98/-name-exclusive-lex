@@ -192,7 +192,22 @@ export default function VideoPlayer({ src, title, expiresAt }: VideoPlayerProps)
   };
 
   const toggleFullscreen = async () => {
-    // Use custom fullscreen modal on ALL platforms
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+    if (isIOS) {
+      // Navigate to dedicated iOS player page with sessionStorage handoff
+      const src = srcRef();
+      if (!src) return;
+      const startTime = videoRef.current?.currentTime || 0;
+      const wasPlaying = !!(videoRef.current && !videoRef.current.paused);
+      try {
+        sessionStorage.setItem('ios-player', JSON.stringify({ src, title, startTime, wasPlaying }));
+      } catch {}
+      try { videoRef.current?.pause(); } catch {}
+      router.push('/ios-player');
+      return;
+    }
+
+    // Non‑iOS: use our modal fullscreen
     if (videoRef.current) {
       try {
         lastMobileTimeRef.current = videoRef.current.currentTime || 0;
@@ -202,6 +217,8 @@ export default function VideoPlayer({ src, title, expiresAt }: VideoPlayerProps)
     }
     setShowMobileFullscreen(true);
   };
+
+  const srcRef = () => src;
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'f' || e.key === 'F') {

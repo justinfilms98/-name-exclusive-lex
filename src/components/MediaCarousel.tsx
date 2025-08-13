@@ -208,8 +208,20 @@ export default function MediaCarousel({
   };
 
   const toggleFullscreen = async () => {
-    // Always use custom fullscreen modal across platforms
+    const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
     const videoEl = videoRef.current as any;
+    if (isIOSDevice && currentItem?.type === 'video') {
+      const startTime = videoEl?.currentTime || 0;
+      const wasPlaying = videoEl ? !videoEl.paused : false;
+      try {
+        sessionStorage.setItem('ios-player', JSON.stringify({ src: currentItem.url, title, startTime, wasPlaying }));
+      } catch {}
+      try { videoEl?.pause(); } catch {}
+      window.location.assign('/ios-player');
+      return;
+    }
+
+    // Non‑iOS: open custom modal
     if (videoEl) {
       try {
         lastMobileTimeRef.current = videoEl.currentTime || 0;
