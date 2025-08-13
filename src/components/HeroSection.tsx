@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { getHeroVideos, getSignedUrl, supabase } from '@/lib/supabase';
 import { ChevronLeft, ChevronRight, Play, Sparkles } from 'lucide-react';
 import Link from 'next/link';
@@ -23,6 +23,7 @@ export default function HeroSection() {
   const [user, setUser] = useState<any>(null);
   const [videosLoaded, setVideosLoaded] = useState(false);
   const [videosPlaying, setVideosPlaying] = useState(false);
+  const videoRefs = useRef<HTMLVideoElement[]>([]);
 
   useEffect(() => {
     loadHeroVideos();
@@ -45,6 +46,32 @@ export default function HeroSection() {
       return () => clearInterval(interval);
     }
   }, [heroVideos.length]);
+
+  // Ensure only the current hero video autoplays and others are paused
+  useEffect(() => {
+    const playCurrent = async () => {
+      const videos = videoRefs.current;
+      videos.forEach((v, idx) => {
+        if (!v) return;
+        try {
+          if (idx === currentVideoIndex) {
+            v.muted = true;
+            // Small nudge to avoid black frame on iOS
+            try {
+              const t = v.currentTime;
+              v.currentTime = Math.max(0, t + 0.001);
+            } catch {}
+            v.play().catch(() => {/* iOS may require a gesture; keep muted autoplay attempt */});
+          } else {
+            v.pause();
+          }
+        } catch {}
+      });
+    };
+    if (videosLoaded) {
+      playCurrent();
+    }
+  }, [videosLoaded, currentVideoIndex]);
 
   const loadUser = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -118,16 +145,18 @@ export default function HeroSection() {
       {videoUrls.length > 0 && videoUrls.map((videoUrl, index) => (
         <video
           key={heroVideos[index]?.id || index}
+          ref={(el) => { if (el) videoRefs.current[index] = el; }}
           className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${
             index === currentVideoIndex ? 'opacity-100' : 'opacity-0'
           }`}
-          autoPlay={true}
-          muted={true}
+          autoPlay={index === currentVideoIndex}
+          muted
           loop
           playsInline
-          preload="auto"
+          preload={index === currentVideoIndex ? 'auto' : 'metadata'}
           onPlay={() => setVideosPlaying(true)}
           onPause={() => setVideosPlaying(false)}
+          webkit-playsinline="true"
         >
           <source src={videoUrl} type="video/mp4" />
           <source src={videoUrl} type="video/webm" />
