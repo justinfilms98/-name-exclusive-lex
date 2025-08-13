@@ -192,31 +192,15 @@ export default function VideoPlayer({ src, title, expiresAt }: VideoPlayerProps)
   };
 
   const toggleFullscreen = async () => {
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
-    if (isIOS) {
-      // Navigate to dedicated iOS player page with sessionStorage handoff and URL fallback
-      const sourceUrl = srcRef();
-      if (!sourceUrl) return;
-      const startTime = videoRef.current?.currentTime || 0;
-      const wasPlaying = !!(videoRef.current && !videoRef.current.paused);
-      try {
-        sessionStorage.setItem('ios-player', JSON.stringify({ src: sourceUrl, title, startTime, wasPlaying }));
-      } catch {}
-      try { videoRef.current?.pause(); } catch {}
-      const b64 = typeof window !== 'undefined' ? btoa(sourceUrl) : '';
-      router.push(`/ios-player?u=${encodeURIComponent(b64)}&t=${Math.floor(startTime)}&title=${encodeURIComponent(title || '')}`);
-      return;
-    }
-
-    // Non‑iOS: use our modal fullscreen
-    if (videoRef.current) {
-      try {
-        lastMobileTimeRef.current = videoRef.current.currentTime || 0;
-        lastMobileWasPlayingRef.current = !videoRef.current.paused;
-        videoRef.current.pause();
-      } catch (_) { /* no-op */ }
-    }
-    setShowMobileFullscreen(true);
+    // New behavior: universal fullscreen route with the single video item
+    const sourceUrl = srcRef();
+    if (!sourceUrl) return;
+    const items = [{ type: 'video' as const, url: sourceUrl, title }];
+    const payload = { items, startIndex: 0, title };
+    try { sessionStorage.setItem('fullscreen-payload', JSON.stringify(payload)); } catch {}
+    try { videoRef.current?.pause(); } catch {}
+    const b64 = typeof window !== 'undefined' ? btoa(JSON.stringify(payload)) : '';
+    router.push(`/fullscreen?p=${encodeURIComponent(b64)}`);
   };
 
   const srcRef = () => src;

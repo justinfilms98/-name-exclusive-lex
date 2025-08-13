@@ -208,30 +208,14 @@ export default function MediaCarousel({
   };
 
   const toggleFullscreen = async () => {
-    const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
-    const videoEl = videoRef.current as any;
-    if (isIOSDevice && currentItem?.type === 'video') {
-      const startTime = videoEl?.currentTime || 0;
-      const wasPlaying = videoEl ? !videoEl.paused : false;
-      const src = currentItem.url;
-      try {
-        sessionStorage.setItem('ios-player', JSON.stringify({ src, title, startTime, wasPlaying }));
-      } catch {}
-      try { videoEl?.pause(); } catch {}
-      const b64 = btoa(src);
-      window.location.assign(`/ios-player?u=${encodeURIComponent(b64)}&t=${Math.floor(startTime)}&title=${encodeURIComponent(title || '')}`);
-      return;
-    }
-
-    // Non‑iOS: open custom modal
-    if (videoEl) {
-      try {
-        lastMobileTimeRef.current = videoEl.currentTime || 0;
-        lastMobileWasPlayingRef.current = !videoEl.paused;
-        videoEl.pause();
-      } catch (_) { /* no-op */ }
-    }
-    setShowMobileFullscreen(true);
+    // New behavior: always navigate to universal fullscreen page with all items
+    const itemsPayload = items.map((it) => ({ id: it.id, type: it.type, url: it.url, title: it.title }));
+    const startIndex = currentIndex;
+    const payload = { items: itemsPayload, startIndex, title };
+    try { sessionStorage.setItem('fullscreen-payload', JSON.stringify(payload)); } catch {}
+    try { (videoRef.current as any)?.pause(); } catch {}
+    const b64 = btoa(JSON.stringify(payload));
+    window.location.assign(`/fullscreen?p=${encodeURIComponent(b64)}`);
   };
 
   const handleVideoClick = () => {
