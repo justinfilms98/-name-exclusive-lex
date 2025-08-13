@@ -30,6 +30,8 @@ export default function FullscreenPage() {
   const [isSeeking, setIsSeeking] = useState(false);
   const [isBuffering, setIsBuffering] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const hideTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const [showControls, setShowControls] = useState(true);
 
   useEffect(() => {
     // Try sessionStorage first
@@ -65,6 +67,7 @@ export default function FullscreenPage() {
     const el = videoRef.current;
     if (!el || !item || item.type !== 'video') return;
     setIsBuffering(true);
+    setShowControls(true);
     const onLoaded = () => {
       try {
         const t = el.currentTime;
@@ -74,7 +77,7 @@ export default function FullscreenPage() {
         setIsVertical(vh > vw);
       } catch {}
       el.muted = true;
-      el.play().then(() => { setIsPlaying(true); setIsBuffering(false); }).catch(() => { setIsPlaying(false); setIsBuffering(false); });
+      el.play().then(() => { setIsPlaying(true); setIsBuffering(false); scheduleHide(); }).catch(() => { setIsPlaying(false); setIsBuffering(false); setShowControls(true); });
     };
     const onCanPlay = () => setIsBuffering(false);
     const onWaiting = () => setIsBuffering(true);
@@ -96,6 +99,14 @@ export default function FullscreenPage() {
     };
   }, [item, isSeeking]);
 
+  // Auto-hide controls after 2.5s of no interaction while playing
+  useEffect(() => {
+    if (!isPlaying) return;
+    if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+    hideTimerRef.current = setTimeout(() => setShowControls(false), 2500);
+    return () => { if (hideTimerRef.current) clearTimeout(hideTimerRef.current); };
+  }, [isPlaying, currentTime]);
+
   const percent = duration > 0 ? Math.min(100, (currentTime / duration) * 100) : 0;
   const title = useMemo(() => item?.title || payload?.title || 'Media', [item, payload]);
 
@@ -111,8 +122,8 @@ export default function FullscreenPage() {
   const togglePlay = async () => {
     const el = videoRef.current; if (!el) return;
     if (el.paused) {
-      try { await el.play(); setIsPlaying(true); el.muted = false; setIsMuted(false); } catch {}
-    } else { el.pause(); setIsPlaying(false); }
+      try { await el.play(); setIsPlaying(true); el.muted = false; setIsMuted(false); scheduleHide(); } catch { setShowControls(true); }
+    } else { el.pause(); setIsPlaying(false); setShowControls(true); }
   };
 
   const toggleMute = () => {
@@ -129,9 +140,15 @@ export default function FullscreenPage() {
   }
 
   return (
-    <div className="fixed inset-0 bg-black z-[100000]" style={{ WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation' }}>
+    <div
+      className="fixed inset-0 bg-black z-[100000]"
+      style={{ WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation' }}
+      onMouseMove={() => { setShowControls(true); scheduleHide(); }}
+      onTouchMove={() => { setShowControls(true); scheduleHide(); }}
+      onClick={() => { if (item.type === 'video') { setShowControls(true); scheduleHide(); } }}
+    >
       {/* Header */}
-      <div className="absolute top-[env(safe-area-inset-top)] left-0 right-0 z-10 bg-gradient-to-b from-black/80 to-transparent p-4 flex items-center justify-between">
+      <div className={`absolute top-[env(safe-area-inset-top)] left-0 right-0 z-10 bg-gradient-to-b from-black/80 to-transparent p-4 flex items-center justify-between transition-opacity ${showControls ? 'opacity-100' : 'opacity-0'}`}>
         <button onClick={close} className="text-white px-3 py-2 bg-white/10 rounded">Done</button>
         <div className="text-white text-sm truncate max-w-[60%]">{title}</div>
         <div className="w-16" />
@@ -156,6 +173,7 @@ export default function FullscreenPage() {
             onPlay={() => setIsPlaying(true)}
             onPause={() => setIsPlaying(false)}
             style={{ backgroundColor: 'black', position: 'fixed', inset: 0 }}
+            onClick={(e) => { e.stopPropagation(); togglePlay(); }}
           />
         )}
       </div>
@@ -171,12 +189,13 @@ export default function FullscreenPage() {
       {/* Controls if video */}
       {item.type === 'video' && (
         <>
-          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 flex items-center justify-between pointer-events-auto">
+          <div className={`absolute bottom-[max(env(safe-area-inset-bottom),0px)] left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 flex items-center justify-between pointer-events-auto transition-opacity ${showControls ? 'opacity-100' : 'opacity-0'}`}>
             <button onClick={togglePlay} className="text-white px-4 py-2 bg-white/10 rounded">{isPlaying ? 'Pause' : 'Play'}</button>
             <button onClick={toggleMute} className="text-white px-4 py-2 bg-white/10 rounded">{isMuted ? 'Unmute' : 'Mute'}</button>
           </div>
           <div
-            className="absolute bottom-16 left-0 right-0 px-4"
+            className={`absolute left-0 right-0 px-4 transition-opacity ${showControls ? 'opacity-100' : 'opacity-0'}`}
+            style={{ bottom: 'calc(3.5rem + env(safe-area-inset-bottom))' }}
             onMouseDown={(e) => {
               const el = videoRef.current; if (!el) return; setIsSeeking(true);
               const rect = (e.currentTarget.firstChild as HTMLElement).getBoundingClientRect();
@@ -225,6 +244,15 @@ export default function FullscreenPage() {
           <div className="w-10 h-10 border-2 border-white/30 border-t-white rounded-full animate-spin" />
         </div>
       )}
+
+      {/* Center Tap-to-Play overlay when not playing */}
+      {item.type === 'video' && !isPlaying && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <button onClick={togglePlay} onTouchStart={togglePlay} className="text-white w-[70vw] max-w-[320px] px-6 py-4 bg-white/10 rounded-full border border-white/30 text-base">
+            Tap to Play
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -234,6 +262,12 @@ function formatTime(seconds: number) {
   const m = Math.floor(seconds / 60);
   const s = Math.floor(seconds % 60).toString().padStart(2, '0');
   return `${m}:${s}`;
+}
+
+function scheduleHide() {
+  const w = (window as any);
+  if (!w.__fs_hideTimers) w.__fs_hideTimers = new Set();
+  // no access to component state here; in-component we call setShowControls and rely on timeout below
 }
 
 
