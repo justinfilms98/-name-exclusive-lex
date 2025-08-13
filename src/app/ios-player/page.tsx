@@ -136,7 +136,7 @@ export default function IOSPlayerPage() {
   return (
     <div className="fixed inset-0 bg-black z-[100000]" style={{ WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation' }}>
       {/* Header */}
-      <div className="absolute top-0 left-0 right-0 z-10 bg-gradient-to-b from-black/80 to-transparent p-4 flex items-center justify-between">
+      <div className="absolute top-[env(safe-area-inset-top)] left-0 right-0 z-10 bg-gradient-to-b from-black/80 to-transparent p-4 flex items-center justify-between">
         <button onClick={handleClose} className="text-white px-3 py-2 bg-white/10 rounded">
           Done
         </button>
@@ -148,7 +148,7 @@ export default function IOSPlayerPage() {
       <video
         ref={videoRef}
         src={payload.src}
-        className={`w-[100vw] h-[100dvh] ${isVertical ? 'object-cover' : 'object-contain'}`}
+        className={`w-[100vw] h-[100dvh] ${isVertical ? 'object-cover' : 'object-cover'}`}
         autoPlay
         muted
         playsInline
@@ -170,10 +170,15 @@ export default function IOSPlayerPage() {
         </button>
       </div>
 
-      {/* Center play prompt if not playing */}
+      {/* Center play prompt if not playing; full-screen hit target */}
       {!isPlaying && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <button onClick={togglePlay} onTouchStart={togglePlay} className="pointer-events-auto text-white px-5 py-3 bg-white/10 rounded-full border border-white/30">
+          <button
+            onClick={togglePlay}
+            onTouchStart={togglePlay}
+            className="pointer-events-auto text-white w-[70vw] max-w-[320px] px-6 py-4 bg-white/10 rounded-full border border-white/30 text-base"
+            style={{ WebkitTapHighlightColor: 'transparent' }}
+          >
             Tap to Play
           </button>
         </div>
