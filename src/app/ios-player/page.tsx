@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 interface IOSPlayerPayload {
   src: string;
@@ -12,23 +12,47 @@ interface IOSPlayerPayload {
 
 export default function IOSPlayerPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const videoRef = useRef<HTMLVideoElement>(null);
   const [payload, setPayload] = useState<IOSPlayerPayload | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
 
   useEffect(() => {
+    // 1) Primary: sessionStorage handoff
     try {
       const raw = sessionStorage.getItem("ios-player");
       if (raw) {
         const data: IOSPlayerPayload = JSON.parse(raw);
-        setPayload(data);
-        // do not remove yet; keep until exit to allow reloads
+        if (data && data.src) {
+          setPayload(data);
+          return;
+        }
       }
     } catch {
       // ignore
     }
-  }, []);
+
+    // 2) Fallback: try URL param `u` (base64) or `src`
+    try {
+      const b64 = searchParams?.get("u");
+      const direct = searchParams?.get("src");
+      let src: string | null = null;
+      if (b64) {
+        src = atob(b64);
+      } else if (direct) {
+        src = direct;
+      }
+      if (src) {
+        const t = Number(searchParams?.get("t") || "0");
+        const title = searchParams?.get("title") || undefined;
+        setPayload({ src, title, startTime: isFinite(t) ? t : 0, wasPlaying: false });
+        return;
+      }
+    } catch {
+      // ignore
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     const el = videoRef.current;
@@ -94,7 +118,7 @@ export default function IOSPlayerPage() {
     return (
       <div className="fixed inset-0 bg-black text-white flex items-center justify-center">
         <div className="text-center">
-          <p>Preparing player…</p>
+          <p>Preparing player… If this persists, go back and try again.</p>
         </div>
       </div>
     );
@@ -116,6 +140,8 @@ export default function IOSPlayerPage() {
         ref={videoRef}
         src={payload.src}
         className="w-[100vw] h-[100vh] object-contain"
+        autoPlay
+        muted
         playsInline
         webkit-playsinline="true"
         disablePictureInPicture
@@ -134,6 +160,15 @@ export default function IOSPlayerPage() {
           {isMuted ? "Unmute" : "Mute"}
         </button>
       </div>
+
+      {/* Center play prompt if not playing */}
+      {!isPlaying && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <button onClick={togglePlay} className="text-white px-5 py-3 bg-white/10 rounded-full border border-white/30">
+            Tap to Play
+          </button>
+        </div>
+      )}
     </div>
   );
 }

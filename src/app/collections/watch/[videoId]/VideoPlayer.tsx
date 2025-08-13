@@ -194,16 +194,17 @@ export default function VideoPlayer({ src, title, expiresAt }: VideoPlayerProps)
   const toggleFullscreen = async () => {
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
     if (isIOS) {
-      // Navigate to dedicated iOS player page with sessionStorage handoff
-      const src = srcRef();
-      if (!src) return;
+      // Navigate to dedicated iOS player page with sessionStorage handoff and URL fallback
+      const sourceUrl = srcRef();
+      if (!sourceUrl) return;
       const startTime = videoRef.current?.currentTime || 0;
       const wasPlaying = !!(videoRef.current && !videoRef.current.paused);
       try {
-        sessionStorage.setItem('ios-player', JSON.stringify({ src, title, startTime, wasPlaying }));
+        sessionStorage.setItem('ios-player', JSON.stringify({ src: sourceUrl, title, startTime, wasPlaying }));
       } catch {}
       try { videoRef.current?.pause(); } catch {}
-      router.push('/ios-player');
+      const b64 = typeof window !== 'undefined' ? btoa(sourceUrl) : '';
+      router.push(`/ios-player?u=${encodeURIComponent(b64)}&t=${Math.floor(startTime)}&title=${encodeURIComponent(title || '')}`);
       return;
     }
 

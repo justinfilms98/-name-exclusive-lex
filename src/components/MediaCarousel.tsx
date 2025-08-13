@@ -213,11 +213,13 @@ export default function MediaCarousel({
     if (isIOSDevice && currentItem?.type === 'video') {
       const startTime = videoEl?.currentTime || 0;
       const wasPlaying = videoEl ? !videoEl.paused : false;
+      const src = currentItem.url;
       try {
-        sessionStorage.setItem('ios-player', JSON.stringify({ src: currentItem.url, title, startTime, wasPlaying }));
+        sessionStorage.setItem('ios-player', JSON.stringify({ src, title, startTime, wasPlaying }));
       } catch {}
       try { videoEl?.pause(); } catch {}
-      window.location.assign('/ios-player');
+      const b64 = btoa(src);
+      window.location.assign(`/ios-player?u=${encodeURIComponent(b64)}&t=${Math.floor(startTime)}&title=${encodeURIComponent(title || '')}`);
       return;
     }
 
