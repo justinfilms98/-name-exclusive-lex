@@ -19,6 +19,10 @@ export default function IOSPlayerPage() {
   const [isMuted, setIsMuted] = useState(true);
   const [isVertical, setIsVertical] = useState<boolean | null>(null);
   const [playError, setPlayError] = useState<string | null>(null);
+  const [duration, setDuration] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [isSeeking, setIsSeeking] = useState(false);
+  const [isBuffering, setIsBuffering] = useState(true);
 
   useEffect(() => {
     // 1) Primary: sessionStorage handoff
@@ -76,12 +80,27 @@ export default function IOSPlayerPage() {
 
       // Try autoplay muted; user can unmute
       el.muted = true;
-      el.play().then(() => { setIsPlaying(true); setPlayError(null); }).catch((e) => { setIsPlaying(false); setPlayError('tap'); });
+      el.play().then(() => { setIsPlaying(true); setPlayError(null); setIsBuffering(false); }).catch((e) => { setIsPlaying(false); setPlayError('tap'); setIsBuffering(false); });
     };
 
+    const onCanPlay = () => setIsBuffering(false);
+    const onWaiting = () => setIsBuffering(true);
+    const onTime = () => { if (!isSeeking) setCurrentTime(el.currentTime); };
+    const onMeta = () => { setDuration(el.duration || 0); };
+
     el.addEventListener("loadedmetadata", onLoaded, { once: true });
+    el.addEventListener("canplay", onCanPlay);
+    el.addEventListener("waiting", onWaiting);
+    el.addEventListener("timeupdate", onTime);
+    el.addEventListener("loadedmetadata", onMeta);
     return () => {
-      try { el.removeEventListener("loadedmetadata", onLoaded as any); } catch {}
+      try {
+        el.removeEventListener("loadedmetadata", onLoaded as any);
+        el.removeEventListener("canplay", onCanPlay as any);
+        el.removeEventListener("waiting", onWaiting as any);
+        el.removeEventListener("timeupdate", onTime as any);
+        el.removeEventListener("loadedmetadata", onMeta as any);
+      } catch {}
     };
   }, [payload]);
 
@@ -107,6 +126,8 @@ export default function IOSPlayerPage() {
         await el.play();
         setIsPlaying(true);
         setPlayError(null);
+        // After user gesture, enable audio by default
+        try { el.muted = false; setIsMuted(false); } catch {}
       } catch (e) {
         setPlayError('blocked');
       }
@@ -132,6 +153,8 @@ export default function IOSPlayerPage() {
       </div>
     );
   }
+
+  const percent = duration > 0 ? Math.min(100, (currentTime / duration) * 100) : 0;
 
   return (
     <div className="fixed inset-0 bg-black z-[100000]" style={{ WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation' }}>
@@ -170,6 +193,49 @@ export default function IOSPlayerPage() {
         </button>
       </div>
 
+      {/* Progress bar */}
+      <div
+        className="absolute bottom-16 left-0 right-0 px-4"
+        onMouseDown={(e) => {
+          const el = videoRef.current; if (!el) return; setIsSeeking(true);
+          const rect = (e.currentTarget.firstChild as HTMLElement).getBoundingClientRect();
+          const x = Math.min(Math.max(e.clientX - rect.left, 0), rect.width);
+          const time = (x / rect.width) * (duration || 0);
+          el.currentTime = time; setCurrentTime(time);
+        }}
+        onMouseMove={(e) => {
+          if (!isSeeking) return; const el = videoRef.current; if (!el) return;
+          const rect = (e.currentTarget.firstChild as HTMLElement).getBoundingClientRect();
+          const x = Math.min(Math.max(e.clientX - rect.left, 0), rect.width);
+          const time = (x / rect.width) * (duration || 0);
+          el.currentTime = time; setCurrentTime(time);
+        }}
+        onMouseUp={() => setIsSeeking(false)}
+        onTouchStart={(e) => {
+          const el = videoRef.current; if (!el) return; setIsSeeking(true);
+          const touch = e.touches[0]; const rect = (e.currentTarget.firstChild as HTMLElement).getBoundingClientRect();
+          const x = Math.min(Math.max(touch.clientX - rect.left, 0), rect.width);
+          const time = (x / rect.width) * (duration || 0);
+          el.currentTime = time; setCurrentTime(time);
+        }}
+        onTouchMove={(e) => {
+          if (!isSeeking) return; const el = videoRef.current; if (!el) return;
+          const touch = e.touches[0]; const rect = (e.currentTarget.firstChild as HTMLElement).getBoundingClientRect();
+          const x = Math.min(Math.max(touch.clientX - rect.left, 0), rect.width);
+          const time = (x / rect.width) * (duration || 0);
+          el.currentTime = time; setCurrentTime(time);
+        }}
+        onTouchEnd={() => setIsSeeking(false)}
+      >
+        <div className="w-full h-2 bg-white/20 rounded-full">
+          <div className="h-2 bg-white rounded-full" style={{ width: `${percent}%` }} />
+        </div>
+        <div className="mt-1 flex justify-between text-white/70 text-xs">
+          <span>{formatTime(currentTime)}</span>
+          <span>{formatTime(duration)}</span>
+        </div>
+      </div>
+
       {/* Center play prompt if not playing; full-screen hit target */}
       {!isPlaying && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -190,8 +256,22 @@ export default function IOSPlayerPage() {
           {playError === 'blocked' ? 'Autoplay blocked. Tap the button to start.' : ''}
         </div>
       )}
+
+      {/* Loader while buffering */}
+      {isBuffering && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="w-10 h-10 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+        </div>
+      )}
     </div>
   );
+}
+
+function formatTime(seconds: number) {
+  if (!isFinite(seconds)) return '0:00';
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60).toString().padStart(2, '0');
+  return `${m}:${s}`;
 }
 
 
