@@ -17,6 +17,8 @@ export default function IOSPlayerPage() {
   const [payload, setPayload] = useState<IOSPlayerPayload | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
+  const [isVertical, setIsVertical] = useState<boolean | null>(null);
+  const [playError, setPlayError] = useState<string | null>(null);
 
   useEffect(() => {
     // 1) Primary: sessionStorage handoff
@@ -66,11 +68,15 @@ export default function IOSPlayerPage() {
         // Nudge to avoid black frame on iOS
         const t = el.currentTime;
         el.currentTime = Math.max(0, t + 0.001);
+        // Detect orientation
+        const vw = el.videoWidth || 0;
+        const vh = el.videoHeight || 0;
+        if (vw && vh) setIsVertical(vh > vw);
       } catch {}
 
       // Try autoplay muted; user can unmute
       el.muted = true;
-      el.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+      el.play().then(() => { setIsPlaying(true); setPlayError(null); }).catch((e) => { setIsPlaying(false); setPlayError('tap'); });
     };
 
     el.addEventListener("loadedmetadata", onLoaded, { once: true });
@@ -100,7 +106,10 @@ export default function IOSPlayerPage() {
       try {
         await el.play();
         setIsPlaying(true);
-      } catch {}
+        setPlayError(null);
+      } catch (e) {
+        setPlayError('blocked');
+      }
     } else {
       el.pause();
       setIsPlaying(false);
@@ -125,7 +134,7 @@ export default function IOSPlayerPage() {
   }
 
   return (
-    <div className="fixed inset-0 bg-black z-[100000]">
+    <div className="fixed inset-0 bg-black z-[100000]" style={{ WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation' }}>
       {/* Header */}
       <div className="absolute top-0 left-0 right-0 z-10 bg-gradient-to-b from-black/80 to-transparent p-4 flex items-center justify-between">
         <button onClick={handleClose} className="text-white px-3 py-2 bg-white/10 rounded">
@@ -139,7 +148,7 @@ export default function IOSPlayerPage() {
       <video
         ref={videoRef}
         src={payload.src}
-        className="w-[100vw] h-[100vh] object-contain"
+        className={`w-[100vw] h-[100dvh] ${isVertical ? 'object-cover' : 'object-contain'}`}
         autoPlay
         muted
         playsInline
@@ -148,11 +157,11 @@ export default function IOSPlayerPage() {
         controlsList="nodownload nofullscreen noremoteplayback"
         onPlay={() => setIsPlaying(true)}
         onPause={() => setIsPlaying(false)}
-        style={{ backgroundColor: "black" }}
+        style={{ backgroundColor: "black", position: 'fixed', inset: 0 }}
       />
 
       {/* Controls */}
-      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 flex items-center justify-between">
+      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 flex items-center justify-between pointer-events-auto">
         <button onClick={togglePlay} className="text-white px-4 py-2 bg-white/10 rounded">
           {isPlaying ? "Pause" : "Play"}
         </button>
@@ -163,10 +172,17 @@ export default function IOSPlayerPage() {
 
       {/* Center play prompt if not playing */}
       {!isPlaying && (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <button onClick={togglePlay} className="text-white px-5 py-3 bg-white/10 rounded-full border border-white/30">
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <button onClick={togglePlay} onTouchStart={togglePlay} className="pointer-events-auto text-white px-5 py-3 bg-white/10 rounded-full border border-white/30">
             Tap to Play
           </button>
+        </div>
+      )}
+
+      {/* Optional debug message */}
+      {playError && (
+        <div className="absolute top-16 left-1/2 -translate-x-1/2 text-xs text-white/70">
+          {playError === 'blocked' ? 'Autoplay blocked. Tap the button to start.' : ''}
         </div>
       )}
     </div>
