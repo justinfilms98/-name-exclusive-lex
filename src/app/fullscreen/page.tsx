@@ -177,12 +177,12 @@ export default function FullscreenPage() {
             playsInline
             webkit-playsinline="true"
             disablePictureInPicture
-            controlsList="nodownload noremoteplayback"
-            controls={isIOS}
+            controlsList="nodownload noremoteplayback nofullscreen"
+            controls={false}
             onPlay={() => setIsPlaying(true)}
             onPause={() => setIsPlaying(false)}
-            style={{ backgroundColor: 'black', position: 'fixed', inset: 0, pointerEvents: isIOS ? 'auto' : 'none' }}
-            onClick={(e) => { if (!isIOS) { e.stopPropagation(); togglePlay(); } }}
+            style={{ backgroundColor: 'black', position: 'fixed', inset: 0, pointerEvents: 'auto' }}
+            onClick={(e) => { e.stopPropagation(); togglePlay(); }}
           />
         )}
       </div>
@@ -255,7 +255,7 @@ export default function FullscreenPage() {
       )}
 
       {/* Center Tap-to-Play overlay when not playing */}
-      {item.type === 'video' && !isPlaying && !isIOS && (
+      {item.type === 'video' && !isPlaying && (
         <div className="absolute inset-0 flex items-center justify-center">
           <button onClick={togglePlay} onTouchStart={togglePlay} className="text-white w-[70vw] max-w-[320px] px-6 py-4 bg-white/10 rounded-full border border-white/30 text-base">
             Tap to Play
