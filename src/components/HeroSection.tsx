@@ -23,6 +23,7 @@ export default function HeroSection() {
   const [user, setUser] = useState<any>(null);
   const [videosLoaded, setVideosLoaded] = useState(false);
   const [videosPlaying, setVideosPlaying] = useState(false);
+  const [needsTapToPlay, setNeedsTapToPlay] = useState(false);
   const videoRefs = useRef<HTMLVideoElement[]>([]);
 
   useEffect(() => {
@@ -66,7 +67,10 @@ export default function HeroSection() {
               const t = v.currentTime;
               v.currentTime = Math.max(0, t + 0.001);
             } catch {}
-            const attemptPlay = () => v.play().catch(() => {/* iOS may require a gesture; keep muted autoplay attempt */});
+            const attemptPlay = () => v.play().catch(() => {
+              // Autoplay likely blocked on mobile; show tap overlay
+              setNeedsTapToPlay(true);
+            });
             attemptPlay();
             // Retry shortly in case first attempt races with load
             setTimeout(attemptPlay, 150);
@@ -161,6 +165,22 @@ export default function HeroSection() {
   };
 
   const currentVideo = heroVideos[currentVideoIndex];
+  const isMobile = typeof navigator !== 'undefined' && /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+  const handleTapToPlay = () => {
+    const v = videoRefs.current[currentVideoIndex];
+    if (!v) return;
+    try {
+      v.muted = true;
+      v.setAttribute('muted', '');
+      (v as any).playsInline = true;
+      v.setAttribute('playsinline', 'true');
+      v.setAttribute('webkit-playsinline', 'true');
+      v.play().then(() => setNeedsTapToPlay(false)).catch(() => setNeedsTapToPlay(true));
+    } catch {
+      setNeedsTapToPlay(true);
+    }
+  };
 
   return (
     <div className="relative h-screen bg-black overflow-hidden hero-container group" style={{ marginTop: '-3.5rem' }}>
@@ -191,6 +211,18 @@ export default function HeroSection() {
           <source src={videoUrl} type="video/webm" />
         </video>
       ))}
+
+      {/* Mobile fallback: show tap overlay if autoplay is blocked */}
+      {isMobile && needsTapToPlay && (
+        <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/30">
+          <button
+            onClick={handleTapToPlay}
+            className="px-6 py-3 rounded-full bg-white/20 border border-white/30 text-white backdrop-blur hover:bg-white/30 transition"
+          >
+            Tap to play
+          </button>
+        </div>
+      )}
 
       {/* Enhanced Dark Overlay for Text Readability */}
       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent"></div>
