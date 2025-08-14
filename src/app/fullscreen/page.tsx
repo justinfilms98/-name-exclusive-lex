@@ -33,6 +33,7 @@ export default function FullscreenPage() {
   const hideTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [showControls, setShowControls] = useState(true);
   const [isIOS, setIsIOS] = useState(false);
+  const hasUnmutedOnceRef = useRef(false);
 
   useEffect(() => {
     // Try sessionStorage first
@@ -168,6 +169,18 @@ export default function FullscreenPage() {
     }
   };
 
+  const ensureAudioOnGesture = () => {
+    const el = videoRef.current; if (!el) return;
+    if (!isMuted) return;
+    try {
+      el.muted = false;
+      setIsMuted(false);
+      el.volume = 1.0;
+      el.play().catch(() => {});
+      hasUnmutedOnceRef.current = true;
+    } catch {}
+  };
+
   if (!payload || !item) {
     return (
       <div className="fixed inset-0 bg-black text-white flex items-center justify-center">
@@ -182,7 +195,8 @@ export default function FullscreenPage() {
       style={{ WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation' }}
       onMouseMove={() => { setShowControls(true); scheduleHideControls(); }}
       onTouchMove={() => { setShowControls(true); scheduleHideControls(); }}
-      onClick={() => { if (item.type === 'video') { setShowControls(true); scheduleHideControls(); } }}
+      onTouchStart={() => { setShowControls(true); ensureAudioOnGesture(); }}
+      onClick={() => { if (item.type === 'video') { setShowControls(true); if (isIOS) ensureAudioOnGesture(); scheduleHideControls(); } }}
     >
       {/* Header */}
       <div className={`absolute top-[env(safe-area-inset-top)] left-0 right-0 z-10 bg-gradient-to-b from-black/80 to-transparent p-4 flex items-center justify-between transition-opacity ${showControls ? 'opacity-100' : 'opacity-0'}`}>
@@ -207,7 +221,7 @@ export default function FullscreenPage() {
             webkit-playsinline="true"
             disablePictureInPicture
             controlsList="nodownload noremoteplayback nofullscreen"
-            controls={isIOS}
+            controls={false}
             onPlay={() => setIsPlaying(true)}
             onPause={() => setIsPlaying(false)}
             style={{ backgroundColor: 'black', position: 'fixed', inset: 0, pointerEvents: 'auto' }}
@@ -289,6 +303,19 @@ export default function FullscreenPage() {
         <div className="absolute inset-0 flex items-center justify-center">
           <button onClick={togglePlay} onTouchStart={togglePlay} className="text-white w-[70vw] max-w-[320px] px-6 py-4 bg-white/10 rounded-full border border-white/30 text-base">
             Tap to Play
+          </button>
+        </div>
+      )}
+
+      {/* iOS unmute prompt */}
+      {item.type === 'video' && isMuted && (
+        <div className="absolute inset-x-0 bottom-[max(env(safe-area-inset-bottom),1.5rem)] z-40 flex justify-center pointer-events-none">
+          <button
+            className="pointer-events-auto text-white px-5 py-3 bg-white/10 rounded-full border border-white/30 backdrop-blur-sm"
+            onClick={(e) => { e.stopPropagation(); ensureAudioOnGesture(); setShowControls(true); }}
+            onTouchStart={(e) => { e.stopPropagation(); ensureAudioOnGesture(); setShowControls(true); }}
+          >
+            Tap for sound
           </button>
         </div>
       )}
