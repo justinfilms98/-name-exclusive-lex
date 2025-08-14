@@ -178,11 +178,11 @@ export default function FullscreenPage() {
             webkit-playsinline="true"
             disablePictureInPicture
             controlsList="nodownload noremoteplayback nofullscreen"
-            controls={false}
+            controls={isIOS}
             onPlay={() => setIsPlaying(true)}
             onPause={() => setIsPlaying(false)}
             style={{ backgroundColor: 'black', position: 'fixed', inset: 0, pointerEvents: 'auto' }}
-            onClick={(e) => { e.stopPropagation(); togglePlay(); }}
+            onClick={(e) => { if (!isIOS) { e.stopPropagation(); togglePlay(); } }}
           />
         )}
       </div>
