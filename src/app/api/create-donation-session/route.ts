@@ -111,8 +111,8 @@ export async function POST(request: NextRequest) {
           price_data: {
             currency: 'usd',
             product_data: {
-              name: 'Donation - Support Our Creators',
-              description: 'Thank you for your generous support! Your donation helps us continue creating amazing luxury content.',
+              name: 'Donation - Support the Creator',
+              description: 'Thank you for your generous support! Your donation helps me continue creating amazing luxury content.',
             },
             unit_amount: Math.round(amount * 100), // Convert to cents
           },
