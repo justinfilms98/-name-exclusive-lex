@@ -130,8 +130,21 @@ export default function FullscreenPage() {
   const togglePlay = async () => {
     const el = videoRef.current; if (!el) return;
     if (el.paused) {
-      try { await el.play(); setIsPlaying(true); el.muted = false; setIsMuted(false); scheduleHideControls(); } catch { setShowControls(true); }
-    } else { el.pause(); setIsPlaying(false); setShowControls(true); }
+      try {
+        await el.play();
+        setIsPlaying(true);
+        if (el.muted) { el.muted = false; setIsMuted(false); }
+        scheduleHideControls();
+      } catch {
+        setShowControls(true);
+      }
+    } else {
+      // If already playing but muted, first interaction should unmute (don't pause)
+      if (el.muted) { el.muted = false; setIsMuted(false); scheduleHideControls(); return; }
+      el.pause();
+      setIsPlaying(false);
+      setShowControls(true);
+    }
   };
 
   const toggleMute = () => {
