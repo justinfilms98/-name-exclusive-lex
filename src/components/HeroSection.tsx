@@ -23,8 +23,8 @@ export default function HeroSection() {
   const [user, setUser] = useState<any>(null);
   const [videosLoaded, setVideosLoaded] = useState(false);
   const [videosPlaying, setVideosPlaying] = useState(false);
-  const [needsTapToPlay, setNeedsTapToPlay] = useState(false);
   const videoRefs = useRef<HTMLVideoElement[]>([]);
+  const singleVideoRef = useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
     loadHeroVideos();
@@ -48,43 +48,31 @@ export default function HeroSection() {
     }
   }, [heroVideos.length]);
 
-  // Ensure only the current hero video autoplays and others are paused
+  // Ensure current hero video autoplays reliably (single element approach)
   useEffect(() => {
-    const playCurrent = async () => {
-      const videos = videoRefs.current;
-      videos.forEach((v, idx) => {
-        if (!v) return;
-        try {
-          if (idx === currentVideoIndex) {
-            // Strengthen autoplay conditions
-            try { v.setAttribute('muted', ''); } catch {}
-            v.muted = true;
-            try { (v as any).playsInline = true; v.setAttribute('playsinline', 'true'); v.setAttribute('webkit-playsinline', 'true'); } catch {}
-            // Ensure the browser has the latest source
-            try { v.load(); } catch {}
-            // Small nudge to avoid black frame on iOS
-            try {
-              const t = v.currentTime;
-              v.currentTime = Math.max(0, t + 0.001);
-            } catch {}
-            const attemptPlay = () => v.play().catch(() => {
-              // Autoplay likely blocked on mobile; show tap overlay
-              setNeedsTapToPlay(true);
-            });
-            attemptPlay();
-            // Retry shortly in case first attempt races with load
-            setTimeout(attemptPlay, 150);
-            setTimeout(attemptPlay, 500);
-          } else {
-            v.pause();
-          }
-        } catch {}
-      });
-    };
-    if (videosLoaded) {
-      playCurrent();
-    }
-  }, [videosLoaded, currentVideoIndex]);
+    const v = singleVideoRef.current;
+    if (!v) return;
+    if (!videosLoaded || !videoUrls[currentVideoIndex]) return;
+    try {
+      // Apply attributes required for iOS autoplay
+      v.muted = true;
+      v.defaultMuted = true;
+      v.setAttribute('muted', '');
+      (v as any).playsInline = true;
+      v.setAttribute('playsinline', 'true');
+      v.setAttribute('webkit-playsinline', 'true');
+      // Reload and nudge time
+      v.load();
+      try {
+        const t = v.currentTime;
+        v.currentTime = Math.max(0, t + 0.001);
+      } catch {}
+      const attemptPlay = () => v.play().catch(() => {});
+      attemptPlay();
+      setTimeout(attemptPlay, 150);
+      setTimeout(attemptPlay, 500);
+    } catch {}
+  }, [videosLoaded, currentVideoIndex, videoUrls]);
 
   // Fallback: re-attempt autoplay when page becomes visible or gains focus
   useEffect(() => {
@@ -165,22 +153,7 @@ export default function HeroSection() {
   };
 
   const currentVideo = heroVideos[currentVideoIndex];
-  const isMobile = typeof navigator !== 'undefined' && /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-
-  const handleTapToPlay = () => {
-    const v = videoRefs.current[currentVideoIndex];
-    if (!v) return;
-    try {
-      v.muted = true;
-      v.setAttribute('muted', '');
-      (v as any).playsInline = true;
-      v.setAttribute('playsinline', 'true');
-      v.setAttribute('webkit-playsinline', 'true');
-      v.play().then(() => setNeedsTapToPlay(false)).catch(() => setNeedsTapToPlay(true));
-    } catch {
-      setNeedsTapToPlay(true);
-    }
-  };
+  // No mobile tap overlay; we must autoplay like desktop
 
   return (
     <div className="relative h-screen bg-black overflow-hidden hero-container group" style={{ marginTop: '-3.5rem' }}>
@@ -191,38 +164,24 @@ export default function HeroSection() {
       </div>
 
       {/* Optional Hero Videos */}
-      {videoUrls.length > 0 && videoUrls.map((videoUrl, index) => (
+      {videoUrls.length > 0 && (
         <video
-          key={heroVideos[index]?.id || index}
-          ref={(el) => { if (el) videoRefs.current[index] = el; }}
-          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${
-            index === currentVideoIndex ? 'opacity-100' : 'opacity-0'
-          }`}
-          autoPlay={index === currentVideoIndex}
+          key={currentVideoIndex}
+          ref={singleVideoRef}
+          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 opacity-100`}
+          src={videoUrls[currentVideoIndex]}
+          autoPlay
           muted
           loop
           playsInline
-          preload={index === currentVideoIndex ? 'auto' : 'metadata'}
+          preload="auto"
           onPlay={() => setVideosPlaying(true)}
           onPause={() => setVideosPlaying(false)}
           webkit-playsinline="true"
-        >
-          <source src={videoUrl} type="video/mp4" />
-          <source src={videoUrl} type="video/webm" />
-        </video>
-      ))}
-
-      {/* Mobile fallback: show tap overlay if autoplay is blocked */}
-      {isMobile && needsTapToPlay && (
-        <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/30">
-          <button
-            onClick={handleTapToPlay}
-            className="px-6 py-3 rounded-full bg-white/20 border border-white/30 text-white backdrop-blur hover:bg-white/30 transition"
-          >
-            Tap to play
-          </button>
-        </div>
+        />
       )}
+
+      {/* No button overlay on mobile; autoplay enforced via attributes and retries */}
 
       {/* Enhanced Dark Overlay for Text Readability */}
       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent"></div>
