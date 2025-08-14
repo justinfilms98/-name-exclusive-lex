@@ -55,13 +55,22 @@ export default function HeroSection() {
         if (!v) return;
         try {
           if (idx === currentVideoIndex) {
+            // Strengthen autoplay conditions
+            try { v.setAttribute('muted', ''); } catch {}
             v.muted = true;
+            try { (v as any).playsInline = true; v.setAttribute('playsinline', 'true'); v.setAttribute('webkit-playsinline', 'true'); } catch {}
+            // Ensure the browser has the latest source
+            try { v.load(); } catch {}
             // Small nudge to avoid black frame on iOS
             try {
               const t = v.currentTime;
               v.currentTime = Math.max(0, t + 0.001);
             } catch {}
-            v.play().catch(() => {/* iOS may require a gesture; keep muted autoplay attempt */});
+            const attemptPlay = () => v.play().catch(() => {/* iOS may require a gesture; keep muted autoplay attempt */});
+            attemptPlay();
+            // Retry shortly in case first attempt races with load
+            setTimeout(attemptPlay, 150);
+            setTimeout(attemptPlay, 500);
           } else {
             v.pause();
           }
@@ -72,6 +81,26 @@ export default function HeroSection() {
       playCurrent();
     }
   }, [videosLoaded, currentVideoIndex]);
+
+  // Fallback: re-attempt autoplay when page becomes visible or gains focus
+  useEffect(() => {
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        const v = videoRefs.current[currentVideoIndex];
+        try { v?.play().catch(() => {}); } catch {}
+      }
+    };
+    const onFocus = () => {
+      const v = videoRefs.current[currentVideoIndex];
+      try { v?.play().catch(() => {}); } catch {}
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('focus', onFocus);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('focus', onFocus);
+    };
+  }, [currentVideoIndex]);
 
   const loadUser = async () => {
     const { data: { session } } = await supabase.auth.getSession();
