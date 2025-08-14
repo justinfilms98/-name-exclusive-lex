@@ -11,40 +11,9 @@ export default function Header() {
   const [loading, setLoading] = useState(true);
   const [cartCount, setCartCount] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [bannerHeight, setBannerHeight] = useState(40);
+  const [bannerHeight, setBannerHeight] = useState(0);
 
-  useEffect(() => {
-    // Check banner state from localStorage
-    const checkBannerState = () => {
-      const bannerMinimized = localStorage.getItem('construction-banner-minimized');
-      const bannerDismissed = localStorage.getItem('construction-banner-dismissed');
-      
-      if (bannerDismissed === 'true') {
-        setBannerHeight(0);
-      } else if (bannerMinimized === 'true') {
-        setBannerHeight(32); // 8 * 4 = 32px for h-8
-      } else {
-        setBannerHeight(40); // Default height
-      }
-    };
-
-    checkBannerState();
-
-    // Listen for storage changes
-    const handleStorageChange = () => {
-      checkBannerState();
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    
-    // Also check periodically for changes
-    const interval = setInterval(checkBannerState, 1000);
-
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      clearInterval(interval);
-    };
-  }, []);
+  // Construction banner removed; keep header at top with no offset
 
   useEffect(() => {
     // Get initial session
