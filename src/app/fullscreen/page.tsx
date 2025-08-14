@@ -220,8 +220,8 @@ export default function FullscreenPage() {
             playsInline
             webkit-playsinline="true"
             disablePictureInPicture
-            controlsList="nodownload noremoteplayback nofullscreen"
-            controls={false}
+            controlsList={isIOS ? "nodownload" : "nodownload noremoteplayback nofullscreen"}
+            controls={isIOS}
             onPlay={() => setIsPlaying(true)}
             onPause={() => setIsPlaying(false)}
             style={{ backgroundColor: 'black', position: 'fixed', inset: 0, pointerEvents: 'auto' }}
@@ -240,7 +240,7 @@ export default function FullscreenPage() {
       )}
 
       {/* Controls if video */}
-      {item.type === 'video' && (
+      {item.type === 'video' && !isIOS && (
         <>
           <div className={`absolute bottom-[max(env(safe-area-inset-bottom),0px)] left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 flex items-center justify-between pointer-events-auto transition-opacity ${showControls ? 'opacity-100' : 'opacity-0'} z-40`}>
             <button onClick={togglePlay} className="text-white px-4 py-2 bg-white/10 rounded">{isPlaying ? 'Pause' : 'Play'}</button>
