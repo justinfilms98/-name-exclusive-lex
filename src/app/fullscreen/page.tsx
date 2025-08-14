@@ -85,6 +85,7 @@ export default function FullscreenPage() {
         setIsVertical(vh > vw);
       } catch {}
       el.muted = true;
+      setIsMuted(true);
       el.play().then(() => { setIsPlaying(true); setIsBuffering(false); scheduleHideControls(); }).catch(() => { setIsPlaying(false); setIsBuffering(false); setShowControls(true); });
     };
     const onCanPlay = () => setIsBuffering(false);
@@ -186,7 +187,7 @@ export default function FullscreenPage() {
             poster={item.thumbnail || '/placeholder-thumbnail.jpg'}
             className={`w-[100vw] h-[100dvh] ${isVertical ? 'object-cover' : 'object-cover'}`}
             autoPlay
-            muted
+            muted={isMuted}
             playsInline
             webkit-playsinline="true"
             disablePictureInPicture
