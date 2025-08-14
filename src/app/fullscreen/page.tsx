@@ -187,6 +187,17 @@ export default function FullscreenPage() {
         )}
       </div>
 
+      {/* iOS: swallow taps on the native fullscreen button area (bottom-right) */}
+      {item.type === 'video' && isIOS && (
+        <div
+          className="absolute z-50"
+          style={{ right: 0, bottom: 0, width: 180, height: 90 }}
+          aria-hidden="true"
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+          onTouchStart={(e) => { e.preventDefault(); e.stopPropagation(); }}
+        />
+      )}
+
       {/* Arrows */}
       {items.length > 1 && (
         <>
