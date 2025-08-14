@@ -4,7 +4,6 @@ import './globals.css'
 import { Providers } from './providers'
 import AgeVerificationWrapper from '../components/AgeVerificationWrapper'
 import Header from './Header'
-import ConstructionBanner from '../components/ConstructionBanner'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -26,7 +25,6 @@ export default function RootLayout({
       <body className={inter.className}>
         <Providers>
           <AgeVerificationWrapper>
-            <ConstructionBanner />
             <Header />
             <main className="pt-14 sm:pt-16">
               {children}
