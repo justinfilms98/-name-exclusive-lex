@@ -51,22 +51,28 @@ export default function HeroSection() {
   // Ensure current hero video autoplays reliably (single element approach)
   useEffect(() => {
     const v = singleVideoRef.current;
-    if (!v) return;
-    if (!videosLoaded || !videoUrls[currentVideoIndex]) return;
+    const url = videoUrls[currentVideoIndex];
+    if (!v || !videosLoaded || !url) return;
     try {
-      // Apply attributes required for iOS autoplay
+      // Stop and hard reset source before applying attributes
+      try { v.pause(); } catch {}
+      try { v.removeAttribute('src'); } catch {}
+      try { v.load(); } catch {}
+
+      // Apply attributes required for mobile autoplay BEFORE setting src
       v.muted = true;
       v.defaultMuted = true;
-      v.setAttribute('muted', '');
+      try { v.setAttribute('muted', ''); } catch {}
       (v as any).playsInline = true;
-      v.setAttribute('playsinline', 'true');
-      v.setAttribute('webkit-playsinline', 'true');
-      // Reload and nudge time
+      try { v.setAttribute('playsinline', 'true'); v.setAttribute('webkit-playsinline', 'true'); } catch {}
+      try { v.setAttribute('autoplay', ''); } catch {}
+      try { v.setAttribute('preload', 'auto'); } catch {}
+      try { v.setAttribute('crossorigin', 'anonymous'); } catch {}
+
+      // Now set the source and start playback
+      v.src = url;
       v.load();
-      try {
-        const t = v.currentTime;
-        v.currentTime = Math.max(0, t + 0.001);
-      } catch {}
+      try { const t = v.currentTime; v.currentTime = Math.max(0, t + 0.001); } catch {}
       const attemptPlay = () => v.play().catch(() => {});
       attemptPlay();
       setTimeout(attemptPlay, 150);
@@ -169,12 +175,14 @@ export default function HeroSection() {
           key={currentVideoIndex}
           ref={singleVideoRef}
           className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 opacity-100`}
-          src={videoUrls[currentVideoIndex]}
           autoPlay
           muted
           loop
           playsInline
           preload="auto"
+          controls={false}
+          disablePictureInPicture
+          // src is set programmatically after attributes for better mobile autoplay compliance
           onPlay={() => setVideosPlaying(true)}
           onPause={() => setVideosPlaying(false)}
           webkit-playsinline="true"
