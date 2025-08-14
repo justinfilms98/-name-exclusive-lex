@@ -150,7 +150,22 @@ export default function FullscreenPage() {
 
   const toggleMute = () => {
     const el = videoRef.current; if (!el) return;
-    el.muted = !el.muted; setIsMuted(el.muted);
+    const willBeMuted = !el.muted;
+    el.muted = willBeMuted;
+    setIsMuted(willBeMuted);
+    if (!willBeMuted) {
+      try {
+        el.volume = 1.0;
+        // iOS sometimes requires a play() call in the same gesture that unmutes
+        if (el.paused) {
+          el.play().catch(() => {});
+        } else {
+          // Nudge playback to ensure audio routing engages
+          el.currentTime = el.currentTime;
+          el.play().catch(() => {});
+        }
+      } catch {}
+    }
   };
 
   if (!payload || !item) {

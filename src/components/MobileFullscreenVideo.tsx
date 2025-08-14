@@ -87,9 +87,21 @@ export default function MobileFullscreenVideo({
   };
 
   const handleMuteToggle = () => {
-    if (videoRef.current) {
-      videoRef.current.muted = !isMuted;
-      setIsMuted(!isMuted);
+    const el = videoRef.current;
+    if (!el) return;
+    const willBeMuted = !isMuted;
+    el.muted = willBeMuted;
+    setIsMuted(willBeMuted);
+    if (!willBeMuted) {
+      try {
+        el.volume = 1.0;
+        if (el.paused) {
+          el.play().catch(() => {});
+        } else {
+          el.currentTime = el.currentTime;
+          el.play().catch(() => {});
+        }
+      } catch {}
     }
   };
 
