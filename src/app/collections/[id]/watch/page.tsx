@@ -325,18 +325,7 @@ export default function WatchPage() {
           </div>
         )}
 
-        {/* Fullscreen Carousel Button */}
-        <div className="absolute bottom-4 right-4 z-10">
-          <button
-            onClick={openCarousel}
-            className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-4 py-2 rounded-lg transition-all duration-300 backdrop-blur-sm flex items-center space-x-2"
-          >
-            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>
-            </svg>
-            <span>Fullscreen</span>
-          </button>
-        </div>
+        {/* Open carousel in modal (no labeled fullscreen button) */}
       </div>
 
       {/* Media Carousel Modal - Fullscreen Mode */}
