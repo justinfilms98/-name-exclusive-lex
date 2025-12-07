@@ -197,7 +197,7 @@ export default function HeroSection() {
       {/* Content */}
       <div className="relative z-10 h-full flex items-center justify-center pt-14 sm:pt-16">
         <div className="text-center text-white max-w-4xl mx-auto px-4">
-          <div className="hero-text-container bg-black/30 backdrop-blur-md rounded-2xl p-8 sm:p-12 border border-white/20 shadow-2xl">
+          <div className="hero-text-container">
             <h1 
               className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl mb-6 text-shadow-lg animate-fade-in"
               style={{ 
@@ -212,38 +212,6 @@ export default function HeroSection() {
             >
               {currentVideo ? currentVideo.title : 'EXCLUSIVE LEX'}
             </h1>
-            
-            <p className="text-xl sm:text-2xl md:text-3xl lg:text-4xl text-gray-200 mb-8 text-shadow animate-fade-in">
-              {currentVideo ? currentVideo.subtitle : 'A private collection of sensual content'}
-            </p>
-
-            {/* Guiding subtext for non-signed-in users */}
-            {!user && (
-              <p className="text-lg sm:text-xl text-sage mb-6 text-shadow animate-fade-in">
-                Login to unlock exclusive access to premium content
-              </p>
-            )}
-
-            {/* CTA Button - Dynamic based on user authentication */}
-            <div className="animate-fade-in">
-              {user ? (
-                <Link
-                  href="/collections"
-                  className="inline-flex items-center bg-gradient-to-r from-sage to-sage/80 hover:from-sage/90 hover:to-sage/70 text-white text-lg sm:text-xl px-8 sm:px-12 py-4 sm:py-5 rounded-full shadow-2xl hover:shadow-sage/25 transition-all duration-300 transform hover:scale-105 font-semibold"
-                >
-                  <Play className="w-5 h-5 mr-2" />
-                  View Collections
-                </Link>
-              ) : (
-                <Link
-                  href="/login"
-                  className="inline-flex items-center bg-gradient-to-r from-sage to-sage/80 hover:from-sage/90 hover:to-sage/70 text-white text-lg sm:text-xl px-8 sm:px-12 py-4 sm:py-5 rounded-full shadow-2xl hover:shadow-sage/25 transition-all duration-300 transform hover:scale-105 font-semibold"
-                >
-                  <Sparkles className="w-5 h-5 mr-2" />
-                  Login or Sign Up
-                </Link>
-              )}
-            </div>
           </div>
         </div>
       </div>
