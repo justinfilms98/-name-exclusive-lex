@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { getHeroVideos, getSignedUrl, supabase } from '@/lib/supabase';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Play, Sparkles } from 'lucide-react';
+import Link from 'next/link';
 
 interface HeroVideo {
   id: string;
@@ -210,6 +211,38 @@ export default function HeroSection() {
           >
             {currentVideo ? currentVideo.title : 'EXCLUSIVE LEX'}
           </h1>
+          
+          <p className="text-xl sm:text-2xl md:text-3xl lg:text-4xl text-gray-200 mb-8 text-shadow animate-fade-in">
+            {currentVideo ? currentVideo.subtitle : 'A private collection of sensual content'}
+          </p>
+
+          {/* Guiding subtext for non-signed-in users */}
+          {!user && (
+            <p className="text-lg sm:text-xl text-sage mb-6 text-shadow animate-fade-in">
+              Login to unlock exclusive access to premium content
+            </p>
+          )}
+
+          {/* CTA Button - Dynamic based on user authentication */}
+          <div className="animate-fade-in">
+            {user ? (
+              <Link
+                href="/collections"
+                className="inline-flex items-center bg-gradient-to-r from-sage to-sage/80 hover:from-sage/90 hover:to-sage/70 text-white text-lg sm:text-xl px-8 sm:px-12 py-4 sm:py-5 rounded-full shadow-2xl hover:shadow-sage/25 transition-all duration-300 transform hover:scale-105 font-semibold"
+              >
+                <Play className="w-5 h-5 mr-2" />
+                View Collections
+              </Link>
+            ) : (
+              <Link
+                href="/login"
+                className="inline-flex items-center bg-gradient-to-r from-sage to-sage/80 hover:from-sage/90 hover:to-sage/70 text-white text-lg sm:text-xl px-8 sm:px-12 py-4 sm:py-5 rounded-full shadow-2xl hover:shadow-sage/25 transition-all duration-300 transform hover:scale-105 font-semibold"
+              >
+                <Sparkles className="w-5 h-5 mr-2" />
+                Login or Sign Up
+              </Link>
+            )}
+          </div>
         </div>
       </div>
 
