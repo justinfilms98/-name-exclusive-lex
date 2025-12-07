@@ -1,5 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  experimental: {
+    // Disable typed routes to avoid TS trying to resolve app route files from non-app components
+    typedRoutes: false,
+  },
   images: {
     remotePatterns: [
       {
