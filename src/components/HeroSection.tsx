@@ -2,8 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { getHeroVideos, getSignedUrl, supabase } from '@/lib/supabase';
-import { ChevronLeft, ChevronRight, Play, Sparkles } from 'lucide-react';
-import Link from 'next/link';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface HeroVideo {
   id: string;
@@ -197,22 +196,20 @@ export default function HeroSection() {
       {/* Content */}
       <div className="relative z-10 h-full flex items-center justify-center pt-14 sm:pt-16">
         <div className="text-center text-white max-w-4xl mx-auto px-4">
-          <div className="hero-text-container">
-            <h1 
-              className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl mb-6 text-shadow-lg animate-fade-in"
-              style={{ 
-                fontFamily: 'Vogue, serif',
-                fontWeight: 'normal',
-                letterSpacing: '0.05em',
-                background: 'linear-gradient(135deg, #ffffff 0%, #f3f4f6 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text'
-              }}
-            >
-              {currentVideo ? currentVideo.title : 'EXCLUSIVE LEX'}
-            </h1>
-          </div>
+          <h1 
+            className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl mb-6 text-shadow-lg animate-fade-in"
+            style={{ 
+              fontFamily: 'Vogue, serif',
+              fontWeight: 'normal',
+              letterSpacing: '0.05em',
+              background: 'linear-gradient(135deg, #ffffff 0%, #f3f4f6 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text'
+            }}
+          >
+            {currentVideo ? currentVideo.title : 'EXCLUSIVE LEX'}
+          </h1>
         </div>
       </div>
 
