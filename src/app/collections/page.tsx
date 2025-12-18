@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { getCollections, supabase, getSignedUrl } from '@/lib/supabase';
-import { ShoppingCart, Clock, Image as ImageIcon, Heart, ArrowRight } from 'lucide-react';
+import { Image as ImageIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import CollectionCard from '@/components/CollectionCard';
 
 interface Collection {
   id: string;
@@ -14,6 +15,8 @@ interface Collection {
   video_duration: number; // actual video length
   thumbnail_path: string;
   photo_paths: string[];
+  album_id?: string | null;
+  albums?: { id: string; name: string; slug: string } | null;
   created_at: string;
 }
 
@@ -183,15 +186,6 @@ export default function CollectionsPage() {
     });
   }, [toasts]);
 
-  const formatVideoDuration = (seconds: number): string => {
-    const minutes = Math.floor(seconds / 60);
-    return `${minutes} min`;
-  };
-
-  const formatPrice = (price: number): string => {
-    return (price / 100).toFixed(2);
-  };
-
   const toggleDescription = (collectionId: string) => {
     setExpandedDescriptions(prev => ({
       ...prev,
@@ -274,152 +268,31 @@ export default function CollectionsPage() {
           <p className="body-large text-sage max-w-2xl mx-auto">
             Premium exclusive content with permanent access. Each collection offers behind-the-scenes experiences.
           </p>
+          <div className="mt-4">
+            <Link href="/albums" className="btn-secondary inline-flex">
+              Browse by album
+            </Link>
+          </div>
         </div>
 
-        {/* Masonry Grid */}
-        <div className="masonry-grid">
-          {collections.map((collection, index) => {
+        {/* Responsive Grid */}
+        <div className="grid grid-cols-2 max-[430px]:grid-cols-1 sm:grid-cols-[repeat(auto-fit,minmax(200px,1fr))] lg:grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-3 sm:gap-6 lg:gap-8">
+          {collections.map((collection) => {
             const isPurchased = userPurchases.includes(collection.id);
-            const photoCount = collection.photo_paths?.length || 0;
             const thumbnailUrl = thumbnailUrls[collection.id];
             const isAdding = addingToCart === collection.id;
-            
+
             return (
-              <div
+              <CollectionCard
                 key={collection.id}
-                className="masonry-item group"
-              >
-                {/* Main Card Container */}
-                <div className="relative overflow-hidden rounded-xl bg-blanc border border-mushroom/30 hover:shadow-elegant transition-all duration-500 transform hover:-translate-y-2 hover:scale-[1.02]">
-                  
-                  {/* Thumbnail Section */}
-                  <div className="relative aspect-[4/6] overflow-hidden">
-                    {thumbnailUrl ? (
-                      <img
-                        src={thumbnailUrl}
-                        alt={collection.title}
-                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                        onError={(e) => {
-                          // Fallback if image fails to load
-                          e.currentTarget.style.display = 'none';
-                          e.currentTarget.nextElementSibling?.classList.remove('hidden');
-                        }}
-                      />
-                    ) : null}
-                    
-                    {/* Fallback placeholder */}
-                    <div className={`w-full h-full bg-gradient-to-br from-mushroom to-blanket flex items-center justify-center ${thumbnailUrl ? 'hidden' : ''}`}>
-                      <ImageIcon className="w-16 h-16 text-sage/60" />
-                    </div>
-
-                    {/* Hover Overlay with Blur Background */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-earth via-earth/80 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500 backdrop-blur-sm">
-                      {/* Content that appears on hover */}
-                      <div className="absolute bottom-0 left-0 right-0 p-6 text-blanc transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
-                        
-                        {/* Title */}
-                        <h3 className="text-xl font-serif mb-2 line-clamp-2">
-                          {collection.title}
-                        </h3>
-                        
-                        {/* Description */}
-                        <div className="text-blanket/90 text-sm mb-3 opacity-0 group-hover:opacity-100 transition-opacity duration-700 delay-100">
-                          <p className={`${expandedDescriptions[collection.id] ? '' : 'line-clamp-3'}`}>
-                            {collection.description}
-                          </p>
-                          {collection.description.length > 150 && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                toggleDescription(collection.id);
-                              }}
-                              className="text-blanc/80 hover:text-blanc text-xs mt-1 underline"
-                            >
-                              {expandedDescriptions[collection.id] ? 'Show Less' : 'Read More'}
-                            </button>
-                          )}
-                        </div>
-
-                        {/* Metadata Row */}
-                        <div className="flex items-center justify-between text-xs text-blanket/80 mb-4 opacity-0 group-hover:opacity-100 transition-opacity duration-700 delay-200">
-                          <div className="flex items-center space-x-3">
-                            <div className="flex items-center">
-                              <Clock className="w-3 h-3 mr-1" />
-                              <span>Video: {formatVideoDuration(collection.video_duration || 300)}</span>
-                            </div>
-                            <div className="flex items-center">
-                              <ImageIcon className="w-3 h-3 mr-1" />
-                              {photoCount} photos
-                            </div>
-                          </div>
-                          <div className="text-lg font-bold text-blanket">
-                            ${formatPrice(collection.price)}
-                          </div>
-                        </div>
-
-                        {/* CTA Button */}
-                        <button
-                          onClick={() => addToCart(collection)}
-                          disabled={isAdding}
-                          className="w-full bg-sage text-blanc px-4 py-3 rounded-lg font-medium hover:bg-khaki transition-all duration-300 flex items-center justify-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-700 delay-300 disabled:opacity-50"
-                        >
-                          {isAdding ? (
-                            <>
-                              <div className="w-4 h-4 spinner"></div>
-                              <span>Adding...</span>
-                            </>
-                          ) : isPurchased ? (
-                            <>
-                              <span>Watch Now</span>
-                              <ArrowRight className="w-4 h-4" />
-                            </>
-                          ) : (
-                            <>
-                              <ShoppingCart className="w-4 h-4" />
-                              <span>Unlock to Purchase</span>
-                            </>
-                          )}
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Purchase Badge */}
-                    {isPurchased && (
-                      <div className="absolute top-3 right-3 bg-sage text-blanc px-3 py-1 rounded-full text-xs font-medium shadow-lg">
-                        Owned
-                      </div>
-                    )}
-
-                    {/* Loading State for Adding to Cart */}
-                    {isAdding && (
-                      <div className="absolute inset-0 bg-sage/20 backdrop-blur-sm flex items-center justify-center">
-                        <div className="bg-sage text-blanc px-4 py-2 rounded-lg flex items-center space-x-2">
-                          <div className="w-4 h-4 spinner"></div>
-                          <span>Adding to cart...</span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Bottom Info Bar (Always Visible) */}
-                  <div className="p-4 bg-blanc">
-                    <h3 className="font-serif text-earth text-lg mb-1 line-clamp-1">
-                      {collection.title}
-                    </h3>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sage text-sm">{photoCount} photos • Video: {formatVideoDuration(collection.video_duration || 300)}</span>
-                      <span className="text-earth font-bold">${formatPrice(collection.price)}</span>
-                    </div>
-                    {/* Access Notice */}
-                    <div className="mt-2 p-2 bg-khaki/10 border border-khaki/20 rounded text-xs text-khaki">
-                      <div className="flex items-center">
-                        <Clock className="w-3 h-3 mr-1" />
-                        <span>Permanent Access</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+                collection={collection}
+                isPurchased={isPurchased}
+                thumbnailUrl={thumbnailUrl}
+                isAdding={isAdding}
+                isExpanded={!!expandedDescriptions[collection.id]}
+                onToggleDescription={toggleDescription}
+                onAddToCart={addToCart}
+              />
             );
           })}
         </div>
