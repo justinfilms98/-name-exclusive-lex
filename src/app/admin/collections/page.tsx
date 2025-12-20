@@ -3,7 +3,8 @@
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { getCollections, uploadFile, supabase, createCollection, getAlbums, createAlbum } from '@/lib/supabase';
-import { Upload, Trash2, Edit, Image as ImageIcon, Video, Plus, AlertCircle, FolderPlus } from 'lucide-react';
+import { Upload, Trash2, Edit, Image as ImageIcon, Video, Plus, AlertCircle, FolderPlus, MoreVertical, Move } from 'lucide-react';
+import { updateCollection } from '@/lib/supabase';
 
 interface Collection {
   id: string;
@@ -62,6 +63,9 @@ export default function AdminCollectionsPage() {
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [extractingDurations, setExtractingDurations] = useState(false);
   const [extractionResults, setExtractionResults] = useState<any>(null);
+  const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
+  const [movingCollectionId, setMovingCollectionId] = useState<string | null>(null);
+  const [draggedCollectionId, setDraggedCollectionId] = useState<string | null>(null);
 
   useEffect(() => {
     loadCollections();
@@ -79,6 +83,39 @@ export default function AdminCollectionsPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleMoveToAlbum = async (collectionId: string, albumId: string | null) => {
+    setMovingCollectionId(collectionId);
+    try {
+      const { error } = await updateCollection(collectionId, { album_id: albumId });
+      if (error) throw new Error(error.message);
+      await loadCollections();
+      setMenuOpenId(null);
+    } catch (err) {
+      console.error('Failed to move collection:', err);
+      alert('Failed to move collection to album. Please try again.');
+    } finally {
+      setMovingCollectionId(null);
+    }
+  };
+
+  const handleDragStart = (e: React.DragEvent, collectionId: string) => {
+    setDraggedCollectionId(collectionId);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleDrop = async (e: React.DragEvent, targetAlbumId: string | null) => {
+    e.preventDefault();
+    if (!draggedCollectionId) return;
+    
+    await handleMoveToAlbum(draggedCollectionId, targetAlbumId);
+    setDraggedCollectionId(null);
   };
 
   const loadAlbums = async () => {
@@ -862,13 +899,20 @@ export default function AdminCollectionsPage() {
               {collections.map((collection) => (
                 <div
                   key={collection.id}
-                  className="card p-6"
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, collection.id)}
+                  className={`card p-6 cursor-move transition-all ${
+                    draggedCollectionId === collection.id ? 'opacity-50' : ''
+                  }`}
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <h3 className="text-xl font-serif text-earth mb-2">
-                        {collection.title}
-                      </h3>
+                      <div className="flex items-center gap-2 mb-2">
+                        <Move className="w-4 h-4 text-sage/60" />
+                        <h3 className="text-xl font-serif text-earth">
+                          {collection.title}
+                        </h3>
+                      </div>
                       {collection.albums && (
                         <div className="inline-flex items-center px-3 py-1 bg-blanket/60 text-earth text-xs font-medium rounded-full mb-2">
                           Album: {collection.albums.name}
@@ -899,6 +943,50 @@ export default function AdminCollectionsPage() {
                     </div>
 
                     <div className="flex items-center space-x-2 ml-4">
+                      <div className="relative">
+                        <button
+                          onClick={() => setMenuOpenId(menuOpenId === collection.id ? null : collection.id)}
+                          className="p-2 text-sage hover:text-khaki transition-colors hover:bg-blanket/50 rounded-lg"
+                          title="More options"
+                        >
+                          <MoreVertical className="w-4 h-4" />
+                        </button>
+                        
+                        {menuOpenId === collection.id && (
+                          <>
+                            <div 
+                              className="fixed inset-0 z-10" 
+                              onClick={() => setMenuOpenId(null)}
+                            />
+                            <div className="absolute right-0 mt-2 w-56 bg-blanc rounded-lg shadow-lg border border-mushroom/30 z-20 py-2">
+                              <div className="px-3 py-2 text-xs font-medium text-sage border-b border-mushroom/30">
+                                Move to Album
+                              </div>
+                              <button
+                                onClick={() => handleMoveToAlbum(collection.id, null)}
+                                disabled={movingCollectionId === collection.id}
+                                className="w-full text-left px-3 py-2 text-sm text-earth hover:bg-blanket/50 transition-colors disabled:opacity-50"
+                              >
+                                {movingCollectionId === collection.id ? 'Moving...' : 'No Album'}
+                              </button>
+                              {albums.map((album) => (
+                                <button
+                                  key={album.id}
+                                  onClick={() => handleMoveToAlbum(collection.id, album.id)}
+                                  disabled={movingCollectionId === collection.id}
+                                  className={`w-full text-left px-3 py-2 text-sm transition-colors disabled:opacity-50 ${
+                                    collection.album_id === album.id
+                                      ? 'bg-blanket/70 text-earth font-medium'
+                                      : 'text-earth hover:bg-blanket/50'
+                                  }`}
+                                >
+                                  {movingCollectionId === collection.id ? 'Moving...' : album.name}
+                                </button>
+                              ))}
+                            </div>
+                          </>
+                        )}
+                      </div>
                       <Link
                         href={`/admin/collections/${collection.id}/edit`}
                         className="p-2 text-sage hover:text-khaki transition-colors hover:bg-blanket/50 rounded-lg"

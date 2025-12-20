@@ -81,14 +81,14 @@ export default function AlbumsPage() {
             <p className="text-sage text-sm">Collections are coming soon.</p>
           </div>
         ) : (
-          <div className="flex flex-col items-center gap-6 max-h-[calc(100vh-280px)] overflow-y-auto px-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
             {albums.map((album) => {
               const thumbnailUrl = thumbnailUrls[album.id];
               return (
                 <Link
                   key={album.id}
                   href={`/albums/${album.slug}`}
-                  className="w-full max-w-md group"
+                  className="group"
                 >
                   <div className="bg-blanc border border-mushroom/30 rounded-2xl shadow-soft overflow-hidden hover:shadow-elegant transition-all duration-300 hover:scale-[1.02]">
                     <div className="aspect-square relative overflow-hidden rounded-t-2xl">
