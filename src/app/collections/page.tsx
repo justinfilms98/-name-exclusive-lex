@@ -196,7 +196,7 @@ export default function CollectionsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-almond pt-20 flex items-center justify-center">
+      <div className="min-h-screen bg-almond flex items-center justify-center">
         <div className="text-center">
           <div className="w-12 h-12 spinner mx-auto mb-4"></div>
           <p className="text-sage text-lg">Loading collections...</p>
@@ -207,7 +207,7 @@ export default function CollectionsPage() {
 
   if (collections.length === 0) {
     return (
-      <div className="min-h-screen bg-almond pt-20">
+      <div className="min-h-screen bg-almond">
         <div className="max-w-7xl mx-auto px-4 py-16">
           <div className="text-center py-16">
             <div className="text-sage mb-4">
@@ -222,7 +222,7 @@ export default function CollectionsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-almond pt-20">
+    <div className="min-h-screen bg-almond">
       {/* Toast Notifications */}
       <div className="fixed top-4 right-4 z-50 space-y-2">
         {toasts.map((toast) => {
@@ -277,7 +277,7 @@ export default function CollectionsPage() {
         </div>
 
         {/* Responsive Grid */}
-        <div className="grid grid-cols-2 max-[430px]:grid-cols-1 sm:grid-cols-[repeat(auto-fit,minmax(200px,1fr))] lg:grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-3 sm:gap-6 lg:gap-8">
+        <div className="grid grid-cols-2 max-[430px]:grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
           {collections.map((collection) => {
             const isPurchased = userPurchases.includes(collection.id);
             const thumbnailUrl = thumbnailUrls[collection.id];

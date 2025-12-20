@@ -58,7 +58,7 @@ export default function AlbumsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-almond pt-20">
+    <div className="min-h-screen bg-almond">
       <div className="max-w-6xl mx-auto px-4 py-4 sm:py-6 md:py-8">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4 sm:mb-6 md:mb-8">
           <div>
@@ -113,11 +113,11 @@ export default function AlbumsPage() {
                     <div className="p-4 space-y-2 bg-blanc">
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex-1 min-w-0">
-                          <h3 className="font-serif text-earth text-lg mb-1 line-clamp-2">
+                          <h3 className="font-serif text-earth text-lg mb-1 line-clamp-2 break-words">
                             {album.name}
                           </h3>
                           {album.description && (
-                            <p className="text-sage text-sm line-clamp-2">
+                            <p className="text-sage text-sm line-clamp-2 break-words">
                               {album.description}
                             </p>
                           )}
