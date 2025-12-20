@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { supabase, getAlbumBySlug, getCollectionsByAlbum, getSignedUrl } from "@/lib/supabase";
 import { CollectionCardData } from "@/components/CollectionCard";
 import { Image as ImageIcon, ShoppingCart, ArrowRight } from "lucide-react";
+import type { User } from "@supabase/supabase-js";
 
 interface Album {
   id: string;
@@ -29,7 +30,7 @@ export default function AlbumDetailPage() {
   const [collections, setCollections] = useState<CollectionCardData[]>([]);
   const [thumbnailUrls, setThumbnailUrls] = useState<Record<string, string>>({});
   const [userPurchases, setUserPurchases] = useState<string[]>([]);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [addingToCart, setAddingToCart] = useState<string | null>(null);
   const [expandedDescriptions, setExpandedDescriptions] = useState<Record<string, boolean>>({});
@@ -122,8 +123,8 @@ export default function AlbumDetailPage() {
     }
 
     setAddingToCart(collection.id);
-    const cart = JSON.parse(localStorage.getItem("cart") || "[]");
-    const isAlreadyInCart = cart.some((item: any) => item.id === collection.id);
+    const cart = JSON.parse(localStorage.getItem("cart") || "[]") as CollectionCardData[];
+    const isAlreadyInCart = cart.some((item: CollectionCardData) => item.id === collection.id);
 
     if (!isAlreadyInCart) {
       cart.push(collection);

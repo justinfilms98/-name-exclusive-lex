@@ -6,6 +6,7 @@ import { Image as ImageIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import CollectionCard from '@/components/CollectionCard';
+import type { User } from '@supabase/supabase-js';
 
 interface Collection {
   id: string;
@@ -28,7 +29,7 @@ interface Toast {
 
 export default function CollectionsPage() {
   const [collections, setCollections] = useState<Collection[]>([]);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [userPurchases, setUserPurchases] = useState<string[]>([]);
   const [thumbnailUrls, setThumbnailUrls] = useState<{[key: string]: string}>({});
@@ -122,8 +123,8 @@ export default function CollectionsPage() {
     setAddingToCart(collection.id);
 
     // Add to cart
-    const cart = JSON.parse(localStorage.getItem('cart') || '[]');
-    const isAlreadyInCart = cart.some((item: any) => item.id === collection.id);
+    const cart = JSON.parse(localStorage.getItem('cart') || '[]') as Collection[];
+    const isAlreadyInCart = cart.some((item: Collection) => item.id === collection.id);
     
     console.log('🔍 DEBUG: Cart check - isAlreadyInCart:', isAlreadyInCart);
     
