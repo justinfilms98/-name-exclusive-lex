@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
-import { ShoppingCart, Clock, Image as ImageIcon, ArrowRight, X } from "lucide-react";
-import Portal from "./Portal";
+import { ShoppingCart, Clock, Image as ImageIcon, ArrowRight } from "lucide-react";
 
 export interface CollectionCardData {
   id: string;
@@ -41,46 +40,13 @@ export default function CollectionCard({
 }: CollectionCardProps) {
   const photoCount = collection.photo_paths?.length || 0;
   const needsExpansion = collection.description && collection.description.length > 120;
-  const [isQuickViewOpen, setIsQuickViewOpen] = useState(false);
-  const closeButtonRef = useRef<HTMLButtonElement | null>(null);
+  const [isExpanded, setIsExpanded] = useState(false);
 
-  // Lock scroll when quick view is open
-  useEffect(() => {
-    if (isQuickViewOpen) {
-      const original = document.body.style.overflow;
-      document.body.style.overflow = "hidden";
-      return () => {
-        document.body.style.overflow = original;
-      };
-    }
-  }, [isQuickViewOpen]);
-
-  // Close on ESC
-  useEffect(() => {
-    if (!isQuickViewOpen) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setIsQuickViewOpen(false);
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [isQuickViewOpen]);
-
-  // Focus close on open
-  useEffect(() => {
-    if (isQuickViewOpen) {
-      setTimeout(() => closeButtonRef.current?.focus(), 10);
-    }
-  }, [isQuickViewOpen]);
-
-  const handleViewDetails = (e: React.MouseEvent) => {
+  const handleToggle = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setIsQuickViewOpen(true);
+    setIsExpanded((prev) => !prev);
   };
-
-  const handleClose = () => setIsQuickViewOpen(false);
 
   const handleAdd = (e?: React.MouseEvent) => {
     e?.preventDefault();
@@ -114,15 +80,15 @@ export default function CollectionCard({
                 {collection.title}
               </h3>
               <div className="text-blanket/90 text-sm mb-3 opacity-0 md:group-hover:opacity-100 transition-opacity duration-700 delay-100">
-                <p className="opacity-80 line-clamp-3">
+                <p className={`${isExpanded ? "" : "line-clamp-3"} opacity-80`}>
                   {collection.description}
                 </p>
                 {collection.description.length > 150 && (
                   <button
-                    onClick={handleViewDetails}
+                    onClick={handleToggle}
                     className="text-blanc/80 hover:text-blanc text-xs mt-1 underline active:scale-[0.98] transition-transform"
                   >
-                    View details
+                    {isExpanded ? "Hide" : "Read more"}
                   </button>
                 )}
               </div>
@@ -198,15 +164,21 @@ export default function CollectionCard({
           </div>
           
           <div className="mb-2 sm:mb-3 flex-1 min-h-0">
-            <p className="text-sage text-sm opacity-80 line-clamp-2 sm:line-clamp-3 leading-relaxed break-words">
-              {collection.description}
-            </p>
+            {isExpanded ? (
+              <p className="text-sage text-sm opacity-80 leading-relaxed break-words">
+                {collection.description}
+              </p>
+            ) : (
+              <p className="text-sage text-sm opacity-80 line-clamp-2 sm:line-clamp-3 leading-relaxed break-words">
+                {collection.description}
+              </p>
+            )}
             {needsExpansion && (
               <button
-                onClick={handleViewDetails}
+                onClick={handleToggle}
                 className="text-khaki text-sm font-medium underline mt-1 hover:text-earth transition-colors active:scale-[0.98]"
               >
-                View details
+                {isExpanded ? "Hide" : "Read more"}
               </button>
             )}
           </div>
@@ -240,186 +212,6 @@ export default function CollectionCard({
           </button>
       </div>
 
-      {isQuickViewOpen && (
-        <Portal>
-          <div className="fixed inset-0 z-[1000] flex items-end sm:items-center justify-center p-0 sm:p-6">
-            <div
-              className="absolute inset-0 bg-[rgba(43,43,43,0.35)] backdrop-blur-md transition-opacity duration-[220ms] ease-[cubic-bezier(0.16,1,0.3,1)]"
-              onClick={handleClose}
-            />
-
-            {/* Desktop modal */}
-            <div className="hidden sm:flex w-full items-center justify-center pointer-events-none">
-              <div
-                className="pointer-events-auto w-full max-w-[520px] max-h-[78vh] rounded-2xl bg-[#C9BBA8] border border-[#D4C7B4]/50 shadow-[0_18px_60px_rgba(43,43,43,0.20)] text-[#654C37] overflow-hidden flex flex-col"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <div className="bg-blanket px-5 py-4 flex items-start justify-between border-b border-[#D4C7B4]/30">
-                  <div className="space-y-1">
-                    <p className="text-xs uppercase tracking-wide text-black/70">Collection</p>
-                    <h3 className="text-xl font-serif text-[#654C37] leading-tight">{collection.title}</h3>
-                  </div>
-                  <button
-                    ref={closeButtonRef}
-                    onClick={handleClose}
-                    className="p-2 rounded-full text-[#654C37] hover:bg-blanket/60 transition-colors"
-                    aria-label="Close details"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
-
-                <div className="p-5 space-y-4 overflow-y-auto max-h-[78vh]">
-                  <div className="rounded-2xl border border-[#D4C7B4]/50 overflow-hidden aspect-[4/5] max-h-[240px]">
-                    {thumbnailUrl ? (
-                      <img
-                        src={thumbnailUrl}
-                        alt={collection.title}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-mushroom to-blanket flex items-center justify-center">
-                        <ImageIcon className="w-12 h-12 text-sage/60" />
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-3 text-sm text-black/70">
-                    <span className="font-semibold text-[#654C37] text-base">
-                      ${formatPrice(collection.price)}
-                    </span>
-                    <span>•</span>
-                    <span>Video {formatVideoDuration(collection.video_duration || 300)}</span>
-                    <span>•</span>
-                    <span>{photoCount} photos</span>
-                    <span>•</span>
-                    <span>Permanent access</span>
-                  </div>
-
-                  <div className="relative text-sm text-black/70 leading-relaxed space-y-2">
-                    <p>{collection.description}</p>
-                    <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-[#C9BBA8] to-transparent" />
-                  </div>
-                </div>
-
-                <div className="mt-auto border-t border-[#D4C7B4]/40 bg-blanket/60 px-5 py-4">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                    <button
-                      onClick={handleClose}
-                      className="w-full sm:w-auto px-4 py-2 rounded-xl border border-[#D4C7B4]/50 text-[#654C37] hover:bg-blanket/60 transition-colors"
-                    >
-                      Close
-                    </button>
-                    <button
-                      onClick={handleAdd}
-                      disabled={isAdding}
-                      className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-[#8F907E] text-[#F8F6F1] hover:brightness-95 transition-all duration-200 shadow-sm disabled:opacity-60"
-                    >
-                      {isAdding ? (
-                        <>
-                          <div className="w-4 h-4 spinner" />
-                          <span>Adding...</span>
-                        </>
-                      ) : isPurchased ? (
-                        <>
-                          <span>Watch Now</span>
-                          <ArrowRight className="w-4 h-4" />
-                        </>
-                      ) : (
-                        <>
-                          <ShoppingCart className="w-4 h-4" />
-                          <span>Purchase to unlock</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Mobile bottom sheet */}
-            <div className="sm:hidden w-full">
-              <div
-                className="w-full rounded-t-3xl bg-[#C9BBA8] border border-[#D4C7B4]/50 shadow-[0_18px_60px_rgba(43,43,43,0.20)] text-[#654C37] overflow-hidden"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <div className="flex justify-center pt-3 pb-2">
-                  <div className="h-1.5 w-12 rounded-full bg-black/15" />
-                </div>
-
-                <div className="px-5 pt-1 pb-24 max-h-[78vh] min-h-[40vh] overflow-y-auto space-y-4 relative">
-                  <div className="rounded-2xl border border-[#D4C7B4]/50 overflow-hidden aspect-[4/5] max-h-[240px]">
-                    {thumbnailUrl ? (
-                      <img
-                        src={thumbnailUrl}
-                        alt={collection.title}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-mushroom to-blanket flex items-center justify-center">
-                        <ImageIcon className="w-12 h-12 text-sage/60" />
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="space-y-1">
-                    <p className="text-xs uppercase tracking-wide text-black/70">Collection</p>
-                    <h3 className="text-xl font-serif text-[#654C37] leading-tight">{collection.title}</h3>
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-3 text-sm text-black/70">
-                    <span className="font-semibold text-[#654C37] text-base">
-                      ${formatPrice(collection.price)}
-                    </span>
-                    <span>•</span>
-                    <span>Video {formatVideoDuration(collection.video_duration || 300)}</span>
-                    <span>•</span>
-                    <span>{photoCount} photos</span>
-                    <span>•</span>
-                    <span>Permanent access</span>
-                  </div>
-
-                  <div className="relative text-sm text-black/70 leading-relaxed space-y-2">
-                    <p>{collection.description}</p>
-                    <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-[#C9BBA8] to-transparent" />
-                  </div>
-                </div>
-
-                <div className="sticky bottom-0 border-t border-[#D4C7B4]/40 bg-[#C9BBA8] px-5 py-4 space-y-3">
-                  <button
-                    onClick={handleClose}
-                    className="w-full px-4 py-3 rounded-xl border border-[#D4C7B4]/50 text-[#654C37] hover:bg-blanket/60 transition-colors"
-                  >
-                    Close
-                  </button>
-                  <button
-                    onClick={handleAdd}
-                    disabled={isAdding}
-                    className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-[#8F907E] text-[#F8F6F1] hover:brightness-95 transition-all duration-200 shadow-sm disabled:opacity-60"
-                  >
-                    {isAdding ? (
-                      <>
-                        <div className="w-4 h-4 spinner" />
-                        <span>Adding...</span>
-                      </>
-                    ) : isPurchased ? (
-                      <>
-                        <span>Watch Now</span>
-                        <ArrowRight className="w-4 h-4" />
-                      </>
-                    ) : (
-                      <>
-                        <ShoppingCart className="w-4 h-4" />
-                        <span>Purchase to unlock</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </Portal>
-      )}
     </div>
   );
 }
