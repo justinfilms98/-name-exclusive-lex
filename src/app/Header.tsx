@@ -137,6 +137,9 @@ export default function Header() {
               <Link href="/collections" className="text-earth hover:text-khaki transition-colors font-medium">
                 Collections
               </Link>
+              <Link href="/albums" className="text-earth hover:text-khaki transition-colors font-medium">
+                Albums
+              </Link>
               {user && isAdmin(user.email) && (
                 <Link href="/admin" className="text-sage hover:text-khaki transition-colors font-medium">
                   Admin
@@ -259,6 +262,13 @@ export default function Header() {
                     onClick={closeMobileMenu}
                   >
                     Collections
+                  </Link>
+                  <Link 
+                    href="/albums" 
+                    className="block text-earth hover:text-khaki transition-colors font-medium py-3 px-2 rounded-lg hover:bg-blanket/30"
+                    onClick={closeMobileMenu}
+                  >
+                    Albums
                   </Link>
 
                   {user && isAdmin(user.email) && (

@@ -139,10 +139,10 @@ export default function AdminPage() {
                             {new Date(collection.created_at).toLocaleDateString()}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <button className="text-stone-600 hover:text-stone-900 mr-4">
+                            <Link href={`/admin/collections/${collection.id}/edit`} className="text-stone-600 hover:text-stone-900 mr-4">
                               Edit
-                            </button>
-                            <button className="text-red-600 hover:text-red-900">
+                            </Link>
+                            <button className="text-red-600 hover:text-red-900" aria-label="Delete collection">
                               Delete
                             </button>
                           </td>

@@ -1,8 +1,9 @@
 "use client";
 
+import Link from 'next/link';
 import { useState, useEffect } from 'react';
-import { getCollections, uploadFile, supabase, createCollection } from '@/lib/supabase';
-import { Upload, Trash2, Edit, Save, X, Image as ImageIcon, Video, Plus, AlertCircle } from 'lucide-react';
+import { getCollections, uploadFile, supabase, createCollection, getAlbums, createAlbum } from '@/lib/supabase';
+import { Upload, Trash2, Edit, Image as ImageIcon, Video, Plus, AlertCircle, FolderPlus } from 'lucide-react';
 
 interface Collection {
   id: string;
@@ -18,6 +19,8 @@ interface Collection {
   created_at: string;
   updated_at: string;
   media_filename?: string; // Added for new logic
+  album_id?: string | null;
+  albums?: { id: string; name: string; slug: string } | null;
 }
 
 interface ExtractionResult {
@@ -26,6 +29,14 @@ interface ExtractionResult {
   success: boolean;
   error?: string;
   estimatedDuration?: number;
+}
+
+interface Album {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string | null;
+  created_at: string;
 }
 
 export default function AdminCollectionsPage() {
@@ -42,6 +53,11 @@ export default function AdminCollectionsPage() {
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [photoFiles, setPhotoFiles] = useState<FileList | null>(null);
+  const [albums, setAlbums] = useState<Album[]>([]);
+  const [selectedAlbumId, setSelectedAlbumId] = useState<string | null>(null);
+  const [newAlbumName, setNewAlbumName] = useState('');
+  const [newAlbumDescription, setNewAlbumDescription] = useState('');
+  const [creatingAlbum, setCreatingAlbum] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [extractingDurations, setExtractingDurations] = useState(false);
@@ -49,6 +65,7 @@ export default function AdminCollectionsPage() {
 
   useEffect(() => {
     loadCollections();
+    loadAlbums();
   }, []);
 
   const loadCollections = async () => {
@@ -61,6 +78,17 @@ export default function AdminCollectionsPage() {
       console.error('Failed to load collections:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadAlbums = async () => {
+    try {
+      const { data, error } = await getAlbums();
+      if (!error && data) {
+        setAlbums(data);
+      }
+    } catch (err) {
+      console.error('Failed to load albums:', err);
     }
   };
 
@@ -246,6 +274,7 @@ export default function AdminCollectionsPage() {
         video_path: videoFilename,
         thumbnail_path: thumbnailFilename,
         photo_paths: photoPaths,
+        album_id: selectedAlbumId,
       };
 
       const { data: createData, error: createError } = await createCollection(collectionData);
@@ -263,6 +292,7 @@ export default function AdminCollectionsPage() {
       setVideoFile(null);
       setThumbnailFile(null);
       setPhotoFiles(null);
+      setSelectedAlbumId(null);
       setValidationErrors([]);
 
       // Reload collections
@@ -434,6 +464,39 @@ export default function AdminCollectionsPage() {
     }
   };
 
+  const handleCreateAlbum = async () => {
+    if (!newAlbumName.trim()) return;
+    setCreatingAlbum(true);
+    try {
+      const slug = newAlbumName
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '');
+
+      const { data, error } = await createAlbum({
+        name: newAlbumName.trim(),
+        slug,
+        description: newAlbumDescription.trim() || null,
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      if (data && data[0]) {
+        setAlbums((prev) => [data[0], ...prev]);
+        setSelectedAlbumId(data[0].id);
+        setNewAlbumName('');
+        setNewAlbumDescription('');
+      }
+    } catch (err) {
+      console.error('Failed to create album', err);
+      alert('Unable to create album. Please try again.');
+    } finally {
+      setCreatingAlbum(false);
+    }
+  };
+
   const extractDurationFromVideo = (videoUrl: string): Promise<number> => {
     return new Promise((resolve) => {
       const video = document.createElement('video');
@@ -505,24 +568,13 @@ export default function AdminCollectionsPage() {
               )}
             </button>
             
-            <button
-              onClick={handleExtractVideoDurations}
-              disabled={extractingDurations}
-              className="btn-secondary flex items-center space-x-2 disabled:opacity-50"
-              title="Force re-extraction of all video durations"
+            <Link
+              href="/admin/albums"
+              className="btn-secondary flex items-center space-x-2"
             >
-              {extractingDurations ? (
-                <>
-                  <div className="w-4 h-4 spinner"></div>
-                  <span>Extracting...</span>
-                </>
-              ) : (
-                <>
-                  <Video className="w-4 h-4" />
-                  <span>Re-extract All Durations</span>
-                </>
-              )}
-            </button>
+              <Video className="w-4 h-4" />
+              <span>Manage Albums</span>
+            </Link>
           </div>
         </div>
 
@@ -622,6 +674,67 @@ export default function AdminCollectionsPage() {
                 placeholder="Enter collection description"
                 disabled={uploading}
               />
+            </div>
+
+            <div>
+              <label className="block text-earth text-sm font-medium mb-2">
+                Album (optional)
+              </label>
+              <select
+                value={selectedAlbumId || ''}
+                onChange={(e) => setSelectedAlbumId(e.target.value || null)}
+                className="input"
+                disabled={uploading}
+              >
+                <option value="">No album</option>
+                {albums.map((album) => (
+                  <option key={album.id} value={album.id}>
+                    {album.name}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-sage mt-1">Organize collections into albums for the public site.</p>
+            </div>
+
+            <div>
+              <label className="block text-earth text-sm font-medium mb-2">
+                Quick Create Album
+              </label>
+              <div className="space-y-2">
+                <input
+                  type="text"
+                  value={newAlbumName}
+                  onChange={(e) => setNewAlbumName(e.target.value)}
+                  placeholder="Album name (e.g., Europe Tour)"
+                  className="input"
+                  disabled={creatingAlbum || uploading}
+                />
+                <textarea
+                  value={newAlbumDescription}
+                  onChange={(e) => setNewAlbumDescription(e.target.value)}
+                  placeholder="Album description (optional)"
+                  className="input h-20 resize-none"
+                  disabled={creatingAlbum || uploading}
+                />
+                <button
+                  type="button"
+                  onClick={handleCreateAlbum}
+                  disabled={creatingAlbum || !newAlbumName.trim()}
+                  className="btn-secondary flex items-center justify-center space-x-2 w-full disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {creatingAlbum ? (
+                    <>
+                      <div className="w-4 h-4 spinner" />
+                      <span>Creating...</span>
+                    </>
+                  ) : (
+                    <>
+                      <FolderPlus className="w-4 h-4" />
+                      <span>Create & Select Album</span>
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
 
             <div>
@@ -756,6 +869,11 @@ export default function AdminCollectionsPage() {
                       <h3 className="text-xl font-serif text-earth mb-2">
                         {collection.title}
                       </h3>
+                      {collection.albums && (
+                        <div className="inline-flex items-center px-3 py-1 bg-blanket/60 text-earth text-xs font-medium rounded-full mb-2">
+                          Album: {collection.albums.name}
+                        </div>
+                      )}
                       
                       <p className="text-sage mb-3 line-clamp-2">
                         {collection.description}
@@ -781,6 +899,13 @@ export default function AdminCollectionsPage() {
                     </div>
 
                     <div className="flex items-center space-x-2 ml-4">
+                      <Link
+                        href={`/admin/collections/${collection.id}/edit`}
+                        className="p-2 text-sage hover:text-khaki transition-colors hover:bg-blanket/50 rounded-lg"
+                        title="Edit"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </Link>
                       <button
                         onClick={() => handleDelete(collection)}
                         className="p-2 text-sage hover:text-khaki transition-colors hover:bg-blanket/50 rounded-lg"

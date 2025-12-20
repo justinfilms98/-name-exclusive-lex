@@ -217,7 +217,10 @@ export const createCollection = async (collection: any) => {
 export const getCollections = async () => {
   const { data, error } = await supabase
     .from('collections')
-    .select('*')
+    .select(`
+      *,
+      albums:album_id (id, name, slug)
+    `)
     .order('created_at', { ascending: false })
   return { data, error }
 }
@@ -225,9 +228,68 @@ export const getCollections = async () => {
 export const getCollection = async (id: string) => {
   const { data, error } = await supabase
     .from('collections')
-    .select('*, photo_paths')
+    .select(`
+      *,
+      photo_paths,
+      albums:album_id (id, name, slug)
+    `)
     .eq('id', id)
     .single()
+  return { data, error }
+}
+
+export const updateCollection = async (id: string, updates: any) => {
+  const { data, error } = await supabase
+    .from('collections')
+    .update(updates)
+    .eq('id', id)
+    .select()
+  return { data, error }
+}
+
+export const getCollectionsByAlbum = async (albumId: string) => {
+  const { data, error } = await supabase
+    .from('collections')
+    .select(`
+      *,
+      albums:album_id (id, name, slug)
+    `)
+    .eq('album_id', albumId)
+    .order('created_at', { ascending: false })
+  return { data, error }
+}
+
+export const getAlbums = async () => {
+  const { data, error } = await supabase
+    .from('albums')
+    .select('id, name, slug, description, thumbnail_path, created_at, collections(count)')
+    .order('created_at', { ascending: false })
+  return { data, error }
+}
+
+export const getAlbumBySlug = async (slug: string) => {
+  const { data, error } = await supabase
+    .from('albums')
+    .select('id, name, slug, description, thumbnail_path, created_at')
+    .eq('slug', slug)
+    .single()
+  return { data, error }
+}
+
+export const createAlbum = async (album: any) => {
+  const { data, error } = await supabase
+    .from('albums')
+    .insert([album])
+    .select()
+  return { data, error }
+}
+
+export const updateAlbum = async (id: string, updates: any) => {
+  const { data, error } = await supabase
+    .from('albums')
+    .update(updates)
+    .eq('id', id)
+    .select()
   return { data, error }
 }
 
