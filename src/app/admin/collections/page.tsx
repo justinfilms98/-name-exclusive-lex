@@ -1,7 +1,7 @@
 "use client";
 
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { getCollections, uploadFile, supabase, createCollection, getAlbums, createAlbum } from '@/lib/supabase';
 import { Upload, Trash2, Edit, Image as ImageIcon, Video, Plus, AlertCircle, FolderPlus, MoreVertical, X } from 'lucide-react';
 import { updateCollection } from '@/lib/supabase';
@@ -66,6 +66,8 @@ export default function AdminCollectionsPage() {
   const [extractionResults, setExtractionResults] = useState<any>(null);
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   const [movingCollectionId, setMovingCollectionId] = useState<string | null>(null);
+  const [menuPosition, setMenuPosition] = useState<{ top: number; right: number } | null>(null);
+  const menuButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
   // Lock scroll when mobile menu is open
   useEffect(() => {
@@ -99,6 +101,7 @@ export default function AdminCollectionsPage() {
   const handleMoveToAlbum = async (collectionId: string, albumId: string | null) => {
     setMovingCollectionId(collectionId);
     setMenuOpenId(null); // Close menu immediately for better UX
+    setMenuPosition(null);
     try {
       const { error } = await updateCollection(collectionId, { album_id: albumId });
       if (error) throw new Error(error.message);
@@ -948,8 +951,19 @@ export default function AdminCollectionsPage() {
                       {/* 3-dot menu */}
                       <div className="relative overflow-visible">
                         <button
+                          ref={(el) => {
+                            menuButtonRefs.current[collection.id] = el;
+                          }}
                           onClick={(e) => {
                             e.stopPropagation();
+                            const button = menuButtonRefs.current[collection.id];
+                            if (button) {
+                              const rect = button.getBoundingClientRect();
+                              setMenuPosition({
+                                top: rect.bottom + 8,
+                                right: window.innerWidth - rect.right,
+                              });
+                            }
                             setMenuOpenId(menuOpenId === collection.id ? null : collection.id);
                           }}
                           className="p-2 text-sage hover:text-khaki transition-colors hover:bg-blanket/50 rounded-lg min-w-[44px] min-h-[44px] flex items-center justify-center"
@@ -962,49 +976,62 @@ export default function AdminCollectionsPage() {
                         
                         {menuOpenId === collection.id && (
                           <>
-                            {/* Desktop dropdown - positioned absolutely, parent has overflow-visible */}
+                            {/* Desktop dropdown - use Portal to avoid clipping */}
                             <div className="hidden md:block">
-                              <div 
-                                className="fixed inset-0 z-[100]" 
-                                onClick={() => setMenuOpenId(null)}
-                                aria-hidden="true"
-                              />
-                              {/* Absolute positioning relative to button container */}
-                              <div 
-                                className="absolute right-0 top-full mt-2 bg-blanc rounded-lg shadow-xl border border-mushroom/30 z-[101] py-2 w-56 max-h-[50vh] overflow-y-auto"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                  <div className="px-3 py-2 text-xs font-medium text-sage border-b border-mushroom/30 sticky top-0 bg-blanc z-10">
-                                    Move to Album
-                                  </div>
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleMoveToAlbum(collection.id, null);
+                              <Portal>
+                                <>
+                                  <div 
+                                    className="fixed inset-0 z-[100]" 
+                                    onClick={() => {
+                                      setMenuOpenId(null);
+                                      setMenuPosition(null);
                                     }}
-                                    disabled={movingCollectionId === collection.id}
-                                    className="w-full text-left px-3 py-2.5 text-sm text-earth hover:bg-blanket/50 active:bg-blanket/70 transition-colors disabled:opacity-50 touch-manipulation"
-                                  >
-                                    {movingCollectionId === collection.id ? 'Moving...' : 'No Album'}
-                                  </button>
-                                  {albums.map((album) => (
-                                    <button
-                                      key={album.id}
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleMoveToAlbum(collection.id, album.id);
+                                    aria-hidden="true"
+                                  />
+                                  {/* Fixed positioning based on button position */}
+                                  {menuPosition && (
+                                    <div 
+                                      className="fixed bg-blanc rounded-lg shadow-xl border border-mushroom/30 z-[101] py-2 w-56 max-h-[50vh] overflow-y-auto"
+                                      style={{
+                                        top: `${menuPosition.top}px`,
+                                        right: `${menuPosition.right}px`,
                                       }}
-                                      disabled={movingCollectionId === collection.id}
-                                      className={`w-full text-left px-3 py-2.5 text-sm transition-colors disabled:opacity-50 touch-manipulation ${
-                                        collection.album_id === album.id
-                                          ? 'bg-blanket/70 text-earth font-medium'
-                                          : 'text-earth hover:bg-blanket/50 active:bg-blanket/70'
-                                      }`}
+                                      onClick={(e) => e.stopPropagation()}
                                     >
-                                      {movingCollectionId === collection.id ? 'Moving...' : album.name}
-                                    </button>
-                                  ))}
-                                </div>
+                                      <div className="px-3 py-2 text-xs font-medium text-sage border-b border-mushroom/30 sticky top-0 bg-blanc z-10">
+                                        Move to Album
+                                      </div>
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleMoveToAlbum(collection.id, null);
+                                        }}
+                                        disabled={movingCollectionId === collection.id}
+                                        className="w-full text-left px-3 py-2.5 text-sm text-earth hover:bg-blanket/50 active:bg-blanket/70 transition-colors disabled:opacity-50 touch-manipulation"
+                                      >
+                                        {movingCollectionId === collection.id ? 'Moving...' : 'No Album'}
+                                      </button>
+                                      {albums.map((album) => (
+                                        <button
+                                          key={album.id}
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleMoveToAlbum(collection.id, album.id);
+                                          }}
+                                          disabled={movingCollectionId === collection.id}
+                                          className={`w-full text-left px-3 py-2.5 text-sm transition-colors disabled:opacity-50 touch-manipulation ${
+                                            collection.album_id === album.id
+                                              ? 'bg-blanket/70 text-earth font-medium'
+                                              : 'text-earth hover:bg-blanket/50 active:bg-blanket/70'
+                                          }`}
+                                        >
+                                          {movingCollectionId === collection.id ? 'Moving...' : album.name}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  )}
+                                </>
+                              </Portal>
                             </div>
 
                             {/* Mobile bottom sheet */}
