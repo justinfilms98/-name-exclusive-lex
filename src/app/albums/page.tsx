@@ -59,13 +59,13 @@ export default function AlbumsPage() {
 
   return (
     <div className="min-h-screen bg-almond pt-20">
-      <div className="max-w-6xl mx-auto px-4 py-12">
-        <div className="flex items-center justify-between mb-10">
+      <div className="max-w-6xl mx-auto px-4 py-4 sm:py-6 md:py-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4 sm:mb-6 md:mb-8">
           <div>
             <h1 className="heading-1">Albums</h1>
-            <p className="text-sage mt-2">Browse curated groups of collections.</p>
+            <p className="text-sage mt-1 sm:mt-2 text-sm sm:text-base">Browse curated groups of collections.</p>
           </div>
-          <Link href="/collections" className="btn-secondary">
+          <Link href="/collections" className="btn-secondary text-sm sm:text-base">
             View all collections
           </Link>
         </div>

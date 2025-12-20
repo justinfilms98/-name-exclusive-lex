@@ -45,9 +45,9 @@ export default function CollectionCard({
   const showMobileDetails = useMemo(() => isExpanded, [isExpanded]);
 
   return (
-    <div className="group flex flex-col bg-blanc border border-mushroom/30 rounded-xl shadow-soft overflow-hidden h-full max-h-[520px] sm:max-h-[560px] md:max-h-none">
+    <div className="group flex flex-col bg-blanc border border-mushroom/30 rounded-xl shadow-soft overflow-hidden h-full max-h-[480px] sm:max-h-[520px] md:max-h-none">
       <div className="relative overflow-hidden">
-        <div className="relative aspect-[3/4] sm:aspect-[4/5] lg:aspect-[3/4] overflow-hidden max-h-[320px] sm:max-h-[380px] md:max-h-none">
+        <div className="relative aspect-[3/4] sm:aspect-[4/5] lg:aspect-[3/4] overflow-hidden max-h-[240px] sm:max-h-[280px] md:max-h-none">
           {thumbnailUrl ? (
             <img
               src={thumbnailUrl}
@@ -143,22 +143,20 @@ export default function CollectionCard({
           )}
         </div>
 
-        <div className="p-4 space-y-3 bg-blanc">
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex-1 min-w-0">
-              <h3 className="font-serif text-earth text-lg mb-1 line-clamp-2">
-                {collection.title}
-              </h3>
-              <p className="text-sage text-sm line-clamp-2 md:line-clamp-3">
-                {collection.description}
-              </p>
-            </div>
-            <div className="text-right">
-              <span className="text-earth font-bold text-lg block">${formatPrice(collection.price)}</span>
-              <span className="text-xs text-sage whitespace-nowrap">Video {formatVideoDuration(collection.video_duration || 300)}</span>
+        <div className="p-3 sm:p-4 space-y-2 sm:space-y-3 bg-blanc">
+          <div className="mb-2">
+            <h3 className="font-serif text-earth text-base sm:text-lg mb-1 line-clamp-2">
+              {collection.title}
+            </h3>
+            <div className="flex items-center gap-2 text-sm sm:text-base text-earth">
+              <span className="font-bold">${formatPrice(collection.price)}</span>
+              <span className="text-sage">•</span>
+              <span className="text-sage text-xs sm:text-sm">Video {formatVideoDuration(collection.video_duration || 300)}</span>
             </div>
           </div>
-
+          <p className="text-sage text-xs sm:text-sm line-clamp-2 sm:line-clamp-3 leading-relaxed">
+            {collection.description}
+          </p>
           <div className="flex items-center justify-between text-xs text-sage">
             <span>{photoCount} photos</span>
             <span>Permanent access</span>
@@ -174,29 +172,33 @@ export default function CollectionCard({
 
             {showMobileDetails && (
               <div className="fixed inset-0 z-50 bg-black/60 flex items-end sm:items-center justify-center p-4">
-                <div className="bg-blanc rounded-2xl w-full max-w-lg shadow-elegant">
-                  <div className="flex items-start justify-between p-4 border-b border-mushroom/40">
-                    <div className="space-y-1">
+                <div className="bg-blanc rounded-2xl w-full max-w-lg shadow-elegant flex flex-col max-h-[90vh] sm:max-h-[85vh]">
+                  <div className="flex items-start justify-between p-4 border-b border-mushroom/40 flex-shrink-0">
+                    <div className="space-y-1 flex-1 pr-2">
                       <p className="text-xs uppercase text-sage">Collection details</p>
-                      <h3 className="text-xl font-serif text-earth">{collection.title}</h3>
-                      <p className="text-lg font-semibold text-earth">${formatPrice(collection.price)}</p>
+                      <h3 className="text-lg sm:text-xl font-serif text-earth line-clamp-2">{collection.title}</h3>
+                      <div className="flex items-center gap-2 text-base sm:text-lg text-earth">
+                        <span className="font-semibold">${formatPrice(collection.price)}</span>
+                        <span className="text-sage">•</span>
+                        <span className="text-sage text-sm">Video {formatVideoDuration(collection.video_duration || 300)}</span>
+                      </div>
                     </div>
                     <button
                       onClick={() => onToggleDescription(collection.id)}
-                      className="p-2 text-sage hover:text-earth rounded-full hover:bg-blanket/60"
+                      className="p-2 text-sage hover:text-earth rounded-full hover:bg-blanket/60 flex-shrink-0"
                       aria-label="Close details"
                     >
                       <X className="w-5 h-5" />
                     </button>
                   </div>
-                  <div className="p-4 space-y-3 max-h-[60vh] overflow-y-auto">
-                    <p className="text-earth leading-relaxed text-base">{collection.description}</p>
-                    <div className="flex items-center justify-between text-sm text-sage">
-                      <span>Video {formatVideoDuration(collection.video_duration || 300)}</span>
+                  <div className="p-4 space-y-3 overflow-y-auto flex-1 min-h-0">
+                    <p className="text-earth leading-relaxed text-sm sm:text-base">{collection.description}</p>
+                    <div className="flex items-center justify-between text-sm text-sage pt-2 border-t border-mushroom/20">
                       <span>{photoCount} photos</span>
+                      <span>Permanent access</span>
                     </div>
                   </div>
-                  <div className="p-4 border-t border-mushroom/40 space-y-2">
+                  <div className="p-4 border-t border-mushroom/40 space-y-2 flex-shrink-0">
                     <button
                       onClick={() => onAddToCart(collection)}
                       disabled={isAdding}
@@ -234,7 +236,7 @@ export default function CollectionCard({
           <button
             onClick={() => onAddToCart(collection)}
             disabled={isAdding}
-            className="w-full bg-sage text-blanc px-4 py-3 rounded-lg font-medium hover:bg-khaki transition-all duration-300 flex items-center justify-center space-x-2 disabled:opacity-50"
+            className="w-full bg-sage text-blanc px-3 py-2 sm:px-4 sm:py-3 rounded-lg font-medium hover:bg-khaki transition-all duration-300 flex items-center justify-center space-x-2 disabled:opacity-50 text-sm sm:text-base mt-auto"
           >
             {isAdding ? (
               <>

@@ -171,14 +171,14 @@ export default function AlbumDetailPage() {
         ))}
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-12">
-        <div className="flex items-center justify-between mb-10">
-          <div>
-            <h1 className="heading-1 mb-2">{album?.name}</h1>
-            <p className="text-sage max-w-2xl">{album?.description || "Curated collection album."}</p>
+      <div className="max-w-7xl mx-auto px-4 py-4 sm:py-6 md:py-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
+          <div className="flex-1">
+            <h1 className="heading-1 mb-1 sm:mb-2">{album?.name}</h1>
+            <p className="text-sage text-sm sm:text-base max-w-2xl">{album?.description || "Curated collection album."}</p>
           </div>
           <div className="flex gap-3">
-            <Link href="/albums" className="btn-secondary">
+            <Link href="/albums" className="btn-secondary text-sm sm:text-base">
               Back to albums
             </Link>
           </div>
@@ -197,6 +197,8 @@ export default function AlbumDetailPage() {
               const isPurchased = userPurchases.includes(collection.id);
               const isAdding = addingToCart === collection.id;
               const photoCount = collection.photo_paths?.length || 0;
+              const isExpanded = expandedDescriptions[collection.id] || false;
+              const needsExpansion = collection.description && collection.description.length > 120;
               
               const formatVideoDuration = (seconds: number): string => {
                 const minutes = Math.floor(seconds / 60);
@@ -210,10 +212,10 @@ export default function AlbumDetailPage() {
               return (
                 <div
                   key={collection.id}
-                  className="group bg-blanc border border-mushroom/30 rounded-xl sm:rounded-2xl shadow-soft overflow-hidden hover:shadow-elegant transition-all duration-300 hover:scale-[1.02]"
+                  className="group bg-blanc border border-mushroom/30 rounded-xl sm:rounded-2xl shadow-soft overflow-hidden hover:shadow-elegant transition-all duration-300 hover:scale-[1.02] flex flex-col"
                 >
                   {/* Mobile: smaller aspect ratio, Desktop: square */}
-                  <div className="aspect-[4/3] sm:aspect-[3/2] md:aspect-square relative overflow-hidden rounded-t-xl sm:rounded-t-2xl">
+                  <div className="aspect-[3/2] sm:aspect-[3/2] md:aspect-square relative overflow-hidden rounded-t-xl sm:rounded-t-2xl">
                     {thumbnailUrl ? (
                       <img
                         src={thumbnailUrl}
@@ -226,7 +228,7 @@ export default function AlbumDetailPage() {
                       />
                     ) : null}
                     <div className={`w-full h-full bg-gradient-to-br from-mushroom to-blanket flex items-center justify-center ${thumbnailUrl ? "hidden" : ""}`}>
-                      <ImageIcon className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 text-sage/60" />
+                      <ImageIcon className="w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16 text-sage/60" />
                     </div>
                     {isPurchased && (
                       <div className="absolute top-2 right-2 sm:top-3 sm:right-3 bg-sage text-blanc px-2 py-1 sm:px-3 sm:py-1 rounded-full text-xs font-medium shadow-lg">
@@ -242,24 +244,42 @@ export default function AlbumDetailPage() {
                       </div>
                     )}
                   </div>
-                  <div className="p-3 sm:p-4 md:p-6">
-                    <div className="flex items-start justify-between gap-2 mb-2">
-                      <h3 className="text-lg sm:text-xl md:text-2xl font-serif text-earth flex-1 line-clamp-2">{collection.title}</h3>
-                      <span className="text-earth font-bold text-base sm:text-lg flex-shrink-0">${formatPrice(collection.price)}</span>
-                    </div>
-                    <p className="text-sage text-xs sm:text-sm mb-3 sm:mb-4 leading-relaxed line-clamp-2 sm:line-clamp-3 md:line-clamp-none">
-                      {collection.description}
-                    </p>
-                    <div className="flex items-center justify-between text-xs sm:text-sm text-sage mb-3 sm:mb-4">
-                      <div className="flex items-center space-x-2 sm:space-x-4">
-                        <span>Video: {formatVideoDuration(collection.video_duration || 300)}</span>
-                        <span>{photoCount} photos</span>
+                  <div className="p-3 sm:p-4 md:p-6 flex flex-col flex-1">
+                    <div className="mb-2">
+                      <h3 className="text-base sm:text-lg md:text-xl font-serif text-earth mb-1 line-clamp-2">{collection.title}</h3>
+                      <div className="flex items-center gap-2 text-sm sm:text-base text-earth">
+                        <span className="font-bold">${formatPrice(collection.price)}</span>
+                        <span className="text-sage">•</span>
+                        <span className="text-sage text-xs sm:text-sm">Video {formatVideoDuration(collection.video_duration || 300)}</span>
                       </div>
+                    </div>
+                    <div className="mb-3 sm:mb-4 flex-1">
+                      {isExpanded ? (
+                        <div className="max-h-[200px] overflow-y-auto">
+                          <p className="text-sage text-xs sm:text-sm leading-relaxed">{collection.description}</p>
+                        </div>
+                      ) : (
+                        <p className="text-sage text-xs sm:text-sm leading-relaxed line-clamp-2 sm:line-clamp-3">
+                          {collection.description}
+                        </p>
+                      )}
+                      {needsExpansion && (
+                        <button
+                          onClick={() => toggleDescription(collection.id)}
+                          className="text-khaki text-xs sm:text-sm font-medium underline mt-1"
+                        >
+                          {isExpanded ? "Show less" : "Read more"}
+                        </button>
+                      )}
+                    </div>
+                    <div className="flex items-center justify-between text-xs sm:text-sm text-sage mb-3 sm:mb-4">
+                      <span>{photoCount} photos</span>
+                      <span>Permanent access</span>
                     </div>
                     <button
                       onClick={() => addToCart(collection)}
                       disabled={isAdding}
-                      className="w-full bg-sage text-blanc px-3 py-2 sm:px-4 sm:py-3 rounded-lg font-medium hover:bg-khaki transition-all duration-300 flex items-center justify-center space-x-2 disabled:opacity-50 text-sm sm:text-base"
+                      className="w-full bg-sage text-blanc px-3 py-2 sm:px-4 sm:py-3 rounded-lg font-medium hover:bg-khaki transition-all duration-300 flex items-center justify-center space-x-2 disabled:opacity-50 text-sm sm:text-base mt-auto"
                     >
                       {isAdding ? (
                         <>

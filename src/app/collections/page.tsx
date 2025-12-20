@@ -261,15 +261,15 @@ export default function CollectionsPage() {
         })}
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-16">
+      <div className="max-w-7xl mx-auto px-4 py-4 sm:py-6 md:py-8">
         {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="heading-1 mb-4">Exclusive Collections</h1>
-          <p className="body-large text-sage max-w-2xl mx-auto">
+        <div className="text-center mb-6 sm:mb-8 md:mb-10">
+          <h1 className="heading-1 mb-2 sm:mb-3 md:mb-4">Exclusive Collections</h1>
+          <p className="body-large text-sage max-w-2xl mx-auto text-sm sm:text-base">
             Premium exclusive content with permanent access. Each collection offers behind-the-scenes experiences.
           </p>
-          <div className="mt-4">
-            <Link href="/albums" className="btn-secondary inline-flex">
+          <div className="mt-3 sm:mt-4">
+            <Link href="/albums" className="btn-secondary inline-flex text-sm sm:text-base">
               Browse by album
             </Link>
           </div>
@@ -290,8 +290,8 @@ export default function CollectionsPage() {
                 thumbnailUrl={thumbnailUrl}
                 isAdding={isAdding}
                 isExpanded={!!expandedDescriptions[collection.id]}
-                onToggleDescription={toggleDescription}
-                onAddToCart={addToCart}
+                onToggleDescription={() => toggleDescription(collection.id)}
+                onAddToCart={() => addToCart(collection)}
               />
             );
           })}
