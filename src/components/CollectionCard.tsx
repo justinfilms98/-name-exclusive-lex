@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ShoppingCart, Clock, Image as ImageIcon, ArrowRight, X } from "lucide-react";
+import { ShoppingCart, Clock, Image as ImageIcon, ArrowRight, X, ChevronDown } from "lucide-react";
 import Portal from "./Portal";
 
 export interface CollectionCardData {
@@ -99,16 +99,17 @@ export default function CollectionCard({
                 {collection.title}
               </h3>
               <div className="text-blanket/90 text-sm mb-3 opacity-0 md:group-hover:opacity-100 transition-opacity duration-700 delay-100">
-                <p className="line-clamp-3 opacity-80">
+                <p className="line-clamp-3 opacity-80 mb-2">
                   {collection.description}
                 </p>
                 {hasLongDescription && (
                   <button
                     type="button"
                     onClick={openDetails}
-                    className="pointer-events-auto text-blanc/80 hover:text-blanc text-[15px] sm:text-base mt-2 underline active:scale-[0.98] transition-transform py-2 min-h-[40px]"
+                    className="flex items-center gap-1.5 text-blanc/80 hover:text-blanc transition-colors text-xs font-medium"
                   >
-                    Read more
+                    <span>View details</span>
+                    <ChevronDown className="w-3.5 h-3.5" />
                   </button>
                 )}
               </div>
@@ -184,17 +185,26 @@ export default function CollectionCard({
           </div>
           
           <div className="mb-2 sm:mb-3 flex-1 min-h-0">
-            <p className="text-sage text-sm sm:text-[15px] opacity-80 line-clamp-2 sm:line-clamp-3 leading-relaxed break-words">
-              {collection.description}
-            </p>
-            {hasLongDescription && (
+            {hasLongDescription ? (
               <button
                 type="button"
                 onClick={openDetails}
-                className="pointer-events-auto text-earth text-[15px] sm:text-base font-medium underline mt-1.5 hover:text-khaki transition-colors active:scale-[0.98] py-2 min-h-[40px]"
+                className="w-full text-left group relative"
               >
-                Read more
+                <div className="relative">
+                  <p className="text-sage text-sm sm:text-[15px] opacity-80 line-clamp-2 sm:line-clamp-3 leading-relaxed break-words">
+                    {collection.description}
+                  </p>
+                  <div className="flex items-center gap-1 mt-2 text-sage/70 group-hover:text-khaki transition-colors">
+                    <span className="text-xs font-medium">View details</span>
+                    <ChevronDown className="w-3.5 h-3.5" />
+                  </div>
+                </div>
               </button>
+            ) : (
+              <p className="text-sage text-sm sm:text-[15px] opacity-80 leading-relaxed break-words">
+                {collection.description}
+              </p>
             )}
           </div>
           

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase, getCollections, getSignedUrl } from '@/lib/supabase';
-import { Trash2, ShoppingCart, CreditCard, Clock, Image as ImageIcon, ArrowLeft, Plus, Heart } from 'lucide-react';
+import { Trash2, ShoppingCart, CreditCard, Clock, Image as ImageIcon, ArrowLeft, Plus, Heart, ChevronDown, ChevronUp } from 'lucide-react';
 import Link from 'next/link';
 import { loadStripe } from '@stripe/stripe-js';
 
@@ -450,9 +450,15 @@ export default function CartPage() {
                             {item.description.length > 100 && (
                               <button
                                 onClick={() => toggleDescription(item.id)}
-                                className="text-khaki hover:text-earth text-xs mt-1 underline"
+                                className="flex items-center gap-1.5 text-khaki hover:text-earth text-xs mt-2 font-medium transition-colors"
                               >
-                                {expandedDescriptions[item.id] ? 'Show Less' : 'Read More'}
+                                <span>{expandedDescriptions[item.id] ? 'Show Less' : 'View Details'}</span>
+                                {!expandedDescriptions[item.id] && (
+                                  <ChevronDown className="w-3 h-3" />
+                                )}
+                                {expandedDescriptions[item.id] && (
+                                  <ChevronUp className="w-3 h-3" />
+                                )}
                               </button>
                             )}
                           </div>
