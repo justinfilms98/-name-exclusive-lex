@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
-import { ShoppingCart, Clock, Image as ImageIcon, ArrowRight, X, ChevronDown } from "lucide-react";
-import Portal from "./Portal";
+import { ShoppingCart, Clock, Image as ImageIcon, ArrowRight, ChevronDown, ChevronUp } from "lucide-react";
 
 export interface CollectionCardData {
   id: string;
@@ -41,42 +40,7 @@ export default function CollectionCard({
 }: CollectionCardProps) {
   const photoCount = collection.photo_paths?.length || 0;
   const hasLongDescription = collection.description && collection.description.length > 120;
-  const [showDetails, setShowDetails] = useState(false);
-
-  useEffect(() => {
-    if (!showDetails) return;
-    
-    // Lock body scroll when modal is open (prevents background scrolling)
-    const originalOverflow = document.body.style.overflow;
-    const originalPaddingRight = document.body.style.paddingRight;
-    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
-    
-    document.body.style.overflow = "hidden";
-    if (scrollbarWidth > 0) {
-      document.body.style.paddingRight = `${scrollbarWidth}px`;
-    }
-
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setShowDetails(false);
-      }
-    };
-
-    window.addEventListener("keydown", handleEscape);
-    return () => {
-      document.body.style.overflow = originalOverflow;
-      document.body.style.paddingRight = originalPaddingRight;
-      window.removeEventListener("keydown", handleEscape);
-    };
-  }, [showDetails]);
-
-  const openDetails = (e?: React.MouseEvent) => {
-    e?.preventDefault();
-    e?.stopPropagation();
-    setShowDetails(true);
-  };
-
-  const closeDetails = () => setShowDetails(false);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const handleAdd = (e?: React.MouseEvent) => {
     e?.preventDefault();
@@ -110,17 +74,25 @@ export default function CollectionCard({
                 {collection.title}
               </h3>
               <div className="text-blanket/90 text-sm mb-3 opacity-0 md:group-hover:opacity-100 transition-opacity duration-700 delay-100">
-                <p className="line-clamp-3 opacity-80 mb-2">
+                <p className={`opacity-80 mb-2 transition-all ${isExpanded ? '' : 'line-clamp-3'}`}>
                   {collection.description}
                 </p>
                 {hasLongDescription && (
                   <button
                     type="button"
-                    onClick={openDetails}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setIsExpanded(!isExpanded);
+                    }}
                     className="flex items-center gap-1.5 text-blanc/80 hover:text-blanc transition-colors text-xs font-medium"
                   >
-                    <span>View details</span>
-                    <ChevronDown className="w-3.5 h-3.5" />
+                    <span>{isExpanded ? 'Read less' : 'Read more'}</span>
+                    {isExpanded ? (
+                      <ChevronUp className="w-3.5 h-3.5" />
+                    ) : (
+                      <ChevronDown className="w-3.5 h-3.5" />
+                    )}
                   </button>
                 )}
               </div>
@@ -196,26 +168,28 @@ export default function CollectionCard({
           </div>
           
           <div className="mb-2 sm:mb-3 flex-1 min-h-0">
-            {hasLongDescription ? (
+            <p className={`text-sage text-sm sm:text-[15px] opacity-80 leading-relaxed break-words transition-all ${
+              isExpanded ? '' : 'line-clamp-2 sm:line-clamp-3'
+            }`}>
+              {collection.description}
+            </p>
+            {hasLongDescription && (
               <button
                 type="button"
-                onClick={openDetails}
-                className="w-full text-left group relative"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setIsExpanded(!isExpanded);
+                }}
+                className="flex items-center gap-1 mt-2 text-sage/70 hover:text-khaki transition-colors text-xs font-medium"
               >
-                <div className="relative">
-                  <p className="text-sage text-sm sm:text-[15px] opacity-80 line-clamp-2 sm:line-clamp-3 leading-relaxed break-words">
-                    {collection.description}
-                  </p>
-                  <div className="flex items-center gap-1 mt-2 text-sage/70 group-hover:text-khaki transition-colors">
-                    <span className="text-xs font-medium">View details</span>
-                    <ChevronDown className="w-3.5 h-3.5" />
-                  </div>
-                </div>
+                <span>{isExpanded ? 'Read less' : 'Read more'}</span>
+                {isExpanded ? (
+                  <ChevronUp className="w-3.5 h-3.5" />
+                ) : (
+                  <ChevronDown className="w-3.5 h-3.5" />
+                )}
               </button>
-            ) : (
-              <p className="text-sage text-sm sm:text-[15px] opacity-80 leading-relaxed break-words">
-                {collection.description}
-              </p>
             )}
           </div>
           
@@ -248,91 +222,6 @@ export default function CollectionCard({
           </button>
       </div>
 
-      {showDetails && (
-        <Portal>
-          {/* High z-index portal container ensures it's above all content, including footers */}
-          <div className="fixed inset-0 z-[9999] flex items-end md:items-center justify-center md:p-4 safe-top safe-bottom">
-            <div 
-              className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity duration-150" 
-              onClick={closeDetails}
-              aria-hidden="true"
-            />
-            <div 
-              className="relative w-full h-[85vh] md:h-auto md:max-h-[90vh] md:max-w-[560px] bg-[#C9BBA8] text-earth rounded-t-3xl md:rounded-2xl shadow-xl overflow-hidden transition-all duration-[200ms] ease-[cubic-bezier(0.16,1,0.3,1)] animate-quickview flex flex-col border border-earth/20"
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="collection-details-title"
-            >
-              {/* Mobile drag handle */}
-              <div className="md:hidden flex justify-center pt-3 pb-2">
-                <div className="w-12 h-1 bg-sage/30 rounded-full" />
-              </div>
-
-              {/* Close button - more prominent on mobile */}
-              <button
-                onClick={closeDetails}
-                className="absolute top-4 right-4 bg-[#F8F6F1]/95 backdrop-blur-sm text-earth p-2.5 rounded-full shadow-lg hover:bg-[#F8F6F1] transition-colors z-10 md:top-3 md:right-3"
-                aria-label="Close details"
-              >
-                <X className="w-5 h-5 md:w-5 md:h-5" />
-              </button>
-
-              {/* Thumbnail */}
-              <div className="relative aspect-[4/5] w-full flex-shrink-0 overflow-hidden">
-                {thumbnailUrl ? (
-                  <img
-                    src={thumbnailUrl}
-                    alt={collection.title}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-mushroom to-blanket flex items-center justify-center">
-                    <ImageIcon className="w-16 h-16 text-sage/60" />
-                  </div>
-                )}
-              </div>
-
-              {/* Content wrapper - enables sticky buttons */}
-              <div className="flex-1 flex flex-col min-h-0">
-                {/* Scrollable content */}
-                <div className="flex-1 overflow-y-auto p-5 sm:p-6 md:p-6 space-y-5">
-                  <div className="space-y-2">
-                    <h3 id="collection-details-title" className="font-serif text-2xl sm:text-3xl leading-snug pr-10">{collection.title}</h3>
-                    <div className="flex items-center gap-2 text-[15px] sm:text-base text-earth flex-wrap">
-                      <span className="font-semibold">${formatPrice(collection.price)}</span>
-                      <span className="text-sage">•</span>
-                      <span className="text-sage whitespace-nowrap">Video {formatVideoDuration(collection.video_duration || 300)}</span>
-                      <span className="text-sage">•</span>
-                      <span className="text-sage whitespace-nowrap">{photoCount} photos</span>
-                      <span className="text-sage hidden sm:inline">• Permanent access</span>
-                    </div>
-                  </div>
-
-                  <div className="border-t border-sage/20 pt-4">
-                    <p className="text-earth opacity-80 text-base sm:text-lg leading-relaxed whitespace-pre-wrap">
-                      {collection.description}
-                    </p>
-                  </div>
-
-                  <div className="flex items-center gap-3 text-[15px] text-sage flex-wrap pt-2">
-                    <span>Permanent access</span>
-                  </div>
-                </div>
-
-                {/* Action buttons - informational only, purchase stays in card */}
-                <div className="flex-shrink-0 border-t border-earth/20 bg-[#C9BBA8] p-5 sm:p-6 md:p-6 pt-4">
-                  <button
-                    onClick={closeDetails}
-                    className="w-full bg-[#F8F6F1] text-earth border border-earth/20 px-6 py-3 rounded-lg font-medium hover:bg-[#F2E0CF] transition-colors text-center"
-                  >
-                    Close
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </Portal>
-      )}
     </div>
   );
 }
