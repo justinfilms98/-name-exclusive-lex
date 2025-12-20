@@ -140,7 +140,7 @@ export default function AlbumDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-almond pt-20 flex items-center justify-center">
+      <div className="min-h-screen bg-almond flex items-center justify-center">
         <div className="text-center">
           <div className="w-12 h-12 spinner mx-auto mb-4"></div>
           <p className="text-sage text-lg">Loading album...</p>
@@ -150,7 +150,7 @@ export default function AlbumDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-almond pt-20">
+    <div className="min-h-screen bg-almond">
       <div className="fixed top-4 right-4 z-50 space-y-2">
         {toasts.map((toast) => (
           <div
@@ -247,29 +247,31 @@ export default function AlbumDetailPage() {
                   </div>
                   <div className="p-3 sm:p-4 md:p-6 flex flex-col flex-1">
                     <div className="mb-2">
-                      <h3 className="text-base sm:text-lg md:text-xl font-serif text-earth mb-1 line-clamp-2">{collection.title}</h3>
-                      <div className="flex items-center gap-2 text-sm sm:text-base text-earth">
-                        <span className="font-bold">${formatPrice(collection.price)}</span>
+                      <h3 className="text-base sm:text-lg md:text-xl font-serif text-earth mb-1.5 line-clamp-2 break-words">{collection.title}</h3>
+                      <div className="flex items-center gap-2 text-sm sm:text-base text-earth flex-wrap">
+                        <span className="font-bold whitespace-nowrap">${formatPrice(collection.price)}</span>
                         <span className="text-sage">•</span>
-                        <span className="text-sage text-xs sm:text-sm">Video {formatVideoDuration(collection.video_duration || 300)}</span>
+                        <span className="text-sage text-xs sm:text-sm whitespace-nowrap">Video {formatVideoDuration(collection.video_duration || 300)}</span>
                       </div>
                     </div>
                     <div className="mb-3 sm:mb-4 flex-1">
                       {isExpanded ? (
-                        <div className="max-h-[200px] overflow-y-auto">
-                          <p className="text-sage text-xs sm:text-sm leading-relaxed">{collection.description}</p>
-                        </div>
+                        <p className="text-sage text-sm opacity-80 leading-relaxed break-words">{collection.description}</p>
                       ) : (
-                        <p className="text-sage text-xs sm:text-sm leading-relaxed line-clamp-2 sm:line-clamp-3">
+                        <p className="text-sage text-sm opacity-80 leading-relaxed line-clamp-2 sm:line-clamp-3 break-words">
                           {collection.description}
                         </p>
                       )}
                       {needsExpansion && (
                         <button
-                          onClick={() => toggleDescription(collection.id)}
-                          className="text-khaki text-xs sm:text-sm font-medium underline mt-1"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            toggleDescription(collection.id);
+                          }}
+                          className="text-khaki text-sm font-medium underline mt-1 hover:text-earth transition-colors"
                         >
-                          {isExpanded ? "Show less" : "Read more"}
+                          {isExpanded ? "Hide" : "Read more"}
                         </button>
                       )}
                     </div>
