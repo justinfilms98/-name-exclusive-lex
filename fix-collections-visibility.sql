@@ -5,11 +5,27 @@
 -- ====================================
 -- PHASE 1: Add album_id to collections
 -- ====================================
+-- Detect albums.id type and match it for album_id
 DO $$ 
+DECLARE
+    albums_id_type TEXT;
 BEGIN
+    -- Get the data type of albums.id column
+    SELECT data_type INTO albums_id_type
+    FROM information_schema.columns
+    WHERE table_name = 'albums' AND column_name = 'id';
+    
+    -- Only add album_id if it doesn't exist
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
                    WHERE table_name = 'collections' AND column_name = 'album_id') THEN
-        ALTER TABLE "collections" ADD COLUMN "album_id" UUID;
+        -- Use the same type as albums.id, default to TEXT if not found
+        IF albums_id_type IS NULL THEN
+            ALTER TABLE "collections" ADD COLUMN "album_id" TEXT;
+        ELSIF albums_id_type = 'uuid' THEN
+            ALTER TABLE "collections" ADD COLUMN "album_id" UUID;
+        ELSE
+            ALTER TABLE "collections" ADD COLUMN "album_id" TEXT;
+        END IF;
     END IF;
 END $$;
 
@@ -100,14 +116,33 @@ END $$;
 -- PHASE 6: Seed Albums (only if albums table is empty)
 -- ====================================
 DO $$ 
+DECLARE
+    albums_id_type TEXT;
+    night_id TEXT;
+    day_id TEXT;
 BEGIN
     IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'albums') THEN
+        -- Get the data type of albums.id column
+        SELECT data_type INTO albums_id_type
+        FROM information_schema.columns
+        WHERE table_name = 'albums' AND column_name = 'id';
+        
         -- Only seed if no albums exist
         IF NOT EXISTS (SELECT 1 FROM "albums" LIMIT 1) THEN
+            -- Generate IDs based on the actual type
+            IF albums_id_type = 'uuid' THEN
+                night_id := gen_random_uuid()::TEXT;
+                day_id := gen_random_uuid()::TEXT;
+            ELSE
+                -- Use TEXT IDs (generate UUID and convert to text, or use simple text)
+                night_id := gen_random_uuid()::TEXT;
+                day_id := gen_random_uuid()::TEXT;
+            END IF;
+            
             INSERT INTO "albums" ("id", "name", "slug", "description", "created_at", "updated_at")
             VALUES 
-                (gen_random_uuid(), 'Night Vibe', 'night-vibe', 'Exclusive night content collection', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-                (gen_random_uuid(), 'Day Vibe', 'day-vibe', 'Exclusive day content collection', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+                (night_id, 'Night Vibe', 'night-vibe', 'Exclusive night content collection', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+                (day_id, 'Day Vibe', 'day-vibe', 'Exclusive day content collection', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
         END IF;
     END IF;
 END $$;
