@@ -81,7 +81,7 @@ export default function AlbumsPage() {
             <p className="text-sage text-sm">Collections are coming soon.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 max-[430px]:grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
+          <div className="grid grid-cols-2 max-[430px]:grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 lg:justify-items-center gap-3 sm:gap-4 md:gap-6">
             {albums.map((album) => {
               const thumbnailUrl = thumbnailUrls[album.id];
               return (
