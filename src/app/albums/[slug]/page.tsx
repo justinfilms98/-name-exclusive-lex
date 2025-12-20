@@ -181,9 +181,6 @@ export default function AlbumDetailPage() {
             <Link href="/albums" className="btn-secondary">
               Back to albums
             </Link>
-            <Link href="/collections" className="btn-primary">
-              View all collections
-            </Link>
           </div>
         </div>
 

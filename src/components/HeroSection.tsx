@@ -227,11 +227,11 @@ export default function HeroSection() {
           <div className="animate-fade-in">
             {user ? (
               <Link
-                href="/collections"
+                href="/albums"
                 className="inline-flex items-center bg-gradient-to-r from-sage to-sage/80 hover:from-sage/90 hover:to-sage/70 text-white text-lg sm:text-xl px-8 sm:px-12 py-4 sm:py-5 rounded-full shadow-2xl hover:shadow-sage/25 transition-all duration-300 transform hover:scale-105 font-semibold"
               >
                 <Play className="w-5 h-5 mr-2" />
-                View Collections
+                View Albums
               </Link>
             ) : (
               <Link

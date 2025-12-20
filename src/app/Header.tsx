@@ -134,9 +134,6 @@ export default function Header() {
             
             {/* Left Side - Navigation (Desktop) */}
             <div className="hidden md:flex items-center space-x-8">
-              <Link href="/collections" className="text-earth hover:text-khaki transition-colors font-medium">
-                Collections
-              </Link>
               <Link href="/albums" className="text-earth hover:text-khaki transition-colors font-medium">
                 Albums
               </Link>
@@ -256,13 +253,6 @@ export default function Header() {
                 <div className="px-4 py-6 space-y-4">
                   
                   {/* Navigation Links */}
-                  <Link 
-                    href="/collections" 
-                    className="block text-earth hover:text-khaki transition-colors font-medium py-3 px-2 rounded-lg hover:bg-blanket/30"
-                    onClick={closeMobileMenu}
-                  >
-                    Collections
-                  </Link>
                   <Link 
                     href="/albums" 
                     className="block text-earth hover:text-khaki transition-colors font-medium py-3 px-2 rounded-lg hover:bg-blanket/30"

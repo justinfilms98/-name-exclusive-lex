@@ -399,17 +399,28 @@ export default function AdminAlbumsPage() {
                         <div className="flex-1 space-y-2">
                           <div className="flex items-start justify-between">
                             <div>
-                              <p className="text-earth font-semibold text-lg">{album.name}</p>
+                              <Link href={`/admin/albums/${album.id}`} className="text-earth font-semibold text-lg hover:text-khaki transition-colors">
+                                {album.name}
+                              </Link>
                               <p className="text-xs text-sage mt-1">Slug: {album.slug}</p>
                               <p className="text-sm text-earth mt-2">{album.description || "No description"}</p>
                             </div>
-                            <button
-                              onClick={() => startEdit(album)}
-                              className="p-2 text-sage hover:text-earth hover:bg-blanket/60 rounded-lg transition-colors"
-                              title="Edit album"
-                            >
-                              <Edit className="w-5 h-5" />
-                            </button>
+                            <div className="flex items-center space-x-2">
+                              <Link
+                                href={`/admin/albums/${album.id}`}
+                                className="p-2 text-sage hover:text-earth hover:bg-blanket/60 rounded-lg transition-colors"
+                                title="Manage album"
+                              >
+                                <Edit className="w-5 h-5" />
+                              </Link>
+                              <button
+                                onClick={() => startEdit(album)}
+                                className="p-2 text-sage hover:text-earth hover:bg-blanket/60 rounded-lg transition-colors"
+                                title="Quick edit"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </button>
+                            </div>
                           </div>
                           <div className="flex items-center gap-4 text-xs text-sage">
                             <span>{album.collections?.[0]?.count ?? 0} collections</span>
