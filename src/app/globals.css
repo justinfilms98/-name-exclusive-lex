@@ -802,6 +802,7 @@ div[style*="center"] {
   /* Typography utilities */
   .heading-1 {
     @apply text-4xl md:text-5xl lg:text-6xl font-serif text-earth;
+    @apply flex flex-col justify-start items-center text-center;
   }
 
   .heading-2 {
