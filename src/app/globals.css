@@ -698,21 +698,21 @@ div[style*="center"] {
 
   /* Button Styles */
   .btn-primary {
-    @apply bg-sage text-blanc px-6 py-3 rounded-lg font-medium;
+    @apply bg-sage text-blanc px-6 py-3 rounded-lg font-medium text-[15px] sm:text-base;
     @apply hover:bg-khaki hover:shadow-elegant transform hover:-translate-y-0.5;
     @apply transition-all duration-300 ease-out;
     @apply focus:outline-none focus:ring-2 focus:ring-sage focus:ring-offset-2;
   }
 
   .btn-secondary {
-    @apply bg-blanket text-earth px-6 py-3 rounded-lg font-medium border border-earth/20;
+    @apply bg-blanket text-earth px-6 py-3 rounded-lg font-medium border border-earth/20 text-[15px] sm:text-base;
     @apply hover:bg-blanc hover:shadow-soft transform hover:-translate-y-0.5;
     @apply transition-all duration-300 ease-out;
     @apply focus:outline-none focus:ring-2 focus:ring-blanket focus:ring-offset-2;
   }
 
   .btn-ghost {
-    @apply text-earth px-4 py-2 rounded-lg;
+    @apply text-earth px-4 py-2 rounded-lg text-[15px] sm:text-base;
     @apply hover:bg-blanket/50 hover:text-khaki;
     @apply transition-colors duration-200;
   }
@@ -877,6 +877,21 @@ div[style*="center"] {
 
   .animate-fade-in {
     animation: fade-in 1s ease-out forwards;
+  }
+
+  @keyframes quickview-pop {
+    from {
+      opacity: 0;
+      transform: translateY(12px) scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  .animate-quickview {
+    animation: quickview-pop 0.24s ease-out forwards;
   }
 }
 

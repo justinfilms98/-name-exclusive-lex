@@ -258,11 +258,11 @@ export default function CollectionsPage() {
         {/* Header */}
         <div className="text-center mb-6 sm:mb-8 md:mb-10">
           <h1 className="heading-1 mb-2 sm:mb-3 md:mb-4">Exclusive Collections</h1>
-          <p className="body-large text-sage max-w-2xl mx-auto text-sm sm:text-base">
+          <p className="text-earth opacity-75 max-w-2xl mx-auto text-base sm:text-lg">
             Premium exclusive content with permanent access. Each collection offers behind-the-scenes experiences.
           </p>
           <div className="mt-3 sm:mt-4">
-            <Link href="/albums" className="btn-secondary inline-flex text-sm sm:text-base">
+            <Link href="/albums" className="btn-secondary inline-flex">
               Browse by album
             </Link>
           </div>

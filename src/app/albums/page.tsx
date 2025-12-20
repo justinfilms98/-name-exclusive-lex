@@ -63,9 +63,11 @@ export default function AlbumsPage() {
         <div className="flex flex-col items-center text-center gap-3 sm:gap-4 mb-4 sm:mb-6 md:mb-8">
           <div className="flex flex-col items-center">
             <h1 className="heading-1 text-center">Albums</h1>
-            <p className="text-sage mt-1 sm:mt-2 text-sm sm:text-base text-center">Browse curated groups of collections.</p>
+            <p className="text-earth opacity-75 mt-1 sm:mt-2 text-base sm:text-lg text-center">
+              Browse curated groups of collections.
+            </p>
           </div>
-          <Link href="/collections" className="btn-secondary text-sm sm:text-base self-center">
+          <Link href="/collections" className="btn-secondary self-center">
             View all collections
           </Link>
         </div>

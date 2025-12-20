@@ -149,12 +149,12 @@ export default function Header() {
               className="md:hidden p-2 text-earth hover:text-khaki transition-colors"
               aria-label="Toggle menu"
             >
-              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
 
             {/* Center - Site Name */}
             <div className="absolute left-1/2 transform -translate-x-1/2 px-12 sm:px-16 md:px-20">
-              <Link href="/" className="text-lg sm:text-xl md:text-2xl font-serif text-earth hover:text-khaki transition-colors whitespace-nowrap">
+              <Link href="/" className="text-xl sm:text-2xl md:text-[28px] font-serif text-earth hover:text-khaki transition-colors whitespace-nowrap">
                 Exclusive Lex
               </Link>
             </div>
@@ -171,7 +171,7 @@ export default function Header() {
                     className="p-1.5 sm:p-2 text-earth hover:text-brand-khaki transition-colors"
                     title="Support Our Creators"
                   >
-                    <DollarSign className="w-4 h-4 sm:w-5 sm:h-5" />
+                    <DollarSign className="w-5 h-5 sm:w-6 sm:h-6" />
                   </Link>
 
                   {/* Cart Icon */}
@@ -180,7 +180,7 @@ export default function Header() {
                     className="relative p-1.5 sm:p-2 text-earth hover:text-sage transition-colors group"
                     title="Cart"
                   >
-                    <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5" />
+                    <ShoppingCart className="w-5 h-5 sm:w-6 sm:h-6" />
                     {cartCount > 0 && (
                       <span className="absolute -top-0.5 -right-0.5 sm:-top-1 sm:-right-1 bg-sage text-blanc text-xs rounded-full h-4 w-4 sm:h-5 sm:w-5 flex items-center justify-center font-medium min-w-[16px] sm:min-w-[20px]">
                         {cartCount > 99 ? '99+' : cartCount}
@@ -193,7 +193,7 @@ export default function Header() {
                     href="/account" 
                     className="hidden sm:flex items-center space-x-2 px-3 py-2 text-earth hover:text-khaki transition-colors"
                   >
-                    <User className="w-4 h-4" />
+                    <User className="w-5 h-5" />
                     <span className="font-medium">My Account</span>
                   </Link>
 
@@ -203,7 +203,7 @@ export default function Header() {
                     className="sm:hidden p-1.5 sm:p-2 text-earth hover:text-khaki transition-colors"
                     title="My Account"
                   >
-                    <User className="w-4 h-4 sm:w-5 sm:h-5" />
+                    <User className="w-5 h-5 sm:w-6 sm:h-6" />
                   </Link>
 
                   {/* Logout (Hidden on Mobile) */}
@@ -212,7 +212,7 @@ export default function Header() {
                     className="hidden sm:flex items-center space-x-2 px-3 py-2 text-earth hover:text-sage transition-colors"
                     title="Sign Out"
                   >
-                    <LogOut className="w-4 h-4" />
+                    <LogOut className="w-5 h-5" />
                     <span className="font-medium">Logout</span>
                   </button>
 
@@ -222,13 +222,13 @@ export default function Header() {
                     className="sm:hidden p-1.5 sm:p-2 text-earth hover:text-sage transition-colors"
                     title="Sign Out"
                   >
-                    <LogOut className="w-4 h-4 sm:w-5 sm:h-5" />
+                    <LogOut className="w-5 h-5 sm:w-6 sm:h-6" />
                   </button>
                 </>
               ) : (
                 <button
                   onClick={handleSignIn}
-                  className="btn-secondary text-xs sm:text-sm px-2 py-1.5 sm:px-3 sm:py-2 md:px-4 whitespace-nowrap"
+                  className="btn-secondary text-sm sm:text-base px-3 py-2 sm:px-4 md:px-5 whitespace-nowrap"
                   title="Sign in with Google (you can switch accounts)"
                 >
                   <span className="hidden sm:inline">Login or Sign Up</span>

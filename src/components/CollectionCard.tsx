@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ShoppingCart, Clock, Image as ImageIcon, ArrowRight } from "lucide-react";
+import { ShoppingCart, Clock, Image as ImageIcon, ArrowRight, X } from "lucide-react";
+import Portal from "./Portal";
 
 export interface CollectionCardData {
   id: string;
@@ -39,14 +40,32 @@ export default function CollectionCard({
   onAddToCart,
 }: CollectionCardProps) {
   const photoCount = collection.photo_paths?.length || 0;
-  const needsExpansion = collection.description && collection.description.length > 120;
-  const [isExpanded, setIsExpanded] = useState(false);
+  const hasLongDescription = collection.description && collection.description.length > 120;
+  const [showDetails, setShowDetails] = useState(false);
 
-  const handleToggle = (e: React.MouseEvent) => {
+  useEffect(() => {
+    if (!showDetails) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setShowDetails(false);
+    };
+
+    window.addEventListener("keydown", handleEscape);
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      window.removeEventListener("keydown", handleEscape);
+    };
+  }, [showDetails]);
+
+  const openDetails = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setIsExpanded((prev) => !prev);
+    setShowDetails(true);
   };
+
+  const closeDetails = () => setShowDetails(false);
 
   const handleAdd = (e?: React.MouseEvent) => {
     e?.preventDefault();
@@ -80,15 +99,15 @@ export default function CollectionCard({
                 {collection.title}
               </h3>
               <div className="text-blanket/90 text-sm mb-3 opacity-0 md:group-hover:opacity-100 transition-opacity duration-700 delay-100">
-                <p className={`${isExpanded ? "" : "line-clamp-3"} opacity-80`}>
+                <p className="line-clamp-3 opacity-80">
                   {collection.description}
                 </p>
-                {collection.description.length > 150 && (
+                {hasLongDescription && (
                   <button
-                    onClick={handleToggle}
-                    className="text-blanc/80 hover:text-blanc text-xs mt-1 underline active:scale-[0.98] transition-transform"
+                    onClick={openDetails}
+                    className="text-blanc/80 hover:text-blanc text-sm mt-2 underline active:scale-[0.98] transition-transform"
                   >
-                    {isExpanded ? "Hide" : "Read more"}
+                    View details
                   </button>
                 )}
               </div>
@@ -152,33 +171,27 @@ export default function CollectionCard({
       </Link>
 
       <div className="p-3 sm:p-4 flex flex-col flex-1 bg-blanc min-w-0">
-          <div className="mb-2 flex-shrink-0">
-            <h3 className="font-serif text-earth text-base sm:text-lg mb-1.5 line-clamp-2 break-words">
+          <div className="mb-3 flex-shrink-0">
+            <h3 className="font-serif text-earth text-lg sm:text-xl mb-1.5 line-clamp-2 break-words">
               {collection.title}
             </h3>
-            <div className="flex items-center gap-2 text-sm sm:text-base text-earth">
+            <div className="flex items-center gap-2 text-[15px] sm:text-base text-earth flex-wrap">
               <span className="font-bold whitespace-nowrap">${formatPrice(collection.price)}</span>
               <span className="text-sage">•</span>
-              <span className="text-sage text-xs sm:text-sm whitespace-nowrap">Video {formatVideoDuration(collection.video_duration || 300)}</span>
+              <span className="text-sage text-sm sm:text-[15px] whitespace-nowrap">Video {formatVideoDuration(collection.video_duration || 300)}</span>
             </div>
           </div>
           
           <div className="mb-2 sm:mb-3 flex-1 min-h-0">
-            {isExpanded ? (
-              <p className="text-sage text-sm opacity-80 leading-relaxed break-words">
-                {collection.description}
-              </p>
-            ) : (
-              <p className="text-sage text-sm opacity-80 line-clamp-2 sm:line-clamp-3 leading-relaxed break-words">
-                {collection.description}
-              </p>
-            )}
-            {needsExpansion && (
+            <p className="text-sage text-sm sm:text-[15px] opacity-80 line-clamp-2 sm:line-clamp-3 leading-relaxed break-words">
+              {collection.description}
+            </p>
+            {hasLongDescription && (
               <button
-                onClick={handleToggle}
-                className="text-khaki text-sm font-medium underline mt-1 hover:text-earth transition-colors active:scale-[0.98]"
+                onClick={openDetails}
+                className="text-khaki text-[15px] font-medium underline mt-1.5 hover:text-earth transition-colors active:scale-[0.98]"
               >
-                {isExpanded ? "Hide" : "Read more"}
+                View details
               </button>
             )}
           </div>
@@ -191,7 +204,7 @@ export default function CollectionCard({
           <button
             onClick={handleAdd}
             disabled={isAdding}
-            className="w-full bg-sage text-blanc px-3 py-2 sm:px-4 sm:py-3 rounded-lg font-medium hover:bg-khaki transition-all duration-300 flex items-center justify-center space-x-2 disabled:opacity-50 text-sm sm:text-base mt-auto flex-shrink-0"
+            className="w-full bg-sage text-blanc px-3 py-2 sm:px-4 sm:py-3 rounded-lg font-medium hover:bg-khaki transition-all duration-300 flex items-center justify-center space-x-2 disabled:opacity-50 text-base sm:text-lg mt-auto flex-shrink-0"
           >
             {isAdding ? (
               <>
@@ -212,6 +225,91 @@ export default function CollectionCard({
           </button>
       </div>
 
+      {showDetails && (
+        <Portal>
+          <div className="fixed inset-0 z-[60] flex items-end md:items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={closeDetails} />
+            <div className="relative w-full max-w-lg bg-almond text-earth rounded-2xl shadow-elegant overflow-hidden transform transition-all duration-200 ease-out animate-quickview">
+              <div className="relative aspect-[4/5] w-full overflow-hidden">
+                {thumbnailUrl ? (
+                  <img
+                    src={thumbnailUrl}
+                    alt={collection.title}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-mushroom to-blanket flex items-center justify-center">
+                    <ImageIcon className="w-16 h-16 text-sage/60" />
+                  </div>
+                )}
+                <button
+                  onClick={closeDetails}
+                  className="absolute top-3 right-3 bg-blanc/90 text-earth p-2 rounded-full shadow-soft hover:bg-blanc transition-colors"
+                  aria-label="Close details"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="p-4 sm:p-6 space-y-4">
+                <div className="space-y-2">
+                  <h3 className="font-serif text-2xl leading-snug">{collection.title}</h3>
+                  <div className="flex items-center gap-2 text-[15px] sm:text-base text-earth flex-wrap">
+                    <span className="font-semibold">${formatPrice(collection.price)}</span>
+                    <span className="text-sage">•</span>
+                    <span className="text-sage whitespace-nowrap">Video {formatVideoDuration(collection.video_duration || 300)}</span>
+                    <span className="text-sage">•</span>
+                    <span className="text-sage whitespace-nowrap">{photoCount} photos</span>
+                    <span className="text-sage hidden sm:inline">• Permanent access</span>
+                  </div>
+                </div>
+
+                <p className="text-earth opacity-80 text-base leading-relaxed whitespace-pre-wrap">
+                  {collection.description}
+                </p>
+
+                <div className="flex items-center gap-3 text-[15px] text-sage flex-wrap">
+                  <span>Permanent access</span>
+                </div>
+
+                <div className="flex flex-col gap-3">
+                  <button
+                    onClick={(e) => {
+                      handleAdd(e);
+                      closeDetails();
+                    }}
+                    disabled={isAdding}
+                    className="btn-primary w-full flex items-center justify-center gap-2 text-base sm:text-lg disabled:opacity-50"
+                  >
+                    {isAdding ? (
+                      <>
+                        <div className="w-4 h-4 spinner"></div>
+                        <span>Adding...</span>
+                      </>
+                    ) : isPurchased ? (
+                      <>
+                        <span>Watch Now</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </>
+                    ) : (
+                      <>
+                        <ShoppingCart className="w-4 h-4" />
+                        <span>Purchase to unlock</span>
+                      </>
+                    )}
+                  </button>
+                  <button
+                    onClick={closeDetails}
+                    className="btn-ghost w-full text-center"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </Portal>
+      )}
     </div>
   );
 }

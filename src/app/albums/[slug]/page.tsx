@@ -168,10 +168,12 @@ export default function AlbumDetailPage() {
         <div className="flex flex-col items-center text-center gap-3 sm:gap-4 mb-4 sm:mb-6">
           <div className="flex flex-col items-center">
             <h1 className="heading-1 mb-1 sm:mb-2">{album?.name}</h1>
-            <p className="text-sage text-sm sm:text-base max-w-2xl">{album?.description || "Curated collection album."}</p>
+              <p className="text-earth opacity-75 text-base sm:text-lg max-w-2xl">
+                {album?.description || "Curated collection album."}
+              </p>
           </div>
           <div className="flex gap-3 justify-center">
-            <Link href="/albums" className="btn-secondary text-sm sm:text-base">
+              <Link href="/albums" className="btn-secondary">
               Back to albums
             </Link>
           </div>

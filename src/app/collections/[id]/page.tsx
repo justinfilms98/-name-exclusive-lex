@@ -177,7 +177,7 @@ export default function CollectionDetailPage() {
 
       <div className="max-w-4xl mx-auto px-4 py-4 sm:py-6 md:py-8">
         <div className="mb-4 sm:mb-6">
-          <Link href="/collections" className="btn-secondary text-sm sm:text-base inline-flex mb-4">
+          <Link href="/collections" className="btn-secondary inline-flex mb-4">
             ← Back to collections
           </Link>
         </div>
