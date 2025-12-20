@@ -65,7 +65,7 @@ export default function CollectionCard({
   return (
     <div className="group flex flex-col bg-blanc border border-mushroom/30 rounded-xl shadow-soft overflow-hidden h-full max-h-[480px] sm:max-h-[520px] md:max-h-none">
       <div className="relative overflow-hidden">
-        <div className="relative aspect-[3/4] sm:aspect-[4/5] lg:aspect-[3/4] overflow-hidden max-h-[240px] sm:max-h-[280px] md:max-h-none">
+        <div className="relative aspect-[4/5] overflow-hidden">
           {thumbnailUrl ? (
             <img
               src={thumbnailUrl}

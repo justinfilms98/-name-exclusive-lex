@@ -215,8 +215,8 @@ export default function AlbumDetailPage() {
                   key={collection.id}
                   className="group bg-blanc border border-mushroom/30 rounded-xl sm:rounded-2xl shadow-soft overflow-hidden hover:shadow-elegant transition-all duration-300 hover:scale-[1.02] flex flex-col"
                 >
-                  {/* Mobile: smaller aspect ratio, Desktop: square */}
-                  <div className="aspect-[3/2] sm:aspect-[3/2] md:aspect-square relative overflow-hidden rounded-t-xl sm:rounded-t-2xl">
+                  {/* 4:5 aspect ratio for consistency with albums */}
+                  <div className="aspect-[4/5] relative overflow-hidden rounded-t-xl sm:rounded-t-2xl">
                     {thumbnailUrl ? (
                       <img
                         src={thumbnailUrl}
