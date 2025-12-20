@@ -242,16 +242,16 @@ export default function CollectionCard({
 
       {isQuickViewOpen && (
         <Portal>
-          <div className="fixed inset-0 z-[1000]">
+          <div className="fixed inset-0 z-[1000] flex items-end sm:items-center justify-center p-0 sm:p-6">
             <div
               className="absolute inset-0 bg-[rgba(43,43,43,0.35)] backdrop-blur-md transition-opacity duration-[220ms] ease-[cubic-bezier(0.16,1,0.3,1)]"
               onClick={handleClose}
             />
 
             {/* Desktop modal */}
-            <div className="hidden sm:flex fixed inset-0 items-center justify-center p-6">
+            <div className="hidden sm:flex w-full items-center justify-center pointer-events-none">
               <div
-                className="w-full max-w-[520px] max-h-[78vh] rounded-2xl bg-[#C9BBA8] border border-[#D4C7B4]/50 shadow-[0_18px_60px_rgba(43,43,43,0.20)] text-[#654C37] overflow-hidden flex flex-col"
+                className="pointer-events-auto w-full max-w-[520px] max-h-[78vh] rounded-2xl bg-[#C9BBA8] border border-[#D4C7B4]/50 shadow-[0_18px_60px_rgba(43,43,43,0.20)] text-[#654C37] overflow-hidden flex flex-col"
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="bg-blanket px-5 py-4 flex items-start justify-between border-b border-[#D4C7B4]/30">
@@ -338,7 +338,7 @@ export default function CollectionCard({
             </div>
 
             {/* Mobile bottom sheet */}
-            <div className="sm:hidden fixed inset-x-0 bottom-0 z-[1001]">
+            <div className="sm:hidden w-full">
               <div
                 className="w-full rounded-t-3xl bg-[#C9BBA8] border border-[#D4C7B4]/50 shadow-[0_18px_60px_rgba(43,43,43,0.20)] text-[#654C37] overflow-hidden"
                 onClick={(e) => e.stopPropagation()}
