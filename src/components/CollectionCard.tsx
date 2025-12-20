@@ -59,9 +59,9 @@ export default function CollectionCard({
     };
   }, [showDetails]);
 
-  const openDetails = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const openDetails = (e?: React.MouseEvent) => {
+    e?.preventDefault();
+    e?.stopPropagation();
     setShowDetails(true);
   };
 
@@ -104,10 +104,11 @@ export default function CollectionCard({
                 </p>
                 {hasLongDescription && (
                   <button
+                    type="button"
                     onClick={openDetails}
-                    className="text-blanc/80 hover:text-blanc text-sm mt-2 underline active:scale-[0.98] transition-transform"
+                    className="pointer-events-auto text-blanc/80 hover:text-blanc text-[15px] sm:text-base mt-2 underline active:scale-[0.98] transition-transform py-2 min-h-[40px]"
                   >
-                    View details
+                    Read more
                   </button>
                 )}
               </div>
@@ -188,10 +189,11 @@ export default function CollectionCard({
             </p>
             {hasLongDescription && (
               <button
+                type="button"
                 onClick={openDetails}
-                className="text-khaki text-[15px] font-medium underline mt-1.5 hover:text-earth transition-colors active:scale-[0.98]"
+                className="pointer-events-auto text-earth text-[15px] sm:text-base font-medium underline mt-1.5 hover:text-khaki transition-colors active:scale-[0.98] py-2 min-h-[40px]"
               >
-                View details
+                Read more
               </button>
             )}
           </div>
@@ -227,10 +229,25 @@ export default function CollectionCard({
 
       {showDetails && (
         <Portal>
-          <div className="fixed inset-0 z-[60] flex items-end md:items-center justify-center p-4">
+          <div className="fixed inset-0 z-[60] flex items-end md:items-center justify-center md:p-4">
             <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={closeDetails} />
-            <div className="relative w-full max-w-lg bg-almond text-earth rounded-2xl shadow-elegant overflow-hidden transform transition-all duration-200 ease-out animate-quickview">
-              <div className="relative aspect-[4/5] w-full overflow-hidden">
+            <div className="relative w-full h-full md:h-auto md:max-w-lg bg-almond text-earth rounded-t-3xl md:rounded-2xl shadow-elegant overflow-y-auto transform transition-all duration-200 ease-out animate-quickview flex flex-col max-h-screen md:max-h-[90vh]">
+              {/* Mobile drag handle */}
+              <div className="md:hidden flex justify-center pt-3 pb-2">
+                <div className="w-12 h-1 bg-sage/30 rounded-full" />
+              </div>
+
+              {/* Close button - more prominent on mobile */}
+              <button
+                onClick={closeDetails}
+                className="absolute top-4 right-4 bg-blanc/95 backdrop-blur-sm text-earth p-2.5 rounded-full shadow-lg hover:bg-blanc transition-colors z-10 md:top-3 md:right-3"
+                aria-label="Close details"
+              >
+                <X className="w-5 h-5 md:w-5 md:h-5" />
+              </button>
+
+              {/* Thumbnail */}
+              <div className="relative aspect-[4/5] w-full flex-shrink-0 overflow-hidden">
                 {thumbnailUrl ? (
                   <img
                     src={thumbnailUrl}
@@ -242,68 +259,70 @@ export default function CollectionCard({
                     <ImageIcon className="w-16 h-16 text-sage/60" />
                   </div>
                 )}
-                <button
-                  onClick={closeDetails}
-                  className="absolute top-3 right-3 bg-blanc/90 text-earth p-2 rounded-full shadow-soft hover:bg-blanc transition-colors"
-                  aria-label="Close details"
-                >
-                  <X className="w-5 h-5" />
-                </button>
               </div>
 
-              <div className="p-4 sm:p-6 space-y-4">
-                <div className="space-y-2">
-                  <h3 className="font-serif text-2xl leading-snug">{collection.title}</h3>
-                  <div className="flex items-center gap-2 text-[15px] sm:text-base text-earth flex-wrap">
-                    <span className="font-semibold">${formatPrice(collection.price)}</span>
-                    <span className="text-sage">•</span>
-                    <span className="text-sage whitespace-nowrap">Video {formatVideoDuration(collection.video_duration || 300)}</span>
-                    <span className="text-sage">•</span>
-                    <span className="text-sage whitespace-nowrap">{photoCount} photos</span>
-                    <span className="text-sage hidden sm:inline">• Permanent access</span>
+              {/* Content wrapper - enables sticky buttons */}
+              <div className="flex-1 flex flex-col min-h-0">
+                {/* Scrollable content */}
+                <div className="flex-1 overflow-y-auto p-5 sm:p-6 md:p-6 space-y-5">
+                  <div className="space-y-2">
+                    <h3 className="font-serif text-2xl sm:text-3xl leading-snug pr-12">{collection.title}</h3>
+                    <div className="flex items-center gap-2 text-[15px] sm:text-base text-earth flex-wrap">
+                      <span className="font-semibold">${formatPrice(collection.price)}</span>
+                      <span className="text-sage">•</span>
+                      <span className="text-sage whitespace-nowrap">Video {formatVideoDuration(collection.video_duration || 300)}</span>
+                      <span className="text-sage">•</span>
+                      <span className="text-sage whitespace-nowrap">{photoCount} photos</span>
+                      <span className="text-sage hidden sm:inline">• Permanent access</span>
+                    </div>
+                  </div>
+
+                  <div className="border-t border-sage/20 pt-4">
+                    <p className="text-earth opacity-80 text-base sm:text-lg leading-relaxed whitespace-pre-wrap">
+                      {collection.description}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-3 text-[15px] text-sage flex-wrap pt-2">
+                    <span>Permanent access</span>
                   </div>
                 </div>
 
-                <p className="text-earth opacity-80 text-base leading-relaxed whitespace-pre-wrap">
-                  {collection.description}
-                </p>
-
-                <div className="flex items-center gap-3 text-[15px] text-sage flex-wrap">
-                  <span>Permanent access</span>
-                </div>
-
-                <div className="flex flex-col gap-3">
-                  <button
-                    onClick={(e) => {
-                      handleAdd(e);
-                      closeDetails();
-                    }}
-                    disabled={isAdding}
-                    className="btn-primary w-full flex items-center justify-center gap-2 text-base sm:text-lg disabled:opacity-50"
-                  >
-                    {isAdding ? (
-                      <>
-                        <div className="w-4 h-4 spinner"></div>
-                        <span>Adding...</span>
-                      </>
-                    ) : isPurchased ? (
-                      <>
-                        <span>Watch Now</span>
-                        <ArrowRight className="w-4 h-4" />
-                      </>
-                    ) : (
-                      <>
-                        <ShoppingCart className="w-4 h-4" />
-                        <span>Purchase to unlock</span>
-                      </>
-                    )}
-                  </button>
-                  <button
-                    onClick={closeDetails}
-                    className="btn-ghost w-full text-center"
-                  >
-                    Close
-                  </button>
+                {/* Sticky action buttons at bottom - always visible */}
+                <div className="flex-shrink-0 border-t border-sage/20 bg-almond p-5 sm:p-6 md:p-6 pt-4">
+                  <div className="flex flex-col gap-3">
+                    <button
+                      onClick={(e) => {
+                        handleAdd(e);
+                        closeDetails();
+                      }}
+                      disabled={isAdding}
+                      className="btn-primary w-full flex items-center justify-center gap-2 text-base sm:text-lg disabled:opacity-50 py-3.5"
+                    >
+                      {isAdding ? (
+                        <>
+                          <div className="w-4 h-4 spinner"></div>
+                          <span>Adding...</span>
+                        </>
+                      ) : isPurchased ? (
+                        <>
+                          <span>Watch Now</span>
+                          <ArrowRight className="w-4 h-4" />
+                        </>
+                      ) : (
+                        <>
+                          <ShoppingCart className="w-4 h-4" />
+                          <span>Purchase to unlock</span>
+                        </>
+                      )}
+                    </button>
+                    <button
+                      onClick={closeDetails}
+                      className="btn-ghost w-full text-center py-3"
+                    >
+                      Close
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
