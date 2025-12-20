@@ -191,7 +191,7 @@ export default function AlbumDetailPage() {
             <p className="text-sage text-sm">Check back soon.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 md:gap-6 lg:gap-8">
             {collections.map((collection) => {
               const thumbnailUrl = thumbnailUrls[collection.id];
               const isPurchased = userPurchases.includes(collection.id);
@@ -210,9 +210,10 @@ export default function AlbumDetailPage() {
               return (
                 <div
                   key={collection.id}
-                  className="group bg-blanc border border-mushroom/30 rounded-2xl shadow-soft overflow-hidden hover:shadow-elegant transition-all duration-300 hover:scale-[1.02]"
+                  className="group bg-blanc border border-mushroom/30 rounded-xl sm:rounded-2xl shadow-soft overflow-hidden hover:shadow-elegant transition-all duration-300 hover:scale-[1.02]"
                 >
-                  <div className="aspect-square relative overflow-hidden rounded-t-2xl">
+                  {/* Mobile: smaller aspect ratio, Desktop: square */}
+                  <div className="aspect-[4/3] sm:aspect-[3/2] md:aspect-square relative overflow-hidden rounded-t-xl sm:rounded-t-2xl">
                     {thumbnailUrl ? (
                       <img
                         src={thumbnailUrl}
@@ -225,38 +226,40 @@ export default function AlbumDetailPage() {
                       />
                     ) : null}
                     <div className={`w-full h-full bg-gradient-to-br from-mushroom to-blanket flex items-center justify-center ${thumbnailUrl ? "hidden" : ""}`}>
-                      <ImageIcon className="w-20 h-20 text-sage/60" />
+                      <ImageIcon className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 text-sage/60" />
                     </div>
                     {isPurchased && (
-                      <div className="absolute top-3 right-3 bg-sage text-blanc px-3 py-1 rounded-full text-xs font-medium shadow-lg">
+                      <div className="absolute top-2 right-2 sm:top-3 sm:right-3 bg-sage text-blanc px-2 py-1 sm:px-3 sm:py-1 rounded-full text-xs font-medium shadow-lg">
                         Owned
                       </div>
                     )}
                     {isAdding && (
                       <div className="absolute inset-0 bg-sage/20 backdrop-blur-sm flex items-center justify-center">
-                        <div className="bg-sage text-blanc px-4 py-2 rounded-lg flex items-center space-x-2">
+                        <div className="bg-sage text-blanc px-3 py-2 sm:px-4 sm:py-2 rounded-lg flex items-center space-x-2">
                           <div className="w-4 h-4 spinner"></div>
-                          <span>Adding to cart...</span>
+                          <span className="text-xs sm:text-sm">Adding to cart...</span>
                         </div>
                       </div>
                     )}
                   </div>
-                  <div className="p-6">
-                    <h3 className="text-2xl font-serif text-earth mb-2">{collection.title}</h3>
-                    <p className="text-sage text-sm mb-4 leading-relaxed">
+                  <div className="p-3 sm:p-4 md:p-6">
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <h3 className="text-lg sm:text-xl md:text-2xl font-serif text-earth flex-1 line-clamp-2">{collection.title}</h3>
+                      <span className="text-earth font-bold text-base sm:text-lg flex-shrink-0">${formatPrice(collection.price)}</span>
+                    </div>
+                    <p className="text-sage text-xs sm:text-sm mb-3 sm:mb-4 leading-relaxed line-clamp-2 sm:line-clamp-3 md:line-clamp-none">
                       {collection.description}
                     </p>
-                    <div className="flex items-center justify-between text-sm text-sage mb-4">
-                      <div className="flex items-center space-x-4">
+                    <div className="flex items-center justify-between text-xs sm:text-sm text-sage mb-3 sm:mb-4">
+                      <div className="flex items-center space-x-2 sm:space-x-4">
                         <span>Video: {formatVideoDuration(collection.video_duration || 300)}</span>
                         <span>{photoCount} photos</span>
                       </div>
-                      <span className="text-earth font-bold text-lg">${formatPrice(collection.price)}</span>
                     </div>
                     <button
                       onClick={() => addToCart(collection)}
                       disabled={isAdding}
-                      className="w-full bg-sage text-blanc px-4 py-3 rounded-lg font-medium hover:bg-khaki transition-all duration-300 flex items-center justify-center space-x-2 disabled:opacity-50"
+                      className="w-full bg-sage text-blanc px-3 py-2 sm:px-4 sm:py-3 rounded-lg font-medium hover:bg-khaki transition-all duration-300 flex items-center justify-center space-x-2 disabled:opacity-50 text-sm sm:text-base"
                     >
                       {isAdding ? (
                         <>
