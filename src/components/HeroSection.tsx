@@ -20,6 +20,8 @@ export default function HeroSection() {
   const [videoUrls, setVideoUrls] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<unknown>(null);
+  const [videosLoaded, setVideosLoaded] = useState(false);
+  const [videosPlaying, setVideosPlaying] = useState(false);
   const videoRefs = useRef<HTMLVideoElement[]>([]);
   const singleVideoRef = useRef<HTMLVideoElement | null>(null);
 
