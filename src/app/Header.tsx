@@ -5,13 +5,13 @@ import Link from 'next/link';
 import { supabase, signInWithGoogle, signOut } from '@/lib/supabase';
 import { isAdmin } from '@/lib/auth';
 import { User, LogOut, ShoppingCart, Menu, X, DollarSign } from 'lucide-react';
+import type { User as SupabaseUser } from '@supabase/supabase-js';
 
 export default function Header() {
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<SupabaseUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [cartCount, setCartCount] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [bannerHeight, setBannerHeight] = useState(0);
 
   // Construction banner removed; keep header at top with no offset
 
@@ -126,8 +126,7 @@ export default function Header() {
   return (
     <>
       <header 
-        className="bg-blanc/90 backdrop-blur-md border-b border-mushroom/30 fixed top-0 left-0 right-0 z-50 shadow-soft safe-top transition-all duration-300" 
-        style={{ top: `${bannerHeight}px` }}
+        className="bg-blanc/90 backdrop-blur-md border-b border-mushroom/30 fixed top-0 left-0 right-0 z-50 shadow-soft safe-top transition-all duration-300"
       >
         <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8">
           <div className="flex justify-between items-center h-14 sm:h-16">

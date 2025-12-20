@@ -4,9 +4,10 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { supabase, signInWithGoogle, signOut } from '@/lib/supabase';
 import { isAdmin } from '@/lib/auth';
+import type { User } from '@supabase/supabase-js';
 
 export default function HeaderClient() {
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [signInLoading, setSignInLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
