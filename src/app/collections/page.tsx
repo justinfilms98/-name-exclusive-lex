@@ -34,7 +34,6 @@ export default function CollectionsPage() {
   const [userPurchases, setUserPurchases] = useState<string[]>([]);
   const [thumbnailUrls, setThumbnailUrls] = useState<{[key: string]: string}>({});
   const [addingToCart, setAddingToCart] = useState<string | null>(null);
-  const [expandedDescriptions, setExpandedDescriptions] = useState<{[key: string]: boolean}>({});
   const [toasts, setToasts] = useState<Toast[]>([]);
   const router = useRouter();
 
@@ -187,13 +186,6 @@ export default function CollectionsPage() {
     });
   }, [toasts]);
 
-  const toggleDescription = (collectionId: string) => {
-    setExpandedDescriptions(prev => ({
-      ...prev,
-      [collectionId]: !prev[collectionId]
-    }));
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen bg-almond flex items-center justify-center">
@@ -290,8 +282,6 @@ export default function CollectionsPage() {
                 isPurchased={isPurchased}
                 thumbnailUrl={thumbnailUrl}
                 isAdding={isAdding}
-                isExpanded={!!expandedDescriptions[collection.id]}
-                onToggleDescription={() => toggleDescription(collection.id)}
                 onAddToCart={() => addToCart(collection)}
               />
             );

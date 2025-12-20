@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { supabase, getAlbumBySlug, getCollectionsByAlbum, getSignedUrl } from "@/lib/supabase";
 import { CollectionCardData } from "@/components/CollectionCard";
-import { Image as ImageIcon, ShoppingCart, ArrowRight } from "lucide-react";
+import { Image as ImageIcon, ShoppingCart, ArrowRight, X } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 
 interface Album {
@@ -33,8 +33,9 @@ export default function AlbumDetailPage() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [addingToCart, setAddingToCart] = useState<string | null>(null);
-  const [expandedDescriptions, setExpandedDescriptions] = useState<Record<string, boolean>>({});
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const [quickViewId, setQuickViewId] = useState<string | null>(null);
+  const closeButtonRef = useRef<HTMLButtonElement | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -95,13 +96,6 @@ export default function AlbumDetailPage() {
     setThumbnailUrls(map);
   };
 
-  const toggleDescription = (collectionId: string) => {
-    setExpandedDescriptions((prev) => ({
-      ...prev,
-      [collectionId]: !prev[collectionId],
-    }));
-  };
-
   const showToast = (message: string, type: "success" | "error") => {
     const id = Date.now().toString();
     const newToast: Toast = { id, message, type };
@@ -137,6 +131,36 @@ export default function AlbumDetailPage() {
 
     setTimeout(() => setAddingToCart(null), 800);
   };
+
+  // Quick view helpers
+  useEffect(() => {
+    if (!quickViewId) return;
+    const original = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = original;
+    };
+  }, [quickViewId]);
+
+  useEffect(() => {
+    if (!quickViewId) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setQuickViewId(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [quickViewId]);
+
+  useEffect(() => {
+    if (quickViewId) {
+      setTimeout(() => closeButtonRef.current?.focus(), 10);
+    }
+  }, [quickViewId]);
+
+  const quickViewCollection = quickViewId ? collections.find((c) => c.id === quickViewId) : null;
+  const quickViewThumbnail = quickViewId ? thumbnailUrls[quickViewId] : null;
+  const quickViewPurchased = quickViewId ? userPurchases.includes(quickViewId) : false;
+  const quickViewPhotoCount = quickViewCollection?.photo_paths?.length || 0;
 
   if (loading) {
     return (
@@ -198,8 +222,6 @@ export default function AlbumDetailPage() {
               const isPurchased = userPurchases.includes(collection.id);
               const isAdding = addingToCart === collection.id;
               const photoCount = collection.photo_paths?.length || 0;
-              const isExpanded = expandedDescriptions[collection.id] || false;
-              const needsExpansion = collection.description && collection.description.length > 120;
               
               const formatVideoDuration = (seconds: number): string => {
                 const minutes = Math.floor(seconds / 60);
@@ -255,23 +277,19 @@ export default function AlbumDetailPage() {
                       </div>
                     </div>
                     <div className="mb-3 sm:mb-4 flex-1">
-                      {isExpanded ? (
-                        <p className="text-sage text-sm opacity-80 leading-relaxed break-words">{collection.description}</p>
-                      ) : (
-                        <p className="text-sage text-sm opacity-80 leading-relaxed line-clamp-2 sm:line-clamp-3 break-words">
-                          {collection.description}
-                        </p>
-                      )}
-                      {needsExpansion && (
+                      <p className="text-sage text-sm opacity-80 leading-relaxed line-clamp-2 sm:line-clamp-3 break-words">
+                        {collection.description}
+                      </p>
+                      {collection.description && collection.description.length > 120 && (
                         <button
                           onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
-                            toggleDescription(collection.id);
+                            setQuickViewId(collection.id);
                           }}
-                          className="text-khaki text-sm font-medium underline mt-1 hover:text-earth transition-colors"
+                          className="text-khaki text-sm font-medium underline mt-1 hover:text-earth transition-colors active:scale-[0.98]"
                         >
-                          {isExpanded ? "Hide" : "Read more"}
+                          View details
                         </button>
                       )}
                     </div>
@@ -308,6 +326,102 @@ export default function AlbumDetailPage() {
           </div>
         )}
       </div>
+
+      {quickViewCollection && (
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center px-3 sm:px-4"
+          onClick={() => setQuickViewId(null)}
+        >
+          <div className="absolute inset-0 bg-[rgba(43,43,43,0.35)] backdrop-blur-md opacity-100 transition-opacity duration-[220ms] ease-[cubic-bezier(0.16,1,0.3,1)]" />
+          <div
+            className="relative z-10 w-full max-w-[520px] sm:w-[92vw] max-h-[78vh] sm:max-h-[90vh] bg-[#C9BBA8] text-[#654C37] border border-mushroom/40 rounded-t-3xl sm:rounded-2xl shadow-[0_18px_60px_rgba(43,43,43,0.20)] overflow-hidden flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              transition: "opacity 220ms cubic-bezier(0.16,1,0.3,1), transform 220ms cubic-bezier(0.16,1,0.3,1)",
+            }}
+          >
+            <div className="bg-blanket px-5 py-4 flex items-start justify-between border-b border-mushroom/30">
+              <div>
+                <p className="text-xs uppercase tracking-wide text-black/70">Collection</p>
+                <h3 className="text-xl font-serif text-[#654C37]">{quickViewCollection.title}</h3>
+              </div>
+              <button
+                ref={closeButtonRef}
+                onClick={() => setQuickViewId(null)}
+                className="p-2 rounded-full text-[#654C37] hover:bg-blanket/60 transition-colors"
+                aria-label="Close details"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4 overflow-y-auto">
+              <div className="rounded-xl border border-mushroom/30 overflow-hidden">
+                {quickViewThumbnail ? (
+                  <img
+                    src={quickViewThumbnail}
+                    alt={quickViewCollection.title}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-48 bg-gradient-to-br from-mushroom to-blanket flex items-center justify-center">
+                    <ImageIcon className="w-12 h-12 text-sage/60" />
+                  </div>
+                )}
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3 text-sm text-black/70">
+                <span className="font-semibold text-[#654C37] text-base">
+                  ${ (quickViewCollection.price / 100).toFixed(2) }
+                </span>
+                <span>•</span>
+                <span>Video {Math.floor((quickViewCollection.video_duration || 300) / 60)} min</span>
+                <span>•</span>
+                <span>{quickViewPhotoCount} photos</span>
+                <span>•</span>
+                <span>Permanent access</span>
+              </div>
+
+              <div className="text-sm text-black/70 leading-relaxed space-y-2">
+                <p>{quickViewCollection.description}</p>
+              </div>
+            </div>
+
+            <div className="mt-auto border-t border-mushroom/30 bg-blanket/60 px-5 py-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <button
+                  onClick={() => setQuickViewId(null)}
+                  className="w-full sm:w-auto px-4 py-2 rounded-xl border border-mushroom/40 text-[#654C37] hover:bg-blanket/60 transition-colors"
+                >
+                  Close
+                </button>
+                <button
+                  onClick={() => quickViewCollection && addToCart(quickViewCollection)}
+                  disabled={addingToCart === quickViewCollection.id}
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-[#8F907E] text-[#F8F6F1] hover:brightness-95 transition-all duration-200 shadow-sm disabled:opacity-60"
+                >
+                  {addingToCart === quickViewCollection.id ? (
+                    <>
+                      <div className="w-4 h-4 spinner" />
+                      <span>Adding...</span>
+                    </>
+                  ) : quickViewPurchased ? (
+                    <>
+                      <span>Watch Now</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </>
+                  ) : (
+                    <>
+                      <ShoppingCart className="w-4 h-4" />
+                      <span>Purchase to unlock</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
