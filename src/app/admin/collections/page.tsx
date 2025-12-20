@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { getCollections, uploadFile, supabase, createCollection, getAlbums, createAlbum } from '@/lib/supabase';
-import { Upload, Trash2, Edit, Image as ImageIcon, Video, Plus, AlertCircle, FolderPlus, MoreVertical, Move, X } from 'lucide-react';
+import { Upload, Trash2, Edit, Image as ImageIcon, Video, Plus, AlertCircle, FolderPlus, MoreVertical, X } from 'lucide-react';
 import { updateCollection } from '@/lib/supabase';
 import Portal from '@/components/Portal';
 
@@ -66,7 +66,6 @@ export default function AdminCollectionsPage() {
   const [extractionResults, setExtractionResults] = useState<any>(null);
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   const [movingCollectionId, setMovingCollectionId] = useState<string | null>(null);
-  const [draggedCollectionId, setDraggedCollectionId] = useState<string | null>(null);
 
   // Lock scroll when mobile menu is open
   useEffect(() => {
@@ -112,23 +111,6 @@ export default function AdminCollectionsPage() {
     }
   };
 
-  const handleDragStart = (e: React.DragEvent, collectionId: string) => {
-    setDraggedCollectionId(collectionId);
-    e.dataTransfer.effectAllowed = 'move';
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-  };
-
-  const handleDrop = async (e: React.DragEvent, targetAlbumId: string | null) => {
-    e.preventDefault();
-    if (!draggedCollectionId) return;
-    
-    await handleMoveToAlbum(draggedCollectionId, targetAlbumId);
-    setDraggedCollectionId(null);
-  };
 
   const loadAlbums = async () => {
     try {
@@ -893,42 +875,6 @@ export default function AdminCollectionsPage() {
           </button>
         </div>
 
-        {/* Albums Drop Zones */}
-        {albums.length > 0 && (
-          <div className="mt-8">
-            <h2 className="heading-3 flex items-center mb-4">
-              <FolderPlus className="w-6 h-6 mr-2" />
-              Albums - Drag collections here to assign
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-              <div
-                onDragOver={handleDragOver}
-                onDrop={(e) => handleDrop(e, null)}
-                className="card p-4 border-2 border-dashed border-mushroom/50 hover:border-sage/50 transition-colors rounded-lg min-h-[100px] flex items-center justify-center"
-              >
-                <div className="text-center">
-                  <FolderPlus className="w-8 h-8 text-sage/60 mx-auto mb-2" />
-                  <p className="text-sm text-earth font-medium">No Album</p>
-                  <p className="text-xs text-sage">Drop here to remove from album</p>
-                </div>
-              </div>
-              {albums.map((album) => (
-                <div
-                  key={album.id}
-                  onDragOver={handleDragOver}
-                  onDrop={(e) => handleDrop(e, album.id)}
-                  className="card p-4 border-2 border-dashed border-mushroom/50 hover:border-sage/50 transition-colors rounded-lg min-h-[100px] flex items-center justify-center"
-                >
-                  <div className="text-center">
-                    <FolderPlus className="w-8 h-8 text-sage/60 mx-auto mb-2" />
-                    <p className="text-sm text-earth font-medium">{album.name}</p>
-                    <p className="text-xs text-sage">Drop collections here</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
 
         {/* Collections List */}
         <div className="card-glass p-8">
@@ -948,20 +894,13 @@ export default function AdminCollectionsPage() {
               {collections.map((collection) => (
                 <div
                   key={collection.id}
-                  draggable
-                  onDragStart={(e) => handleDragStart(e, collection.id)}
-                  className={`card p-6 cursor-move transition-all ${
-                    draggedCollectionId === collection.id ? 'opacity-50' : ''
-                  }`}
+                  className="card p-6 transition-all"
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Move className="w-4 h-4 text-sage/60" />
-                        <h3 className="text-xl font-serif text-earth">
-                          {collection.title}
-                        </h3>
-                      </div>
+                      <h3 className="text-xl font-serif text-earth mb-2">
+                        {collection.title}
+                      </h3>
                       {collection.albums && (
                         <div className="inline-flex items-center px-3 py-1 bg-blanket/60 text-earth text-xs font-medium rounded-full mb-2">
                           Album: {collection.albums.name}
@@ -1101,10 +1040,10 @@ export default function AdminCollectionsPage() {
                       </div>
                       <Link
                         href={`/admin/collections/${collection.id}/edit`}
-                        className="p-2 text-sage hover:text-khaki transition-colors hover:bg-blanket/50 rounded-lg"
+                        className="p-2 text-sage hover:text-earth hover:bg-blanket/60 rounded-lg transition-colors"
                         title="Edit"
                       >
-                        <Edit className="w-4 h-4" />
+                        <Edit className="w-5 h-5" />
                       </Link>
                       <button
                         onClick={() => handleDelete(collection)}

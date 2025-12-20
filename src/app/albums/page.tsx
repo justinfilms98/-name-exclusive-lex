@@ -67,7 +67,7 @@ export default function AlbumsPage() {
               Browse curated groups of collections.
             </p>
           </div>
-          <Link href="/collections" className="btn-secondary self-center">
+          <Link href="/collections" className="btn-secondary inline-flex self-center">
             View all collections
           </Link>
         </div>

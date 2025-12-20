@@ -231,7 +231,7 @@ export default function CollectionCard({
         <Portal>
           <div className="fixed inset-0 z-[60] flex items-end md:items-center justify-center md:p-4">
             <div className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-150" onClick={closeDetails} />
-            <div className="relative w-full h-[85vh] md:h-auto md:max-w-[560px] bg-blanc text-earth rounded-t-3xl md:rounded-2xl shadow-elegant overflow-hidden transition-all duration-[240ms] ease-out animate-quickview flex flex-col border border-mushroom/30">
+            <div className="relative w-full h-[80vh] md:h-auto md:max-w-[560px] bg-[#C9BBA8] text-earth rounded-t-3xl md:rounded-2xl shadow-xl overflow-hidden transition-all duration-[200ms] ease-[cubic-bezier(0.16,1,0.3,1)] animate-quickview flex flex-col border border-earth/20">
               {/* Mobile drag handle */}
               <div className="md:hidden flex justify-center pt-3 pb-2">
                 <div className="w-12 h-1 bg-sage/30 rounded-full" />
@@ -240,7 +240,7 @@ export default function CollectionCard({
               {/* Close button - more prominent on mobile */}
               <button
                 onClick={closeDetails}
-                className="absolute top-4 right-4 bg-blanc/95 backdrop-blur-sm text-earth p-2.5 rounded-full shadow-lg hover:bg-blanc transition-colors z-10 md:top-3 md:right-3"
+                className="absolute top-4 right-4 bg-[#F8F6F1]/95 backdrop-blur-sm text-earth p-2.5 rounded-full shadow-lg hover:bg-[#F8F6F1] transition-colors z-10 md:top-3 md:right-3"
                 aria-label="Close details"
               >
                 <X className="w-5 h-5 md:w-5 md:h-5" />
@@ -266,7 +266,7 @@ export default function CollectionCard({
                 {/* Scrollable content */}
                 <div className="flex-1 overflow-y-auto p-5 sm:p-6 md:p-6 space-y-5">
                   <div className="space-y-2">
-                    <h3 className="font-serif text-2xl sm:text-3xl leading-snug pr-12">{collection.title}</h3>
+                    <h3 className="font-serif text-2xl sm:text-3xl leading-snug pr-10">{collection.title}</h3>
                     <div className="flex items-center gap-2 text-[15px] sm:text-base text-earth flex-wrap">
                       <span className="font-semibold">${formatPrice(collection.price)}</span>
                       <span className="text-sage">•</span>
@@ -289,10 +289,10 @@ export default function CollectionCard({
                 </div>
 
                 {/* Action buttons - informational only, purchase stays in card */}
-                <div className="flex-shrink-0 border-t border-mushroom/20 bg-blanc p-5 sm:p-6 md:p-6 pt-4">
+                <div className="flex-shrink-0 border-t border-earth/20 bg-[#C9BBA8] p-5 sm:p-6 md:p-6 pt-4">
                   <button
                     onClick={closeDetails}
-                    className="btn-secondary w-full text-center py-3"
+                    className="w-full bg-[#F8F6F1] text-earth border border-earth/20 px-6 py-3 rounded-lg font-medium hover:bg-[#F2E0CF] transition-colors text-center"
                   >
                     Close
                   </button>
