@@ -881,6 +881,43 @@ export default function AdminCollectionsPage() {
           </button>
         </div>
 
+        {/* Albums Drop Zones */}
+        {albums.length > 0 && (
+          <div className="mt-8">
+            <h2 className="heading-3 flex items-center mb-4">
+              <FolderPlus className="w-6 h-6 mr-2" />
+              Albums - Drag collections here to assign
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+              <div
+                onDragOver={handleDragOver}
+                onDrop={(e) => handleDrop(e, null)}
+                className="card p-4 border-2 border-dashed border-mushroom/50 hover:border-sage/50 transition-colors rounded-lg min-h-[100px] flex items-center justify-center"
+              >
+                <div className="text-center">
+                  <FolderPlus className="w-8 h-8 text-sage/60 mx-auto mb-2" />
+                  <p className="text-sm text-earth font-medium">No Album</p>
+                  <p className="text-xs text-sage">Drop here to remove from album</p>
+                </div>
+              </div>
+              {albums.map((album) => (
+                <div
+                  key={album.id}
+                  onDragOver={handleDragOver}
+                  onDrop={(e) => handleDrop(e, album.id)}
+                  className="card p-4 border-2 border-dashed border-mushroom/50 hover:border-sage/50 transition-colors rounded-lg min-h-[100px] flex items-center justify-center"
+                >
+                  <div className="text-center">
+                    <FolderPlus className="w-8 h-8 text-sage/60 mx-auto mb-2" />
+                    <p className="text-sm text-earth font-medium">{album.name}</p>
+                    <p className="text-xs text-sage">Drop collections here</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Collections List */}
         <div className="card-glass p-8">
           <h2 className="heading-3 mb-6 flex items-center">

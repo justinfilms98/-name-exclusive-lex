@@ -93,7 +93,7 @@ export default function AdminPage() {
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/(^-|-$)/g, "");
 
-      let thumbnailPath = null;
+      let thumbnailPath: string | null = null;
       if (thumbnailFile) {
         const timestamp = Date.now();
         const path = `albums/${slug}_${timestamp}/thumbnail.${thumbnailFile.name.split('.').pop()}`;
