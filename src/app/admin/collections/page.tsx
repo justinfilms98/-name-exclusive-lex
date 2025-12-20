@@ -1,11 +1,12 @@
 "use client";
 
 import Link from 'next/link';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { getCollections, uploadFile, supabase, createCollection, getAlbums, createAlbum } from '@/lib/supabase';
-import { Upload, Trash2, Edit, Image as ImageIcon, Video, Plus, AlertCircle, FolderPlus, MoreVertical, X } from 'lucide-react';
+import { Upload, Trash2, Edit, Image as ImageIcon, Video, Plus, AlertCircle, FolderPlus, MoreVertical } from 'lucide-react';
 import { updateCollection } from '@/lib/supabase';
-import Portal from '@/components/Portal';
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
+import { useToast } from '@/components/Toast';
 
 interface Collection {
   id: string;
@@ -64,21 +65,8 @@ export default function AdminCollectionsPage() {
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [extractingDurations, setExtractingDurations] = useState(false);
   const [extractionResults, setExtractionResults] = useState<any>(null);
-  const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   const [movingCollectionId, setMovingCollectionId] = useState<string | null>(null);
-  const [menuPosition, setMenuPosition] = useState<{ top: number; right: number } | null>(null);
-  const menuButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
-
-  // Lock scroll when mobile menu is open
-  useEffect(() => {
-    if (menuOpenId) {
-      const originalOverflow = document.body.style.overflow;
-      document.body.style.overflow = 'hidden';
-      return () => {
-        document.body.style.overflow = originalOverflow;
-      };
-    }
-  }, [menuOpenId]);
+  const { addToast } = useToast();
 
   useEffect(() => {
     loadCollections();
@@ -100,18 +88,37 @@ export default function AdminCollectionsPage() {
 
   const handleMoveToAlbum = async (collectionId: string, albumId: string | null) => {
     setMovingCollectionId(collectionId);
-    setMenuOpenId(null); // Close menu immediately for better UX
-    setMenuPosition(null);
+    
+    // Find the collection and its current album
+    const collection = collections.find(c => c.id === collectionId);
+    const previousAlbumId = collection?.album_id || null;
+    const albumName = albumId ? albums.find(a => a.id === albumId)?.name : 'Unassigned';
+    
+    // Optimistic update
+    setCollections(prev => prev.map(c => 
+      c.id === collectionId 
+        ? { ...c, album_id: albumId, albums: albumId ? albums.find(a => a.id === albumId) || null : null }
+        : c
+    ));
+    
     try {
       const { error } = await updateCollection(collectionId, { album_id: albumId });
       if (error) throw new Error(error.message);
-      // Reload collections to reflect the change immediately
+      
+      // Success - reload to ensure sync, but UI is already updated
       await loadCollections();
+      addToast(`Collection moved to "${albumName}"`, 'success');
     } catch (err) {
       console.error('Failed to move collection:', err);
-      alert('Failed to move collection to album. Please try again.');
-      // Reload anyway to ensure UI is in sync
-      await loadCollections();
+      
+      // Revert optimistic update
+      setCollections(prev => prev.map(c => 
+        c.id === collectionId 
+          ? { ...c, album_id: previousAlbumId, albums: previousAlbumId ? albums.find(a => a.id === previousAlbumId) || null : null }
+          : c
+      ));
+      
+      addToast('Failed to move collection. Please try again.', 'error');
     } finally {
       setMovingCollectionId(null);
     }
@@ -949,159 +956,64 @@ export default function AdminCollectionsPage() {
                       </Link>
                       
                       {/* 3-dot menu */}
-                      <div className="relative overflow-visible">
-                        <button
-                          ref={(el) => {
-                            menuButtonRefs.current[collection.id] = el;
-                          }}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            const button = menuButtonRefs.current[collection.id];
-                            if (button) {
-                              const rect = button.getBoundingClientRect();
-                              setMenuPosition({
-                                top: rect.bottom + 8,
-                                right: window.innerWidth - rect.right,
-                              });
-                            }
-                            setMenuOpenId(menuOpenId === collection.id ? null : collection.id);
-                          }}
-                          className="p-2 text-sage hover:text-khaki transition-colors hover:bg-blanket/50 rounded-lg min-w-[44px] min-h-[44px] flex items-center justify-center"
-                          title="More options"
-                          aria-label="More options"
-                          aria-expanded={menuOpenId === collection.id}
-                        >
-                          <MoreVertical className="w-5 h-5" />
-                        </button>
-                        
-                        {menuOpenId === collection.id && (
-                          <>
-                            {/* Desktop dropdown - use Portal to avoid clipping */}
-                            <div className="hidden md:block">
-                              <Portal>
-                                <>
-                                  <div 
-                                    className="fixed inset-0 z-[100]" 
-                                    onClick={() => {
-                                      setMenuOpenId(null);
-                                      setMenuPosition(null);
-                                    }}
-                                    aria-hidden="true"
-                                  />
-                                  {/* Fixed positioning based on button position */}
-                                  {menuPosition && (
-                                    <div 
-                                      className="fixed bg-blanc rounded-lg shadow-xl border border-mushroom/30 z-[101] py-2 w-56 max-h-[50vh] overflow-y-auto"
-                                      style={{
-                                        top: `${menuPosition.top}px`,
-                                        right: `${menuPosition.right}px`,
-                                      }}
-                                      onClick={(e) => e.stopPropagation()}
-                                    >
-                                      <div className="px-3 py-2 text-xs font-medium text-sage border-b border-mushroom/30 sticky top-0 bg-blanc z-10">
-                                        Move to Album
-                                      </div>
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleMoveToAlbum(collection.id, null);
-                                        }}
-                                        disabled={movingCollectionId === collection.id}
-                                        className="w-full text-left px-3 py-2.5 text-sm text-earth hover:bg-blanket/50 active:bg-blanket/70 transition-colors disabled:opacity-50 touch-manipulation"
-                                      >
-                                        {movingCollectionId === collection.id ? 'Moving...' : 'No Album'}
-                                      </button>
-                                      {albums.map((album) => (
-                                        <button
-                                          key={album.id}
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleMoveToAlbum(collection.id, album.id);
-                                          }}
-                                          disabled={movingCollectionId === collection.id}
-                                          className={`w-full text-left px-3 py-2.5 text-sm transition-colors disabled:opacity-50 touch-manipulation ${
-                                            collection.album_id === album.id
-                                              ? 'bg-blanket/70 text-earth font-medium'
-                                              : 'text-earth hover:bg-blanket/50 active:bg-blanket/70'
-                                          }`}
-                                        >
-                                          {movingCollectionId === collection.id ? 'Moving...' : album.name}
-                                        </button>
-                                      ))}
-                                    </div>
-                                  )}
-                                </>
-                              </Portal>
-                            </div>
+                      <DropdownMenu.Root>
+                        <DropdownMenu.Trigger asChild>
+                          <button
+                            onClick={(e) => e.stopPropagation()}
+                            className="p-2 text-sage hover:text-khaki transition-colors hover:bg-blanket/50 rounded-lg min-w-[44px] min-h-[44px] flex items-center justify-center touch-manipulation"
+                            title="More options"
+                            aria-label="More options"
+                          >
+                            <MoreVertical className="w-5 h-5" />
+                          </button>
+                        </DropdownMenu.Trigger>
 
-                            {/* Mobile bottom sheet */}
-                            <div className="md:hidden">
-                              <Portal>
-                                <div className="fixed inset-0 z-[100] flex items-end safe-bottom">
-                                  <div 
-                                    className="absolute inset-0 bg-black/40 backdrop-blur-sm" 
-                                    onClick={() => setMenuOpenId(null)}
-                                    aria-hidden="true"
-                                  />
-                                  <div className="relative w-full bg-blanc rounded-t-2xl shadow-2xl border-t border-mushroom/30 max-h-[70vh] flex flex-col">
-                                    {/* Drag handle */}
-                                    <div className="flex justify-center pt-3 pb-2">
-                                      <div className="w-12 h-1 bg-sage/30 rounded-full" />
-                                    </div>
-                                    
-                                    {/* Header */}
-                                    <div className="flex items-center justify-between px-4 pb-3 border-b border-mushroom/20">
-                                      <h3 className="text-lg font-serif text-earth">Move to Album</h3>
-                                      <button
-                                        onClick={() => setMenuOpenId(null)}
-                                        className="p-2 text-sage hover:text-earth transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
-                                        aria-label="Close"
-                                      >
-                                        <X className="w-5 h-5" />
-                                      </button>
-                                    </div>
+                        <DropdownMenu.Portal>
+                          <DropdownMenu.Content
+                            className="bg-blanc rounded-lg shadow-xl border border-mushroom/30 py-2 w-56 max-h-[70vh] overflow-y-auto z-[100] min-w-[200px]"
+                            side="bottom"
+                            align="end"
+                            sideOffset={8}
+                            collisionPadding={16}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <DropdownMenu.Label className="px-3 py-2 text-xs font-medium text-sage border-b border-mushroom/30 sticky top-0 bg-blanc">
+                              Move to Album
+                            </DropdownMenu.Label>
+                            
+                            <DropdownMenu.Item
+                              onSelect={() => {
+                                handleMoveToAlbum(collection.id, null);
+                              }}
+                              disabled={movingCollectionId === collection.id}
+                              className={`w-full text-left px-3 py-2.5 text-sm transition-colors disabled:opacity-50 cursor-pointer outline-none focus:bg-blanket/50 touch-manipulation ${
+                                !collection.album_id
+                                  ? 'bg-blanket/70 text-earth font-medium'
+                                  : 'text-earth hover:bg-blanket/50'
+                              }`}
+                            >
+                              {movingCollectionId === collection.id ? 'Moving...' : 'No Album / Unassigned'}
+                            </DropdownMenu.Item>
 
-                                    {/* Scrollable album list */}
-                                    <div className="flex-1 overflow-y-auto px-4 py-2">
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleMoveToAlbum(collection.id, null);
-                                        }}
-                                        disabled={movingCollectionId === collection.id}
-                                        className={`w-full text-left px-4 py-3.5 rounded-lg text-base transition-colors disabled:opacity-50 touch-manipulation ${
-                                          !collection.album_id
-                                            ? 'bg-blanket/70 text-earth font-medium'
-                                            : 'text-earth active:bg-blanket/70'
-                                        }`}
-                                      >
-                                        {movingCollectionId === collection.id ? 'Moving...' : 'No Album'}
-                                      </button>
-                                      {albums.map((album) => (
-                                        <button
-                                          key={album.id}
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleMoveToAlbum(collection.id, album.id);
-                                          }}
-                                          disabled={movingCollectionId === collection.id}
-                                          className={`w-full text-left px-4 py-3.5 rounded-lg text-base transition-colors disabled:opacity-50 touch-manipulation mt-2 ${
-                                            collection.album_id === album.id
-                                              ? 'bg-blanket/70 text-earth font-medium'
-                                              : 'text-earth active:bg-blanket/70'
-                                          }`}
-                                        >
-                                          {movingCollectionId === collection.id ? 'Moving...' : album.name}
-                                        </button>
-                                      ))}
-                                    </div>
-                                  </div>
-                                </div>
-                              </Portal>
-                            </div>
-                          </>
-                        )}
-                      </div>
+                            {albums.map((album) => (
+                              <DropdownMenu.Item
+                                key={album.id}
+                                onSelect={() => {
+                                  handleMoveToAlbum(collection.id, album.id);
+                                }}
+                                disabled={movingCollectionId === collection.id}
+                                className={`w-full text-left px-3 py-2.5 text-sm transition-colors disabled:opacity-50 cursor-pointer outline-none focus:bg-blanket/50 touch-manipulation ${
+                                  collection.album_id === album.id
+                                    ? 'bg-blanket/70 text-earth font-medium'
+                                    : 'text-earth hover:bg-blanket/50'
+                                }`}
+                              >
+                                {movingCollectionId === collection.id ? 'Moving...' : album.name}
+                              </DropdownMenu.Item>
+                            ))}
+                          </DropdownMenu.Content>
+                        </DropdownMenu.Portal>
+                      </DropdownMenu.Root>
                       
                       {/* Delete button */}
                       <button

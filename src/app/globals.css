@@ -1187,3 +1187,15 @@ div[style*="center"] {
     padding-right: max(env(safe-area-inset-right), 0px);
   }
 }
+
+/* Radix UI DropdownMenu styles for iOS compatibility */
+[data-radix-portal] {
+  position: fixed;
+  z-index: 9999;
+}
+
+[data-radix-popper-content-wrapper] {
+  /* Ensure dropdown doesn't overflow on iOS */
+  max-width: 100vw;
+  max-height: 100vh;
+}
