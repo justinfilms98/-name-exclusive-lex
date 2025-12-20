@@ -98,14 +98,17 @@ export default function AdminCollectionsPage() {
 
   const handleMoveToAlbum = async (collectionId: string, albumId: string | null) => {
     setMovingCollectionId(collectionId);
+    setMenuOpenId(null); // Close menu immediately for better UX
     try {
       const { error } = await updateCollection(collectionId, { album_id: albumId });
       if (error) throw new Error(error.message);
+      // Reload collections to reflect the change immediately
       await loadCollections();
-      setMenuOpenId(null);
     } catch (err) {
       console.error('Failed to move collection:', err);
       alert('Failed to move collection to album. Please try again.');
+      // Reload anyway to ensure UI is in sync
+      await loadCollections();
     } finally {
       setMovingCollectionId(null);
     }
@@ -894,10 +897,10 @@ export default function AdminCollectionsPage() {
               {collections.map((collection) => (
                 <div
                   key={collection.id}
-                  className="card p-6 transition-all"
+                  className="card p-4 sm:p-6 transition-all overflow-visible"
                 >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0">
                       <h3 className="text-xl font-serif text-earth mb-2">
                         {collection.title}
                       </h3>
@@ -911,7 +914,7 @@ export default function AdminCollectionsPage() {
                         {collection.description}
                       </p>
                       
-                      <div className="flex items-center space-x-6 text-sm text-sage">
+                      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-sage">
                         <div className="flex items-center">
                           <span className="font-medium text-earth">${(collection.price / 100).toFixed(2)}</span>
                         </div>
@@ -930,60 +933,88 @@ export default function AdminCollectionsPage() {
                       </div>
                     </div>
 
-                    <div className="flex items-center space-x-2 ml-4 flex-shrink-0">
-                      <div className="relative">
+                    {/* Action buttons - Edit, More menu, Delete */}
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      {/* Edit button - prominent like Album admin */}
+                      <Link
+                        href={`/admin/collections/${collection.id}/edit`}
+                        className="p-2 text-sage hover:text-earth hover:bg-blanket/60 rounded-lg transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+                        title="Edit collection"
+                        aria-label="Edit collection"
+                      >
+                        <Edit className="w-5 h-5" />
+                      </Link>
+                      
+                      {/* 3-dot menu */}
+                      <div className="relative overflow-visible">
                         <button
-                          onClick={() => setMenuOpenId(menuOpenId === collection.id ? null : collection.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setMenuOpenId(menuOpenId === collection.id ? null : collection.id);
+                          }}
                           className="p-2 text-sage hover:text-khaki transition-colors hover:bg-blanket/50 rounded-lg min-w-[44px] min-h-[44px] flex items-center justify-center"
                           title="More options"
                           aria-label="More options"
+                          aria-expanded={menuOpenId === collection.id}
                         >
                           <MoreVertical className="w-5 h-5" />
                         </button>
                         
                         {menuOpenId === collection.id && (
                           <>
-                            {/* Desktop dropdown */}
+                            {/* Desktop dropdown - positioned absolutely, parent has overflow-visible */}
                             <div className="hidden md:block">
                               <div 
-                                className="fixed inset-0 z-10" 
+                                className="fixed inset-0 z-[100]" 
                                 onClick={() => setMenuOpenId(null)}
+                                aria-hidden="true"
                               />
-                              <div className="absolute right-0 mt-2 w-56 bg-blanc rounded-lg shadow-lg border border-mushroom/30 z-20 py-2 max-h-[400px] overflow-y-auto">
-                                <div className="px-3 py-2 text-xs font-medium text-sage border-b border-mushroom/30 sticky top-0 bg-blanc">
-                                  Move to Album
-                                </div>
-                                <button
-                                  onClick={() => handleMoveToAlbum(collection.id, null)}
-                                  disabled={movingCollectionId === collection.id}
-                                  className="w-full text-left px-3 py-2 text-sm text-earth hover:bg-blanket/50 transition-colors disabled:opacity-50"
-                                >
-                                  {movingCollectionId === collection.id ? 'Moving...' : 'No Album'}
-                                </button>
-                                {albums.map((album) => (
+                              {/* Absolute positioning relative to button container */}
+                              <div 
+                                className="absolute right-0 top-full mt-2 bg-blanc rounded-lg shadow-xl border border-mushroom/30 z-[101] py-2 w-56 max-h-[50vh] overflow-y-auto"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                  <div className="px-3 py-2 text-xs font-medium text-sage border-b border-mushroom/30 sticky top-0 bg-blanc z-10">
+                                    Move to Album
+                                  </div>
                                   <button
-                                    key={album.id}
-                                    onClick={() => handleMoveToAlbum(collection.id, album.id)}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleMoveToAlbum(collection.id, null);
+                                    }}
                                     disabled={movingCollectionId === collection.id}
-                                    className={`w-full text-left px-3 py-2 text-sm transition-colors disabled:opacity-50 ${
-                                      collection.album_id === album.id
-                                        ? 'bg-blanket/70 text-earth font-medium'
-                                        : 'text-earth hover:bg-blanket/50'
-                                    }`}
+                                    className="w-full text-left px-3 py-2.5 text-sm text-earth hover:bg-blanket/50 active:bg-blanket/70 transition-colors disabled:opacity-50 touch-manipulation"
                                   >
-                                    {movingCollectionId === collection.id ? 'Moving...' : album.name}
+                                    {movingCollectionId === collection.id ? 'Moving...' : 'No Album'}
                                   </button>
-                                ))}
-                              </div>
+                                  {albums.map((album) => (
+                                    <button
+                                      key={album.id}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleMoveToAlbum(collection.id, album.id);
+                                      }}
+                                      disabled={movingCollectionId === collection.id}
+                                      className={`w-full text-left px-3 py-2.5 text-sm transition-colors disabled:opacity-50 touch-manipulation ${
+                                        collection.album_id === album.id
+                                          ? 'bg-blanket/70 text-earth font-medium'
+                                          : 'text-earth hover:bg-blanket/50 active:bg-blanket/70'
+                                      }`}
+                                    >
+                                      {movingCollectionId === collection.id ? 'Moving...' : album.name}
+                                    </button>
+                                  ))}
+                                </div>
                             </div>
 
                             {/* Mobile bottom sheet */}
                             <div className="md:hidden">
                               <Portal>
-                                <div className="fixed inset-0 z-[100] flex items-end">
+                                <div className="fixed inset-0 z-[100] flex items-end safe-bottom">
                                   <div 
                                     className="absolute inset-0 bg-black/40 backdrop-blur-sm" 
                                     onClick={() => setMenuOpenId(null)}
+                                    aria-hidden="true"
                                   />
                                   <div className="relative w-full bg-blanc rounded-t-2xl shadow-2xl border-t border-mushroom/30 max-h-[70vh] flex flex-col">
                                     {/* Drag handle */}
@@ -996,7 +1027,7 @@ export default function AdminCollectionsPage() {
                                       <h3 className="text-lg font-serif text-earth">Move to Album</h3>
                                       <button
                                         onClick={() => setMenuOpenId(null)}
-                                        className="p-2 text-sage hover:text-earth transition-colors"
+                                        className="p-2 text-sage hover:text-earth transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
                                         aria-label="Close"
                                       >
                                         <X className="w-5 h-5" />
@@ -1006,12 +1037,15 @@ export default function AdminCollectionsPage() {
                                     {/* Scrollable album list */}
                                     <div className="flex-1 overflow-y-auto px-4 py-2">
                                       <button
-                                        onClick={() => handleMoveToAlbum(collection.id, null)}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleMoveToAlbum(collection.id, null);
+                                        }}
                                         disabled={movingCollectionId === collection.id}
-                                        className={`w-full text-left px-4 py-3 rounded-lg text-base transition-colors disabled:opacity-50 ${
+                                        className={`w-full text-left px-4 py-3.5 rounded-lg text-base transition-colors disabled:opacity-50 touch-manipulation ${
                                           !collection.album_id
                                             ? 'bg-blanket/70 text-earth font-medium'
-                                            : 'text-earth hover:bg-blanket/50'
+                                            : 'text-earth active:bg-blanket/70'
                                         }`}
                                       >
                                         {movingCollectionId === collection.id ? 'Moving...' : 'No Album'}
@@ -1019,12 +1053,15 @@ export default function AdminCollectionsPage() {
                                       {albums.map((album) => (
                                         <button
                                           key={album.id}
-                                          onClick={() => handleMoveToAlbum(collection.id, album.id)}
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleMoveToAlbum(collection.id, album.id);
+                                          }}
                                           disabled={movingCollectionId === collection.id}
-                                          className={`w-full text-left px-4 py-3 rounded-lg text-base transition-colors disabled:opacity-50 mt-2 ${
+                                          className={`w-full text-left px-4 py-3.5 rounded-lg text-base transition-colors disabled:opacity-50 touch-manipulation mt-2 ${
                                             collection.album_id === album.id
                                               ? 'bg-blanket/70 text-earth font-medium'
-                                              : 'text-earth hover:bg-blanket/50'
+                                              : 'text-earth active:bg-blanket/70'
                                           }`}
                                         >
                                           {movingCollectionId === collection.id ? 'Moving...' : album.name}
@@ -1038,19 +1075,15 @@ export default function AdminCollectionsPage() {
                           </>
                         )}
                       </div>
-                      <Link
-                        href={`/admin/collections/${collection.id}/edit`}
-                        className="p-2 text-sage hover:text-earth hover:bg-blanket/60 rounded-lg transition-colors"
-                        title="Edit"
-                      >
-                        <Edit className="w-5 h-5" />
-                      </Link>
+                      
+                      {/* Delete button */}
                       <button
                         onClick={() => handleDelete(collection)}
-                        className="p-2 text-sage hover:text-khaki transition-colors hover:bg-blanket/50 rounded-lg"
-                        title="Delete"
+                        className="p-2 text-sage hover:text-khaki transition-colors hover:bg-blanket/50 rounded-lg min-w-[44px] min-h-[44px] flex items-center justify-center"
+                        title="Delete collection"
+                        aria-label="Delete collection"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-5 h-5" />
                       </button>
                     </div>
                   </div>
