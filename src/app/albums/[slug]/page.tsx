@@ -193,7 +193,7 @@ export default function AlbumDetailPage() {
               const isAdding = addingToCart === collection.id;
 
               return (
-                <div key={collection.id} className="w-full max-w-[420px] sm:max-w-none">
+                <div key={collection.id} className="w-[80%] max-w-[420px] sm:w-full sm:max-w-none">
                   <CollectionCard
                     collection={collection}
                     isPurchased={isPurchased}
