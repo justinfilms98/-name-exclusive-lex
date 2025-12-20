@@ -81,7 +81,7 @@ export default function AlbumsPage() {
             <p className="text-sage text-sm">Collections are coming soon.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 max-[430px]:grid-cols-1 sm:grid-cols-[repeat(auto-fit,minmax(200px,1fr))] lg:grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-3 sm:gap-6 lg:gap-8">
+          <div className="grid grid-cols-2 max-[430px]:grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
             {albums.map((album) => {
               const thumbnailUrl = thumbnailUrls[album.id];
               return (
@@ -91,7 +91,7 @@ export default function AlbumsPage() {
                   className="group"
                 >
                   <div className="flex flex-col bg-blanc border border-mushroom/30 rounded-xl shadow-soft overflow-hidden h-full">
-                    <div className="relative aspect-[3/4] sm:aspect-[4/5] lg:aspect-[3/4] overflow-hidden">
+                    <div className="relative aspect-[4/5] overflow-hidden">
                       {thumbnailUrl ? (
                         <img
                           src={thumbnailUrl}

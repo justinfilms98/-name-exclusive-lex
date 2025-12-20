@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useEffect } from "react";
 import { ShoppingCart, Clock, Image as ImageIcon, ArrowRight, X } from "lucide-react";
 
 export interface CollectionCardData {
@@ -43,6 +43,24 @@ export default function CollectionCard({
 }: CollectionCardProps) {
   const photoCount = collection.photo_paths?.length || 0;
   const showMobileDetails = useMemo(() => isExpanded, [isExpanded]);
+
+  // Prevent body scroll when modal is open
+  useEffect(() => {
+    if (showMobileDetails) {
+      document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+    } else {
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+    };
+  }, [showMobileDetails]);
 
   return (
     <div className="group flex flex-col bg-blanc border border-mushroom/30 rounded-xl shadow-soft overflow-hidden h-full max-h-[480px] sm:max-h-[520px] md:max-h-none">
@@ -171,8 +189,27 @@ export default function CollectionCard({
             </button>
 
             {showMobileDetails && (
-              <div className="fixed inset-0 z-50 bg-black/60 flex items-end sm:items-center justify-center p-4">
-                <div className="bg-blanc rounded-2xl w-full max-w-lg shadow-elegant flex flex-col max-h-[90vh] sm:max-h-[85vh]">
+              <div 
+                className="fixed inset-0 z-50 bg-black/60 flex items-end sm:items-center justify-center p-4"
+                style={{ 
+                  paddingBottom: 'max(1rem, env(safe-area-inset-bottom, 1rem))',
+                  paddingTop: 'max(1rem, env(safe-area-inset-top, 1rem))',
+                  overflow: 'hidden',
+                  touchAction: 'none'
+                }}
+                onClick={(e) => {
+                  if (e.target === e.currentTarget) {
+                    onToggleDescription(collection.id);
+                  }
+                }}
+              >
+                <div 
+                  className="bg-blanc rounded-2xl w-full max-w-lg shadow-elegant flex flex-col"
+                  style={{
+                    maxHeight: 'calc(100dvh - max(2rem, env(safe-area-inset-top, 1rem) + env(safe-area-inset-bottom, 1rem)))'
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <div className="flex items-start justify-between p-4 border-b border-mushroom/40 flex-shrink-0">
                     <div className="space-y-1 flex-1 pr-2">
                       <p className="text-xs uppercase text-sage">Collection details</p>
@@ -191,14 +228,19 @@ export default function CollectionCard({
                       <X className="w-5 h-5" />
                     </button>
                   </div>
-                  <div className="p-4 space-y-3 overflow-y-auto flex-1 min-h-0">
-                    <p className="text-earth leading-relaxed text-sm sm:text-base">{collection.description}</p>
+                  <div className="p-4 space-y-3 overflow-y-auto flex-1 min-h-0 overscroll-contain">
+                    <p className="text-earth leading-relaxed text-sm sm:text-base whitespace-pre-wrap break-words">{collection.description}</p>
                     <div className="flex items-center justify-between text-sm text-sage pt-2 border-t border-mushroom/20">
                       <span>{photoCount} photos</span>
                       <span>Permanent access</span>
                     </div>
                   </div>
-                  <div className="p-4 border-t border-mushroom/40 space-y-2 flex-shrink-0">
+                  <div 
+                    className="p-4 border-t border-mushroom/40 space-y-2 flex-shrink-0 bg-blanc"
+                    style={{
+                      paddingBottom: 'max(1rem, env(safe-area-inset-bottom, 1rem))'
+                    }}
+                  >
                     <button
                       onClick={() => onAddToCart(collection)}
                       disabled={isAdding}
