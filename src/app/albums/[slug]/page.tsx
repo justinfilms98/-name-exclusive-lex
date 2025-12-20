@@ -164,7 +164,7 @@ export default function AlbumDetailPage() {
         ))}
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-4 sm:py-6 md:py-8">
+      <div className="max-w-7xl mx-auto px-5 sm:px-6 md:px-8 py-4 sm:py-6 md:py-8">
         <div className="flex flex-col items-center text-center gap-3 sm:gap-4 mb-4 sm:mb-6">
           <div className="flex flex-col items-center">
             <h1 className="heading-1 mb-1 sm:mb-2">{album?.name}</h1>
@@ -186,21 +186,22 @@ export default function AlbumDetailPage() {
             <p className="text-sage text-sm">Check back soon.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 md:gap-6 lg:gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6 md:gap-7 lg:gap-10 justify-items-center">
             {collections.map((collection) => {
               const thumbnailUrl = thumbnailUrls[collection.id];
               const isPurchased = userPurchases.includes(collection.id);
               const isAdding = addingToCart === collection.id;
 
               return (
-                <CollectionCard
-                  key={collection.id}
-                  collection={collection}
-                  isPurchased={isPurchased}
-                  thumbnailUrl={thumbnailUrl}
-                  isAdding={isAdding}
-                  onAddToCart={() => addToCart(collection)}
-                />
+                <div key={collection.id} className="w-full max-w-[420px] sm:max-w-none">
+                  <CollectionCard
+                    collection={collection}
+                    isPurchased={isPurchased}
+                    thumbnailUrl={thumbnailUrl}
+                    isAdding={isAdding}
+                    onAddToCart={() => addToCart(collection)}
+                  />
+                </div>
               );
             })}
           </div>

@@ -893,6 +893,14 @@ div[style*="center"] {
   .animate-quickview {
     animation: quickview-pop 0.24s ease-out forwards;
   }
+
+  @media (prefers-reduced-motion: reduce) {
+    .animate-quickview {
+      animation: none;
+      opacity: 1;
+      transform: none;
+    }
+  }
 }
 
 /* Disable video controls on hero pages and general areas, but allow on watch pages */

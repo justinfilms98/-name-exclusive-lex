@@ -230,8 +230,8 @@ export default function CollectionCard({
       {showDetails && (
         <Portal>
           <div className="fixed inset-0 z-[60] flex items-end md:items-center justify-center md:p-4">
-            <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={closeDetails} />
-            <div className="relative w-full h-full md:h-auto md:max-w-lg bg-almond text-earth rounded-t-3xl md:rounded-2xl shadow-elegant overflow-y-auto transform transition-all duration-200 ease-out animate-quickview flex flex-col max-h-screen md:max-h-[90vh]">
+            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-150" onClick={closeDetails} />
+            <div className="relative w-full h-[85vh] md:h-auto md:max-w-[560px] bg-blanc text-earth rounded-t-3xl md:rounded-2xl shadow-elegant overflow-hidden transition-all duration-[240ms] ease-out animate-quickview flex flex-col border border-mushroom/30">
               {/* Mobile drag handle */}
               <div className="md:hidden flex justify-center pt-3 pb-2">
                 <div className="w-12 h-1 bg-sage/30 rounded-full" />
@@ -288,41 +288,14 @@ export default function CollectionCard({
                   </div>
                 </div>
 
-                {/* Sticky action buttons at bottom - always visible */}
-                <div className="flex-shrink-0 border-t border-sage/20 bg-almond p-5 sm:p-6 md:p-6 pt-4">
-                  <div className="flex flex-col gap-3">
-                    <button
-                      onClick={(e) => {
-                        handleAdd(e);
-                        closeDetails();
-                      }}
-                      disabled={isAdding}
-                      className="btn-primary w-full flex items-center justify-center gap-2 text-base sm:text-lg disabled:opacity-50 py-3.5"
-                    >
-                      {isAdding ? (
-                        <>
-                          <div className="w-4 h-4 spinner"></div>
-                          <span>Adding...</span>
-                        </>
-                      ) : isPurchased ? (
-                        <>
-                          <span>Watch Now</span>
-                          <ArrowRight className="w-4 h-4" />
-                        </>
-                      ) : (
-                        <>
-                          <ShoppingCart className="w-4 h-4" />
-                          <span>Purchase to unlock</span>
-                        </>
-                      )}
-                    </button>
-                    <button
-                      onClick={closeDetails}
-                      className="btn-ghost w-full text-center py-3"
-                    >
-                      Close
-                    </button>
-                  </div>
+                {/* Action buttons - informational only, purchase stays in card */}
+                <div className="flex-shrink-0 border-t border-mushroom/20 bg-blanc p-5 sm:p-6 md:p-6 pt-4">
+                  <button
+                    onClick={closeDetails}
+                    className="btn-secondary w-full text-center py-3"
+                  >
+                    Close
+                  </button>
                 </div>
               </div>
             </div>
