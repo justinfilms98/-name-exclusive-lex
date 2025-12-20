@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ShoppingCart, Clock, Image as ImageIcon, ArrowRight, X } from "lucide-react";
+import Portal from "./Portal";
 
 export interface CollectionCardData {
   id: string;
@@ -240,105 +241,184 @@ export default function CollectionCard({
       </div>
 
       {isQuickViewOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center px-3 sm:px-4"
-          onClick={handleClose}
-        >
-          <div
-            className="absolute inset-0 bg-[rgba(43,43,43,0.35)] backdrop-blur-md opacity-100 transition-opacity duration-[220ms] ease-[cubic-bezier(0.16,1,0.3,1)]"
-          />
-          <div
-            className="relative z-10 w-full max-w-[520px] sm:w-[92vw] max-h-[78vh] sm:max-h-[90vh] bg-[#C9BBA8] text-[#654C37] border border-mushroom/40 rounded-t-3xl sm:rounded-2xl shadow-[0_18px_60px_rgba(43,43,43,0.20)] overflow-hidden flex flex-col"
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              transition: isQuickViewOpen
-                ? "opacity 220ms cubic-bezier(0.16,1,0.3,1), transform 220ms cubic-bezier(0.16,1,0.3,1)"
-                : "opacity 160ms cubic-bezier(0.4,0,0.2,1), transform 160ms cubic-bezier(0.4,0,0.2,1)",
-              opacity: 1,
-              transform: "translateY(0) scale(1)",
-            }}
-          >
-            <div className="bg-blanket px-5 py-4 flex items-start justify-between border-b border-mushroom/30">
-              <div>
-                <p className="text-xs uppercase tracking-wide text-black/70">Collection</p>
-                <h3 className="text-xl font-serif text-[#654C37]">{collection.title}</h3>
-              </div>
-              <button
-                ref={closeButtonRef}
-                onClick={handleClose}
-                className="p-2 rounded-full text-[#654C37] hover:bg-blanket/60 transition-colors"
-                aria-label="Close details"
+        <Portal>
+          <div className="fixed inset-0 z-[1000]">
+            <div
+              className="absolute inset-0 bg-[rgba(43,43,43,0.35)] backdrop-blur-md transition-opacity duration-[220ms] ease-[cubic-bezier(0.16,1,0.3,1)]"
+              onClick={handleClose}
+            />
+
+            {/* Desktop modal */}
+            <div className="hidden sm:flex fixed inset-0 items-center justify-center p-6">
+              <div
+                className="w-full max-w-[520px] max-h-[78vh] rounded-2xl bg-[#C9BBA8] border border-[#D4C7B4]/50 shadow-[0_18px_60px_rgba(43,43,43,0.20)] text-[#654C37] overflow-hidden flex flex-col"
+                onClick={(e) => e.stopPropagation()}
               >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="p-5 space-y-4 overflow-y-auto">
-              <div className="rounded-xl border border-mushroom/30 overflow-hidden">
-                {thumbnailUrl ? (
-                  <img
-                    src={thumbnailUrl}
-                    alt={collection.title}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-48 bg-gradient-to-br from-mushroom to-blanket flex items-center justify-center">
-                    <ImageIcon className="w-12 h-12 text-sage/60" />
+                <div className="bg-blanket px-5 py-4 flex items-start justify-between border-b border-[#D4C7B4]/30">
+                  <div className="space-y-1">
+                    <p className="text-xs uppercase tracking-wide text-black/70">Collection</p>
+                    <h3 className="text-xl font-serif text-[#654C37] leading-tight">{collection.title}</h3>
                   </div>
-                )}
-              </div>
+                  <button
+                    ref={closeButtonRef}
+                    onClick={handleClose}
+                    className="p-2 rounded-full text-[#654C37] hover:bg-blanket/60 transition-colors"
+                    aria-label="Close details"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
 
-              <div className="flex flex-wrap items-center gap-3 text-sm text-black/70">
-                <span className="font-semibold text-[#654C37] text-base">
-                  ${formatPrice(collection.price)}
-                </span>
-                <span>•</span>
-                <span>Video {formatVideoDuration(collection.video_duration || 300)}</span>
-                <span>•</span>
-                <span>{photoCount} photos</span>
-                <span>•</span>
-                <span>Permanent access</span>
-              </div>
+                <div className="p-5 space-y-4 overflow-y-auto max-h-[78vh]">
+                  <div className="rounded-2xl border border-[#D4C7B4]/50 overflow-hidden aspect-[4/5] max-h-[240px]">
+                    {thumbnailUrl ? (
+                      <img
+                        src={thumbnailUrl}
+                        alt={collection.title}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-mushroom to-blanket flex items-center justify-center">
+                        <ImageIcon className="w-12 h-12 text-sage/60" />
+                      </div>
+                    )}
+                  </div>
 
-              <div className="text-sm text-black/70 leading-relaxed space-y-2">
-                <p>{collection.description}</p>
+                  <div className="flex flex-wrap items-center gap-3 text-sm text-black/70">
+                    <span className="font-semibold text-[#654C37] text-base">
+                      ${formatPrice(collection.price)}
+                    </span>
+                    <span>•</span>
+                    <span>Video {formatVideoDuration(collection.video_duration || 300)}</span>
+                    <span>•</span>
+                    <span>{photoCount} photos</span>
+                    <span>•</span>
+                    <span>Permanent access</span>
+                  </div>
+
+                  <div className="relative text-sm text-black/70 leading-relaxed space-y-2">
+                    <p>{collection.description}</p>
+                    <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-[#C9BBA8] to-transparent" />
+                  </div>
+                </div>
+
+                <div className="mt-auto border-t border-[#D4C7B4]/40 bg-blanket/60 px-5 py-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <button
+                      onClick={handleClose}
+                      className="w-full sm:w-auto px-4 py-2 rounded-xl border border-[#D4C7B4]/50 text-[#654C37] hover:bg-blanket/60 transition-colors"
+                    >
+                      Close
+                    </button>
+                    <button
+                      onClick={handleAdd}
+                      disabled={isAdding}
+                      className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-[#8F907E] text-[#F8F6F1] hover:brightness-95 transition-all duration-200 shadow-sm disabled:opacity-60"
+                    >
+                      {isAdding ? (
+                        <>
+                          <div className="w-4 h-4 spinner" />
+                          <span>Adding...</span>
+                        </>
+                      ) : isPurchased ? (
+                        <>
+                          <span>Watch Now</span>
+                          <ArrowRight className="w-4 h-4" />
+                        </>
+                      ) : (
+                        <>
+                          <ShoppingCart className="w-4 h-4" />
+                          <span>Purchase to unlock</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
 
-            <div className="mt-auto border-t border-mushroom/30 bg-blanket/60 px-5 py-4">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <button
-                  onClick={handleClose}
-                  className="w-full sm:w-auto px-4 py-2 rounded-xl border border-mushroom/40 text-[#654C37] hover:bg-blanket/60 transition-colors"
-                >
-                  Close
-                </button>
-                <button
-                  onClick={handleAdd}
-                  disabled={isAdding}
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-[#8F907E] text-[#F8F6F1] hover:brightness-95 transition-all duration-200 shadow-sm disabled:opacity-60"
-                >
-                  {isAdding ? (
-                    <>
-                      <div className="w-4 h-4 spinner" />
-                      <span>Adding...</span>
-                    </>
-                  ) : isPurchased ? (
-                    <>
-                      <span>Watch Now</span>
-                      <ArrowRight className="w-4 h-4" />
-                    </>
-                  ) : (
-                    <>
-                      <ShoppingCart className="w-4 h-4" />
-                      <span>Purchase to unlock</span>
-                    </>
-                  )}
-                </button>
+            {/* Mobile bottom sheet */}
+            <div className="sm:hidden fixed inset-x-0 bottom-0 z-[1001]">
+              <div
+                className="w-full rounded-t-3xl bg-[#C9BBA8] border border-[#D4C7B4]/50 shadow-[0_18px_60px_rgba(43,43,43,0.20)] text-[#654C37] overflow-hidden"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex justify-center pt-3 pb-2">
+                  <div className="h-1.5 w-12 rounded-full bg-black/15" />
+                </div>
+
+                <div className="px-5 pt-1 pb-24 max-h-[78vh] min-h-[40vh] overflow-y-auto space-y-4 relative">
+                  <div className="rounded-2xl border border-[#D4C7B4]/50 overflow-hidden aspect-[4/5] max-h-[240px]">
+                    {thumbnailUrl ? (
+                      <img
+                        src={thumbnailUrl}
+                        alt={collection.title}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-mushroom to-blanket flex items-center justify-center">
+                        <ImageIcon className="w-12 h-12 text-sage/60" />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-1">
+                    <p className="text-xs uppercase tracking-wide text-black/70">Collection</p>
+                    <h3 className="text-xl font-serif text-[#654C37] leading-tight">{collection.title}</h3>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-3 text-sm text-black/70">
+                    <span className="font-semibold text-[#654C37] text-base">
+                      ${formatPrice(collection.price)}
+                    </span>
+                    <span>•</span>
+                    <span>Video {formatVideoDuration(collection.video_duration || 300)}</span>
+                    <span>•</span>
+                    <span>{photoCount} photos</span>
+                    <span>•</span>
+                    <span>Permanent access</span>
+                  </div>
+
+                  <div className="relative text-sm text-black/70 leading-relaxed space-y-2">
+                    <p>{collection.description}</p>
+                    <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-[#C9BBA8] to-transparent" />
+                  </div>
+                </div>
+
+                <div className="sticky bottom-0 border-t border-[#D4C7B4]/40 bg-[#C9BBA8] px-5 py-4 space-y-3">
+                  <button
+                    onClick={handleClose}
+                    className="w-full px-4 py-3 rounded-xl border border-[#D4C7B4]/50 text-[#654C37] hover:bg-blanket/60 transition-colors"
+                  >
+                    Close
+                  </button>
+                  <button
+                    onClick={handleAdd}
+                    disabled={isAdding}
+                    className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-[#8F907E] text-[#F8F6F1] hover:brightness-95 transition-all duration-200 shadow-sm disabled:opacity-60"
+                  >
+                    {isAdding ? (
+                      <>
+                        <div className="w-4 h-4 spinner" />
+                        <span>Adding...</span>
+                      </>
+                    ) : isPurchased ? (
+                      <>
+                        <span>Watch Now</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </>
+                    ) : (
+                      <>
+                        <ShoppingCart className="w-4 h-4" />
+                        <span>Purchase to unlock</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        </Portal>
       )}
     </div>
   );
