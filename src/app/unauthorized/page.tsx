@@ -1,6 +1,7 @@
 "use client";
 
 import { useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { AlertTriangle, Shield, XCircle } from 'lucide-react';
 
 export default function UnauthorizedPage() {
@@ -52,19 +53,19 @@ export default function UnauthorizedPage() {
           </div>
 
           <div className="space-y-3">
-            <a
+            <Link
               href="/collections"
-              className="block w-full bg-stone-800 text-white px-6 py-3 rounded-lg hover:bg-stone-900 transition-colors font-medium"
+              className="block w-full bg-stone-800 text-white px-6 py-3 rounded-lg hover:bg-stone-900 transition-colors font-medium text-center"
             >
               Browse Other Content
-            </a>
+            </Link>
             
-            <a
+            <Link
               href="/account"
-              className="block w-full bg-transparent border border-stone-300 text-stone-700 px-6 py-3 rounded-lg hover:bg-stone-50 transition-colors font-medium"
+              className="block w-full bg-transparent border border-stone-300 text-stone-700 px-6 py-3 rounded-lg hover:bg-stone-50 transition-colors font-medium text-center"
             >
               My Account
-            </a>
+            </Link>
           </div>
         </div>
       </div>
