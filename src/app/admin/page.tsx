@@ -394,7 +394,7 @@ export default function AdminPage() {
                       </div>
                     ) : (
                       <div className="flex items-start gap-6">
-                        <div className="w-32 h-32 rounded-xl overflow-hidden border border-mushroom/30 flex-shrink-0">
+                        <div className="w-32 aspect-[4/5] rounded-xl overflow-hidden border border-mushroom/30 flex-shrink-0 relative">
                           {thumbnailUrl ? (
                             <img src={thumbnailUrl} alt={album.name} className="w-full h-full object-cover" />
                           ) : (

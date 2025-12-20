@@ -585,6 +585,7 @@ div[style*="center"] {
 @layer base {
   html {
     scroll-behavior: smooth;
+    overflow-x: hidden;
     font-family: 'Inter', system-ui, sans-serif;
   }
   
@@ -592,6 +593,7 @@ div[style*="center"] {
     background-color: var(--color-almond);
     color: var(--color-earth);
     line-height: 1.6;
+    overflow-x: hidden;
   }
 
   /* Custom scrollbar */
@@ -731,7 +733,7 @@ div[style*="center"] {
     @apply relative overflow-hidden rounded-xl;
     @apply bg-blanc border border-mushroom/30;
     @apply hover:shadow-elegant transition-all duration-300;
-    aspect-ratio: 4/6;
+    aspect-ratio: 4/5;
   }
 
   .collection-overlay {

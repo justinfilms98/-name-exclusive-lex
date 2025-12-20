@@ -152,7 +152,7 @@ export default function CollectionsClient({ collections, user }: CollectionsClie
               className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300"
             >
               {/* Thumbnail */}
-              <div className="aspect-video bg-stone-200 relative group">
+              <div className="aspect-[4/5] relative overflow-hidden bg-stone-200 group">
                 <div className="w-full h-full bg-gradient-to-br from-stone-300 to-stone-400 flex items-center justify-center">
                   <PlayCircle className="w-16 h-16 text-stone-600 group-hover:text-stone-700 transition-colors" />
                 </div>

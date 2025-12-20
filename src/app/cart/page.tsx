@@ -332,7 +332,7 @@ export default function CartPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {getSuggestedCollections().map((collection) => (
                 <div key={collection.id} className="card-glass p-6">
-                  <div className="aspect-video bg-brand-almond rounded-lg mb-4 overflow-hidden">
+                  <div className="aspect-[4/5] relative overflow-hidden rounded-lg mb-4">
                     {thumbnailUrls[collection.id] ? (
                       <img
                         src={thumbnailUrls[collection.id]}

@@ -67,11 +67,11 @@ export const MediaItemCard: React.FC<MediaItemCardProps> = ({
   return (
     <>
       <div className="bg-brand-almond rounded-lg shadow p-4 flex flex-col min-h-[300px] transition-transform hover:scale-105 hover:shadow-xl">
-        <div className="relative mb-3">
+        <div className="relative mb-3 aspect-[4/5] overflow-hidden rounded">
           <img 
             src={getThumbnailUrl()} 
             alt={item.description || 'Media item'} 
-            className="w-full h-32 object-cover rounded"
+            className="w-full h-full object-cover"
             onError={(e) => {
               e.currentTarget.src = '/placeholder-thumbnail.jpg';
             }}

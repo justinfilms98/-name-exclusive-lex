@@ -266,7 +266,7 @@ export default function AdminAlbumDetailPage() {
                 <label className="text-sm text-earth font-medium">Thumbnail Image</label>
                 <div className="flex items-center space-x-4">
                   {thumbnailUrl && (
-                    <div className="w-32 h-32 rounded-lg overflow-hidden border border-mushroom/30">
+                    <div className="w-32 aspect-[4/5] rounded-lg overflow-hidden border border-mushroom/30 relative">
                       <img src={thumbnailUrl} alt={album.name} className="w-full h-full object-cover" />
                     </div>
                   )}
@@ -323,7 +323,7 @@ export default function AdminAlbumDetailPage() {
         ) : (
           <div className="card-glass p-6">
             <div className="flex items-start gap-6">
-              <div className="w-32 h-32 rounded-xl overflow-hidden border border-mushroom/30 flex-shrink-0">
+              <div className="w-32 aspect-[4/5] rounded-xl overflow-hidden border border-mushroom/30 flex-shrink-0 relative">
                 {thumbnailUrl ? (
                   <img src={thumbnailUrl} alt={album.name} className="w-full h-full object-cover" />
                 ) : (
