@@ -165,12 +165,12 @@ export default function AlbumDetailPage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 py-4 sm:py-6 md:py-8">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
-          <div className="flex-1">
+        <div className="flex flex-col items-center text-center gap-3 sm:gap-4 mb-4 sm:mb-6">
+          <div className="flex flex-col items-center">
             <h1 className="heading-1 mb-1 sm:mb-2">{album?.name}</h1>
             <p className="text-sage text-sm sm:text-base max-w-2xl">{album?.description || "Curated collection album."}</p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex gap-3 justify-center">
             <Link href="/albums" className="btn-secondary text-sm sm:text-base">
               Back to albums
             </Link>
