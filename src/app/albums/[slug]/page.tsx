@@ -4,8 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { supabase, getAlbumBySlug, getCollectionsByAlbum, getSignedUrl } from "@/lib/supabase";
-import CollectionCard, { CollectionCardData } from "@/components/CollectionCard";
-import { Image as ImageIcon } from "lucide-react";
+import { CollectionCardData } from "@/components/CollectionCard";
+import { Image as ImageIcon, ShoppingCart, ArrowRight } from "lucide-react";
 
 interface Album {
   id: string;
@@ -191,19 +191,94 @@ export default function AlbumDetailPage() {
             <p className="text-sage text-sm">Check back soon.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 max-[430px]:grid-cols-1 sm:grid-cols-[repeat(auto-fit,minmax(200px,1fr))] lg:grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-3 sm:gap-6 lg:gap-8">
-            {collections.map((collection) => (
-              <CollectionCard
-                key={collection.id}
-                collection={collection}
-                isPurchased={userPurchases.includes(collection.id)}
-                thumbnailUrl={thumbnailUrls[collection.id]}
-                isAdding={addingToCart === collection.id}
-                isExpanded={!!expandedDescriptions[collection.id]}
-                onToggleDescription={toggleDescription}
-                onAddToCart={addToCart}
-              />
-            ))}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
+            {collections.map((collection) => {
+              const thumbnailUrl = thumbnailUrls[collection.id];
+              const isPurchased = userPurchases.includes(collection.id);
+              const isAdding = addingToCart === collection.id;
+              const photoCount = collection.photo_paths?.length || 0;
+              
+              const formatVideoDuration = (seconds: number): string => {
+                const minutes = Math.floor(seconds / 60);
+                return `${minutes} min`;
+              };
+              
+              const formatPrice = (price: number): string => {
+                return (price / 100).toFixed(2);
+              };
+
+              return (
+                <div
+                  key={collection.id}
+                  className="group bg-blanc border border-mushroom/30 rounded-2xl shadow-soft overflow-hidden hover:shadow-elegant transition-all duration-300 hover:scale-[1.02]"
+                >
+                  <div className="aspect-square relative overflow-hidden rounded-t-2xl">
+                    {thumbnailUrl ? (
+                      <img
+                        src={thumbnailUrl}
+                        alt={collection.title}
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                        onError={(e) => {
+                          e.currentTarget.style.display = "none";
+                          e.currentTarget.nextElementSibling?.classList.remove("hidden");
+                        }}
+                      />
+                    ) : null}
+                    <div className={`w-full h-full bg-gradient-to-br from-mushroom to-blanket flex items-center justify-center ${thumbnailUrl ? "hidden" : ""}`}>
+                      <ImageIcon className="w-20 h-20 text-sage/60" />
+                    </div>
+                    {isPurchased && (
+                      <div className="absolute top-3 right-3 bg-sage text-blanc px-3 py-1 rounded-full text-xs font-medium shadow-lg">
+                        Owned
+                      </div>
+                    )}
+                    {isAdding && (
+                      <div className="absolute inset-0 bg-sage/20 backdrop-blur-sm flex items-center justify-center">
+                        <div className="bg-sage text-blanc px-4 py-2 rounded-lg flex items-center space-x-2">
+                          <div className="w-4 h-4 spinner"></div>
+                          <span>Adding to cart...</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-6">
+                    <h3 className="text-2xl font-serif text-earth mb-2">{collection.title}</h3>
+                    <p className="text-sage text-sm mb-4 leading-relaxed">
+                      {collection.description}
+                    </p>
+                    <div className="flex items-center justify-between text-sm text-sage mb-4">
+                      <div className="flex items-center space-x-4">
+                        <span>Video: {formatVideoDuration(collection.video_duration || 300)}</span>
+                        <span>{photoCount} photos</span>
+                      </div>
+                      <span className="text-earth font-bold text-lg">${formatPrice(collection.price)}</span>
+                    </div>
+                    <button
+                      onClick={() => addToCart(collection)}
+                      disabled={isAdding}
+                      className="w-full bg-sage text-blanc px-4 py-3 rounded-lg font-medium hover:bg-khaki transition-all duration-300 flex items-center justify-center space-x-2 disabled:opacity-50"
+                    >
+                      {isAdding ? (
+                        <>
+                          <div className="w-4 h-4 spinner"></div>
+                          <span>Adding...</span>
+                        </>
+                      ) : isPurchased ? (
+                        <>
+                          <span>Watch Now</span>
+                          <ArrowRight className="w-4 h-4" />
+                        </>
+                      ) : (
+                        <>
+                          <ShoppingCart className="w-4 h-4" />
+                          <span>Purchase to unlock</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

@@ -81,7 +81,7 @@ export default function AlbumsPage() {
             <p className="text-sage text-sm">Collections are coming soon.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
+          <div className="grid grid-cols-2 max-[430px]:grid-cols-1 sm:grid-cols-[repeat(auto-fit,minmax(200px,1fr))] lg:grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-3 sm:gap-6 lg:gap-8">
             {albums.map((album) => {
               const thumbnailUrl = thumbnailUrls[album.id];
               return (
@@ -90,8 +90,8 @@ export default function AlbumsPage() {
                   href={`/albums/${album.slug}`}
                   className="group"
                 >
-                  <div className="bg-blanc border border-mushroom/30 rounded-2xl shadow-soft overflow-hidden hover:shadow-elegant transition-all duration-300 hover:scale-[1.02]">
-                    <div className="aspect-square relative overflow-hidden rounded-t-2xl">
+                  <div className="flex flex-col bg-blanc border border-mushroom/30 rounded-xl shadow-soft overflow-hidden h-full">
+                    <div className="relative aspect-[3/4] sm:aspect-[4/5] lg:aspect-[3/4] overflow-hidden">
                       {thumbnailUrl ? (
                         <img
                           src={thumbnailUrl}
@@ -104,21 +104,28 @@ export default function AlbumsPage() {
                         />
                       ) : null}
                       <div className={`w-full h-full bg-gradient-to-br from-mushroom to-blanket flex items-center justify-center ${thumbnailUrl ? "hidden" : ""}`}>
-                        <Images className="w-20 h-20 text-sage/60" />
+                        <Images className="w-16 h-16 text-sage/60" />
                       </div>
                       <div className="absolute top-3 right-3 bg-blanc/90 backdrop-blur-sm text-earth px-3 py-1 rounded-full text-xs font-medium shadow-lg">
-                        {album.collections?.[0]?.count ?? 0} collections
+                        {album.collections?.[0]?.count ?? 0}
                       </div>
                     </div>
-                    <div className="p-6">
-                      <h3 className="text-2xl font-serif text-earth mb-2">{album.name}</h3>
-                      {album.description && (
-                        <p className="text-sage text-sm line-clamp-2 mb-3">
-                          {album.description}
-                        </p>
-                      )}
-                      <div className="text-xs text-sage">
-                        Updated {new Date(album.created_at).toLocaleDateString()}
+                    <div className="p-4 space-y-2 bg-blanc">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-serif text-earth text-lg mb-1 line-clamp-2">
+                            {album.name}
+                          </h3>
+                          {album.description && (
+                            <p className="text-sage text-sm line-clamp-2">
+                              {album.description}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between text-xs text-sage">
+                        <span>{album.collections?.[0]?.count ?? 0} collections</span>
+                        <span>{new Date(album.created_at).toLocaleDateString()}</span>
                       </div>
                     </div>
                   </div>
