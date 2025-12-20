@@ -57,7 +57,6 @@ export async function GET(request: Request) {
 
   const headersList = await headers()
   const clientIP = getClientIP(headersList)
-  const userAgent = headersList.get('user-agent') || 'unknown'
 
   // Rate limiting check
   if (!checkRateLimit(clientIP)) {
@@ -67,8 +66,8 @@ export async function GET(request: Request) {
   }
 
   // Verify purchase (permanent access) - try multiple approaches
-  let purchase: any = null;
-  let error: any = null;
+  let purchase: unknown = null;
+  let error: unknown = null;
 
   console.log('🔍 DEBUG: Starting purchase verification for session:', sessionId);
 
@@ -181,7 +180,7 @@ export async function GET(request: Request) {
     // ✅ Try both paths systematically - start with media_filename, then video_path
     let filePath: string | null = null;
     let signedUrlData: { signedUrl: string } | null = null;
-    let signedUrlError: any = null;
+    let _signedUrlError: unknown = null;
     
     // First try: media_filename (if it exists)
     if (collection.media_filename) {
@@ -196,7 +195,7 @@ export async function GET(request: Request) {
         console.log('🔍 DEBUG: media_filename worked:', collection.media_filename);
       } else {
         console.log('🔍 DEBUG: media_filename failed:', collection.media_filename, mediaFilenameError);
-        signedUrlError = mediaFilenameError;
+        _signedUrlError = mediaFilenameError;
       }
     }
     
@@ -213,7 +212,7 @@ export async function GET(request: Request) {
         console.log('🔍 DEBUG: video_path worked:', collection.video_path);
       } else {
         console.log('🔍 DEBUG: video_path failed:', collection.video_path, videoPathError);
-        signedUrlError = videoPathError;
+        _signedUrlError = videoPathError;
       }
     }
     

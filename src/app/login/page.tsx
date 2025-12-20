@@ -7,7 +7,7 @@ import { LogIn, Shield, Heart, Star } from 'lucide-react';
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<unknown>(null);
   const [error, setError] = useState<string | null>(null);
   const [sessionChecked, setSessionChecked] = useState(false);
   const router = useRouter();

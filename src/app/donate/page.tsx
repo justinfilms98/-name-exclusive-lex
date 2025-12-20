@@ -92,7 +92,7 @@ export default function DonatePage() {
             if (error) {
               window.location.href = `https://checkout.stripe.com/pay/${data.sessionId}`;
             }
-          } catch (redirectError) {
+          } catch {
             window.location.href = `https://checkout.stripe.com/pay/${data.sessionId}`;
           }
         } else {

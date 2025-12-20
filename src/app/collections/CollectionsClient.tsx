@@ -2,11 +2,12 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Heart, PlayCircle, Lock, X, AlertTriangle } from 'lucide-react';
+import { PlayCircle, Lock, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { loadStripe } from '@stripe/stripe-js';
 import { supabase } from '@/lib/supabase';
 import PurchaseDisclaimer from '@/components/PurchaseDisclaimer';
+import type { User } from '@supabase/supabase-js';
 
 interface Collection {
   id: string;
@@ -20,7 +21,7 @@ interface Collection {
 
 interface CollectionsClientProps {
   collections: Collection[];
-  user: any;
+  user: User | null;
 }
 
 export default function CollectionsClient({ collections, user }: CollectionsClientProps) {
@@ -145,7 +146,7 @@ export default function CollectionsClient({ collections, user }: CollectionsClie
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {collections.map((collection, index) => (
+          {collections.map((collection) => (
             <div
               key={collection.id}
               className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300"

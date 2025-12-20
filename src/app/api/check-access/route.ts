@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
     console.log(`🔍 Collection ID type: ${typeof collectionId}, length: ${collectionId?.length}`);
 
     // Method 1: Check for active completed purchases
-    let { data: purchases, error } = await supabase
+    const { data: purchases, error } = await supabase
       .from('purchases')
       .select(`
         id,

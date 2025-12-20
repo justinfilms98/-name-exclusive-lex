@@ -25,7 +25,6 @@ interface MediaItemCardProps {
 export const MediaItemCard: React.FC<MediaItemCardProps> = ({
   item,
   onEdit,
-  onDelete,
   onDeleteSuccess
 }) => {
   const [isDeleting, setIsDeleting] = useState(false);
@@ -46,7 +45,7 @@ export const MediaItemCard: React.FC<MediaItemCardProps> = ({
         const errorData = await response.json();
         addToast(`❌ Failed to delete: ${errorData.error || 'Unknown error'}`, 'error');
       }
-    } catch (error) {
+    } catch {
       addToast('❌ Failed to delete: Network error', 'error');
     } finally {
       setIsDeleting(false);

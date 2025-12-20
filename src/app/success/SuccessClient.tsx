@@ -36,7 +36,6 @@ export default function SuccessClient() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
-  const [totalAmount, setTotalAmount] = useState(0);
 
   useEffect(() => {
     if (!sessionId) {
@@ -73,7 +72,7 @@ export default function SuccessClient() {
         console.log(`🔍 Verification attempt ${attempts}/${maxAttempts}`);
 
         // Method 1: Try to get purchases by session ID (PRIMARY METHOD)
-        let { data: sessionPurchases, error: sessionError } = await supabase
+        const { data: sessionPurchases, error: sessionError } = await supabase
           .from('purchases')
           .select(`
             id,
@@ -395,7 +394,7 @@ export default function SuccessClient() {
           </h2>
           
           <div className="grid gap-6">
-            {purchases.map((purchase, index) => (
+            {purchases.map((purchase) => (
               <div key={purchase.id} className="flex items-center justify-between p-6 bg-gradient-to-r from-gray-50 to-white rounded-xl border border-gray-200 hover:shadow-md transition-all duration-200">
                 <div className="flex-1">
                   <h3 className="text-xl font-semibold text-lex-brown mb-2">{purchase.collection.title}</h3>

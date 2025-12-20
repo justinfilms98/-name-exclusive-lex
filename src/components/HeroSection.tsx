@@ -19,10 +19,7 @@ export default function HeroSection() {
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
   const [videoUrls, setVideoUrls] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string>('');
-  const [user, setUser] = useState<any>(null);
-  const [videosLoaded, setVideosLoaded] = useState(false);
-  const [videosPlaying, setVideosPlaying] = useState(false);
+  const [user, setUser] = useState<unknown>(null);
   const videoRefs = useRef<HTMLVideoElement[]>([]);
   const singleVideoRef = useRef<HTMLVideoElement | null>(null);
 
@@ -63,7 +60,7 @@ export default function HeroSection() {
       v.muted = true;
       v.defaultMuted = true;
       try { v.setAttribute('muted', ''); } catch {}
-      (v as any).playsInline = true;
+      (v as HTMLVideoElement & { playsInline?: boolean }).playsInline = true;
       try { v.setAttribute('playsinline', 'true'); v.setAttribute('webkit-playsinline', 'true'); } catch {}
       try { v.setAttribute('autoplay', ''); } catch {}
       try { v.setAttribute('preload', 'auto'); } catch {}

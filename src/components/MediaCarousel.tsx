@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
-import { ChevronLeft, ChevronRight, X, Play, Pause, Volume2, VolumeX, Maximize2, Minimize2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X, Volume2, VolumeX, Maximize2, Minimize2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import MobileFullscreenVideo from './MobileFullscreenVideo';
 
@@ -37,12 +37,10 @@ export default function MediaCarousel({
   const [duration, setDuration] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showControls, setShowControls] = useState(true);
-  const [videoLoaded, setVideoLoaded] = useState(false);
-  const [videoDimensions, setVideoDimensions] = useState({ width: 0, height: 0 });
   const [isVerticalVideo, setIsVerticalVideo] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<unknown>(null);
   const [showMobileFullscreen, setShowMobileFullscreen] = useState(false);
   const lastMobileTimeRef = useRef<number>(0);
   const lastMobileWasPlayingRef = useRef<boolean>(false);

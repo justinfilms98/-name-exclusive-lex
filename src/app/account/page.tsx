@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase, getSignedUrl } from '@/lib/supabase';
-import { User, Clock, Video, Shield, LogOut, ArrowRight } from 'lucide-react';
+import { User, Clock, Video, LogOut } from 'lucide-react';
 import Link from 'next/link';
+import type { User as SupabaseUser } from '@supabase/supabase-js';
 
 interface Purchase {
   id: string;
@@ -21,7 +22,7 @@ interface Purchase {
 }
 
 export default function AccountPage() {
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<SupabaseUser | null>(null);
   const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [loading, setLoading] = useState(true);
   const [thumbnailUrls, setThumbnailUrls] = useState<{[key: string]: string}>({});
@@ -130,7 +131,6 @@ export default function AccountPage() {
   }
 
   const activePurchases = getActivePurchases();
-  const expiredPurchases = getExpiredPurchases();
 
   return (
     <div className="min-h-screen bg-almond pt-20">

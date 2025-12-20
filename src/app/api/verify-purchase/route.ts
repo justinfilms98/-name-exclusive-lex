@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     console.log(`🔍 Server-side verification for session: ${sessionId}, user: ${userId}`);
 
     // Method 1: Check for existing purchases
-    let { data: purchases, error: purchaseError } = await supabase
+    const { data: purchases, error: purchaseError } = await supabase
       .from('purchases')
       .select(`
         id,

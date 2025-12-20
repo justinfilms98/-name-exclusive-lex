@@ -147,11 +147,6 @@ export default function CartPage() {
     return cartItems.reduce((total, item) => total + (item.video_duration || 300), 0);
   };
 
-  const formatDuration = (seconds: number): string => {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    return `${hours}h ${minutes}m`;
-  };
 
   const formatVideoDuration = (seconds: number): string => {
     const hours = Math.floor(seconds / 3600);

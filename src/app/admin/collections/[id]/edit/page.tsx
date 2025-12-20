@@ -152,7 +152,7 @@ export default function EditCollectionPage() {
         thumbnailPath = path;
       }
 
-      let photos = [...existingPhotoPaths];
+      const photos = [...existingPhotoPaths];
       if (photoFiles && photoFiles.length > 0) {
         for (let i = 0; i < photoFiles.length; i++) {
           const file = photoFiles[i];
