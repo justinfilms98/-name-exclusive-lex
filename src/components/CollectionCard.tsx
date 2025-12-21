@@ -23,6 +23,9 @@ interface CollectionCardProps {
 }
 
 const formatVideoDuration = (seconds: number): string => {
+  if (seconds < 60) {
+    return `${seconds} seconds`;
+  }
   const minutes = Math.floor(seconds / 60);
   return `${minutes} min`;
 };
@@ -99,14 +102,18 @@ export default function CollectionCard({
 
               <div className="flex items-center justify-between text-xs text-blanket/80 mb-4 opacity-0 md:group-hover:opacity-100 transition-opacity duration-700 delay-200">
                 <div className="flex items-center space-x-3">
-                  <div className="flex items-center">
-                    <Clock className="w-3 h-3 mr-1" />
-                    <span>Video: {formatVideoDuration(collection.video_duration || 300)}</span>
-                  </div>
-                  <div className="flex items-center">
-                    <ImageIcon className="w-3 h-3 mr-1" />
-                    {photoCount} photos
-                  </div>
+                  {collection.video_duration && collection.video_duration > 0 && (
+                    <div className="flex items-center">
+                      <Clock className="w-3 h-3 mr-1" />
+                      <span>Video: {formatVideoDuration(collection.video_duration)}</span>
+                    </div>
+                  )}
+                  {photoCount > 0 && (
+                    <div className="flex items-center">
+                      <ImageIcon className="w-3 h-3 mr-1" />
+                      {photoCount} photos
+                    </div>
+                  )}
                 </div>
                 <div className="text-lg font-bold text-blanket">
                   ${formatPrice(collection.price)}
@@ -160,21 +167,27 @@ export default function CollectionCard({
             <h3 className="font-serif text-earth text-lg sm:text-xl mb-1.5 line-clamp-2 break-words">
               {collection.title}
             </h3>
-            <div className="flex flex-wrap items-center gap-y-1 text-[15px] sm:text-base text-earth sm:gap-x-2">
-              <span className="inline-flex items-center font-bold whitespace-nowrap leading-none">${formatPrice(collection.price)}</span>
-              {collection.video_duration && collection.video_duration > 0 && (
-                <>
-                  <span className="mx-2 text-sage opacity-60 select-none leading-none sm:mx-0">•</span>
-                  <span className="inline-flex items-center text-sage text-sm sm:text-[15px] whitespace-nowrap leading-none">Video {formatVideoDuration(collection.video_duration)}</span>
-                </>
-              )}
-              {photoCount > 0 && (
-                <>
-                  <span className="mx-2 text-sage opacity-60 select-none leading-none sm:mx-0">•</span>
-                  <span className="inline-flex items-center text-sage text-sm sm:text-[15px] whitespace-nowrap leading-none">{photoCount} photos</span>
-                </>
-              )}
+            <div className="mb-1.5">
+              <span className="font-bold text-[15px] sm:text-base text-earth">${formatPrice(collection.price)}</span>
             </div>
+            {(collection.video_duration && collection.video_duration > 0) || photoCount > 0 ? (
+              <div className="flex flex-wrap items-center gap-y-1 text-sm sm:text-[15px] text-sage sm:gap-x-2">
+                {collection.video_duration && collection.video_duration > 0 && (
+                  <>
+                    <span className="inline-flex items-center whitespace-nowrap leading-none">Video {formatVideoDuration(collection.video_duration)}</span>
+                    {photoCount > 0 && (
+                      <>
+                        <span className="mx-2 text-sage opacity-60 select-none leading-none sm:mx-0">•</span>
+                        <span className="inline-flex items-center whitespace-nowrap leading-none">{photoCount} photos</span>
+                      </>
+                    )}
+                  </>
+                )}
+                {(!collection.video_duration || collection.video_duration <= 0) && photoCount > 0 && (
+                  <span className="inline-flex items-center whitespace-nowrap leading-none">{photoCount} photos</span>
+                )}
+              </div>
+            ) : null}
           </div>
           
           <div className="mb-2 sm:mb-3 flex-1 min-h-0">
