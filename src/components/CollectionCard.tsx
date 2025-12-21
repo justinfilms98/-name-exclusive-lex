@@ -170,25 +170,26 @@ export default function CollectionCard({
             <div className="mb-1.5">
               <span className="font-bold text-[15px] sm:text-base text-earth">${formatPrice(collection.price)}</span>
             </div>
-            {(collection.video_duration && collection.video_duration > 0) || photoCount > 0 ? (
-              <div className="flex flex-wrap items-center gap-y-1 text-sm sm:text-[15px] text-sage sm:gap-x-2">
-                {collection.video_duration && collection.video_duration > 0 && (
-                  <>
-                    <span className="inline-flex items-center whitespace-nowrap leading-none">Video {formatVideoDuration(collection.video_duration)}</span>
-                    {photoCount > 0 && (
-                      <>
-                        <span className="mx-2 text-sage opacity-60 select-none leading-none sm:mx-0">•</span>
-                        <span className="inline-flex items-center whitespace-nowrap leading-none">{photoCount} photos</span>
-                      </>
-                    )}
-                  </>
-                )}
-                {(!collection.video_duration || collection.video_duration <= 0) && photoCount > 0 && (
-                  <span className="inline-flex items-center whitespace-nowrap leading-none">{photoCount} photos</span>
-                )}
-              </div>
-            ) : null}
           </div>
+          
+          {(collection.video_duration && collection.video_duration > 0) || photoCount > 0 ? (
+            <div className="mb-2 sm:mb-3 flex flex-wrap items-center gap-y-1 text-sm sm:text-[15px] text-sage sm:gap-x-2 flex-shrink-0">
+              {collection.video_duration && collection.video_duration > 0 && (
+                <>
+                  <span className="inline-flex items-center whitespace-nowrap leading-none">Video {formatVideoDuration(collection.video_duration)}</span>
+                  {photoCount > 0 && (
+                    <>
+                      <span className="mx-2 text-sage opacity-60 select-none leading-none sm:mx-0">•</span>
+                      <span className="inline-flex items-center whitespace-nowrap leading-none">{photoCount} photos</span>
+                    </>
+                  )}
+                </>
+              )}
+              {(!collection.video_duration || collection.video_duration <= 0) && photoCount > 0 && (
+                <span className="inline-flex items-center whitespace-nowrap leading-none">{photoCount} photos</span>
+              )}
+            </div>
+          ) : null}
           
           <div className="mb-2 sm:mb-3 flex-1 min-h-0">
             <p className={`text-sage text-sm sm:text-[15px] opacity-80 leading-relaxed break-words transition-all ${
