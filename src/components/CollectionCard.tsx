@@ -160,18 +160,18 @@ export default function CollectionCard({
             <h3 className="font-serif text-earth text-lg sm:text-xl mb-1.5 line-clamp-2 break-words">
               {collection.title}
             </h3>
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[15px] sm:text-base text-earth">
-              <span className="font-bold whitespace-nowrap">${formatPrice(collection.price)}</span>
+            <div className="flex flex-wrap items-center gap-y-1 text-[15px] sm:text-base text-earth sm:gap-x-2">
+              <span className="inline-flex items-center font-bold whitespace-nowrap leading-none">${formatPrice(collection.price)}</span>
               {collection.video_duration && collection.video_duration > 0 && (
                 <>
-                  <span className="text-sage opacity-60">•</span>
-                  <span className="text-sage text-sm sm:text-[15px] whitespace-nowrap">Video {formatVideoDuration(collection.video_duration)}</span>
+                  <span className="mx-2 text-sage opacity-60 select-none leading-none sm:mx-0">•</span>
+                  <span className="inline-flex items-center text-sage text-sm sm:text-[15px] whitespace-nowrap leading-none">Video {formatVideoDuration(collection.video_duration)}</span>
                 </>
               )}
               {photoCount > 0 && (
                 <>
-                  <span className="text-sage opacity-60">•</span>
-                  <span className="text-sage text-sm sm:text-[15px] whitespace-nowrap">{photoCount} photos</span>
+                  <span className="mx-2 text-sage opacity-60 select-none leading-none sm:mx-0">•</span>
+                  <span className="inline-flex items-center text-sage text-sm sm:text-[15px] whitespace-nowrap leading-none">{photoCount} photos</span>
                 </>
               )}
             </div>
