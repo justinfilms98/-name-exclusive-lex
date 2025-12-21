@@ -9,7 +9,7 @@ export interface CollectionCardData {
   title: string;
   description: string;
   price: number;
-  video_duration: number;
+  video_duration?: number | null;
   photo_paths: string[];
   thumbnail_path?: string | null;
 }
@@ -160,10 +160,20 @@ export default function CollectionCard({
             <h3 className="font-serif text-earth text-lg sm:text-xl mb-1.5 line-clamp-2 break-words">
               {collection.title}
             </h3>
-            <div className="flex items-center gap-2 text-[15px] sm:text-base text-earth flex-wrap">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[15px] sm:text-base text-earth">
               <span className="font-bold whitespace-nowrap">${formatPrice(collection.price)}</span>
-              <span className="text-sage">•</span>
-              <span className="text-sage text-sm sm:text-[15px] whitespace-nowrap">Video {formatVideoDuration(collection.video_duration || 300)}</span>
+              {collection.video_duration && collection.video_duration > 0 && (
+                <>
+                  <span className="text-sage opacity-60">•</span>
+                  <span className="text-sage text-sm sm:text-[15px] whitespace-nowrap">Video {formatVideoDuration(collection.video_duration)}</span>
+                </>
+              )}
+              {photoCount > 0 && (
+                <>
+                  <span className="text-sage opacity-60">•</span>
+                  <span className="text-sage text-sm sm:text-[15px] whitespace-nowrap">{photoCount} photos</span>
+                </>
+              )}
             </div>
           </div>
           
@@ -191,11 +201,6 @@ export default function CollectionCard({
                 )}
               </button>
             )}
-          </div>
-          
-          <div className="flex items-center justify-between text-xs text-sage mb-3 flex-shrink-0">
-            <span>{photoCount} photos</span>
-            <span>Permanent access</span>
           </div>
 
           <button
