@@ -276,6 +276,15 @@ export const getAlbumBySlug = async (slug: string) => {
   return { data, error }
 }
 
+export const checkAlbumSlugExists = async (slug: string) => {
+  const { data, error } = await supabase
+    .from('albums')
+    .select('id')
+    .eq('slug', slug)
+    .maybeSingle()
+  return { exists: !!data, error }
+}
+
 export const createAlbum = async (album: any) => {
   const { data, error } = await supabase
     .from('albums')

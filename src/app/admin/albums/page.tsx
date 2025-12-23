@@ -4,8 +4,9 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, FolderPlus, Plus, Edit, Save, X, Upload, Image as ImageIcon } from "lucide-react";
-import { supabase, getAlbums, createAlbum, updateAlbum, uploadFile, getSignedUrl } from "@/lib/supabase";
+import { supabase, getAlbums, createAlbum, updateAlbum, uploadFile, getSignedUrl, checkAlbumSlugExists } from "@/lib/supabase";
 import { isAdmin } from "@/lib/auth";
+import { useToast } from "@/components/Toast";
 
 interface Album {
   id: string;
@@ -19,6 +20,7 @@ interface Album {
 
 export default function AdminAlbumsPage() {
   const router = useRouter();
+  const { addToast } = useToast();
   const [albums, setAlbums] = useState<Album[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -31,6 +33,8 @@ export default function AdminAlbumsPage() {
   const [editThumbnailFile, setEditThumbnailFile] = useState<File | null>(null);
   const [thumbnailUrls, setThumbnailUrls] = useState<{[key: string]: string}>({});
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [slugError, setSlugError] = useState<string | null>(null);
 
   useEffect(() => {
     const init = async () => {
@@ -50,6 +54,12 @@ export default function AdminAlbumsPage() {
 
     init();
   }, [router]);
+
+  // Clear errors when name changes
+  useEffect(() => {
+    setError(null);
+    setSlugError(null);
+  }, [name]);
 
   const loadThumbnails = async (albums: Album[]) => {
     const thumbnailPromises = albums.map(async (album) => {
@@ -78,40 +88,108 @@ export default function AdminAlbumsPage() {
 
   const handleCreate = async () => {
     if (!name.trim()) return;
+    
+    // Clear previous errors
+    setError(null);
+    setSlugError(null);
+    
     setSaving(true);
     try {
+      // Generate slug from name
       const slug = name
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/(^-|-$)/g, "");
 
-      let thumbnailPath = null;
-      if (thumbnailFile) {
-        const timestamp = Date.now();
-        const path = `albums/${slug}_${timestamp}/thumbnail.${thumbnailFile.name.split('.').pop()}`;
-        const { error: uploadError } = await uploadFile(thumbnailFile, "media", path);
-        if (uploadError) throw new Error(`Thumbnail upload failed: ${uploadError.message}`);
-        thumbnailPath = path;
+      // Validate slug is not empty
+      if (!slug) {
+        const errorMsg = "Album name must contain at least one letter or number";
+        setError(errorMsg);
+        addToast(errorMsg, "error");
+        return;
       }
 
+      // Check slug uniqueness before creating
+      const { exists, error: slugCheckError } = await checkAlbumSlugExists(slug);
+      if (slugCheckError) {
+        console.error("Slug check error:", slugCheckError);
+        const errorMsg = `Failed to validate slug: ${slugCheckError.message}`;
+        setError(errorMsg);
+        addToast(errorMsg, "error");
+        return;
+      }
+      if (exists) {
+        const errorMsg = "An album with this slug already exists. Please use a different name.";
+        setSlugError(errorMsg);
+        addToast(errorMsg, "error");
+        return;
+      }
+
+      // Create album first (without thumbnail)
       const { data, error } = await createAlbum({
         name: name.trim(),
         slug,
         description: description.trim() || null,
-        thumbnail_path: thumbnailPath,
+        thumbnail_path: null, // Will be updated after upload if successful
       });
 
-      if (error) throw new Error(error.message);
-      if (data && data[0]) {
-        setAlbums((prev) => [data[0] as Album, ...prev]);
-        setName("");
-        setDescription("");
-        setThumbnailFile(null);
-        await loadThumbnails([data[0] as Album]);
+      if (error) {
+        console.error("Album create error:", error);
+        const errorMsg = error.message || "Failed to create album";
+        setError(errorMsg);
+        addToast(errorMsg, "error");
+        return;
       }
-    } catch (err) {
+
+      if (!data || !data[0]) {
+        const errorMsg = "Album created but no data returned";
+        console.error(errorMsg);
+        setError(errorMsg);
+        addToast(errorMsg, "error");
+        return;
+      }
+
+      const newAlbum = data[0] as Album;
+
+      // Upload thumbnail if provided (non-blocking)
+      let thumbnailPath = null;
+      if (thumbnailFile) {
+        try {
+          const timestamp = Date.now();
+          const path = `albums/${slug}_${timestamp}/thumbnail.${thumbnailFile.name.split('.').pop()}`;
+          const { error: uploadError } = await uploadFile(thumbnailFile, "media", path);
+          
+          if (uploadError) {
+            console.warn("Thumbnail upload failed (non-blocking):", uploadError);
+            addToast(`Album created successfully, but thumbnail upload failed: ${uploadError.message}`, "info");
+          } else {
+            thumbnailPath = path;
+            // Update album with thumbnail path
+            const { error: updateError } = await updateAlbum(newAlbum.id, { thumbnail_path: path });
+            if (updateError) {
+              console.warn("Failed to update album with thumbnail path:", updateError);
+            } else {
+              newAlbum.thumbnail_path = path;
+            }
+          }
+        } catch (uploadErr: any) {
+          console.warn("Thumbnail upload exception (non-blocking):", uploadErr);
+          addToast(`Album created successfully, but thumbnail upload failed: ${uploadErr.message || "Unknown error"}`, "info");
+        }
+      }
+
+      // Success - update UI
+      setAlbums((prev) => [newAlbum, ...prev]);
+      setName("");
+      setDescription("");
+      setThumbnailFile(null);
+      await loadThumbnails([newAlbum]);
+      addToast(`Album "${newAlbum.name}" created successfully!`, "success");
+    } catch (err: any) {
       console.error("Album create error:", err);
-      alert("Failed to create album. Please try again.");
+      const errorMsg = err?.message || "Failed to create album. Please try again.";
+      setError(errorMsg);
+      addToast(errorMsg, "error");
     } finally {
       setSaving(false);
     }
@@ -229,8 +307,11 @@ export default function AdminAlbumsPage() {
                     : ""
                 }
                 disabled
-                className="input bg-mushroom/30"
+                className={`input bg-mushroom/30 ${slugError ? "border-red-500" : ""}`}
               />
+              {slugError && (
+                <p className="text-sm text-red-500">{slugError}</p>
+              )}
             </div>
             <div className="md:col-span-2 space-y-2">
               <label className="text-sm text-earth font-medium">Description</label>
@@ -264,10 +345,15 @@ export default function AdminAlbumsPage() {
               </div>
             </div>
           </div>
+          {error && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-sm text-red-600">{error}</p>
+            </div>
+          )}
           <button
             onClick={handleCreate}
             disabled={saving || !name.trim()}
-            className="btn-primary inline-flex items-center space-x-2 disabled:opacity-50"
+            className="btn-primary inline-flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {saving ? (
               <>
