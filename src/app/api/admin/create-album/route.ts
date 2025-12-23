@@ -2,6 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { isAdmin } from '@/lib/auth';
 
+// Use service role key for admin operations (bypasses RLS)
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+
+// Use anon key for auth checks
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -22,7 +29,7 @@ async function generateUniqueSlug(baseSlug: string): Promise<string> {
   const maxAttempts = 100; // Prevent infinite loop
 
   for (let i = 0; i < maxAttempts; i++) {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('albums')
       .select('id')
       .eq('slug', slug)
@@ -129,6 +136,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create album (thumbnail_path is optional)
+    // Generate id - some schemas require explicit id (TEXT), others auto-generate (UUID)
     const albumData: any = {
       name: name.trim(),
       slug: uniqueSlug,
@@ -136,13 +144,27 @@ export async function POST(request: NextRequest) {
       thumbnail_path: thumbnail_path || null,
     };
 
-    const { data, error } = await supabase
+    // Try insert - if it fails due to missing id, retry with generated id
+    let { data, error } = await supabaseAdmin
       .from('albums')
       .insert([albumData])
       .select();
 
+    // If error suggests missing id field, retry with generated id
+    if (error && (error.message?.includes('null value') || error.code === '23502')) {
+      console.log('Retrying with generated id...');
+      albumData.id = crypto.randomUUID();
+      const retryResult = await supabaseAdmin
+        .from('albums')
+        .insert([albumData])
+        .select();
+      data = retryResult.data;
+      error = retryResult.error;
+    }
+
     if (error) {
       console.error('Supabase error creating album:', error);
+      console.error('Error details:', JSON.stringify(error, null, 2));
       
       // Handle specific Supabase errors
       if (error.code === '23505') { // Unique constraint violation
@@ -152,8 +174,28 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      if (error.code === '42501' || error.message?.includes('permission') || error.message?.includes('policy')) {
+        return NextResponse.json(
+          { error: 'Permission denied. RLS policy may be blocking insert. Please check database policies.' },
+          { status: 403 }
+        );
+      }
+
+      // Return detailed error for debugging
+      const errorMessage = error.message || 'Failed to create album';
+      const errorDetails = {
+        message: errorMessage,
+        code: error.code,
+        details: error.details,
+        hint: error.hint,
+      };
+      console.error('Full error object:', errorDetails);
+      
       return NextResponse.json(
-        { error: error.message || 'Failed to create album' },
+        { 
+          error: errorMessage,
+          ...(process.env.NODE_ENV === 'development' && { details: errorDetails })
+        },
         { status: 500 }
       );
     }
