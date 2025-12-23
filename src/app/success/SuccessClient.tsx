@@ -61,183 +61,66 @@ export default function SuccessClient() {
 
       console.log('User authenticated:', session.user.id);
 
-      // BULLETPROOF VERIFICATION: Try multiple approaches with retries
+      // Use server-side verification endpoint
       let purchaseData: any[] = [];
       let attempts = 0;
-      const maxAttempts = 5;
+      const maxAttempts = 3;
       const retryDelay = 2000; // 2 seconds
 
-      while (attempts < maxAttempts && (!purchaseData || purchaseData.length === 0)) {
+      while (attempts < maxAttempts && purchaseData.length === 0) {
         attempts++;
         console.log(`🔍 Verification attempt ${attempts}/${maxAttempts}`);
 
-        // Method 1: Try to get purchases by session ID (PRIMARY METHOD)
-        const { data: sessionPurchases, error: sessionError } = await supabase
-          .from('purchases')
-          .select(`
-            id,
-            user_id,
-            collection_id,
-            stripe_session_id,
-            created_at,
-            status,
-            is_active,
-            amount_paid,
-            collections (
-              id,
-              title,
-              description,
-              price,
-              thumbnail_path,
-              media_filename
-            )
-          `)
-          .eq('stripe_session_id', sessionId)
-          .eq('user_id', session.user.id)
-          .eq('is_active', true);
+        try {
+          const response = await fetch(`/api/purchases/verify?session_id=${encodeURIComponent(sessionId)}`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
 
-        if (sessionError) {
-          console.error('Session query error:', sessionError);
-        } else if (sessionPurchases && sessionPurchases.length > 0) {
-          console.log('✅ Found purchases by session ID:', sessionPurchases.length);
-          purchaseData = sessionPurchases;
-          break;
-        }
-
-        // Method 2: Check for any active purchases for this user in the last 30 minutes
-        if (!purchaseData || purchaseData.length === 0) {
-          console.log('No completed purchases found, checking for any active purchases...');
-          const { data: anyPurchases, error: anyError } = await supabase
-            .from('purchases')
-            .select(`
-              id,
-              user_id,
-              collection_id,
-              stripe_session_id,
-              created_at,
-              status,
-              is_active,
-              amount_paid,
-              collections (
-                id,
-                title,
-                description,
-                price,
-                thumbnail_path,
-                media_filename
-              )
-            `)
-            .eq('user_id', session.user.id)
-            .eq('is_active', true)
-            .gte('created_at', new Date(Date.now() - 30 * 60 * 1000).toISOString())
-            .order('created_at', { ascending: false });
-
-          if (anyError) {
-            console.error('Any purchases check error:', anyError);
-          } else if (anyPurchases && anyPurchases.length > 0) {
-            console.log('Found active purchases:', anyPurchases.length);
-            purchaseData = anyPurchases;
-          }
-        }
-
-        // Method 3: If still no purchases, try API verification
-        if (!purchaseData || purchaseData.length === 0) {
-          console.log('No active purchases found, trying API verification...');
-          try {
-            const response = await fetch('/api/verify-purchase', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                sessionId: sessionId,
-                userId: session.user.id
-              })
-            });
-
-            if (response.ok) {
-              const result = await response.json();
-              if (result.purchases && result.purchases.length > 0) {
-                console.log('✅ API verification successful:', result.purchases.length, 'purchases found');
-                purchaseData = result.purchases;
-                break;
-              }
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+            console.error(`❌ Verification failed (${response.status}):`, errorData.error);
+            
+            if (attempts < maxAttempts) {
+              console.log(`⏳ Retrying in ${retryDelay}ms...`);
+              await new Promise(resolve => setTimeout(resolve, retryDelay));
+              continue;
+            } else {
+              setError(errorData.error || `Verification failed: ${response.status}`);
+              setLoading(false);
+              return;
             }
-          } catch (apiError) {
-            console.error('API verification failed:', apiError);
           }
-        }
 
-        // Method 4: Try to get collection_ids from session metadata and create purchases
-        if (!purchaseData || purchaseData.length === 0) {
-          console.log('No purchases found, trying to get collection_ids from session metadata...');
-          try {
-            // First, try to get the session metadata directly
-            const response = await fetch(`/api/verify-purchase`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                sessionId: sessionId,
-                userId: session.user.id
-              })
-            });
-
-            if (response.ok) {
-              const result = await response.json();
-              if (result.purchases && result.purchases.length > 0) {
-                console.log('✅ Metadata verification successful:', result.purchases.length, 'purchases found');
-                purchaseData = result.purchases;
-                break;
-              }
+          const result = await response.json();
+          
+          if (result.ok && result.purchases && result.purchases.length > 0) {
+            console.log('✅ Server-side verification successful:', result.purchases.length, 'purchases found');
+            purchaseData = result.purchases;
+            break;
+          } else {
+            console.warn('⚠️ Verification returned no purchases:', result);
+            if (result.error) {
+              setError(result.error);
+              setLoading(false);
+              return;
             }
-          } catch (metadataError) {
-            console.error('Metadata verification failed:', metadataError);
           }
-        }
-
-        // Method 5: If still no purchases, try to create them from session metadata
-        if (!purchaseData || purchaseData.length === 0) {
-          console.log('No purchases found, trying to create purchases from session metadata...');
-          try {
-            // This will be handled by the verify-purchase API which already handles collection_ids
-            const response = await fetch(`/api/verify-purchase`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                sessionId: sessionId,
-                userId: session.user.id,
-                forceCreate: true
-              })
-            });
-
-            if (response.ok) {
-              const result = await response.json();
-              if (result.purchases && result.purchases.length > 0) {
-                console.log('✅ Force creation successful:', result.purchases.length, 'purchases found');
-                purchaseData = result.purchases;
-                break;
-              }
-            }
-          } catch (forceCreateError) {
-            console.error('Force creation failed:', forceCreateError);
+        } catch (apiError: any) {
+          console.error('API verification error:', apiError);
+          if (attempts >= maxAttempts) {
+            setError(apiError.message || 'Failed to verify purchases. Please try again.');
+            setLoading(false);
+            return;
           }
-        }
-
-        // If no purchases found, wait and retry
-        if (!purchaseData || purchaseData.length === 0) {
-          if (attempts < maxAttempts) {
-            console.log(`⏳ No purchases found for session ${sessionId}, waiting ${retryDelay}ms before retry...`);
-            await new Promise(resolve => setTimeout(resolve, retryDelay));
-          }
+          await new Promise(resolve => setTimeout(resolve, retryDelay));
         }
       }
 
       // Final check - if still no purchases, show error
-      if (!purchaseData || purchaseData.length === 0) {
+      if (purchaseData.length === 0) {
         console.error('❌ No purchases found after all attempts');
         setError('Purchase verification is taking longer than expected. Please try refreshing the page in a few minutes.');
         setLoading(false);
@@ -255,10 +138,6 @@ export default function SuccessClient() {
       } catch (error) {
         console.warn('Failed to clear cart:', error);
       }
-
-      // Calculate total amount
-      const total = purchaseData.reduce((sum, purchase) => sum + (purchase.amount_paid || 0), 0);
-      setTotalAmount(total);
 
       // Set purchases with collection data
       setPurchases(purchaseData.map(purchase => ({
@@ -305,6 +184,14 @@ export default function SuccessClient() {
     );
   }
 
+  const handleRetry = async () => {
+    if (sessionId) {
+      setError(null);
+      setLoading(true);
+      await verifyPurchases(sessionId);
+    }
+  };
+
   if (error) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-almond to-blanc flex items-center justify-center">
@@ -330,15 +217,15 @@ export default function SuccessClient() {
           
           <div className="space-y-3">
             <button
-              onClick={() => window.location.reload()}
+              onClick={handleRetry}
               className="w-full bg-lex-brown text-white px-6 py-3 rounded-lg hover:bg-lex-warmGray transition-all duration-200 font-semibold"
             >
-              Try Again
+              Retry Verification
             </button>
             
             <Link 
               href="/collections"
-              className="block w-full bg-gray-200 text-lex-brown px-6 py-3 rounded-lg hover:bg-gray-300 transition-all duration-200 font-semibold"
+              className="block w-full bg-gray-200 text-lex-brown px-6 py-3 rounded-lg hover:bg-gray-300 transition-all duration-200 font-semibold text-center"
             >
               Return to Collections
             </Link>

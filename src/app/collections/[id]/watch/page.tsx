@@ -60,44 +60,41 @@ export default function WatchPage() {
         console.log('Collection data loaded:', collectionData);
         setCollection(collectionData);
 
-        // Check if user has access
+        // Check if user has access using server-side endpoint
         console.log('Checking access for user:', session.user.id, 'collection:', id);
         
         let accessData;
         try {
-          const accessResponse = await fetch('/api/check-access', {
-            method: 'POST',
+          const accessResponse = await fetch(`/api/access/check?collectionId=${encodeURIComponent(id)}&userId=${encodeURIComponent(session.user.id)}`, {
+            method: 'GET',
             headers: {
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify({
-              userId: session.user.id,
-              collectionId: id
-            }),
           });
 
           if (!accessResponse.ok) {
-            console.error('Access check failed:', accessResponse.status);
-            setError('Access denied. Please purchase this collection first.');
+            const errorData = await accessResponse.json().catch(() => ({ error: 'Unknown error' }));
+            console.error('Access check failed:', accessResponse.status, errorData.error);
+            setError(errorData.error || 'Access denied. Please purchase this collection first.');
             setLoading(false);
             return;
           }
 
           const accessResult = await accessResponse.json();
           
-          if (!accessResult.hasAccess || !accessResult.purchases || accessResult.purchases.length === 0) {
+          if (!accessResult.hasAccess || !accessResult.purchase) {
             console.log('No access found for user:', session.user.id, 'collection:', id);
             setError('Access denied. Please purchase this collection first.');
             setLoading(false);
             return;
           }
 
-          accessData = accessResult.purchases[0]; // Use the first purchase
+          accessData = accessResult.purchase; // Use the purchase from server response
           console.log('Access granted for user:', session.user.id, 'purchase:', accessData);
           setHasAccess(true);
-        } catch (error) {
+        } catch (error: any) {
           console.error('Access check error:', error);
-          setError('Access denied. Please purchase this collection first.');
+          setError(error.message || 'Access denied. Please purchase this collection first.');
           setLoading(false);
           return;
         }
