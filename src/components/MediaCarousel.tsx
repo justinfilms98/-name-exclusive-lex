@@ -42,6 +42,8 @@ export default function MediaCarousel({
   const [isIOS, setIsIOS] = useState(false);
   const [user, setUser] = useState<unknown>(null);
   const [showMobileFullscreen, setShowMobileFullscreen] = useState(false);
+  const [videoLoaded, setVideoLoaded] = useState(false);
+  const [videoDimensions, setVideoDimensions] = useState<{ width: number; height: number }>({ width: 0, height: 0 });
   const lastMobileTimeRef = useRef<number>(0);
   const lastMobileWasPlayingRef = useRef<boolean>(false);
   
@@ -401,10 +403,16 @@ export default function MediaCarousel({
                 onPlay={() => setIsPlaying(true)}
                 onPause={() => setIsPlaying(false)}
                 onEnded={() => setIsPlaying(false)}
-                onError={() => setVideoLoaded(true)}
+                onError={(e) => {
+                  if (process.env.NODE_ENV !== 'production') {
+                    console.error('Video error:', e);
+                  }
+                  setVideoLoaded(true);
+                }}
                 preload="metadata"
                 muted={isMuted}
                 playsInline
+                controls={false}
                 webkit-playsinline="true"
                 x-webkit-airplay="allow"
                 disablePictureInPicture

@@ -48,20 +48,28 @@ export default function WatchPage() {
         setUser(session.user);
 
         // Get collection details
-        console.log('Fetching collection data for ID:', id);
+        if (process.env.NODE_ENV !== 'production') {
+          console.log('🔍 Fetching collection data for ID:', id);
+        }
         const { data: collectionData, error: collectionError } = await getCollection(id);
         if (collectionError || !collectionData) {
-          console.error('Collection error:', collectionError);
-          setError('Collection not found');
+          if (process.env.NODE_ENV !== 'production') {
+            console.error('❌ Collection error:', collectionError);
+          }
+          setError(collectionError?.message || 'Collection not found');
           setLoading(false);
           return;
         }
 
-        console.log('Collection data loaded:', collectionData);
+        if (process.env.NODE_ENV !== 'production') {
+          console.log('✅ Collection data loaded:', collectionData.title);
+        }
         setCollection(collectionData);
 
         // Check if user has access using server-side endpoint
-        console.log('Checking access for user:', session.user.id, 'collection:', id);
+        if (process.env.NODE_ENV !== 'production') {
+          console.log('🔍 Checking access for user:', session.user.id, 'collection:', id);
+        }
         
         let accessData;
         try {
@@ -74,7 +82,9 @@ export default function WatchPage() {
 
           if (!accessResponse.ok) {
             const errorData = await accessResponse.json().catch(() => ({ error: 'Unknown error' }));
-            console.error('Access check failed:', accessResponse.status, errorData.error);
+            if (process.env.NODE_ENV !== 'production') {
+              console.error('❌ Access check failed:', accessResponse.status, errorData.error);
+            }
             setError(errorData.error || 'Access denied. Please purchase this collection first.');
             setLoading(false);
             return;
@@ -83,71 +93,159 @@ export default function WatchPage() {
           const accessResult = await accessResponse.json();
           
           if (!accessResult.hasAccess || !accessResult.purchase) {
-            console.log('No access found for user:', session.user.id, 'collection:', id);
+            if (process.env.NODE_ENV !== 'production') {
+              console.log('❌ No access found for user:', session.user.id, 'collection:', id);
+            }
             setError('Access denied. Please purchase this collection first.');
             setLoading(false);
             return;
           }
 
           accessData = accessResult.purchase; // Use the purchase from server response
-          console.log('Access granted for user:', session.user.id, 'purchase:', accessData);
+          if (process.env.NODE_ENV !== 'production') {
+            console.log('✅ Access granted for user:', session.user.id, 'purchase ID:', accessData.id);
+          }
           setHasAccess(true);
         } catch (error: any) {
-          console.error('Access check error:', error);
-          setError(error.message || 'Access denied. Please purchase this collection first.');
+          if (process.env.NODE_ENV !== 'production') {
+            console.error('❌ Access check error:', error);
+          }
+          setError(error.message || 'Failed to verify access. Please try again.');
           setLoading(false);
           return;
         }
 
         // Get protected video URL through our API
-        console.log('Calling protected-video API with session_id:', accessData.stripe_session_id, 'collection_id:', id);
-        const videoRes = await fetch(`/api/protected-video?session_id=${accessData.stripe_session_id}&collection_id=${id}`);
-        console.log('Protected video API response status:', videoRes.status);
-        const videoJson = await videoRes.json();
-        
-        if (!videoRes.ok || !videoJson.videoUrl) {
-          console.error('Failed to get protected video URL:', videoJson);
-          setError('Failed to load video content');
-          setLoading(false);
-          return;
+        // Handle case where stripe_session_id might be missing
+        const sessionId = accessData.stripe_session_id;
+        if (!sessionId) {
+          if (process.env.NODE_ENV !== 'production') {
+            console.warn('⚠️ No stripe_session_id in purchase data, trying alternative method');
+          }
+          // Try to get video URL directly from collection if available
+          if (collectionData.video_path || collectionData.media_filename) {
+            const videoPath = collectionData.media_filename || collectionData.video_path;
+            try {
+              const { data: signedUrlData, error: signedUrlError } = await getSignedUrl('media', videoPath, 3600);
+              if (!signedUrlError && signedUrlData?.signedUrl) {
+                setVideoUrl(signedUrlData.signedUrl);
+                if (process.env.NODE_ENV !== 'production') {
+                  console.log('✅ Got video URL directly from collection');
+                }
+              }
+            } catch (err) {
+              if (process.env.NODE_ENV !== 'production') {
+                console.error('Failed to get signed URL directly:', err);
+              }
+            }
+          }
+        } else {
+          try {
+            if (process.env.NODE_ENV !== 'production') {
+              console.log('Calling protected-video API with session_id:', sessionId, 'collection_id:', id);
+            }
+            const videoRes = await fetch(`/api/protected-video?session_id=${encodeURIComponent(sessionId)}&collection_id=${encodeURIComponent(id)}`);
+            
+            if (!videoRes.ok) {
+              const errorData = await videoRes.json().catch(() => ({ error: 'Unknown error' }));
+              if (process.env.NODE_ENV !== 'production') {
+                console.error('Protected video API failed:', videoRes.status, errorData);
+              }
+              // Don't fail completely - try direct method as fallback
+              if (collectionData.video_path || collectionData.media_filename) {
+                const videoPath = collectionData.media_filename || collectionData.video_path;
+                const { data: signedUrlData, error: signedUrlError } = await getSignedUrl('media', videoPath, 3600);
+                if (!signedUrlError && signedUrlData?.signedUrl) {
+                  setVideoUrl(signedUrlData.signedUrl);
+                  if (process.env.NODE_ENV !== 'production') {
+                    console.log('✅ Fallback: Got video URL directly from collection');
+                  }
+                }
+              }
+            } else {
+              const videoJson = await videoRes.json();
+              if (videoJson.videoUrl) {
+                if (process.env.NODE_ENV !== 'production') {
+                  console.log('✅ Using signed URL from protected-video API');
+                }
+                setVideoUrl(videoJson.videoUrl);
+              } else if (collectionData.video_path || collectionData.media_filename) {
+                // Fallback to direct method
+                const videoPath = collectionData.media_filename || collectionData.video_path;
+                const { data: signedUrlData, error: signedUrlError } = await getSignedUrl('media', videoPath, 3600);
+                if (!signedUrlError && signedUrlData?.signedUrl) {
+                  setVideoUrl(signedUrlData.signedUrl);
+                }
+              }
+            }
+          } catch (videoError: any) {
+            if (process.env.NODE_ENV !== 'production') {
+              console.error('Error fetching video URL:', videoError);
+            }
+            // Try fallback method
+            if (collectionData.video_path || collectionData.media_filename) {
+              const videoPath = collectionData.media_filename || collectionData.video_path;
+              try {
+                const { data: signedUrlData, error: signedUrlError } = await getSignedUrl('media', videoPath, 3600);
+                if (!signedUrlError && signedUrlData?.signedUrl) {
+                  setVideoUrl(signedUrlData.signedUrl);
+                }
+              } catch (fallbackError) {
+                if (process.env.NODE_ENV !== 'production') {
+                  console.error('Fallback video URL fetch also failed:', fallbackError);
+                }
+              }
+            }
+          }
         }
 
-        // Use the signed URL directly from the protected-video API
-        console.log('Using signed URL from protected-video API:', videoJson.videoUrl);
-        setVideoUrl(videoJson.videoUrl);
-
         // Get signed URLs for photos if they exist
-        if (collectionData.photo_paths && collectionData.photo_paths.length > 0) {
-          console.log('Loading photos from paths:', collectionData.photo_paths);
+        if (collectionData.photo_paths && Array.isArray(collectionData.photo_paths) && collectionData.photo_paths.length > 0) {
+          if (process.env.NODE_ENV !== 'production') {
+            console.log('📸 Loading photos from paths:', collectionData.photo_paths.length, 'photos');
+          }
           
           const photoPromises = collectionData.photo_paths.map(async (path: string, index: number) => {
             try {
-              console.log(`Loading photo ${index + 1}:`, path);
               const { data, error } = await getSignedUrl('media', path, 3600);
               if (error) {
-                console.error(`Failed to load photo ${index + 1}:`, error);
+                if (process.env.NODE_ENV !== 'production') {
+                  console.warn(`⚠️ Failed to load photo ${index + 1}:`, error);
+                }
                 return null;
               }
-              console.log(`Successfully loaded photo ${index + 1}:`, data?.signedUrl);
-              return data?.signedUrl;
+              return data?.signedUrl || null;
             } catch (err) {
-              console.error(`Error loading photo ${index + 1}:`, err);
+              if (process.env.NODE_ENV !== 'production') {
+                console.warn(`⚠️ Error loading photo ${index + 1}:`, err);
+              }
               return null;
             }
           });
 
           const urls = await Promise.all(photoPromises);
           const validUrls = urls.filter(Boolean) as string[];
-          console.log('Valid photo URLs loaded:', validUrls.length);
+          if (process.env.NODE_ENV !== 'production') {
+            console.log(`✅ Valid photo URLs loaded: ${validUrls.length}/${collectionData.photo_paths.length}`);
+          }
           setPhotoUrls(validUrls);
+        } else {
+          if (process.env.NODE_ENV !== 'production') {
+            console.log('ℹ️ No photos found in collection');
+          }
         }
 
-        // Log the watch activity
-        await logWatchActivity({
+        // Log the watch activity (don't block on this)
+        logWatchActivity({
           user_id: session.user.id,
           collection_id: id,
           purchase_id: accessData.id,
           created_at: new Date().toISOString(),
+        }).catch((err) => {
+          // Don't fail if logging fails
+          if (process.env.NODE_ENV !== 'production') {
+            console.warn('Failed to log watch activity:', err);
+          }
         });
 
         // Check if user has accepted purchase terms
@@ -159,18 +257,24 @@ export default function WatchPage() {
         // If user has access to this collection, they should be able to view it
         // Only show DMCA if they haven't accepted terms AND this is their first time accessing purchased content
         if (!hasAcceptedPurchaseTerms && !bypassDMCA) {
-          console.log('Showing legal disclaimer - first time access');
+          if (process.env.NODE_ENV !== 'production') {
+            console.log('Showing legal disclaimer - first time access');
+          }
           setShowLegalDisclaimer(true);
         } else {
-          console.log('Terms already accepted or bypassed, setting content ready');
+          if (process.env.NODE_ENV !== 'production') {
+            console.log('✅ Terms already accepted or bypassed, setting content ready');
+          }
           setContentReady(true);
         }
 
         setLoading(false);
 
       } catch (err: any) {
-        console.error('Access check error:', err);
-        setError('Failed to verify access');
+        if (process.env.NODE_ENV !== 'production') {
+          console.error('❌ Access check error:', err);
+        }
+        setError(err.message || 'Failed to verify access. Please try again.');
         setLoading(false);
       }
     };
@@ -262,9 +366,64 @@ export default function WatchPage() {
     );
   }
 
-  if (!hasAccess || (!videoUrl && photoUrls.length === 0)) {
-    console.log('Render - No access or no media. hasAccess:', hasAccess, 'videoUrl:', !!videoUrl, 'photoUrls:', photoUrls.length);
-    return null;
+  // Never return null - always show something
+  if (!hasAccess) {
+    // This should have been caught by error state, but just in case
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-center text-white max-w-md p-8">
+          <div className="text-red-400 mb-4">
+            <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <h2 className="text-xl font-semibold mb-2">Access Required</h2>
+          <p className="text-gray-300 mb-6">You need to purchase this collection to view it.</p>
+          <button
+            onClick={() => router.push(`/collections/${id}`)}
+            className="bg-white text-black px-6 py-2 rounded-md hover:bg-gray-100 transition-colors"
+          >
+            Back to Collection
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // If access granted but no media available, show helpful message
+  if (hasAccess && !videoUrl && photoUrls.length === 0) {
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn('⚠️ Access granted but no media found. Collection:', collection?.title, 'ID:', id);
+    }
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-center text-white max-w-md p-8">
+          <div className="text-yellow-400 mb-4">
+            <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <h2 className="text-xl font-semibold mb-2">Content Unavailable</h2>
+          <p className="text-gray-300 mb-6">
+            This collection has no media attached yet. Please check back later or contact support.
+          </p>
+          <div className="space-y-3">
+            <button
+              onClick={() => router.push(`/collections/${id}`)}
+              className="w-full bg-white text-black px-6 py-2 rounded-md hover:bg-gray-100 transition-colors"
+            >
+              Back to Collection
+            </button>
+            <button
+              onClick={() => window.location.reload()}
+              className="w-full bg-gray-700 text-white px-6 py-2 rounded-md hover:bg-gray-600 transition-colors"
+            >
+              Try Again
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   // Show legal disclaimer if needed
