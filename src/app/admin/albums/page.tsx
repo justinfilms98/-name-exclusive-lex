@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, FolderPlus, Plus, Edit, Save, X, Upload, Image as ImageIcon } from "lucide-react";
+import { ArrowLeft, FolderPlus, Plus, Edit, Save, X, Upload, Image as ImageIcon, Trash2 } from "lucide-react";
 import { supabase, getAlbums, updateAlbum, uploadFile, getSignedUrl } from "@/lib/supabase";
 import { isAdmin } from "@/lib/auth";
 import { useToast } from "@/components/Toast";
@@ -33,6 +33,7 @@ export default function AdminAlbumsPage() {
   const [editThumbnailFile, setEditThumbnailFile] = useState<File | null>(null);
   const [thumbnailUrls, setThumbnailUrls] = useState<{[key: string]: string}>({});
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -284,6 +285,50 @@ export default function AdminAlbumsPage() {
     }
   };
 
+  const handleDelete = async (album: Album) => {
+    if (!confirm(`Are you sure you want to delete "${album.name}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    setDeletingId(album.id);
+    try {
+      // Delete from database
+      const { error: dbError } = await supabase
+        .from('albums')
+        .delete()
+        .eq('id', album.id);
+
+      if (dbError) {
+        throw new Error(dbError.message);
+      }
+
+      // Delete thumbnail from storage if it exists
+      if (album.thumbnail_path) {
+        const { error: storageError } = await supabase.storage
+          .from('media')
+          .remove([album.thumbnail_path]);
+
+        if (storageError) {
+          console.warn('Storage deletion warning:', storageError);
+        }
+      }
+
+      // Refresh albums list
+      const { data } = await getAlbums();
+      if (data) {
+        setAlbums(data as Album[]);
+        await loadThumbnails(data as Album[]);
+      }
+      
+      addToast(`Album "${album.name}" deleted successfully!`, "success");
+    } catch (error: any) {
+      console.error('Delete error:', error);
+      addToast(`Delete failed: ${error.message}`, "error");
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-almond flex items-center justify-center">
@@ -514,10 +559,23 @@ export default function AdminAlbumsPage() {
                               </Link>
                               <button
                                 onClick={() => startEdit(album)}
-                                className="p-2 text-sage hover:text-earth hover:bg-blanket/60 rounded-lg transition-colors"
+                                disabled={deletingId === album.id || isEditing}
+                                className="p-2 text-sage hover:text-earth hover:bg-blanket/60 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                 title="Quick edit"
                               >
                                 <Edit className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => handleDelete(album)}
+                                disabled={deletingId === album.id || isEditing}
+                                className="p-2 text-sage hover:text-red-600 hover:bg-blanket/60 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                title="Delete album"
+                              >
+                                {deletingId === album.id ? (
+                                  <div className="w-4 h-4 spinner" />
+                                ) : (
+                                  <Trash2 className="w-4 h-4" />
+                                )}
                               </button>
                             </div>
                           </div>

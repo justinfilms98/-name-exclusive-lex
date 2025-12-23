@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase, getCollections, getAlbums, getSignedUrl, updateAlbum, uploadFile } from '@/lib/supabase';
 import { isAdmin } from '@/lib/auth';
-import { Edit, Save, X, Upload, Image as ImageIcon, Plus, FolderPlus } from 'lucide-react';
+import { Edit, Save, X, Upload, Image as ImageIcon, Plus, FolderPlus, Trash2 } from 'lucide-react';
 
 interface Album {
   id: string;
@@ -32,6 +32,7 @@ export default function AdminPage() {
   const [editThumbnailFile, setEditThumbnailFile] = useState<File | null>(null);
   const [thumbnailUrls, setThumbnailUrls] = useState<{[key: string]: string}>({});
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -186,6 +187,45 @@ export default function AdminPage() {
       alert("Failed to update album. Please try again.");
     } finally {
       setUpdatingId(null);
+    }
+  };
+
+  const handleDelete = async (album: Album) => {
+    if (!confirm(`Are you sure you want to delete "${album.name}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    setDeletingId(album.id);
+    try {
+      // Delete from database
+      const { error: dbError } = await supabase
+        .from('albums')
+        .delete()
+        .eq('id', album.id);
+
+      if (dbError) {
+        throw new Error(dbError.message);
+      }
+
+      // Delete thumbnail from storage if it exists
+      if (album.thumbnail_path) {
+        const { error: storageError } = await supabase.storage
+          .from('media')
+          .remove([album.thumbnail_path]);
+
+        if (storageError) {
+          console.warn('Storage deletion warning:', storageError);
+        }
+      }
+
+      // Refresh albums list
+      await loadAlbums();
+      alert(`Album "${album.name}" deleted successfully!`);
+    } catch (error: any) {
+      console.error('Delete error:', error);
+      alert(`Delete failed: ${error.message}`);
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -412,13 +452,28 @@ export default function AdminPage() {
                               <p className="text-xs text-sage mt-1">Slug: {album.slug}</p>
                               <p className="text-sm text-earth mt-2">{album.description || "No description"}</p>
                             </div>
-                            <button
-                              onClick={() => startEdit(album)}
-                              className="p-2 text-sage hover:text-earth hover:bg-blanket/60 rounded-lg transition-colors"
-                              title="Edit album"
-                            >
-                              <Edit className="w-5 h-5" />
-                            </button>
+                            <div className="flex items-center space-x-2">
+                              <button
+                                onClick={() => startEdit(album)}
+                                disabled={deletingId === album.id || isEditing}
+                                className="p-2 text-sage hover:text-earth hover:bg-blanket/60 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                title="Edit album"
+                              >
+                                <Edit className="w-5 h-5" />
+                              </button>
+                              <button
+                                onClick={() => handleDelete(album)}
+                                disabled={deletingId === album.id || isEditing}
+                                className="p-2 text-sage hover:text-red-600 hover:bg-blanket/60 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                title="Delete album"
+                              >
+                                {deletingId === album.id ? (
+                                  <div className="w-5 h-5 spinner" />
+                                ) : (
+                                  <Trash2 className="w-5 h-5" />
+                                )}
+                              </button>
+                            </div>
                           </div>
                           <div className="flex items-center gap-4 text-xs text-sage">
                             <span>{album.collections?.[0]?.count ?? 0} collections</span>
