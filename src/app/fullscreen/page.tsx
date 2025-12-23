@@ -30,10 +30,28 @@ export default function FullscreenPage() {
   const [isSeeking, setIsSeeking] = useState(false);
   const [isBuffering, setIsBuffering] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const hideTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [showControls, setShowControls] = useState(true);
   const [isIOS, setIsIOS] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showFullscreenOverlay, setShowFullscreenOverlay] = useState(true);
   const hasUnmutedOnceRef = useRef(false);
+
+  useEffect(() => {
+    // Prevent body scroll
+    document.body.style.overflow = 'hidden';
+    document.body.style.height = '100%';
+    document.documentElement.style.height = '100%';
+    document.documentElement.style.overflow = 'hidden';
+    
+    return () => {
+      document.body.style.overflow = '';
+      document.body.style.height = '';
+      document.documentElement.style.height = '';
+      document.documentElement.style.overflow = '';
+    };
+  }, []);
 
   useEffect(() => {
     // Try sessionStorage first
@@ -48,9 +66,30 @@ export default function FullscreenPage() {
         }
       }
     } catch {}
-    // Fallback from URL param
+    
+    // Fallback from URL param - with defensive parsing
     try {
-      const p = params?.get('p');
+      let p = params?.get('p');
+      
+      // Fix for /fullscreenp=... bug (missing '?')
+      if (!p) {
+        const pathname = window.location.pathname;
+        const search = window.location.search;
+        
+        // Check if pathname contains "fullscreenp="
+        if (pathname.includes('fullscreenp=')) {
+          const match = pathname.match(/fullscreenp=([^/]+)/);
+          if (match && match[1]) {
+            p = decodeURIComponent(match[1]);
+          }
+        }
+        
+        // Also check search params without '?'
+        if (!p && search && search.startsWith('p=')) {
+          p = search.substring(2);
+        }
+      }
+      
       if (p) {
         const decoded = JSON.parse(atob(p)) as FSPayload;
         if (decoded && decoded.items?.length) {
@@ -58,7 +97,11 @@ export default function FullscreenPage() {
           setIndex(Math.max(0, Math.min(decoded.items.length - 1, decoded.startIndex || 0)));
         }
       }
-    } catch {}
+    } catch (err) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.error('Failed to parse fullscreen payload:', err);
+      }
+    }
   }, [params]);
 
   useEffect(() => {
@@ -66,6 +109,34 @@ export default function FullscreenPage() {
       const ua = navigator.userAgent || '';
       setIsIOS(/iPad|iPhone|iPod/.test(ua) && !(window as any).MSStream);
     } catch {}
+  }, []);
+
+  // Listen for fullscreen changes
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      const isCurrentlyFullscreen = !!(
+        document.fullscreenElement ||
+        (document as any).webkitFullscreenElement ||
+        (document as any).mozFullScreenElement ||
+        (document as any).msFullscreenElement
+      );
+      setIsFullscreen(isCurrentlyFullscreen);
+      if (isCurrentlyFullscreen) {
+        setShowFullscreenOverlay(false);
+      }
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+    document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
+    };
   }, []);
 
   const items = payload?.items || [];
@@ -123,7 +194,49 @@ export default function FullscreenPage() {
   const close = () => {
     const el = videoRef.current;
     try { el?.pause(); } catch {}
+    // Exit fullscreen if active
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(() => {});
+    } else if ((document as any).webkitFullscreenElement) {
+      (document as any).webkitExitFullscreen();
+    }
     router.back();
+  };
+
+  const handleRequestFullscreen = async () => {
+    const el = videoRef.current;
+    const container = containerRef.current;
+    
+    if (!el && !container) return;
+
+    try {
+      // iOS Safari: use webkitEnterFullscreen on video element
+      if (isIOS && el && (el as any).webkitEnterFullscreen) {
+        (el as any).webkitEnterFullscreen();
+        setShowFullscreenOverlay(false);
+        return;
+      }
+
+      // Desktop/Android: use standard fullscreen API on container
+      if (container) {
+        if (container.requestFullscreen) {
+          await container.requestFullscreen();
+        } else if ((container as any).webkitRequestFullscreen) {
+          await (container as any).webkitRequestFullscreen();
+        } else if ((container as any).mozRequestFullScreen) {
+          await (container as any).mozRequestFullScreen();
+        } else if ((container as any).msRequestFullscreen) {
+          await (container as any).msRequestFullscreen();
+        }
+        setShowFullscreenOverlay(false);
+      }
+    } catch (err) {
+      // Fullscreen request failed, but keep visual fullscreen
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn('Fullscreen request failed:', err);
+      }
+      setShowFullscreenOverlay(false);
+    }
   };
 
   const next = () => setIndex((i) => (i + 1) % items.length);
@@ -191,7 +304,8 @@ export default function FullscreenPage() {
 
   return (
     <div
-      className="fixed inset-0 bg-black z-[100000]"
+      ref={containerRef}
+      className="fixed inset-0 w-screen h-screen overflow-hidden bg-black z-[100000]"
       style={{ WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation' }}
       onMouseMove={() => { setShowControls(true); scheduleHideControls(); }}
       onTouchMove={() => { setShowControls(true); scheduleHideControls(); }}
@@ -200,7 +314,13 @@ export default function FullscreenPage() {
     >
       {/* Header */}
       <div className={`absolute top-[env(safe-area-inset-top)] left-0 right-0 z-10 bg-gradient-to-b from-black/80 to-transparent p-4 flex items-center justify-between transition-opacity ${showControls ? 'opacity-100' : 'opacity-0'}`}>
-        <button onClick={close} className="text-white px-3 py-2 bg-white/10 rounded">Done</button>
+        <button 
+          onClick={close} 
+          className="text-white px-3 py-2 bg-white/10 rounded hover:bg-white/20 transition-colors z-50"
+          aria-label="Back"
+        >
+          Back
+        </button>
         <div className="text-white text-sm truncate max-w-[60%]">{title}</div>
         <div className="w-16" />
       </div>
@@ -221,7 +341,7 @@ export default function FullscreenPage() {
             webkit-playsinline="true"
             disablePictureInPicture
             controlsList={isIOS ? "nodownload" : "nodownload noremoteplayback nofullscreen"}
-            controls={isIOS}
+            controls={false}
             onPlay={() => setIsPlaying(true)}
             onPause={() => setIsPlaying(false)}
             style={{ backgroundColor: 'black', position: 'fixed', inset: 0, pointerEvents: 'auto' }}
@@ -318,6 +438,20 @@ export default function FullscreenPage() {
             Tap for sound
           </button>
         </div>
+      )}
+
+      {/* Fullscreen overlay button */}
+      {showFullscreenOverlay && !isFullscreen && (
+        <button
+          onClick={handleRequestFullscreen}
+          onTouchStart={handleRequestFullscreen}
+          className="absolute inset-0 flex items-center justify-center bg-black/40 text-white text-lg font-medium z-50 backdrop-blur-sm"
+          aria-label="Tap for Fullscreen"
+        >
+          <div className="bg-white/10 px-6 py-4 rounded-full border border-white/30 backdrop-blur-md">
+            Tap for Fullscreen
+          </div>
+        </button>
       )}
 
     </div>

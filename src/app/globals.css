@@ -47,6 +47,34 @@
   }
 }
 
+/* Fullscreen mode - hide header */
+body.fullscreen-mode header,
+body.fullscreen-mode nav,
+body.fullscreen-mode > div > header,
+html.fullscreen-mode body > div > header {
+  display: none !important;
+}
+
+body.fullscreen-mode main,
+html.fullscreen-mode body main {
+  padding-top: 0 !important;
+  margin: 0 !important;
+}
+
+/* Fullscreen mode - prevent scroll */
+body.fullscreen-mode,
+html.fullscreen-mode body {
+  overflow: hidden !important;
+  height: 100% !important;
+  position: fixed !important;
+  width: 100% !important;
+}
+
+html.fullscreen-mode {
+  overflow: hidden !important;
+  height: 100% !important;
+}
+
 /* Screenshot protection */
 @media print {
   * {
