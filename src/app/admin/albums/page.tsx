@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, FolderPlus, Plus, Edit, Save, X, Upload, Image as ImageIcon } from "lucide-react";
-import { supabase, getAlbums, createAlbum, updateAlbum, uploadFile, getSignedUrl, checkAlbumSlugExists } from "@/lib/supabase";
+import { supabase, getAlbums, updateAlbum, uploadFile, getSignedUrl } from "@/lib/supabase";
 import { isAdmin } from "@/lib/auth";
 import { useToast } from "@/components/Toast";
 
@@ -34,7 +34,6 @@ export default function AdminAlbumsPage() {
   const [thumbnailUrls, setThumbnailUrls] = useState<{[key: string]: string}>({});
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [slugError, setSlugError] = useState<string | null>(null);
 
   useEffect(() => {
     const init = async () => {
@@ -58,7 +57,6 @@ export default function AdminAlbumsPage() {
   // Clear errors when name changes
   useEffect(() => {
     setError(null);
-    setSlugError(null);
   }, [name]);
 
   const loadThumbnails = async (albums: Album[]) => {
@@ -91,71 +89,99 @@ export default function AdminAlbumsPage() {
     
     // Clear previous errors
     setError(null);
-    setSlugError(null);
     
     setSaving(true);
+    
+    // Prepare payload
+    const payload = {
+      name: name.trim(),
+      description: description.trim() || null,
+      thumbnail_path: null, // Will be updated after upload if successful
+    };
+
     try {
-      // Generate slug from name
-      const slug = name
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/(^-|-$)/g, "");
-
-      // Validate slug is not empty
-      if (!slug) {
-        const errorMsg = "Album name must contain at least one letter or number";
+      // Get auth token for API call
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session || !session.access_token) {
+        const errorMsg = "Not authorized. Please log in.";
         setError(errorMsg);
         addToast(errorMsg, "error");
         return;
       }
 
-      // Check slug uniqueness before creating
-      const { exists, error: slugCheckError } = await checkAlbumSlugExists(slug);
-      if (slugCheckError) {
-        console.error("Slug check error:", slugCheckError);
-        const errorMsg = `Failed to validate slug: ${slugCheckError.message}`;
-        setError(errorMsg);
-        addToast(errorMsg, "error");
-        return;
-      }
-      if (exists) {
-        const errorMsg = "An album with this slug already exists. Please use a different name.";
-        setSlugError(errorMsg);
-        addToast(errorMsg, "error");
-        return;
-      }
-
-      // Create album first (without thumbnail)
-      const { data, error } = await createAlbum({
-        name: name.trim(),
-        slug,
-        description: description.trim() || null,
-        thumbnail_path: null, // Will be updated after upload if successful
+      // Call API route
+      const response = await fetch('/api/admin/create-album', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify(payload),
       });
 
-      if (error) {
-        console.error("Album create error:", error);
-        const errorMsg = error.message || "Failed to create album";
+      // Log response details for debugging
+      const statusCode = response.status;
+      const contentType = response.headers.get('content-type');
+      console.log('Album create response:', { statusCode, contentType });
+
+      // Parse response body
+      let responseData: any;
+      try {
+        const text = await response.text();
+        console.log('Response body (raw):', text);
+        
+        if (contentType?.includes('application/json')) {
+          responseData = JSON.parse(text);
+        } else {
+          responseData = { error: text || 'Unknown error' };
+        }
+      } catch (parseError) {
+        console.error('Failed to parse response:', parseError);
+        responseData = { error: 'Failed to parse server response' };
+      }
+
+      console.log('Response data:', responseData);
+      console.log('Payload sent:', payload);
+
+      // Handle errors
+      if (!response.ok) {
+        const errorMsg = responseData?.error || responseData?.message || `Server error (${statusCode})`;
+        console.error('Album create failed:', { statusCode, error: errorMsg });
+        
+        // Handle specific error codes
+        if (statusCode === 401 || statusCode === 403) {
+          setError(errorMsg);
+          addToast(errorMsg, "error");
+          return;
+        }
+        
+        if (statusCode === 409) {
+          // Slug conflict - but API should auto-increment, so this shouldn't happen
+          setError(errorMsg);
+          addToast(errorMsg, "error");
+          return;
+        }
+
         setError(errorMsg);
         addToast(errorMsg, "error");
         return;
       }
 
-      if (!data || !data[0]) {
+      // Success - get created album
+      const newAlbum = responseData?.album;
+      if (!newAlbum) {
         const errorMsg = "Album created but no data returned";
-        console.error(errorMsg);
+        console.error(errorMsg, responseData);
         setError(errorMsg);
         addToast(errorMsg, "error");
         return;
       }
-
-      const newAlbum = data[0] as Album;
 
       // Upload thumbnail if provided (non-blocking)
-      let thumbnailPath = null;
       if (thumbnailFile) {
         try {
           const timestamp = Date.now();
+          const slug = newAlbum.slug;
           const path = `albums/${slug}_${timestamp}/thumbnail.${thumbnailFile.name.split('.').pop()}`;
           const { error: uploadError } = await uploadFile(thumbnailFile, "media", path);
           
@@ -163,7 +189,6 @@ export default function AdminAlbumsPage() {
             console.warn("Thumbnail upload failed (non-blocking):", uploadError);
             addToast(`Album created successfully, but thumbnail upload failed: ${uploadError.message}`, "info");
           } else {
-            thumbnailPath = path;
             // Update album with thumbnail path
             const { error: updateError } = await updateAlbum(newAlbum.id, { thumbnail_path: path });
             if (updateError) {
@@ -178,13 +203,18 @@ export default function AdminAlbumsPage() {
         }
       }
 
-      // Success - update UI
-      setAlbums((prev) => [newAlbum, ...prev]);
+      // Success - refresh album list and clear form
+      const { data: refreshedAlbums } = await getAlbums();
+      if (refreshedAlbums) {
+        setAlbums(refreshedAlbums as Album[]);
+        await loadThumbnails(refreshedAlbums as Album[]);
+      }
+      
       setName("");
       setDescription("");
       setThumbnailFile(null);
-      await loadThumbnails([newAlbum]);
       addToast(`Album "${newAlbum.name}" created successfully!`, "success");
+      
     } catch (err: any) {
       console.error("Album create error:", err);
       const errorMsg = err?.message || "Failed to create album. Please try again.";
@@ -284,7 +314,7 @@ export default function AdminAlbumsPage() {
             <Plus className="w-5 h-5" />
             <span>Create album</span>
           </h2>
-          <div className="grid md:grid-cols-2 gap-4">
+          <div className="grid md:grid-cols-1 gap-4">
             <div className="space-y-2">
               <label className="text-sm text-earth font-medium">Name</label>
               <input
@@ -294,26 +324,9 @@ export default function AdminAlbumsPage() {
                 placeholder="e.g., Europe Tour"
                 disabled={saving}
               />
+              <p className="text-xs text-sage">Slug will be auto-generated from the name</p>
             </div>
             <div className="space-y-2">
-              <label className="text-sm text-earth font-medium">Slug</label>
-              <input
-                value={
-                  name
-                    ? name
-                        .toLowerCase()
-                        .replace(/[^a-z0-9]+/g, "-")
-                        .replace(/(^-|-$)/g, "")
-                    : ""
-                }
-                disabled
-                className={`input bg-mushroom/30 ${slugError ? "border-red-500" : ""}`}
-              />
-              {slugError && (
-                <p className="text-sm text-red-500">{slugError}</p>
-              )}
-            </div>
-            <div className="md:col-span-2 space-y-2">
               <label className="text-sm text-earth font-medium">Description</label>
               <textarea
                 value={description}
@@ -323,7 +336,7 @@ export default function AdminAlbumsPage() {
                 disabled={saving}
               />
             </div>
-            <div className="md:col-span-2 space-y-2">
+            <div className="space-y-2">
               <label className="text-sm text-earth font-medium">Thumbnail Image (Optional)</label>
               <div className="flex items-center space-x-4">
                 <label className="cursor-pointer">
