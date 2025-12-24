@@ -322,6 +322,7 @@ export default function CollectionsPage() {
           </div>
         </div>
       </div>
+      </div>
     </ClientErrorBoundary>
   );
 } 
