@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
 import Link from 'next/link';
+import { ShoppingBag } from 'lucide-react';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -36,6 +37,8 @@ export default function SuccessClient() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [shouldPulse, setShouldPulse] = useState(false);
+  const hasPulsedRef = useRef(false);
 
   useEffect(() => {
     if (!sessionId) {
@@ -130,13 +133,15 @@ export default function SuccessClient() {
       console.log('✅ Purchase verification successful:', purchaseData.length, 'purchases found');
 
       // Clear cart after successful purchase
-      try {
-        localStorage.removeItem('cart');
-        // Dispatch event to notify other components that cart has been cleared
-        window.dispatchEvent(new Event('cartUpdated'));
-        console.log('🛒 Cart cleared after successful purchase');
-      } catch (error) {
-        console.warn('Failed to clear cart:', error);
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.removeItem('cart');
+          // Dispatch event to notify other components that cart has been cleared
+          window.dispatchEvent(new Event('cartUpdated'));
+          console.log('🛒 Cart cleared after successful purchase');
+        } catch (error) {
+          console.warn('Failed to clear cart:', error);
+        }
       }
 
       // Set purchases with collection data
@@ -158,10 +163,26 @@ export default function SuccessClient() {
     }
   };
 
+  // Trigger pulse when terms are agreed
+  useEffect(() => {
+    if (agreedToTerms && !hasPulsedRef.current) {
+      setShouldPulse(true);
+      hasPulsedRef.current = true;
+      // Stop pulsing after animation completes (3 pulses * 1s = 3s)
+      setTimeout(() => setShouldPulse(false), 3000);
+    }
+  }, [agreedToTerms]);
+
   const handleTermsAgreement = () => {
     if (agreedToTerms) {
       // Store agreement in localStorage
-      localStorage.setItem('exclusive-lex-purchase-terms-accepted', 'true');
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('exclusive-lex-purchase-terms-accepted', 'true');
+        } catch (error) {
+          console.warn('Failed to store terms agreement:', error);
+        }
+      }
       
       // Redirect to account page to view all purchases
       router.push('/account');
@@ -373,18 +394,36 @@ export default function SuccessClient() {
 
         {/* Action Buttons */}
         <div className="text-center space-y-6">
+          {/* Microcopy above button */}
+          {agreedToTerms && (
+            <p className="text-lg text-lex-brown font-medium mb-2 animate-fade-in">
+              Next step: view what you unlocked
+            </p>
+          )}
+          
           <button
             onClick={handleTermsAgreement}
             disabled={!agreedToTerms}
             className={`
-              px-12 py-4 rounded-xl text-xl font-semibold transition-all duration-200 shadow-lg
+              relative px-12 py-4 rounded-xl text-xl font-semibold transition-all duration-200 shadow-lg
+              focus:outline-none focus:ring-4 focus:ring-sage/50 focus:ring-offset-2
+              min-h-[56px] min-w-[200px]
               ${agreedToTerms 
-                ? 'bg-lex-brown text-white hover:bg-lex-warmGray transform hover:scale-105 shadow-xl' 
+                ? `bg-sage text-white hover:bg-sage/90 transform hover:scale-105 shadow-xl 
+                   ${shouldPulse ? 'animate-pulse-attention' : ''}
+                   ring-2 ring-sage/30 ring-offset-2 ring-offset-almond` 
                 : 'bg-gray-300 text-gray-500 cursor-not-allowed'
               }
             `}
           >
-            {agreedToTerms ? '🎬 View My Purchases' : '☐ Accept Terms to Continue'}
+            {agreedToTerms ? (
+              <span className="flex items-center justify-center gap-2">
+                <ShoppingBag className="w-5 h-5" />
+                View My Purchases
+              </span>
+            ) : (
+              '☐ Accept Terms to Continue'
+            )}
           </button>
           
           <div className="flex justify-center space-x-4">

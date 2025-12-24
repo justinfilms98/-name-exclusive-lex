@@ -929,6 +929,28 @@ div[style*="center"] {
       transform: none;
     }
   }
+
+  /* Pulse animation for View My Purchases button */
+  @keyframes pulse-attention {
+    0%, 100% {
+      transform: scale(1);
+      box-shadow: 0 0 0 0 rgba(143, 144, 126, 0.7);
+    }
+    50% {
+      transform: scale(1.05);
+      box-shadow: 0 0 0 10px rgba(143, 144, 126, 0);
+    }
+  }
+
+  .animate-pulse-attention {
+    animation: pulse-attention 1s ease-in-out 3;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .animate-pulse-attention {
+      animation: none;
+    }
+  }
 }
 
 /* Disable video controls on hero pages and general areas, but allow on watch pages */

@@ -6,6 +6,7 @@ import { supabase, getSignedUrl } from '@/lib/supabase';
 import { User, Clock, Video, LogOut } from 'lucide-react';
 import Link from 'next/link';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
+import ClientErrorBoundary from '@/components/ClientErrorBoundary';
 
 interface Purchase {
   id: string;
@@ -100,8 +101,14 @@ export default function AccountPage() {
   const handleSignOut = async () => {
     const { error } = await supabase.auth.signOut();
     if (!error) {
-      localStorage.setItem('cart', JSON.stringify([]));
-      window.dispatchEvent(new Event('cartUpdated'));
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('cart', JSON.stringify([]));
+          window.dispatchEvent(new Event('cartUpdated'));
+        } catch (e) {
+          console.warn('Failed to clear cart on sign out:', e);
+        }
+      }
       router.push('/');
     }
   };
@@ -133,8 +140,9 @@ export default function AccountPage() {
   const activePurchases = getActivePurchases();
 
   return (
-    <div className="min-h-screen bg-almond pt-20">
-      <div className="max-w-4xl mx-auto px-4 py-16">
+    <ClientErrorBoundary>
+      <div className="min-h-screen bg-almond pt-20">
+        <div className="max-w-4xl mx-auto px-4 py-16">
         
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
@@ -211,7 +219,8 @@ export default function AccountPage() {
             </Link>
           </div>
         </div>
+        </div>
       </div>
-    </div>
+    </ClientErrorBoundary>
   );
 }

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { getAlbums, getSignedUrl } from "@/lib/supabase";
 import { Images } from "lucide-react";
+import ClientErrorBoundary from '@/components/ClientErrorBoundary';
 
 interface Album {
   id: string;
@@ -58,8 +59,9 @@ export default function AlbumsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-almond">
-      <div className="max-w-6xl mx-auto px-4 py-4 sm:py-6 md:py-8">
+    <ClientErrorBoundary>
+      <div className="min-h-screen bg-almond">
+        <div className="max-w-6xl mx-auto px-4 py-4 sm:py-6 md:py-8">
         <div className="flex flex-col items-center text-center gap-3 sm:gap-4 mb-4 sm:mb-6 md:mb-8">
           <div className="flex flex-col items-center">
             <h1 className="heading-1 text-center">Albums</h1>
@@ -136,8 +138,9 @@ export default function AlbumsPage() {
             })}
           </div>
         )}
+        </div>
       </div>
-    </div>
+    </ClientErrorBoundary>
   );
 }
 

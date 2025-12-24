@@ -22,8 +22,11 @@ export default function HeroSection() {
   const [user, setUser] = useState<unknown>(null);
   const [videosLoaded, setVideosLoaded] = useState(false);
   const [videosPlaying, setVideosPlaying] = useState(false);
+  const [videoError, setVideoError] = useState(false);
+  const [videoLoadTimeout, setVideoLoadTimeout] = useState(false);
   const videoRefs = useRef<HTMLVideoElement[]>([]);
   const singleVideoRef = useRef<HTMLVideoElement | null>(null);
+  const loadTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     loadHeroVideos();
@@ -35,6 +38,20 @@ export default function HeroSection() {
       loadAllVideoUrls();
     }
   }, [heroVideos]);
+
+  // Set timeout for video loading (3 seconds)
+  useEffect(() => {
+    if (videoUrls.length > 0 && !videosPlaying && !videoError) {
+      loadTimeoutRef.current = setTimeout(() => {
+        setVideoLoadTimeout(true);
+      }, 3000);
+    }
+    return () => {
+      if (loadTimeoutRef.current) {
+        clearTimeout(loadTimeoutRef.current);
+      }
+    };
+  }, [videoUrls, videosPlaying, videoError]);
 
   // Auto-advance videos every 8 seconds
   useEffect(() => {
@@ -169,7 +186,7 @@ export default function HeroSection() {
       </div>
 
       {/* Optional Hero Videos */}
-      {videoUrls.length > 0 && (
+      {videoUrls.length > 0 && !videoError && !videoLoadTimeout && (
         <video
           key={currentVideoIndex}
           ref={singleVideoRef}
@@ -182,10 +199,29 @@ export default function HeroSection() {
           controls={false}
           disablePictureInPicture
           // src is set programmatically after attributes for better mobile autoplay compliance
-          onPlay={() => setVideosPlaying(true)}
+          onPlay={() => {
+            setVideosPlaying(true);
+            if (loadTimeoutRef.current) {
+              clearTimeout(loadTimeoutRef.current);
+            }
+          }}
           onPause={() => setVideosPlaying(false)}
+          onError={() => {
+            setVideoError(true);
+            if (loadTimeoutRef.current) {
+              clearTimeout(loadTimeoutRef.current);
+            }
+          }}
           webkit-playsinline="true"
         />
+      )}
+
+      {/* Fallback static gradient background if video fails or times out */}
+      {(videoError || videoLoadTimeout) && (
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-sage/30 to-slate-900">
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-shimmer"></div>
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/20 to-black/60"></div>
+        </div>
       )}
 
       {/* No button overlay on mobile; autoplay enforced via attributes and retries */}

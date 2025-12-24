@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import CollectionCard from '@/components/CollectionCard';
 import type { User } from '@supabase/supabase-js';
+import ClientErrorBoundary from '@/components/ClientErrorBoundary';
 
 interface Collection {
   id: string;
@@ -122,24 +123,31 @@ export default function CollectionsPage() {
     setAddingToCart(collection.id);
 
     // Add to cart
-    const cart = JSON.parse(localStorage.getItem('cart') || '[]') as Collection[];
-    const isAlreadyInCart = cart.some((item: Collection) => item.id === collection.id);
+    if (typeof window === 'undefined') return;
     
-    console.log('🔍 DEBUG: Cart check - isAlreadyInCart:', isAlreadyInCart);
-    
-    if (!isAlreadyInCart) {
-      console.log('🔍 DEBUG: Adding collection to cart');
-      cart.push(collection);
-      localStorage.setItem('cart', JSON.stringify(cart));
-      window.dispatchEvent(new Event('cartUpdated'));
+    try {
+      const cart = JSON.parse(localStorage.getItem('cart') || '[]') as Collection[];
+      const isAlreadyInCart = cart.some((item: Collection) => item.id === collection.id);
+      
+      console.log('🔍 DEBUG: Cart check - isAlreadyInCart:', isAlreadyInCart);
+      
+      if (!isAlreadyInCart) {
+        console.log('🔍 DEBUG: Adding collection to cart');
+        cart.push(collection);
+        localStorage.setItem('cart', JSON.stringify(cart));
+        window.dispatchEvent(new Event('cartUpdated'));
       
       // Show success toast
       console.log('🔍 DEBUG: Showing success toast');
       showToast(`"${collection.title}" added to your cart!`, 'success');
     } else {
-      // Show already in cart toast
-      console.log('🔍 DEBUG: Showing already in cart toast');
-      showToast(`"${collection.title}" is already in your cart!`, 'error');
+        // Show already in cart toast
+        console.log('🔍 DEBUG: Showing already in cart toast');
+        showToast(`"${collection.title}" is already in your cart!`, 'error');
+      }
+    } catch (error) {
+      console.error('Failed to add to cart:', error);
+      showToast('Failed to add to cart. Please try again.', 'error');
     }
 
     // Small delay for visual feedback
@@ -214,8 +222,9 @@ export default function CollectionsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-almond">
-      {/* Toast Notifications */}
+    <ClientErrorBoundary>
+      <div className="min-h-screen bg-almond">
+        {/* Toast Notifications */}
       <div className="fixed top-4 right-4 z-50 space-y-2">
         {toasts.map((toast) => {
           return (
@@ -313,6 +322,6 @@ export default function CollectionsPage() {
           </div>
         </div>
       </div>
-    </div>
+    </ClientErrorBoundary>
   );
 } 

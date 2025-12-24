@@ -4,6 +4,7 @@ import './globals.css'
 import { Providers } from './providers'
 import AgeVerificationWrapper from '../components/AgeVerificationWrapper'
 import Header from './Header'
+import ClientErrorHandler from '../components/ClientErrorHandler'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -23,6 +24,7 @@ export default function RootLayout({
         <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
       </head>
       <body className={inter.className}>
+        <ClientErrorHandler />
         <Providers>
           <AgeVerificationWrapper>
             <Header />
