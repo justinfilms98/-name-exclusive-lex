@@ -96,3 +96,5 @@ export class ClientErrorBoundary extends React.Component<Props, State> {
   }
 }
 
+export default ClientErrorBoundary;
+
