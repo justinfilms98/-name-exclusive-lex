@@ -92,9 +92,55 @@ export default function CollectionCard({
           <h3 className={`font-semibold text-earth break-words ${isFeatured ? "text-xl mb-2 sm:text-lg sm:mb-1 sm:line-clamp-1" : "text-lg mb-1 line-clamp-1"}`}>
             {collection.title}
           </h3>
-          <div className={`mb-2 ${isFeatured ? "mb-3 sm:mb-2" : ""}`}>
-            <span className={`font-bold text-earth ${isFeatured ? "text-lg sm:text-base" : "text-base"}`}>${formatPrice(collection.price)}</span>
-          </div>
+          
+          {isFeatured ? (
+            <div className="mb-3 sm:mb-2 flex flex-wrap items-center gap-x-2 text-base sm:text-sm">
+              <span className="font-bold text-earth">${formatPrice(collection.price)}</span>
+              {((collection.video_duration && collection.video_duration > 0) || photoCount > 0) && (
+                <>
+                  <span className="text-sage opacity-60 select-none">•</span>
+                  {collection.video_duration && collection.video_duration > 0 && (
+                    <>
+                      <span className="text-sage">Video {formatVideoDuration(collection.video_duration)}</span>
+                      {photoCount > 0 && (
+                        <>
+                          <span className="text-sage opacity-60 select-none">•</span>
+                          <span className="text-sage">{photoCount} photos</span>
+                        </>
+                      )}
+                    </>
+                  )}
+                  {(!collection.video_duration || collection.video_duration <= 0) && photoCount > 0 && (
+                    <span className="text-sage">{photoCount} photos</span>
+                  )}
+                </>
+              )}
+            </div>
+          ) : (
+            <>
+              <div className="mb-2">
+                <span className={`font-bold text-earth ${isFeatured ? "text-lg sm:text-base" : "text-base"}`}>${formatPrice(collection.price)}</span>
+              </div>
+              {(collection.video_duration && collection.video_duration > 0) || photoCount > 0 ? (
+                <div className="mb-3 flex flex-wrap items-center gap-y-1 text-xs text-sage gap-x-2 flex-shrink-0">
+                  {collection.video_duration && collection.video_duration > 0 && (
+                    <>
+                      <span className="inline-flex items-center whitespace-nowrap leading-none">Video {formatVideoDuration(collection.video_duration)}</span>
+                      {photoCount > 0 && (
+                        <>
+                          <span className="text-sage opacity-60 select-none leading-none">•</span>
+                          <span className="inline-flex items-center whitespace-nowrap leading-none">{photoCount} photos</span>
+                        </>
+                      )}
+                    </>
+                  )}
+                  {(!collection.video_duration || collection.video_duration <= 0) && photoCount > 0 && (
+                    <span className="inline-flex items-center whitespace-nowrap leading-none">{photoCount} photos</span>
+                  )}
+                </div>
+              ) : null}
+            </>
+          )}
           
           <div className={`mb-2 ${isFeatured ? "mb-4 sm:mb-2" : ""}`}>
             <p className={`text-sage opacity-80 leading-relaxed break-words ${isFeatured ? "text-base line-clamp-2 sm:text-sm sm:line-clamp-2" : "text-sm line-clamp-2"}`}>
@@ -111,25 +157,6 @@ export default function CollectionCard({
               </Link>
             )}
           </div>
-
-          {(collection.video_duration && collection.video_duration > 0) || photoCount > 0 ? (
-            <div className="mb-3 flex flex-wrap items-center gap-y-1 text-xs text-sage gap-x-2 flex-shrink-0">
-              {collection.video_duration && collection.video_duration > 0 && (
-                <>
-                  <span className="inline-flex items-center whitespace-nowrap leading-none">Video {formatVideoDuration(collection.video_duration)}</span>
-                  {photoCount > 0 && (
-                    <>
-                      <span className="text-sage opacity-60 select-none leading-none">•</span>
-                      <span className="inline-flex items-center whitespace-nowrap leading-none">{photoCount} photos</span>
-                    </>
-                  )}
-                </>
-              )}
-              {(!collection.video_duration || collection.video_duration <= 0) && photoCount > 0 && (
-                <span className="inline-flex items-center whitespace-nowrap leading-none">{photoCount} photos</span>
-              )}
-            </div>
-          ) : null}
 
           <button
             onClick={handleAdd}
