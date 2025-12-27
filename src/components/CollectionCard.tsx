@@ -89,7 +89,7 @@ export default function CollectionCard({
       </Link>
 
       <div className={`flex flex-col flex-1 bg-blanc min-w-0 ${isFeatured ? "p-6 sm:p-4" : "p-4"}`}>
-          <h3 className={`font-semibold text-earth mb-1 break-words ${isFeatured ? "text-xl line-clamp-2 sm:text-lg sm:line-clamp-1" : "text-lg line-clamp-1"}`}>
+          <h3 className={`font-semibold text-earth break-words ${isFeatured ? "text-xl mb-2 sm:text-lg sm:mb-1 sm:line-clamp-1" : "text-lg mb-1 line-clamp-1"}`}>
             {collection.title}
           </h3>
           <div className={`mb-2 ${isFeatured ? "mb-3 sm:mb-2" : ""}`}>
@@ -97,7 +97,7 @@ export default function CollectionCard({
           </div>
           
           <div className={`mb-2 ${isFeatured ? "mb-4 sm:mb-2" : ""}`}>
-            <p className={`text-sage opacity-80 leading-relaxed break-words ${isFeatured ? "text-base line-clamp-3 sm:text-sm sm:line-clamp-2" : "text-sm line-clamp-2"}`}>
+            <p className={`text-sage opacity-80 leading-relaxed break-words ${isFeatured ? "text-base line-clamp-2 sm:text-sm sm:line-clamp-2" : "text-sm line-clamp-2"}`}>
               {collection.description}
             </p>
             {collection.description.length > 100 && (
