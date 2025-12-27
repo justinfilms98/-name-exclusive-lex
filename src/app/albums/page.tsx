@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { getAlbums, getSignedUrl } from "@/lib/supabase";
 import { Images } from "lucide-react";
 import ClientErrorBoundary from '@/components/ClientErrorBoundary';
@@ -92,41 +93,33 @@ export default function AlbumsPage() {
                 <Link
                   key={album.id}
                   href={`/albums/${album.slug}`}
-                  className="group"
+                  className="group h-full block"
                 >
-                  <div className="h-full flex flex-col rounded-2xl overflow-hidden bg-blanc border border-mushroom/30 shadow-soft">
-                    <div className="relative w-full aspect-[4/5] overflow-hidden bg-mushroom">
-                      {thumbnailUrl ? (
-                        <img
-                          src={thumbnailUrl}
-                          alt={album.name}
-                          className="absolute inset-0 h-full w-full object-cover object-center transition-transform duration-700 group-hover:scale-105"
-                          onError={(e) => {
-                            e.currentTarget.style.display = "none";
-                            e.currentTarget.nextElementSibling?.classList.remove("hidden");
-                          }}
-                        />
-                      ) : null}
-                      <div className={`w-full h-full bg-gradient-to-br from-mushroom to-almond flex items-center justify-center ${thumbnailUrl ? "hidden" : ""}`}>
-                        <Images className="w-16 h-16 text-sage/60" />
-                      </div>
-                      <div className="absolute top-3 right-3 bg-blanc/90 backdrop-blur-sm text-earth px-3 py-1 rounded-full text-xs font-medium shadow-lg">
-                        {album.collections?.[0]?.count ?? 0}
-                      </div>
-                    </div>
-                    <div className="flex flex-col flex-1 p-4 bg-blanc min-w-0">
-                      <h3 className="font-semibold text-earth text-lg mb-1 line-clamp-1 break-words">
-                        {album.name}
-                      </h3>
-                      {album.description && (
-                        <p className="text-sage text-sm opacity-80 leading-relaxed break-words mb-2 line-clamp-2">
-                          {album.description}
-                        </p>
-                      )}
-                      <div className="mt-auto text-xs text-sage flex justify-between pt-3">
-                        <span>{album.collections?.[0]?.count ?? 0} collections</span>
-                        <span>{new Date(album.created_at).toLocaleDateString()}</span>
-                      </div>
+                  <div className="relative h-full w-full aspect-[4/5] rounded-2xl overflow-hidden border border-mushroom/30 shadow-soft">
+                    {thumbnailUrl ? (
+                      <Image
+                        src={thumbnailUrl}
+                        alt={album.name}
+                        fill
+                        className="object-cover object-center transition-transform duration-700 group-hover:scale-105"
+                        sizes="(max-width: 640px) 50vw, (max-width: 1024px) 50vw, 25vw"
+                        unoptimized
+                      />
+                    ) : (
+                      <div className="absolute inset-0 bg-gradient-to-br from-[#F2E0CF] to-[#C9BBA8]" />
+                    )}
+                    
+                    {/* Bottom gradient overlay for text readability */}
+                    <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/60 to-transparent" />
+                    
+                    {/* Title overlay */}
+                    <h3 className="absolute bottom-3 left-3 right-3 text-white font-serif text-base leading-tight drop-shadow line-clamp-2">
+                      {album.name}
+                    </h3>
+                    
+                    {/* Count pill */}
+                    <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm text-earth px-2 py-1 rounded-full text-xs font-medium shadow-lg">
+                      {album.collections?.[0]?.count ?? 0}
                     </div>
                   </div>
                 </Link>
