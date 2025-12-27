@@ -86,7 +86,7 @@ export default function AlbumsPage() {
             <p className="text-sage text-sm">Collections are coming soon.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-4 items-stretch">
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 items-stretch">
             {albums.map((album) => {
               const thumbnailUrl = thumbnailUrls[album.id];
               return (
@@ -110,10 +110,10 @@ export default function AlbumsPage() {
                     )}
                     
                     {/* Bottom gradient overlay for text readability */}
-                    <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/60 to-transparent" />
+                    <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black/60 to-transparent" />
                     
                     {/* Title overlay */}
-                    <h3 className="absolute bottom-3 left-3 right-3 text-white font-serif text-base leading-tight drop-shadow line-clamp-2">
+                    <h3 className="absolute bottom-4 left-4 right-4 text-white/90 font-serif text-base leading-tight drop-shadow line-clamp-2">
                       {album.name}
                     </h3>
                     
