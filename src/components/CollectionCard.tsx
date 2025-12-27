@@ -52,14 +52,14 @@ export default function CollectionCard({
   };
 
   return (
-    <div className="group flex flex-col bg-blanc border border-mushroom/30 rounded-xl shadow-soft overflow-hidden h-full max-w-full">
+    <div className="group flex flex-col bg-blanc border border-mushroom/30 rounded-xl shadow-soft overflow-hidden h-[420px] max-w-full">
       <Link href={`/collections/${collection.id}`} className="relative overflow-hidden block">
-        <div className="relative aspect-[4/5] overflow-hidden w-full">
+        <div className="relative w-full aspect-[4/5] bg-black/5 overflow-hidden">
           {thumbnailUrl ? (
             <img
               src={thumbnailUrl}
               alt={collection.title}
-              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+              className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
               onError={(e) => {
                 e.currentTarget.style.display = "none";
                 e.currentTarget.nextElementSibling?.classList.remove("hidden");
@@ -162,38 +162,19 @@ export default function CollectionCard({
         </div>
       </Link>
 
-      <div className="p-3 sm:p-4 flex flex-col flex-1 bg-blanc min-w-0">
-          <div className="mb-3 flex-shrink-0">
-            <h3 className="font-serif text-earth text-lg sm:text-xl mb-1.5 line-clamp-2 break-words">
+      <div className="p-4 flex flex-col flex-1 bg-blanc min-w-0">
+          <div className="mb-2 flex-shrink-0">
+            <h3 className="font-semibold text-earth text-lg mb-1 line-clamp-1 break-words">
               {collection.title}
             </h3>
-            <div className="mb-1.5">
-              <span className="font-bold text-[15px] sm:text-base text-earth">${formatPrice(collection.price)}</span>
+            <div className="mb-2">
+              <span className="font-bold text-base text-earth">${formatPrice(collection.price)}</span>
             </div>
           </div>
           
-          {(collection.video_duration && collection.video_duration > 0) || photoCount > 0 ? (
-            <div className="mb-2 sm:mb-3 flex flex-wrap items-center gap-y-1 text-sm sm:text-[15px] text-sage sm:gap-x-2 flex-shrink-0">
-              {collection.video_duration && collection.video_duration > 0 && (
-                <>
-                  <span className="inline-flex items-center whitespace-nowrap leading-none">Video {formatVideoDuration(collection.video_duration)}</span>
-                  {photoCount > 0 && (
-                    <>
-                      <span className="mx-2 text-sage opacity-60 select-none leading-none sm:mx-0">•</span>
-                      <span className="inline-flex items-center whitespace-nowrap leading-none">{photoCount} photos</span>
-                    </>
-                  )}
-                </>
-              )}
-              {(!collection.video_duration || collection.video_duration <= 0) && photoCount > 0 && (
-                <span className="inline-flex items-center whitespace-nowrap leading-none">{photoCount} photos</span>
-              )}
-            </div>
-          ) : null}
-          
-          <div className="mb-2 sm:mb-3 flex-1 min-h-0">
-            <p className={`text-sage text-sm sm:text-[15px] opacity-80 leading-relaxed break-words transition-all ${
-              isExpanded ? '' : 'line-clamp-2 sm:line-clamp-3'
+          <div className="mb-2 flex-1 min-h-0">
+            <p className={`text-sage text-sm opacity-80 leading-relaxed break-words transition-all ${
+              isExpanded ? '' : 'line-clamp-2'
             }`}>
               {collection.description}
             </p>
@@ -217,10 +198,29 @@ export default function CollectionCard({
             )}
           </div>
 
+          {(collection.video_duration && collection.video_duration > 0) || photoCount > 0 ? (
+            <div className="mb-3 flex flex-wrap items-center gap-y-1 text-xs text-sage gap-x-2 flex-shrink-0">
+              {collection.video_duration && collection.video_duration > 0 && (
+                <>
+                  <span className="inline-flex items-center whitespace-nowrap leading-none">Video {formatVideoDuration(collection.video_duration)}</span>
+                  {photoCount > 0 && (
+                    <>
+                      <span className="text-sage opacity-60 select-none leading-none">•</span>
+                      <span className="inline-flex items-center whitespace-nowrap leading-none">{photoCount} photos</span>
+                    </>
+                  )}
+                </>
+              )}
+              {(!collection.video_duration || collection.video_duration <= 0) && photoCount > 0 && (
+                <span className="inline-flex items-center whitespace-nowrap leading-none">{photoCount} photos</span>
+              )}
+            </div>
+          ) : null}
+
           <button
             onClick={handleAdd}
             disabled={isAdding}
-            className="w-full bg-sage text-blanc px-3 py-2 sm:px-4 sm:py-3 rounded-lg font-medium hover:bg-khaki transition-all duration-300 flex items-center justify-center space-x-2 disabled:opacity-50 text-base sm:text-lg mt-auto flex-shrink-0"
+            className="w-full bg-sage text-blanc px-4 py-3 rounded-lg font-medium hover:bg-khaki transition-all duration-300 flex items-center justify-center space-x-2 disabled:opacity-50 text-base mt-auto flex-shrink-0"
           >
             {isAdding ? (
               <>

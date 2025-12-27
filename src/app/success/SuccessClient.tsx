@@ -396,7 +396,7 @@ export default function SuccessClient() {
         <div className="text-center space-y-6">
           {/* Microcopy above button */}
           {agreedToTerms && (
-            <p className="text-lg text-lex-brown font-medium mb-2 animate-fade-in">
+            <p className="text-lg text-earth font-medium mb-2 animate-fade-in">
               Next step: view what you unlocked
             </p>
           )}
@@ -405,22 +405,26 @@ export default function SuccessClient() {
             onClick={handleTermsAgreement}
             disabled={!agreedToTerms}
             className={`
-              relative px-12 py-4 rounded-xl text-xl font-semibold transition-all duration-200 shadow-lg
+              relative inline-flex items-center justify-center gap-2
+              px-8 py-4 rounded-xl text-xl font-semibold transition-all duration-200
               focus:outline-none focus:ring-4 focus:ring-sage/50 focus:ring-offset-2
-              min-h-[56px] min-w-[200px]
+              min-h-[56px]
               ${agreedToTerms 
-                ? `bg-sage text-white hover:bg-sage/90 transform hover:scale-105 shadow-xl 
-                   ${shouldPulse ? 'animate-pulse-attention' : ''}
-                   ring-2 ring-sage/30 ring-offset-2 ring-offset-almond` 
+                ? `bg-sage text-white hover:bg-sage/90 hover:brightness-110
+                   shadow-lg shadow-black/20
+                   ring-2 ring-blanket/70
+                   transform hover:scale-105 hover:shadow-xl
+                   ${shouldPulse ? 'animate-pulse-attention' : ''}` 
                 : 'bg-gray-300 text-gray-500 cursor-not-allowed'
               }
             `}
           >
             {agreedToTerms ? (
-              <span className="flex items-center justify-center gap-2">
+              <>
                 <ShoppingBag className="w-5 h-5" />
-                View My Purchases
-              </span>
+                <span>View My Purchases</span>
+                <span aria-hidden>→</span>
+              </>
             ) : (
               '☐ Accept Terms to Continue'
             )}

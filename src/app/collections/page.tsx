@@ -278,7 +278,7 @@ export default function CollectionsPage() {
         </div>
 
         {/* Responsive Grid */}
-        <div className="grid grid-cols-2 max-[430px]:grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch">
           {collections.map((collection) => {
             const isPurchased = userPurchases.includes(collection.id);
             const thumbnailUrl = thumbnailUrls[collection.id];
