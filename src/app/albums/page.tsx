@@ -94,34 +94,34 @@ export default function AlbumsPage() {
                   href={`/albums/${album.slug}`}
                   className="group"
                 >
-                  <div className="h-[420px] rounded-2xl overflow-hidden bg-blanc border border-mushroom/30 shadow-soft flex flex-col">
-                    <div className="relative w-full aspect-[4/5] bg-black/5 overflow-hidden">
+                  <div className="h-full flex flex-col rounded-xl overflow-hidden bg-blanc border border-mushroom/30 shadow-soft">
+                    <div className="relative w-full aspect-[4/5] overflow-hidden bg-mushroom">
                       {thumbnailUrl ? (
                         <img
                           src={thumbnailUrl}
                           alt={album.name}
-                          className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                          className="absolute inset-0 h-full w-full object-cover object-center transition-transform duration-700 group-hover:scale-105"
                           onError={(e) => {
                             e.currentTarget.style.display = "none";
                             e.currentTarget.nextElementSibling?.classList.remove("hidden");
                           }}
                         />
                       ) : null}
-                      <div className={`w-full h-full bg-gradient-to-br from-mushroom to-blanket flex items-center justify-center ${thumbnailUrl ? "hidden" : ""}`}>
+                      <div className={`w-full h-full bg-gradient-to-br from-mushroom to-almond flex items-center justify-center ${thumbnailUrl ? "hidden" : ""}`}>
                         <Images className="w-16 h-16 text-sage/60" />
                       </div>
                       <div className="absolute top-3 right-3 bg-blanc/90 backdrop-blur-sm text-earth px-3 py-1 rounded-full text-xs font-medium shadow-lg">
                         {album.collections?.[0]?.count ?? 0}
                       </div>
                     </div>
-                    <div className="p-4 flex-1 flex flex-col bg-blanc">
-                      <div className="font-semibold text-earth line-clamp-1 mb-1">
+                    <div className="flex flex-col flex-1 p-4 bg-blanc min-w-0">
+                      <h3 className="font-semibold text-earth text-lg mb-1 line-clamp-1 break-words">
                         {album.name}
-                      </div>
+                      </h3>
                       {album.description && (
-                        <div className="text-sm text-sage/70 line-clamp-2 mb-2">
+                        <p className="text-sage text-sm opacity-80 leading-relaxed break-words mb-2 line-clamp-2">
                           {album.description}
-                        </div>
+                        </p>
                       )}
                       <div className="mt-auto text-xs text-sage flex justify-between pt-3">
                         <span>{album.collections?.[0]?.count ?? 0} collections</span>
