@@ -93,9 +93,21 @@ export default function CollectionCard({
             <span className="font-bold text-base text-earth">${formatPrice(collection.price)}</span>
           </div>
           
-          <p className={`text-sage text-sm opacity-80 leading-relaxed break-words mb-2 line-clamp-2`}>
-            {collection.description}
-          </p>
+          <div className="mb-2">
+            <p className={`text-sage text-sm opacity-80 leading-relaxed break-words line-clamp-2`}>
+              {collection.description}
+            </p>
+            {collection.description.length > 100 && (
+              <Link 
+                href={`/collections/${collection.id}`}
+                className="inline-flex items-center gap-1 text-sage hover:text-earth text-xs mt-1 font-medium transition-colors"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <span>View details</span>
+                <ArrowRight className="w-3 h-3" />
+              </Link>
+            )}
+          </div>
 
           {(collection.video_duration && collection.video_duration > 0) || photoCount > 0 ? (
             <div className="mb-3 flex flex-wrap items-center gap-y-1 text-xs text-sage gap-x-2 flex-shrink-0">
