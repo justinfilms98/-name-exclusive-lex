@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import AgeVerification from './AgeVerification';
 
 interface AgeVerificationWrapperProps {
@@ -8,10 +8,27 @@ interface AgeVerificationWrapperProps {
 }
 
 export default function AgeVerificationWrapper({ children }: AgeVerificationWrapperProps) {
-  const [isAgeVerified, setIsAgeVerified] = useState(false);
+  const [isAgeVerified, setIsAgeVerified] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    // Check localStorage in useEffect to avoid hydration mismatch
+    if (typeof window !== 'undefined') {
+      const verified = localStorage.getItem('age-verified');
+      setIsAgeVerified(verified === 'true');
+    }
+  }, []);
+
+  const handleVerified = () => {
+    setIsAgeVerified(true);
+  };
+
+  // Show nothing while checking (prevents flash of age verification)
+  if (isAgeVerified === null) {
+    return null;
+  }
 
   if (!isAgeVerified) {
-    return <AgeVerification onVerified={() => setIsAgeVerified(true)} />;
+    return <AgeVerification onVerified={handleVerified} />;
   }
 
   return <>{children}</>;

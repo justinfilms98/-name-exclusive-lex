@@ -52,13 +52,13 @@ export default function CollectionCard({
   return (
     <div className="group h-full flex flex-col bg-blanc border border-mushroom/30 rounded-xl shadow-soft overflow-hidden">
       <Link href={`/collections/${collection.id}`} className="relative overflow-hidden block">
-        <div className="relative w-full aspect-[4/5] rounded-xl overflow-hidden bg-mushroom">
+        <div className="relative w-full aspect-[4/5] overflow-hidden rounded-xl bg-mushroom">
           {thumbnailUrl ? (
             <Image
               src={thumbnailUrl}
               alt={collection.title}
               fill
-              className="object-cover"
+              className="object-cover object-center"
               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
               unoptimized
             />
