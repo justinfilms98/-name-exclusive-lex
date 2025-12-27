@@ -5,6 +5,7 @@ import { Providers } from './providers'
 import AgeVerificationWrapper from '../components/AgeVerificationWrapper'
 import Header from './Header'
 import ClientErrorHandler from '../components/ClientErrorHandler'
+import ChunkRecovery from '../components/ChunkRecovery'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -24,6 +25,7 @@ export default function RootLayout({
         <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
       </head>
       <body className={inter.className}>
+        <ChunkRecovery />
         <ClientErrorHandler />
         <Providers>
           <AgeVerificationWrapper>
