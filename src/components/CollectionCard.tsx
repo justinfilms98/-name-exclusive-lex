@@ -20,6 +20,7 @@ interface CollectionCardProps {
   thumbnailUrl?: string;
   isAdding: boolean;
   onAddToCart: (collection: CollectionCardData) => void;
+  variant?: "default" | "featured";
 }
 
 const formatVideoDuration = (seconds: number): string => {
@@ -40,8 +41,10 @@ export default function CollectionCard({
   thumbnailUrl,
   isAdding,
   onAddToCart,
+  variant = "default",
 }: CollectionCardProps) {
   const photoCount = collection.photo_paths?.length || 0;
+  const isFeatured = variant === "featured";
 
   const handleAdd = (e?: React.MouseEvent) => {
     e?.preventDefault();
@@ -85,26 +88,26 @@ export default function CollectionCard({
         </div>
       </Link>
 
-      <div className="flex flex-col flex-1 p-4 bg-blanc min-w-0">
-          <h3 className="font-semibold text-earth text-lg mb-1 line-clamp-1 break-words">
+      <div className={`flex flex-col flex-1 bg-blanc min-w-0 ${isFeatured ? "p-6 sm:p-4" : "p-4"}`}>
+          <h3 className={`font-semibold text-earth mb-1 break-words ${isFeatured ? "text-xl line-clamp-2 sm:text-lg sm:line-clamp-1" : "text-lg line-clamp-1"}`}>
             {collection.title}
           </h3>
-          <div className="mb-2">
-            <span className="font-bold text-base text-earth">${formatPrice(collection.price)}</span>
+          <div className={`mb-2 ${isFeatured ? "mb-3 sm:mb-2" : ""}`}>
+            <span className={`font-bold text-earth ${isFeatured ? "text-lg sm:text-base" : "text-base"}`}>${formatPrice(collection.price)}</span>
           </div>
           
-          <div className="mb-2">
-            <p className={`text-sage text-sm opacity-80 leading-relaxed break-words line-clamp-2`}>
+          <div className={`mb-2 ${isFeatured ? "mb-4 sm:mb-2" : ""}`}>
+            <p className={`text-sage opacity-80 leading-relaxed break-words ${isFeatured ? "text-base line-clamp-3 sm:text-sm sm:line-clamp-2" : "text-sm line-clamp-2"}`}>
               {collection.description}
             </p>
             {collection.description.length > 100 && (
               <Link 
                 href={`/collections/${collection.id}`}
-                className="inline-flex items-center gap-1 text-sage hover:text-earth text-xs mt-1 font-medium transition-colors"
+                className={`inline-flex items-center gap-1 text-sage hover:text-earth mt-1 font-medium transition-colors ${isFeatured ? "text-sm sm:text-xs" : "text-xs"}`}
                 onClick={(e) => e.stopPropagation()}
               >
                 <span>View details</span>
-                <ArrowRight className="w-3 h-3" />
+                <ArrowRight className={isFeatured ? "w-4 h-4 sm:w-3 sm:h-3" : "w-3 h-3"} />
               </Link>
             )}
           </div>
