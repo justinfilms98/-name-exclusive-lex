@@ -50,9 +50,9 @@ export default function CollectionCard({
   };
 
   return (
-    <div className="group h-full flex flex-col bg-blanc border border-mushroom/30 rounded-xl shadow-soft overflow-hidden">
+    <div className="group h-full flex flex-col bg-blanc border border-mushroom/30 rounded-2xl shadow-soft overflow-hidden">
       <Link href={`/collections/${collection.id}`} className="relative overflow-hidden block">
-        <div className="relative w-full aspect-[4/5] overflow-hidden rounded-xl bg-mushroom">
+        <div className="relative w-full aspect-[4/5] overflow-hidden bg-mushroom">
           {thumbnailUrl ? (
             <Image
               src={thumbnailUrl}
