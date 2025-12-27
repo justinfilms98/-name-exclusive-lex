@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
 import { Providers } from './providers'
-import AgeVerificationWrapper from '../components/AgeVerificationWrapper'
+import AgeGateOverlay from '../components/AgeGateOverlay'
 import Header from './Header'
 import ClientErrorHandler from '../components/ClientErrorHandler'
 import ClientRuntimeGuard from '../components/ClientRuntimeGuard'
@@ -27,13 +27,12 @@ export default function RootLayout({
       <body className={inter.className}>
         <ClientRuntimeGuard />
         <ClientErrorHandler />
+        <AgeGateOverlay />
         <Providers>
-          <AgeVerificationWrapper>
-            <Header />
-            <main className="pt-14 sm:pt-16">
-              {children}
-            </main>
-          </AgeVerificationWrapper>
+          <Header />
+          <main className="pt-14 sm:pt-16">
+            {children}
+          </main>
         </Providers>
       </body>
     </html>
