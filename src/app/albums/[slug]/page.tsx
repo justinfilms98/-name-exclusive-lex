@@ -186,22 +186,21 @@ export default function AlbumDetailPage() {
             <p className="text-sage text-sm">Check back soon.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6 md:gap-7 lg:gap-10 justify-items-center">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
             {collections.map((collection) => {
               const thumbnailUrl = thumbnailUrls[collection.id];
               const isPurchased = userPurchases.includes(collection.id);
               const isAdding = addingToCart === collection.id;
 
               return (
-                <div key={collection.id} className="w-[80%] max-w-[420px] sm:w-full sm:max-w-none">
-                  <CollectionCard
-                    collection={collection}
-                    isPurchased={isPurchased}
-                    thumbnailUrl={thumbnailUrl}
-                    isAdding={isAdding}
-                    onAddToCart={() => addToCart(collection)}
-                  />
-                </div>
+                <CollectionCard
+                  key={collection.id}
+                  collection={collection}
+                  isPurchased={isPurchased}
+                  thumbnailUrl={thumbnailUrl}
+                  isAdding={isAdding}
+                  onAddToCart={() => addToCart(collection)}
+                />
               );
             })}
           </div>

@@ -14,11 +14,23 @@ const nextConfig = {
         port: '',
         pathname: '**',
       },
-      // Add more remotePatterns if needed
+      {
+        protocol: 'https',
+        hostname: '*.supabase.co',
+        port: '',
+        pathname: '**',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.supabase.in',
+        port: '',
+        pathname: '**',
+      },
     ],
     domains: [
       'images.unsplash.com', // Keep Unsplash if used
     ],
+    unoptimized: false, // Keep optimization enabled
   },
 };
 
