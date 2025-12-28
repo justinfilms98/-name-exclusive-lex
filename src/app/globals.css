@@ -128,26 +128,44 @@ video::-webkit-media-controls {
 video::-webkit-media-controls-panel {
   display: none !important;
 }
+video.ios-video-fullscreen::-webkit-media-controls-panel {
+  display: flex !important;
+}
 
 video::-webkit-media-controls-play-button {
   display: none !important;
+}
+video.ios-video-fullscreen::-webkit-media-controls-play-button {
+  display: inline-block !important;
 }
 
 video::-webkit-media-controls-start-playback-button {
   display: none !important;
 }
+video.ios-video-fullscreen::-webkit-media-controls-start-playback-button {
+  display: inline-block !important;
+}
 
 video::-webkit-media-controls-timeline {
   display: none !important;
+}
+video.ios-video-fullscreen::-webkit-media-controls-timeline {
+  display: block !important;
 }
 
 /* Hide ALL volume controls too */
 video::-webkit-media-controls-volume-slider {
   display: none !important;
 }
+video.ios-video-fullscreen::-webkit-media-controls-volume-slider {
+  display: block !important;
+}
 
 video::-webkit-media-controls-mute-button {
   display: none !important;
+}
+video.ios-video-fullscreen::-webkit-media-controls-mute-button {
+  display: inline-block !important;
 }
 
 video::-webkit-media-controls-fullscreen-button {
