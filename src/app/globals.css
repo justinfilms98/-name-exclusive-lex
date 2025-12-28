@@ -116,9 +116,13 @@ html.fullscreen-mode {
   }
 }
 
-/* Disable ALL video controls completely */
+/* Disable ALL video controls completely - except for iOS fullscreen videos */
 video::-webkit-media-controls {
   display: none !important;
+}
+/* Allow native controls for iOS fullscreen videos */
+.ios-video-fullscreen::-webkit-media-controls {
+  display: flex !important;
 }
 
 video::-webkit-media-controls-panel {

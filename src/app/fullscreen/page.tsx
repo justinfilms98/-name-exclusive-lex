@@ -337,7 +337,7 @@ export default function FullscreenPage() {
             ref={videoRef}
             src={item.url}
             poster={item.thumbnail || '/placeholder-thumbnail.jpg'}
-            className={`w-[100vw] h-[100dvh] ${isVertical ? 'object-cover' : 'object-cover'}`}
+            className={`w-[100vw] h-[100dvh] ${isVertical ? 'object-cover' : 'object-cover'} ios-video-fullscreen`}
             autoPlay
             muted={isMuted}
             playsInline
@@ -345,7 +345,7 @@ export default function FullscreenPage() {
             preload="metadata"
             disablePictureInPicture
             controlsList="nodownload nofullscreen noremoteplayback"
-            controls={false}
+            controls={isIOS}
             onPlay={() => setIsPlaying(true)}
             onPause={() => setIsPlaying(false)}
             style={{ backgroundColor: 'black', position: 'fixed', inset: 0, pointerEvents: 'auto' }}
