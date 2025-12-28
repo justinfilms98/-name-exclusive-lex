@@ -364,14 +364,15 @@ export default function FullscreenPage() {
       )}
 
       {/* Controls if video - iOS Safari uses in-page fullscreen so controls are always visible */}
+      {/* iOS Safari native fullscreen hides custom controls; we use in-page fullscreen overlay instead */}
       {item.type === 'video' && (
         <>
-          <div className={`absolute bottom-[max(env(safe-area-inset-bottom),0px)] left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 flex items-center justify-between pointer-events-auto transition-opacity duration-300 ${showControls ? 'opacity-100' : 'opacity-0'} z-[100]`}>
+          <div className={`absolute bottom-[max(env(safe-area-inset-bottom),0px)] left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 flex items-center justify-between pointer-events-auto transition-opacity duration-300 ${showControls || isIOS ? 'opacity-100' : 'opacity-0'} z-[100]`}>
             <button onClick={togglePlay} className="text-white px-4 py-2 bg-white/10 rounded hover:bg-white/20 transition-colors" aria-label={isPlaying ? 'Pause' : 'Play'}>{isPlaying ? 'Pause' : 'Play'}</button>
             <button onClick={toggleMute} className="text-white px-4 py-2 bg-white/10 rounded hover:bg-white/20 transition-colors" aria-label={isMuted ? 'Unmute' : 'Mute'}>{isMuted ? 'Unmute' : 'Mute'}</button>
           </div>
           <div
-            className={`absolute left-0 right-0 px-4 transition-opacity duration-300 ${showControls ? 'opacity-100' : 'opacity-0'} z-[100]`}
+            className={`absolute left-0 right-0 px-4 transition-opacity duration-300 ${showControls || isIOS ? 'opacity-100' : 'opacity-0'} z-[100]`}
             style={{ bottom: 'calc(3.5rem + env(safe-area-inset-bottom))' }}
             onMouseDown={(e) => {
               const el = videoRef.current; if (!el) return; setIsSeeking(true);
