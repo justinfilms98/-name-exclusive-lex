@@ -34,6 +34,32 @@ export default function AlbumDetailPage() {
   const [loading, setLoading] = useState(true);
   const [addingToCart, setAddingToCart] = useState<string | null>(null);
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const [cartItems, setCartItems] = useState<CollectionCardData[]>([]);
+
+  // Load cart state
+  const loadCart = () => {
+    if (typeof window === 'undefined') return;
+    try {
+      const cart = JSON.parse(localStorage.getItem("cart") || "[]") as CollectionCardData[];
+      setCartItems(cart);
+    } catch (error) {
+      console.error('Failed to load cart:', error);
+      setCartItems([]);
+    }
+  };
+
+  // Load purchases from server - always check server for owned state
+  const loadPurchases = async (userId: string) => {
+    const { data: purchases } = await supabase
+      .from("purchases")
+      .select("collection_id")
+      .eq("user_id", userId)
+      .eq("status", "completed")
+      .eq("is_active", true);
+    if (purchases) {
+      setUserPurchases(purchases.map((p) => p.collection_id));
+    }
+  };
 
   useEffect(() => {
     const load = async () => {
@@ -58,21 +84,33 @@ export default function AlbumDetailPage() {
         await loadThumbnails(albumCollections as CollectionCardData[]);
       }
 
-      // Purchases
+      // Purchases - always from server
       if (session?.user) {
-        const { data: purchases } = await supabase
-          .from("purchases")
-          .select("collection_id")
-          .eq("user_id", session.user.id);
-        if (purchases) {
-          setUserPurchases(purchases.map((p) => p.collection_id));
-        }
+        await loadPurchases(session.user.id);
       }
+
+      // Load cart
+      loadCart();
 
       setLoading(false);
     };
 
     load();
+
+    // Listen for cart updates to refresh cart state (but not purchases - those come from server)
+    const handleCartUpdate = async () => {
+      loadCart();
+      // Reload purchases when cart changes to ensure owned state is correct
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        await loadPurchases(session.user.id);
+      }
+    };
+    window.addEventListener('cartUpdated', handleCartUpdate);
+
+    return () => {
+      window.removeEventListener('cartUpdated', handleCartUpdate);
+    };
   }, [slug, router]);
 
   const loadThumbnails = async (items: CollectionCardData[]) => {
@@ -191,6 +229,7 @@ export default function AlbumDetailPage() {
               const thumbnailUrl = thumbnailUrls[collection.id];
               const isPurchased = userPurchases.includes(collection.id);
               const isAdding = addingToCart === collection.id;
+              const isInCart = cartItems.some(item => item.id === collection.id);
 
               return (
                 <CollectionCard
@@ -201,6 +240,7 @@ export default function AlbumDetailPage() {
                   isAdding={isAdding}
                   onAddToCart={() => addToCart(collection)}
                   fromAlbum={slug}
+                  isInCart={isInCart}
                 />
               );
             })}

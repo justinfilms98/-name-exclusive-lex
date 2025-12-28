@@ -36,7 +36,33 @@ export default function CollectionsPage() {
   const [thumbnailUrls, setThumbnailUrls] = useState<{[key: string]: string}>({});
   const [addingToCart, setAddingToCart] = useState<string | null>(null);
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const [cartItems, setCartItems] = useState<Collection[]>([]);
   const router = useRouter();
+
+  // Load cart and purchases - always from server for owned state
+  const loadCart = () => {
+    if (typeof window === 'undefined') return;
+    try {
+      const cart = JSON.parse(localStorage.getItem('cart') || '[]') as Collection[];
+      setCartItems(cart);
+    } catch (error) {
+      console.error('Failed to load cart:', error);
+      setCartItems([]);
+    }
+  };
+
+  const loadPurchases = async (userId: string) => {
+    const { data: purchases } = await supabase
+      .from('purchases')
+      .select('collection_id')
+      .eq('user_id', userId)
+      .eq('status', 'completed')
+      .eq('is_active', true);
+    
+    if (purchases) {
+      setUserPurchases(purchases.map(p => p.collection_id));
+    }
+  };
 
   useEffect(() => {
     const loadData = async () => {
@@ -52,17 +78,13 @@ export default function CollectionsPage() {
         loadThumbnails(data);
       }
 
-      // Get user purchases if logged in
+      // Get user purchases if logged in - always from server
       if (session?.user) {
-        const { data: purchases } = await supabase
-          .from('purchases')
-          .select('collection_id')
-          .eq('user_id', session.user.id);
-        
-        if (purchases) {
-          setUserPurchases(purchases.map(p => p.collection_id));
-        }
+        await loadPurchases(session.user.id);
       }
+
+      // Load cart
+      loadCart();
 
       setLoading(false);
     };
@@ -73,10 +95,29 @@ export default function CollectionsPage() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         setUser(session?.user || null);
+        if (session?.user) {
+          await loadPurchases(session.user.id);
+        } else {
+          setUserPurchases([]);
+        }
       }
     );
 
-    return () => subscription.unsubscribe();
+    // Listen for cart updates to refresh cart state (but not purchases - those come from server)
+    const handleCartUpdate = async () => {
+      loadCart();
+      // Reload purchases when cart changes to ensure owned state is correct
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        await loadPurchases(session.user.id);
+      }
+    };
+    window.addEventListener('cartUpdated', handleCartUpdate);
+
+    return () => {
+      subscription.unsubscribe();
+      window.removeEventListener('cartUpdated', handleCartUpdate);
+    };
   }, []);
 
   const loadThumbnails = async (collections: Collection[]) => {
@@ -283,6 +324,7 @@ export default function CollectionsPage() {
             const isPurchased = userPurchases.includes(collection.id);
             const thumbnailUrl = thumbnailUrls[collection.id];
             const isAdding = addingToCart === collection.id;
+            const isInCart = cartItems.some(item => item.id === collection.id);
 
             return (
               <CollectionCard
@@ -292,6 +334,7 @@ export default function CollectionsPage() {
                 thumbnailUrl={thumbnailUrl}
                 isAdding={isAdding}
                 onAddToCart={() => addToCart(collection)}
+                isInCart={isInCart}
               />
             );
           })}

@@ -38,6 +38,32 @@ export default function CollectionDetailPage() {
   const [loading, setLoading] = useState(true);
   const [addingToCart, setAddingToCart] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const [isInCart, setIsInCart] = useState(false);
+
+  // Load cart state
+  const loadCart = () => {
+    if (typeof window === 'undefined' || !collection) return;
+    try {
+      const cart = JSON.parse(localStorage.getItem("cart") || "[]") as Collection[];
+      setIsInCart(cart.some(item => item.id === collection.id));
+    } catch (error) {
+      console.error('Failed to load cart:', error);
+      setIsInCart(false);
+    }
+  };
+
+  // Load purchases from server - always check server for owned state
+  const loadPurchases = async (userId: string) => {
+    const { data: purchases } = await supabase
+      .from("purchases")
+      .select("collection_id")
+      .eq("user_id", userId)
+      .eq("status", "completed")
+      .eq("is_active", true);
+    if (purchases) {
+      setUserPurchases(purchases.map((p) => p.collection_id));
+    }
+  };
 
   useEffect(() => {
     const load = async () => {
@@ -63,15 +89,9 @@ export default function CollectionDetailPage() {
         }
       }
 
-      // Purchases
+      // Purchases - always from server
       if (session?.user) {
-        const { data: purchases } = await supabase
-          .from("purchases")
-          .select("collection_id")
-          .eq("user_id", session.user.id);
-        if (purchases) {
-          setUserPurchases(purchases.map((p) => p.collection_id));
-        }
+        await loadPurchases(session.user.id);
       }
 
       setLoading(false);
@@ -79,6 +99,27 @@ export default function CollectionDetailPage() {
 
     load();
   }, [id, router]);
+
+  // Update cart state when collection changes
+  useEffect(() => {
+    if (collection) {
+      loadCart();
+    }
+  }, [collection]);
+
+  // Listen for cart updates
+  useEffect(() => {
+    const handleCartUpdate = async () => {
+      loadCart();
+      // Reload purchases when cart changes to ensure owned state is correct
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        await loadPurchases(session.user.id);
+      }
+    };
+    window.addEventListener('cartUpdated', handleCartUpdate);
+    return () => window.removeEventListener('cartUpdated', handleCartUpdate);
+  }, [collection]);
 
   const showToast = (message: string, type: "success" | "error") => {
     const toastId = Date.now().toString();
@@ -250,7 +291,7 @@ export default function CollectionDetailPage() {
 
             <button
               onClick={addToCart}
-              disabled={addingToCart}
+              disabled={addingToCart || isInCart}
               className="w-full bg-sage text-blanc px-6 py-3 sm:py-4 lg:py-2.5 rounded-lg font-medium hover:bg-khaki transition-all duration-300 flex items-center justify-center space-x-2 disabled:opacity-50 text-base sm:text-lg lg:text-sm"
             >
               {addingToCart ? (
@@ -262,6 +303,11 @@ export default function CollectionDetailPage() {
                 <>
                   <span>Watch Now</span>
                   <ArrowRight className="w-5 h-5" />
+                </>
+              ) : isInCart ? (
+                <>
+                  <ShoppingCart className="w-5 h-5" />
+                  <span>Added to cart</span>
                 </>
               ) : (
                 <>

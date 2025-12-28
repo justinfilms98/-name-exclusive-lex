@@ -22,6 +22,7 @@ interface CollectionCardProps {
   onAddToCart: (collection: CollectionCardData) => void;
   variant?: "default" | "featured";
   fromAlbum?: string; // Album slug for context-aware navigation
+  isInCart?: boolean; // Track if item is in cart for "Added to cart" feedback
 }
 
 const formatVideoDuration = (seconds: number): string => {
@@ -44,6 +45,7 @@ export default function CollectionCard({
   onAddToCart,
   variant = "default",
   fromAlbum,
+  isInCart = false,
 }: CollectionCardProps) {
   const photoCount = collection.photo_paths?.length || 0;
   const isFeatured = variant === "featured";
@@ -167,7 +169,7 @@ export default function CollectionCard({
 
           <button
             onClick={handleAdd}
-            disabled={isAdding}
+            disabled={isAdding || isInCart}
             className="w-full bg-sage text-blanc px-4 py-3 rounded-lg font-medium hover:bg-khaki transition-all duration-300 flex items-center justify-center space-x-2 disabled:opacity-50 text-base mt-auto flex-shrink-0"
           >
             {isAdding ? (
@@ -179,6 +181,11 @@ export default function CollectionCard({
               <>
                 <span>Watch Now</span>
                 <ArrowRight className="w-4 h-4" />
+              </>
+            ) : isInCart ? (
+              <>
+                <ShoppingCart className="w-4 h-4" />
+                <span>Added to cart</span>
               </>
             ) : (
               <>
