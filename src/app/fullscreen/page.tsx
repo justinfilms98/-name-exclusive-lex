@@ -262,14 +262,25 @@ export default function FullscreenPage() {
   const next = () => setIndex((i) => (i + 1) % items.length);
   const prev = () => setIndex((i) => (i - 1 + items.length) % items.length);
 
-  const togglePlay = async (e?: React.MouseEvent | React.TouchEvent) => {
+  const togglePlay = async (e?: React.MouseEvent | React.TouchEvent | React.PointerEvent) => {
     // Prevent double-trigger: if already toggling, ignore
-    if (isTogglingRef.current) return;
+    if (isTogglingRef.current) {
+      if (e) {
+        e.stopPropagation();
+        e.preventDefault();
+      }
+      return;
+    }
     
     // Stop event propagation to prevent container/video onClick from also firing
     if (e) {
       e.stopPropagation();
       e.preventDefault();
+    }
+    
+    // On iOS in fullscreen, don't interfere with native controls
+    if (isIOS && isFullscreen) {
+      return;
     }
     
     isTogglingRef.current = true;
@@ -302,10 +313,11 @@ export default function FullscreenPage() {
       setShowControls(true);
     }
     
-    // Reset toggle guard after a short delay
+    // Reset toggle guard after a short delay (longer on mobile to prevent rapid taps)
+    const delay = isIOS ? 500 : 300;
     setTimeout(() => {
       isTogglingRef.current = false;
-    }, 300);
+    }, delay);
   };
 
   const toggleMute = () => {
@@ -355,9 +367,17 @@ export default function FullscreenPage() {
       style={{ WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation' }}
       onMouseMove={() => { setShowControls(true); scheduleHideControls(); }}
       onTouchMove={() => { setShowControls(true); scheduleHideControls(); }}
-      onTouchStart={() => { setShowControls(true); ensureAudioOnGesture(); }}
-      // Only handle container click if NOT in fullscreen on mobile (to avoid double-trigger with play button)
+      onTouchStart={() => { 
+        setShowControls(true); 
+        ensureAudioOnGesture(); 
+      }}
+      // On iOS in fullscreen, don't handle container clicks - let native controls handle it
+      // Otherwise, allow tap-to-toggle when not in fullscreen
       onClick={(e) => { 
+        // On iOS in fullscreen, native controls handle everything - don't interfere
+        if (isIOS && isFullscreen) {
+          return;
+        }
         if (item.type === 'video' && !isFullscreen) {
           setShowControls(true); 
           if (isIOS) ensureAudioOnGesture(); 
@@ -427,30 +447,43 @@ export default function FullscreenPage() {
         </>
       )}
 
-      {/* Controls if video - iOS Safari uses in-page fullscreen so controls are always visible */}
+      {/* Controls if video - On iOS in fullscreen, hide custom controls and rely on native controls only */}
       {/* iOS Safari native fullscreen hides custom controls; we use in-page fullscreen overlay instead */}
       {item.type === 'video' && (
         <>
-          <div className={`absolute bottom-[max(env(safe-area-inset-bottom),0px)] left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 flex items-center justify-between pointer-events-auto transition-opacity duration-300 ${showControls || isIOS ? 'opacity-100' : 'opacity-0'} z-[100]`}>
-            <button 
-              onClick={(e) => { e.stopPropagation(); togglePlay(e); }} 
-              onTouchStart={(e) => { e.stopPropagation(); togglePlay(e); }}
-              className="text-white px-4 py-2 bg-white/10 rounded hover:bg-white/20 transition-colors" 
-              aria-label={isPlaying ? 'Pause' : 'Play'}
-            >
-              {isPlaying ? 'Pause' : 'Play'}
-            </button>
-            <button 
-              onClick={(e) => { e.stopPropagation(); toggleMute(); }} 
-              className="text-white px-4 py-2 bg-white/10 rounded hover:bg-white/20 transition-colors" 
-              aria-label={isMuted ? 'Unmute' : 'Mute'}
-            >
-              {isMuted ? 'Unmute' : 'Mute'}
-            </button>
-          </div>
+          {/* Hide custom controls on iOS in fullscreen - use native controls instead to avoid double-trigger */}
+          {!(isIOS && isFullscreen) && (
+            <div className={`absolute bottom-[max(env(safe-area-inset-bottom),0px)] left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 flex items-center justify-between pointer-events-auto transition-opacity duration-300 ${showControls ? 'opacity-100' : 'opacity-0'} z-[100]`}>
+              <button 
+                onClick={(e) => { 
+                  e.stopPropagation(); 
+                  e.preventDefault();
+                  togglePlay(e); 
+                }} 
+                onPointerDown={(e) => { 
+                  // Use pointer events instead of touch/click to avoid double-trigger on mobile
+                  e.stopPropagation(); 
+                  e.preventDefault();
+                  togglePlay(e); 
+                }}
+                className="text-white px-4 py-2 bg-white/10 rounded hover:bg-white/20 transition-colors touch-manipulation" 
+                aria-label={isPlaying ? 'Pause' : 'Play'}
+                style={{ touchAction: 'manipulation' }}
+              >
+                {isPlaying ? 'Pause' : 'Play'}
+              </button>
+              <button 
+                onClick={(e) => { e.stopPropagation(); toggleMute(); }} 
+                className="text-white px-4 py-2 bg-white/10 rounded hover:bg-white/20 transition-colors" 
+                aria-label={isMuted ? 'Unmute' : 'Mute'}
+              >
+                {isMuted ? 'Unmute' : 'Mute'}
+              </button>
+            </div>
+          )}
           <div
-            className={`absolute left-0 right-0 px-4 transition-opacity duration-300 ${showControls || isIOS ? 'opacity-100' : 'opacity-0'} z-[100]`}
-            style={{ bottom: 'calc(3.5rem + env(safe-area-inset-bottom))' }}
+            className={`absolute left-0 right-0 px-4 transition-opacity duration-300 ${showControls || (isIOS && isFullscreen) ? 'opacity-100' : 'opacity-0'} z-[100]`}
+            style={{ bottom: isIOS && isFullscreen ? 'env(safe-area-inset-bottom)' : 'calc(3.5rem + env(safe-area-inset-bottom))' }}
             onMouseDown={(e) => {
               const el = videoRef.current; if (!el) return; setIsSeeking(true);
               const rect = (e.currentTarget.firstChild as HTMLElement).getBoundingClientRect();
