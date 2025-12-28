@@ -29,10 +29,10 @@ export default function RootLayout({
         <ClientErrorHandler />
         <AgeGateOverlay />
         <Providers>
-          <Header />
-          <main className="pt-14 sm:pt-16">
-            {children}
-          </main>
+            <Header />
+            <main className="pt-14 sm:pt-16">
+              {children}
+            </main>
         </Providers>
       </body>
     </html>

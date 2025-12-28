@@ -180,11 +180,11 @@ export default function FullscreenPage() {
     };
   }, [item, isSeeking]);
 
-  // Auto-hide controls after 2.5s of no interaction while playing
+  // Auto-hide controls after 4s of no interaction while playing (longer for better UX)
   useEffect(() => {
     if (!isPlaying) return;
     if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
-    hideTimerRef.current = setTimeout(() => setShowControls(false), 2500);
+    hideTimerRef.current = setTimeout(() => setShowControls(false), 4000);
     return () => { if (hideTimerRef.current) clearTimeout(hideTimerRef.current); };
   }, [isPlaying, currentTime]);
 
@@ -362,12 +362,12 @@ export default function FullscreenPage() {
       {/* Controls if video */}
       {item.type === 'video' && !isIOS && (
         <>
-          <div className={`absolute bottom-[max(env(safe-area-inset-bottom),0px)] left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 flex items-center justify-between pointer-events-auto transition-opacity ${showControls ? 'opacity-100' : 'opacity-0'} z-40`}>
-            <button onClick={togglePlay} className="text-white px-4 py-2 bg-white/10 rounded">{isPlaying ? 'Pause' : 'Play'}</button>
-            <button onClick={toggleMute} className="text-white px-4 py-2 bg-white/10 rounded">{isMuted ? 'Unmute' : 'Mute'}</button>
+          <div className={`absolute bottom-[max(env(safe-area-inset-bottom),0px)] left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 flex items-center justify-between pointer-events-auto transition-opacity duration-300 ${showControls ? 'opacity-100' : 'opacity-0'} z-[100]`}>
+            <button onClick={togglePlay} className="text-white px-4 py-2 bg-white/10 rounded hover:bg-white/20 transition-colors" aria-label={isPlaying ? 'Pause' : 'Play'}>{isPlaying ? 'Pause' : 'Play'}</button>
+            <button onClick={toggleMute} className="text-white px-4 py-2 bg-white/10 rounded hover:bg-white/20 transition-colors" aria-label={isMuted ? 'Unmute' : 'Mute'}>{isMuted ? 'Unmute' : 'Mute'}</button>
           </div>
           <div
-            className={`absolute left-0 right-0 px-4 transition-opacity ${showControls ? 'opacity-100' : 'opacity-0'} z-40`}
+            className={`absolute left-0 right-0 px-4 transition-opacity duration-300 ${showControls ? 'opacity-100' : 'opacity-0'} z-[100]`}
             style={{ bottom: 'calc(3.5rem + env(safe-area-inset-bottom))' }}
             onMouseDown={(e) => {
               const el = videoRef.current; if (!el) return; setIsSeeking(true);
@@ -466,7 +466,8 @@ function formatTime(seconds: number) {
 }
 
 function scheduleHideControls() {
-  // Placeholder for call sites migrated to use useEffect-based auto-hide
+  // Controls auto-hide is handled by useEffect-based auto-hide
+  // This function is kept for compatibility but does nothing
 }
 
 

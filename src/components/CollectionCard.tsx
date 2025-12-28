@@ -21,6 +21,7 @@ interface CollectionCardProps {
   isAdding: boolean;
   onAddToCart: (collection: CollectionCardData) => void;
   variant?: "default" | "featured";
+  fromAlbum?: string; // Album slug for context-aware navigation
 }
 
 const formatVideoDuration = (seconds: number): string => {
@@ -42,6 +43,7 @@ export default function CollectionCard({
   isAdding,
   onAddToCart,
   variant = "default",
+  fromAlbum,
 }: CollectionCardProps) {
   const photoCount = collection.photo_paths?.length || 0;
   const isFeatured = variant === "featured";
@@ -52,9 +54,14 @@ export default function CollectionCard({
     onAddToCart(collection);
   };
 
+  // Build collection detail URL with optional fromAlbum query param
+  const collectionUrl = fromAlbum 
+    ? `/collections/${collection.id}?fromAlbum=${encodeURIComponent(fromAlbum)}`
+    : `/collections/${collection.id}`;
+
   return (
     <div className="group h-full flex flex-col bg-blanc border border-mushroom/30 rounded-2xl shadow-soft overflow-hidden">
-      <Link href={`/collections/${collection.id}`} className="relative overflow-hidden block">
+      <Link href={collectionUrl} className="relative overflow-hidden block">
         <div className="relative w-full aspect-[4/5] overflow-hidden bg-mushroom">
           {thumbnailUrl ? (
             <Image
@@ -67,7 +74,7 @@ export default function CollectionCard({
             />
           ) : (
             <div className="w-full h-full bg-gradient-to-br from-mushroom to-almond flex items-center justify-center">
-              <ImageIcon className="w-16 h-16 text-sage/60" />
+            <ImageIcon className="w-16 h-16 text-sage/60" />
             </div>
           )}
 
@@ -90,8 +97,8 @@ export default function CollectionCard({
 
       <div className={`flex flex-col flex-1 bg-blanc min-w-0 ${isFeatured ? "p-6 sm:p-4" : "p-4"}`}>
           <h3 className={`font-semibold text-earth break-words ${isFeatured ? "text-xl mb-2 sm:text-lg sm:mb-1 sm:line-clamp-1" : "text-lg mb-1 line-clamp-1"}`}>
-            {collection.title}
-          </h3>
+              {collection.title}
+            </h3>
           
           {isFeatured ? (
             <div className="mb-3 sm:mb-2 flex flex-wrap items-center gap-x-2 text-base sm:text-sm">
@@ -120,25 +127,25 @@ export default function CollectionCard({
             <>
               <div className="mb-2">
                 <span className={`font-bold text-earth ${isFeatured ? "text-lg sm:text-base" : "text-base"}`}>${formatPrice(collection.price)}</span>
-              </div>
-              {(collection.video_duration && collection.video_duration > 0) || photoCount > 0 ? (
+          </div>
+          {(collection.video_duration && collection.video_duration > 0) || photoCount > 0 ? (
                 <div className="mb-3 flex flex-wrap items-center gap-y-1 text-xs text-sage gap-x-2 flex-shrink-0">
-                  {collection.video_duration && collection.video_duration > 0 && (
+              {collection.video_duration && collection.video_duration > 0 && (
+                <>
+                  <span className="inline-flex items-center whitespace-nowrap leading-none">Video {formatVideoDuration(collection.video_duration)}</span>
+                  {photoCount > 0 && (
                     <>
-                      <span className="inline-flex items-center whitespace-nowrap leading-none">Video {formatVideoDuration(collection.video_duration)}</span>
-                      {photoCount > 0 && (
-                        <>
                           <span className="text-sage opacity-60 select-none leading-none">•</span>
-                          <span className="inline-flex items-center whitespace-nowrap leading-none">{photoCount} photos</span>
-                        </>
-                      )}
+                      <span className="inline-flex items-center whitespace-nowrap leading-none">{photoCount} photos</span>
                     </>
                   )}
-                  {(!collection.video_duration || collection.video_duration <= 0) && photoCount > 0 && (
-                    <span className="inline-flex items-center whitespace-nowrap leading-none">{photoCount} photos</span>
-                  )}
-                </div>
-              ) : null}
+                </>
+              )}
+              {(!collection.video_duration || collection.video_duration <= 0) && photoCount > 0 && (
+                <span className="inline-flex items-center whitespace-nowrap leading-none">{photoCount} photos</span>
+              )}
+            </div>
+          ) : null}
             </>
           )}
           
@@ -148,7 +155,7 @@ export default function CollectionCard({
             </p>
             {collection.description.length > 100 && (
               <Link 
-                href={`/collections/${collection.id}`}
+                href={collectionUrl}
                 className={`inline-flex items-center gap-1 text-sage hover:text-earth mt-1 font-medium transition-colors ${isFeatured ? "text-sm sm:text-xs" : "text-xs"}`}
                 onClick={(e) => e.stopPropagation()}
               >

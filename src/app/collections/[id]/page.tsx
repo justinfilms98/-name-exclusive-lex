@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { supabase, getCollection, getSignedUrl } from "@/lib/supabase";
 import { Image as ImageIcon, ShoppingCart, ArrowRight, Clock } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
@@ -27,7 +27,9 @@ interface Collection {
 export default function CollectionDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const id = typeof params?.id === "string" ? params.id : Array.isArray(params?.id) ? params.id[0] : "";
+  const fromAlbum = searchParams?.get("fromAlbum");
 
   const [collection, setCollection] = useState<Collection | null>(null);
   const [thumbnailUrl, setThumbnailUrl] = useState<string>("");
@@ -175,11 +177,17 @@ export default function CollectionDetailPage() {
         ))}
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 py-4 sm:py-6 md:py-8">
+      <div className="max-w-5xl mx-auto px-4 py-4 sm:py-6 md:py-8">
         <div className="mb-4 sm:mb-6">
-          <Link href="/collections" className="btn-secondary inline-flex mb-4">
-            ← Back to collections
-          </Link>
+          {fromAlbum ? (
+            <Link href={`/albums/${fromAlbum}`} className="btn-secondary inline-flex mb-4">
+              ← Back to album
+            </Link>
+          ) : (
+            <Link href="/collections" className="btn-secondary inline-flex mb-4">
+              ← Back to collections
+            </Link>
+          )}
         </div>
 
         <div className="bg-blanc border border-mushroom/30 rounded-xl sm:rounded-2xl shadow-soft overflow-hidden">
