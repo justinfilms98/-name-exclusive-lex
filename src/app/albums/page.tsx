@@ -113,7 +113,7 @@ export default function AlbumsPage() {
                     <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black/60 to-transparent" />
                     
                     {/* Title overlay */}
-                    <h3 className="absolute bottom-4 left-4 right-4 text-white/90 font-serif text-base leading-tight drop-shadow line-clamp-2">
+                    <h3 className="absolute bottom-4 left-4 right-4 text-white/90 font-serif text-lg md:text-xl leading-tight drop-shadow line-clamp-2">
                       {album.name}
                     </h3>
                     

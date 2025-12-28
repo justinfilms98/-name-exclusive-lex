@@ -104,10 +104,13 @@ export default function FullscreenPage() {
     }
   }, [params]);
 
+  // Detect iOS Safari (iOS Safari native fullscreen hides custom controls; we use in-page fullscreen overlay instead)
   useEffect(() => {
     try {
       const ua = navigator.userAgent || '';
-      setIsIOS(/iPad|iPhone|iPod/.test(ua) && !(window as any).MSStream);
+      const isIOSDevice = /iPad|iPhone|iPod/.test(ua) && !(window as any).MSStream;
+      const isSafari = /^((?!chrome|android).)*safari/i.test(ua);
+      setIsIOS(isIOSDevice && isSafari);
     } catch {}
   }, []);
 
@@ -210,9 +213,9 @@ export default function FullscreenPage() {
     if (!el && !container) return;
 
     try {
-      // iOS Safari: use webkitEnterFullscreen on video element
-      if (isIOS && el && (el as any).webkitEnterFullscreen) {
-        (el as any).webkitEnterFullscreen();
+      // iOS Safari: Do NOT use native fullscreen (webkitEnterFullscreen) as it hides custom controls
+      // The page is already in fullscreen-like mode, so just hide the overlay prompt
+      if (isIOS) {
         setShowFullscreenOverlay(false);
         return;
       }
@@ -339,13 +342,14 @@ export default function FullscreenPage() {
             muted={isMuted}
             playsInline
             webkit-playsinline="true"
+            preload="metadata"
             disablePictureInPicture
-            controlsList={isIOS ? "nodownload" : "nodownload noremoteplayback nofullscreen"}
+            controlsList="nodownload nofullscreen noremoteplayback"
             controls={false}
             onPlay={() => setIsPlaying(true)}
             onPause={() => setIsPlaying(false)}
             style={{ backgroundColor: 'black', position: 'fixed', inset: 0, pointerEvents: 'auto' }}
-            onClick={(e) => { if (!isIOS) { e.stopPropagation(); togglePlay(); } }}
+            onClick={(e) => { e.stopPropagation(); togglePlay(); }}
           />
         )}
       </div>
@@ -359,8 +363,8 @@ export default function FullscreenPage() {
         </>
       )}
 
-      {/* Controls if video */}
-      {item.type === 'video' && !isIOS && (
+      {/* Controls if video - iOS Safari uses in-page fullscreen so controls are always visible */}
+      {item.type === 'video' && (
         <>
           <div className={`absolute bottom-[max(env(safe-area-inset-bottom),0px)] left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 flex items-center justify-between pointer-events-auto transition-opacity duration-300 ${showControls ? 'opacity-100' : 'opacity-0'} z-[100]`}>
             <button onClick={togglePlay} className="text-white px-4 py-2 bg-white/10 rounded hover:bg-white/20 transition-colors" aria-label={isPlaying ? 'Pause' : 'Play'}>{isPlaying ? 'Pause' : 'Play'}</button>

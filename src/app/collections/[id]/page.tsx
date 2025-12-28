@@ -177,22 +177,22 @@ export default function CollectionDetailPage() {
         ))}
       </div>
 
-      <div className="max-w-5xl mx-auto px-4 py-4 sm:py-6 md:py-8">
-        <div className="mb-4 sm:mb-6">
+      <div className="max-w-5xl lg:max-w-[900px] mx-auto px-4 py-4 sm:py-6 md:py-8 lg:px-6 lg:py-6">
+        <div className="mb-4 sm:mb-6 lg:mb-5">
           {fromAlbum ? (
-            <Link href={`/albums/${fromAlbum}`} className="btn-secondary inline-flex mb-4">
+            <Link href={`/albums/${fromAlbum}`} className="btn-secondary inline-flex mb-4 lg:mb-3 text-sm lg:text-sm">
               ← Back to album
             </Link>
           ) : (
-            <Link href="/collections" className="btn-secondary inline-flex mb-4">
+            <Link href="/collections" className="btn-secondary inline-flex mb-4 lg:mb-3 text-sm lg:text-sm">
               ← Back to collections
             </Link>
           )}
         </div>
 
-        <div className="bg-blanc border border-mushroom/30 rounded-xl sm:rounded-2xl shadow-soft overflow-hidden">
+        <div className="bg-blanc border border-mushroom/30 rounded-xl sm:rounded-2xl lg:rounded-xl shadow-soft overflow-hidden">
           {/* 4:5 aspect ratio thumbnail */}
-          <div className="aspect-[4/5] relative overflow-hidden">
+          <div className="aspect-[4/5] lg:aspect-[4/5] relative overflow-hidden">
             {thumbnailUrl ? (
               <img
                 src={thumbnailUrl}
@@ -214,29 +214,29 @@ export default function CollectionDetailPage() {
             )}
           </div>
 
-          <div className="p-4 sm:p-6 md:p-8">
-            <div className="mb-4 sm:mb-6">
-              <h1 className="heading-1 mb-2 sm:mb-3">{collection.title}</h1>
-              <div className="flex items-center gap-3 text-lg sm:text-xl text-earth mb-4 flex-wrap">
+          <div className="p-4 sm:p-6 md:p-8 lg:p-6">
+            <div className="mb-4 sm:mb-6 lg:mb-4">
+              <h1 className="heading-1 mb-2 sm:mb-3 lg:mb-2 lg:text-2xl">{collection.title}</h1>
+              <div className="flex items-center gap-3 text-lg sm:text-xl lg:text-base text-earth mb-4 lg:mb-3 flex-wrap">
                 <span className="font-bold">${formatPrice(collection.price)}</span>
                 <span className="text-sage">•</span>
                 <div className="flex items-center text-sage">
-                  <Clock className="w-4 h-4 mr-1" />
-                  <span className="text-base sm:text-lg">Video {formatVideoDuration(collection.video_duration || 300)}</span>
+                  <Clock className="w-4 h-4 mr-1 lg:w-3 lg:h-3" />
+                  <span className="text-base sm:text-lg lg:text-sm">Video {formatVideoDuration(collection.video_duration || 300)}</span>
                 </div>
                 <span className="text-sage">•</span>
-                <span className="text-sage text-base sm:text-lg">{photoCount} photos</span>
+                <span className="text-sage text-base sm:text-lg lg:text-sm">{photoCount} photos</span>
               </div>
             </div>
 
-            <div className="mb-6 sm:mb-8">
-              <h2 className="text-earth font-semibold mb-2 sm:mb-3 text-base sm:text-lg">Description</h2>
-              <p className="text-sage text-sm sm:text-base leading-relaxed whitespace-pre-wrap break-words">
+            <div className="mb-6 sm:mb-8 lg:mb-5">
+              <h2 className="text-earth font-semibold mb-2 sm:mb-3 lg:mb-2 text-base sm:text-lg lg:text-base">Description</h2>
+              <p className="text-sage text-sm sm:text-base lg:text-sm leading-relaxed whitespace-pre-wrap break-words">
                 {collection.description}
               </p>
             </div>
 
-            <div className="flex items-center justify-between text-sm sm:text-base text-sage mb-6 sm:mb-8 pb-4 sm:pb-6 border-b border-mushroom/30">
+            <div className="flex items-center justify-between text-sm sm:text-base lg:text-xs text-sage mb-6 sm:mb-8 lg:mb-5 pb-4 sm:pb-6 lg:pb-4 border-b border-mushroom/30">
               <span>Permanent access</span>
               {collection.albums && (
                 <Link
@@ -251,7 +251,7 @@ export default function CollectionDetailPage() {
             <button
               onClick={addToCart}
               disabled={addingToCart}
-              className="w-full bg-sage text-blanc px-6 py-3 sm:py-4 rounded-lg font-medium hover:bg-khaki transition-all duration-300 flex items-center justify-center space-x-2 disabled:opacity-50 text-base sm:text-lg"
+              className="w-full bg-sage text-blanc px-6 py-3 sm:py-4 lg:py-3 rounded-lg font-medium hover:bg-khaki transition-all duration-300 flex items-center justify-center space-x-2 disabled:opacity-50 text-base sm:text-lg lg:text-sm"
             >
               {addingToCart ? (
                 <>
