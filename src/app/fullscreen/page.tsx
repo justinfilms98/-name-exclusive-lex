@@ -39,6 +39,7 @@ export default function FullscreenPage() {
   const hasUnmutedOnceRef = useRef(false);
   const [showTapHint, setShowTapHint] = useState(false);
   const isTogglingRef = useRef(false); // Prevent double-trigger of togglePlay
+  const [isMobile, setIsMobile] = useState(false); // Detect mobile devices
 
   useEffect(() => {
     // Prevent body scroll
@@ -106,13 +107,18 @@ export default function FullscreenPage() {
     }
   }, [params]);
 
-  // Detect iOS Safari (iOS Safari native fullscreen hides custom controls; we use in-page fullscreen overlay instead)
+  // Detect iOS Safari and mobile devices
   useEffect(() => {
     try {
       const ua = navigator.userAgent || '';
       const isIOSDevice = /iPad|iPhone|iPod/.test(ua) && !(window as any).MSStream;
       const isSafari = /^((?!chrome|android).)*safari/i.test(ua);
       setIsIOS(isIOSDevice && isSafari);
+      
+      // Detect mobile devices (iOS, Android, etc.)
+      const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua) || 
+                            (typeof window !== 'undefined' && window.innerWidth < 768);
+      setIsMobile(isMobileDevice);
     } catch {}
   }, []);
 
@@ -128,16 +134,8 @@ export default function FullscreenPage() {
       setIsFullscreen(isCurrentlyFullscreen);
       if (isCurrentlyFullscreen) {
         setShowFullscreenOverlay(false);
-        // Ensure iOS Safari controls are enabled when entering fullscreen
-        if (isIOS && videoRef.current) {
-          videoRef.current.controls = true;
-          videoRef.current.setAttribute('controls', 'true');
-        }
-        // Show tap hint on mobile when entering fullscreen (fade out after 2s)
-        if (isIOS || (typeof window !== 'undefined' && window.innerWidth < 768)) {
-          setShowTapHint(true);
-          setTimeout(() => setShowTapHint(false), 2000);
-        }
+        // On mobile, we use in-page fullscreen, so no need to enable native controls
+        // On desktop, native fullscreen is handled by browser
       }
     };
 
@@ -152,7 +150,7 @@ export default function FullscreenPage() {
       document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
       document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
     };
-  }, [isIOS]);
+  }, []);
 
   const items = payload?.items || [];
   const item = items[index];
@@ -225,15 +223,12 @@ export default function FullscreenPage() {
     if (!el && !container) return;
 
     try {
-      // iOS Safari: Do NOT use native fullscreen (webkitEnterFullscreen) as it hides custom controls
+      // Mobile: Do NOT use native fullscreen (webkitEnterFullscreen) as it hides custom controls
       // The page is already in fullscreen-like mode, so just hide the overlay prompt
       // Mark as "fullscreen" for our purposes (even though it's not native fullscreen)
-      if (isIOS) {
+      if (isMobile) {
         setShowFullscreenOverlay(false);
         setIsFullscreen(true); // Mark as fullscreen state for our UI logic
-        // Show tap hint on iOS when entering this fullscreen-like state
-        setShowTapHint(true);
-        setTimeout(() => setShowTapHint(false), 2000);
         return;
       }
 
@@ -278,11 +273,6 @@ export default function FullscreenPage() {
       e.preventDefault();
     }
     
-    // On iOS in fullscreen, don't interfere with native controls
-    if (isIOS && isFullscreen) {
-      return;
-    }
-    
     isTogglingRef.current = true;
     const el = videoRef.current; 
     if (!el) {
@@ -314,7 +304,7 @@ export default function FullscreenPage() {
     }
     
     // Reset toggle guard after a short delay (longer on mobile to prevent rapid taps)
-    const delay = isIOS ? 500 : 300;
+    const delay = isMobile ? 500 : 300;
     setTimeout(() => {
       isTogglingRef.current = false;
     }, delay);
@@ -371,17 +361,22 @@ export default function FullscreenPage() {
         setShowControls(true); 
         ensureAudioOnGesture(); 
       }}
-      // On iOS in fullscreen, don't handle container clicks - let native controls handle it
-      // Otherwise, allow tap-to-toggle when not in fullscreen
+      // On mobile fullscreen, allow tap-to-toggle on video
+      // On desktop, only toggle when not in fullscreen
       onClick={(e) => { 
-        // On iOS in fullscreen, native controls handle everything - don't interfere
-        if (isIOS && isFullscreen) {
-          return;
-        }
-        if (item.type === 'video' && !isFullscreen) {
-          setShowControls(true); 
-          if (isIOS) ensureAudioOnGesture(); 
-          scheduleHideControls(); 
+        if (item.type === 'video') {
+          // On mobile fullscreen, allow tap-to-toggle
+          if (isMobile && isFullscreen) {
+            const target = e.target as HTMLElement;
+            // Only toggle if clicking directly on video, not on controls
+            if (target.tagName === 'VIDEO' || target.closest('video')) {
+              togglePlay(e);
+            }
+          } else if (!isFullscreen) {
+            setShowControls(true); 
+            if (isIOS) ensureAudioOnGesture(); 
+            scheduleHideControls(); 
+          }
         }
       }}
     >
@@ -415,23 +410,18 @@ export default function FullscreenPage() {
             preload="metadata"
             disablePictureInPicture
             controlsList="nodownload nofullscreen noremoteplayback"
-            controls={isIOS}
+            // On mobile fullscreen, disable native controls and use tap-to-play instead
+            controls={!(isMobile && isFullscreen) && isIOS}
             onPlay={() => setIsPlaying(true)}
             onPause={() => setIsPlaying(false)}
             style={{ backgroundColor: 'black', position: 'fixed', inset: 0, pointerEvents: 'auto' }}
             onClick={(e) => { 
               e.stopPropagation(); 
-              // On iOS in fullscreen, rely on native controls; otherwise allow tap-to-toggle
-              if (!isIOS || !isFullscreen) {
-                togglePlay(e); 
-              }
-            }}
-            // Ensure iOS Safari shows native controls in fullscreen - controls must be set before fullscreen
-            onLoadedMetadata={() => {
-              if (isIOS && videoRef.current) {
-                // Force controls to be visible on iOS - this ensures pause/play is available in fullscreen
-                videoRef.current.setAttribute('controls', 'true');
-                videoRef.current.controls = true;
+              // On mobile fullscreen, allow tap-to-toggle directly on video
+              if (isMobile && isFullscreen) {
+                togglePlay(e);
+              } else if (!isFullscreen) {
+                togglePlay(e);
               }
             }}
           />
@@ -447,12 +437,11 @@ export default function FullscreenPage() {
         </>
       )}
 
-      {/* Controls if video - On iOS in fullscreen, hide custom controls and rely on native controls only */}
-      {/* iOS Safari native fullscreen hides custom controls; we use in-page fullscreen overlay instead */}
+      {/* Controls if video - On mobile fullscreen, hide custom controls and show tap hint instead */}
       {item.type === 'video' && (
         <>
-          {/* Hide custom controls on iOS in fullscreen - use native controls instead to avoid double-trigger */}
-          {!(isIOS && isFullscreen) && (
+          {/* Hide custom controls on mobile fullscreen - use tap-to-play with hint instead */}
+          {!(isMobile && isFullscreen) && (
             <div className={`absolute bottom-[max(env(safe-area-inset-bottom),0px)] left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 flex items-center justify-between pointer-events-auto transition-opacity duration-300 ${showControls ? 'opacity-100' : 'opacity-0'} z-[100]`}>
               <button 
                 onClick={(e) => { 
@@ -461,7 +450,6 @@ export default function FullscreenPage() {
                   togglePlay(e); 
                 }} 
                 onPointerDown={(e) => { 
-                  // Use pointer events instead of touch/click to avoid double-trigger on mobile
                   e.stopPropagation(); 
                   e.preventDefault();
                   togglePlay(e); 
@@ -482,8 +470,8 @@ export default function FullscreenPage() {
             </div>
           )}
           <div
-            className={`absolute left-0 right-0 px-4 transition-opacity duration-300 ${showControls || (isIOS && isFullscreen) ? 'opacity-100' : 'opacity-0'} z-[100]`}
-            style={{ bottom: isIOS && isFullscreen ? 'env(safe-area-inset-bottom)' : 'calc(3.5rem + env(safe-area-inset-bottom))' }}
+            className={`absolute left-0 right-0 px-4 transition-opacity duration-300 ${showControls || (isMobile && isFullscreen) ? 'opacity-100' : 'opacity-0'} z-[100]`}
+            style={{ bottom: isMobile && isFullscreen ? 'env(safe-area-inset-bottom)' : 'calc(3.5rem + env(safe-area-inset-bottom))' }}
             onMouseDown={(e) => {
               const el = videoRef.current; if (!el) return; setIsSeeking(true);
               const rect = (e.currentTarget.firstChild as HTMLElement).getBoundingClientRect();
@@ -533,8 +521,8 @@ export default function FullscreenPage() {
         </div>
       )}
 
-      {/* Center Tap-to-Play overlay when not playing - hide in fullscreen on mobile to avoid conflicts */}
-      {item.type === 'video' && !isPlaying && !(isFullscreen && isIOS) && (
+      {/* Center Tap-to-Play overlay when not playing - hide in fullscreen on mobile */}
+      {item.type === 'video' && !isPlaying && !(isFullscreen && isMobile) && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <button 
             onClick={(e) => { e.stopPropagation(); togglePlay(e); }} 
@@ -546,11 +534,11 @@ export default function FullscreenPage() {
         </div>
       )}
       
-      {/* Mobile fullscreen tap hint - shows briefly when entering fullscreen */}
-      {item.type === 'video' && isFullscreen && (isIOS || (typeof window !== 'undefined' && window.innerWidth < 768)) && showTapHint && (
-        <div className="absolute top-[calc(env(safe-area-inset-top)+4rem)] left-0 right-0 flex justify-center pointer-events-none z-[200]">
-          <div className="bg-black/70 text-white px-4 py-2 rounded-lg text-sm backdrop-blur-sm transition-opacity duration-300">
-            Tap video to play/pause
+      {/* Mobile fullscreen tap hint - subtle hint that fades when playing */}
+      {item.type === 'video' && isFullscreen && isMobile && !isPlaying && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-[150]">
+          <div className="bg-black/40 backdrop-blur-sm text-white/80 px-6 py-3 rounded-lg text-sm font-medium transition-opacity duration-500">
+            Tap screen to play
           </div>
         </div>
       )}
