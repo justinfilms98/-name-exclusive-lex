@@ -223,9 +223,13 @@ export default function FullscreenPage() {
     if (!el && !container) return;
 
     try {
-      // Mobile: Do NOT use native fullscreen (webkitEnterFullscreen) as it hides custom controls
-      // The page is already in fullscreen-like mode, so just hide the overlay prompt
-      // Mark as "fullscreen" for our purposes (even though it's not native fullscreen)
+      // IMPORTANT: On iOS/mobile, we use custom fullscreen instead of native fullscreen
+      // Reason: Native iOS fullscreen (webkitEnterFullscreen) has severe limitations:
+      // 1. Hides all custom UI overlays (we can't show our TikTok-style play icon)
+      // 2. Causes double-trigger bugs when mixing native controls with custom overlays
+      // 3. Doesn't allow proper tap-to-toggle with visual feedback
+      // Solution: Use in-app fullscreen modal (position: fixed; inset: 0) with full control
+      // This allows us to implement TikTok-like tap-to-play with translucent play icon
       if (isMobile) {
         setShowFullscreenOverlay(false);
         setIsFullscreen(true); // Mark as fullscreen state for our UI logic
@@ -257,6 +261,7 @@ export default function FullscreenPage() {
   const next = () => setIndex((i) => (i + 1) % items.length);
   const prev = () => setIndex((i) => (i - 1 + items.length) % items.length);
 
+  // TikTok-like tap-to-toggle: single handler with debounce to prevent double-trigger
   const togglePlay = async (e?: React.MouseEvent | React.TouchEvent | React.PointerEvent) => {
     // Prevent double-trigger: if already toggling, ignore
     if (isTogglingRef.current) {
@@ -280,6 +285,7 @@ export default function FullscreenPage() {
       return;
     }
     
+    // Simple toggle: if paused, play; if playing, pause
     if (el.paused) {
       try {
         await el.play();
@@ -303,11 +309,10 @@ export default function FullscreenPage() {
       setShowControls(true);
     }
     
-    // Reset toggle guard after a short delay (longer on mobile to prevent rapid taps)
-    const delay = isMobile ? 500 : 300;
+    // Reset toggle guard after delay (250ms debounce for reliable single-tap)
     setTimeout(() => {
       isTogglingRef.current = false;
-    }, delay);
+    }, 250);
   };
 
   const toggleMute = () => {
@@ -373,19 +378,23 @@ export default function FullscreenPage() {
         }
         ensureAudioOnGesture(); 
       }}
-      // On mobile fullscreen, allow tap-to-toggle directly on video
-      // On desktop, only toggle when not in fullscreen
+      // TikTok-like tap-to-toggle: use onPointerUp for reliable single-tap on mobile fullscreen
+      // This prevents double-trigger by using only one event type
+      onPointerUp={(e) => {
+        if (item.type === 'video' && isMobile && isFullscreen) {
+          const target = e.target as HTMLElement;
+          // Only toggle if clicking directly on video or the tap overlay (not on back button)
+          if (target.tagName === 'VIDEO' || target.closest('.tap-to-play-overlay')) {
+            e.stopPropagation();
+            e.preventDefault();
+            togglePlay(e);
+          }
+        }
+      }}
+      // Keep onClick for desktop/non-fullscreen
       onClick={(e) => { 
-        if (item.type === 'video') {
-          // On mobile fullscreen, always allow tap-to-toggle on video
-          if (isMobile && isFullscreen) {
-            const target = e.target as HTMLElement;
-            // Only toggle if clicking directly on video element
-            if (target.tagName === 'VIDEO') {
-              e.stopPropagation();
-              togglePlay(e);
-            }
-          } else if (!isFullscreen) {
+        if (item.type === 'video' && !(isMobile && isFullscreen)) {
+          if (!isFullscreen) {
             setShowControls(true); 
             if (isIOS) ensureAudioOnGesture(); 
             scheduleHideControls(); 
@@ -441,12 +450,9 @@ export default function FullscreenPage() {
             onPlay={() => setIsPlaying(true)}
             onPause={() => setIsPlaying(false)}
             style={{ backgroundColor: 'black', position: 'fixed', inset: 0, pointerEvents: 'auto' }}
+            // Remove onClick from video - tap handler is on container overlay for mobile fullscreen
             onClick={(e) => { 
-              // On mobile fullscreen, handle tap-to-play directly
-              if (isMobile && isFullscreen) {
-                e.stopPropagation();
-                togglePlay(e);
-              } else if (!isFullscreen) {
+              if (!(isMobile && isFullscreen) && !isFullscreen) {
                 e.stopPropagation();
                 togglePlay(e);
               }
@@ -560,11 +566,47 @@ export default function FullscreenPage() {
         </div>
       )}
       
-      {/* Mobile fullscreen tap hint - subtle hint that fades when playing, no buttons */}
-      {item.type === 'video' && isFullscreen && isMobile && !isPlaying && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-[150]">
-          <div className="bg-black/40 backdrop-blur-sm text-white/80 px-6 py-3 rounded-lg text-sm font-medium transition-opacity duration-500">
-            Tap screen to play
+      {/* TikTok-style play icon overlay - large translucent play icon when paused */}
+      {/* Tap anywhere on this overlay to toggle play/pause - single event handler prevents double-trigger */}
+      {item.type === 'video' && isFullscreen && isMobile && (
+        <div 
+          className={`tap-to-play-overlay absolute inset-0 flex items-center justify-center z-[150] transition-opacity duration-300 ${
+            !isPlaying ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          }`}
+          style={{ touchAction: 'manipulation' }}
+          onPointerUp={(e) => {
+            // Single event handler (onPointerUp) prevents double-trigger
+            // Only fires once per tap, unlike onClick + onTouchStart which both fire
+            e.stopPropagation();
+            e.preventDefault();
+            togglePlay(e);
+          }}
+        >
+          {/* Large translucent play icon (TikTok style) - purely visual, no click handler */}
+          <div className="pointer-events-none">
+            <svg 
+              width="80" 
+              height="80" 
+              viewBox="0 0 24 24" 
+              fill="none"
+              style={{ 
+                filter: 'drop-shadow(0 4px 12px rgba(0, 0, 0, 0.6))'
+              }}
+            >
+              {/* Semi-transparent circle background */}
+              <circle 
+                cx="12" 
+                cy="12" 
+                r="12" 
+                fill="rgba(0, 0, 0, 0.5)" 
+              />
+              {/* White play triangle */}
+              <path 
+                d="M9 7L17 12L9 17V7Z" 
+                fill="white" 
+                opacity="0.9"
+              />
+            </svg>
           </div>
         </div>
       )}
