@@ -39,8 +39,7 @@ export default function MobileFullscreenVideo({
   const [videoDimensions, setVideoDimensions] = useState({ width: 0, height: 0 });
   const videoRef = useRef<HTMLVideoElement>(null);
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const toggleGuardRef = useRef<boolean>(false);
-  const lastToggleTimeRef = useRef<number>(0);
+  const tapLockRef = useRef<boolean>(false);
 
   // Lock background scroll when modal is open (iOS fullscreen modal)
   useEffect(() => {
@@ -69,8 +68,18 @@ export default function MobileFullscreenVideo({
   useEffect(() => {
     if (isOpen && videoRef.current) {
       const el = videoRef.current;
-      // Start muted to satisfy autoplay; user can unmute via control
-      el.muted = true;
+      
+      // iOS-friendly video attributes for autoplay
+      el.muted = true; // Required for autoplay on mobile
+      el.playsInline = true;
+      
+      // Event listeners for play/pause state
+      const onPlay = () => setIsPlaying(true);
+      const onPause = () => setIsPlaying(false);
+      
+      el.addEventListener('play', onPlay);
+      el.addEventListener('pause', onPause);
+      
       // Seek to requested start time once metadata is ready
       const onLoadedMetadata = () => {
         if (typeof startTime === 'number' && !Number.isNaN(startTime)) {
@@ -86,10 +95,20 @@ export default function MobileFullscreenVideo({
       };
       el.addEventListener('loadedmetadata', onLoadedMetadata, { once: true });
 
-      // Begin playback
-      el.play().catch(() => {/* ignore */});
+      // Try autoplay (muted is required on mobile)
+      const tryPlay = async () => {
+        try {
+          await el.play();
+        } catch {
+          // Autoplay can be blocked; user tap will start it
+          setIsPlaying(false);
+        }
+      };
+      tryPlay();
 
       return () => {
+        el.removeEventListener('play', onPlay);
+        el.removeEventListener('pause', onPause);
         el.removeEventListener('loadedmetadata', onLoadedMetadata as any);
       };
     }
@@ -102,37 +121,26 @@ export default function MobileFullscreenVideo({
     };
   }, [isOpen, startTime]);
 
-  // TikTok-like tap-to-toggle with debounce guard to prevent double-trigger
-  // iOS fullscreen: Use custom modal (not requestFullscreen) to avoid native control conflicts
-  const handleVideoToggle = (e: React.PointerEvent | React.MouseEvent) => {
-    e.stopPropagation();
-    e.preventDefault();
-    
-    // Guard against rapid re-trigger (250ms debounce)
-    const now = Date.now();
-    if (now - lastToggleTimeRef.current < 250) {
-      return;
-    }
-    lastToggleTimeRef.current = now;
-    
-    // Prevent double-trigger if already processing
-    if (toggleGuardRef.current) {
-      return;
-    }
-    toggleGuardRef.current = true;
-    
-    if (videoRef.current) {
-      if (isPlaying) {
-        videoRef.current.pause();
+  // TikTok-style tap-to-toggle: single handler prevents double-trigger on iOS
+  // Only one tap target (container) controls playback; overlay icon is non-interactive
+  const togglePlay = async () => {
+    const v = videoRef.current;
+    if (!v) return;
+
+    // Prevent double toggles on iOS Safari
+    if (tapLockRef.current) return;
+    tapLockRef.current = true;
+    setTimeout(() => (tapLockRef.current = false), 250);
+
+    try {
+      if (v.paused) {
+        await v.play();
       } else {
-        videoRef.current.play().catch(() => {});
+        v.pause();
       }
+    } catch {
+      // ignore playback errors
     }
-    
-    // Release guard after a short delay
-    setTimeout(() => {
-      toggleGuardRef.current = false;
-    }, 250);
   };
 
   const handleMuteToggle = () => {
@@ -251,16 +259,17 @@ export default function MobileFullscreenVideo({
         </div>
       </div>
 
-      {/* Video Container */}
+      {/* Video Container - TikTok-style tap anywhere to toggle */}
       {/* iOS fullscreen modal: Custom overlay (inset:0; height:100dvh) instead of requestFullscreen */}
       {/* This avoids conflicts with native iOS fullscreen controls that cause double-toggle */}
       <div 
-        className="flex-1 relative flex items-center justify-center"
+        className="relative w-full h-full bg-black select-none flex-1 flex items-center justify-center"
         style={{ 
           inset: 0, 
           height: '100dvh',
           width: '100vw'
         }}
+        onPointerUp={togglePlay}
       >
         <video
           ref={videoRef}
@@ -273,11 +282,10 @@ export default function MobileFullscreenVideo({
           onContextMenu={(e) => e.preventDefault()}
           onLoadedMetadata={handleLoadedMetadata}
           onTimeUpdate={handleTimeUpdate}
-          onPlay={() => setIsPlaying(true)}
-          onPause={() => setIsPlaying(false)}
           onEnded={() => setIsPlaying(false)}
-          preload="auto"
+          preload="metadata"
           muted={isMuted}
+          autoPlay
           playsInline
           webkit-playsinline="true"
           disablePictureInPicture
@@ -288,7 +296,7 @@ export default function MobileFullscreenVideo({
             MozUserSelect: 'none',
             msUserSelect: 'none',
             userSelect: 'none',
-            pointerEvents: 'none', // Video itself is not clickable, overlay handles taps
+            pointerEvents: 'none', // Video itself is not clickable, container handles taps
             width: '100vw',
             height: '100vh',
             maxWidth: '100vw',
@@ -297,41 +305,23 @@ export default function MobileFullscreenVideo({
           }}
         />
 
-        {/* TikTok-style tap-to-toggle overlay - single event handler prevents double-trigger */}
-        {/* When paused: show centered translucent play icon overlay */}
-        {/* When playing: overlay fades out */}
-        <div 
-          className={`absolute inset-0 flex items-center justify-center transition-opacity duration-300 ${
-            !isPlaying ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        {/* TikTok-style overlay icon (NOT clickable - pointer-events-none) */}
+        {/* When paused: show centered translucent play icon with light opacity */}
+        {/* When playing: fade icon out */}
+        <div
+          className={`pointer-events-none absolute inset-0 flex items-center justify-center transition-opacity duration-200 ${
+            !isPlaying ? 'opacity-100' : 'opacity-0'
           }`}
-          style={{ touchAction: 'manipulation' }}
-          onPointerUp={handleVideoToggle}
-          onClick={handleVideoToggle}
         >
-          {/* Large translucent play icon (TikTok style) - purely visual, no click handler */}
-          <div className="pointer-events-none">
+          <div className="rounded-full bg-black/40 p-5">
             <svg 
-              width="80" 
-              height="80" 
+              width="36" 
+              height="36" 
               viewBox="0 0 24 24" 
-              fill="none"
-              style={{ 
-                filter: 'drop-shadow(0 4px 12px rgba(0, 0, 0, 0.6))'
-              }}
+              fill="white" 
+              opacity="0.9"
             >
-              {/* Semi-transparent circle background */}
-              <circle 
-                cx="12" 
-                cy="12" 
-                r="12" 
-                fill="rgba(0, 0, 0, 0.5)" 
-              />
-              {/* White play triangle */}
-              <path 
-                d="M9 7L17 12L9 17V7Z" 
-                fill="white" 
-                opacity="0.9"
-              />
+              <path d="M8 5v14l11-7z" />
             </svg>
           </div>
         </div>
@@ -377,7 +367,7 @@ export default function MobileFullscreenVideo({
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <button
-              onClick={handleVideoToggle}
+              onClick={togglePlay}
               className="text-white hover:text-gray-300 transition-colors bg-white bg-opacity-20 hover:bg-opacity-30 p-2 rounded-full flex items-center justify-center"
             >
               {isPlaying ? <Pause size={24} /> : <Play size={24} />}
