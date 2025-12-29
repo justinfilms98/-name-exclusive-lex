@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
-import { X, Play, Pause, Volume2, VolumeX, Maximize2, Minimize2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface MobileFullscreenVideoProps {
   videoUrl: string;
@@ -34,11 +34,8 @@ export default function MobileFullscreenVideo({
   const [isMuted, setIsMuted] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [showControls, setShowControls] = useState(true);
-  const [isFullscreen, setIsFullscreen] = useState(false);
   const [videoDimensions, setVideoDimensions] = useState({ width: 0, height: 0 });
   const videoRef = useRef<HTMLVideoElement>(null);
-  const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const tapLockRef = useRef<boolean>(false);
 
   // Lock background scroll when modal is open (iOS fullscreen modal)
@@ -113,12 +110,6 @@ export default function MobileFullscreenVideo({
       };
     }
 
-    // Cleanup timeout on unmount
-    return () => {
-      if (controlsTimeoutRef.current) {
-        clearTimeout(controlsTimeoutRef.current);
-      }
-    };
   }, [isOpen, startTime]);
 
   // TikTok-style tap-to-toggle: single handler prevents double-trigger on iOS
@@ -143,24 +134,6 @@ export default function MobileFullscreenVideo({
     }
   };
 
-  const handleMuteToggle = () => {
-    const el = videoRef.current;
-    if (!el) return;
-    const willBeMuted = !isMuted;
-    el.muted = willBeMuted;
-    setIsMuted(willBeMuted);
-    if (!willBeMuted) {
-      try {
-        el.volume = 1.0;
-        if (el.paused) {
-          el.play().catch(() => {});
-        } else {
-          el.currentTime = el.currentTime;
-          el.play().catch(() => {});
-        }
-      } catch {}
-    }
-  };
 
   const handleTimeUpdate = () => {
     if (videoRef.current) {
@@ -178,33 +151,7 @@ export default function MobileFullscreenVideo({
     }
   };
 
-  const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (videoRef.current && duration > 0) {
-      const rect = e.currentTarget.getBoundingClientRect();
-      const clickX = e.clientX - rect.left;
-      const percentage = clickX / rect.width;
-      const newTime = percentage * duration;
-      videoRef.current.currentTime = newTime;
-    }
-  };
 
-  const handleMouseMove = () => {
-    setShowControls(true);
-    if (controlsTimeoutRef.current) {
-      clearTimeout(controlsTimeoutRef.current);
-    }
-    controlsTimeoutRef.current = setTimeout(() => {
-      if (isPlaying) {
-        setShowControls(false);
-      }
-    }, 3000);
-  };
-
-  const formatTime = (seconds: number): string => {
-    const minutes = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${minutes}:${secs.toString().padStart(2, '0')}`;
-  };
 
   const handleExitFullscreen = () => {
     if (videoRef.current) {
@@ -238,11 +185,9 @@ export default function MobileFullscreenVideo({
   return (
     <div 
       className="fixed inset-0 bg-black z-[99999] flex flex-col"
-      onMouseMove={handleMouseMove}
-      onTouchMove={handleMouseMove}
     >
-      {/* Header */}
-      <div className={`absolute top-0 left-0 right-0 z-10 bg-gradient-to-b from-black/80 to-transparent p-4 ${showControls ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300`}>
+      {/* Header - always visible for exit button */}
+      <div className="absolute top-0 left-0 right-0 z-10 bg-gradient-to-b from-black/80 to-transparent p-4">
         <div className="flex items-center justify-between">
           <button
             onClick={handleExitFullscreen}
@@ -346,53 +291,9 @@ export default function MobileFullscreenVideo({
         )}
       </div>
 
-      {/* Controls */}
-      <div className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 ${showControls ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300`}>
-        {/* Progress Bar */}
-        <div className="relative mb-4">
-          <div 
-            className="w-full h-1 bg-gray-600 rounded-full cursor-pointer"
-            onClick={handleProgressClick}
-          >
-            <div 
-              className="h-full bg-red-500 rounded-full relative"
-              style={{ width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
-            >
-              <div className="absolute right-0 top-1/2 transform -translate-y-1/2 w-3 h-3 bg-red-500 rounded-full shadow-lg"></div>
-            </div>
-          </div>
-        </div>
-
-        {/* Control Buttons */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <button
-              onClick={togglePlay}
-              className="text-white hover:text-gray-300 transition-colors bg-white bg-opacity-20 hover:bg-opacity-30 p-2 rounded-full flex items-center justify-center"
-            >
-              {isPlaying ? <Pause size={24} /> : <Play size={24} />}
-            </button>
-
-            <button
-              onClick={handleMuteToggle}
-              className="text-white hover:text-gray-300 transition-colors"
-            >
-              {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
-            </button>
-
-            <div className="text-white text-sm">
-              {formatTime(currentTime)} / {formatTime(duration)}
-            </div>
-          </div>
-
-          <button
-            onClick={handleExitFullscreen}
-            className="text-white hover:text-gray-300 transition-colors bg-white bg-opacity-20 hover:bg-opacity-30 p-2 rounded-full flex items-center justify-center z-20"
-          >
-            <Minimize2 size={20} />
-          </button>
-        </div>
-      </div>
+      {/* Bottom controls - hidden on mobile for TikTok-style experience */}
+      {/* Only show header (back button) and translucent play icon overlay */}
+      {/* All controls removed to match TikTok: tap anywhere to toggle, no visible buttons */}
     </div>
   );
 } 
