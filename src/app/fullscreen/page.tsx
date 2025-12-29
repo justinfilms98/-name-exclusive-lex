@@ -586,15 +586,13 @@ export default function FullscreenPage() {
         </div>
       )}
       
-      {/* TikTok-style play icon overlay - large translucent play icon when paused */}
+      {/* TikTok-style play icon overlay - light opacity play button only when paused */}
       {/* Tap anywhere on video container to toggle play/pause - overlay is non-interactive */}
-      {item.type === 'video' && isFullscreen && isMobile && (
+      {item.type === 'video' && isFullscreen && isMobile && !isPlaying && (
         <div 
-          className={`pointer-events-none absolute inset-0 flex items-center justify-center z-[150] transition-opacity duration-200 ${
-            !isPlaying ? 'opacity-100' : 'opacity-0'
-          }`}
+          className="pointer-events-none absolute inset-0 flex items-center justify-center z-[150] transition-opacity duration-200"
         >
-          {/* Large translucent play icon (TikTok style) - purely visual, no click handler */}
+          {/* Light opacity translucent play icon (TikTok style) - purely visual, no click handler */}
           <div className="rounded-full bg-black/40 p-5">
             <svg 
               width="36" 
