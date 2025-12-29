@@ -383,8 +383,9 @@ export default function FullscreenPage() {
       onPointerUp={(e) => {
         if (item.type === 'video' && isMobile && isFullscreen) {
           const target = e.target as HTMLElement;
-          // Only toggle if clicking directly on video or the tap overlay (not on back button)
-          if (target.tagName === 'VIDEO' || target.closest('.tap-to-play-overlay')) {
+          // Only toggle if clicking on video container (not on back button or other controls)
+          // Skip buttons and play button are removed - only tap-to-toggle remains
+          if (target.tagName === 'VIDEO' || target.closest('.absolute.inset-0') && !target.closest('button')) {
             e.stopPropagation();
             e.preventDefault();
             togglePlay(e);
@@ -428,8 +429,22 @@ export default function FullscreenPage() {
         </button>
       )}
 
-      {/* Main */}
-      <div className="absolute inset-0">
+      {/* Main - TikTok-style tap anywhere to toggle on mobile fullscreen */}
+      <div 
+        className="absolute inset-0"
+        onPointerUp={(e) => {
+          // TikTok-style: tap anywhere on container to toggle play/pause on mobile fullscreen
+          if (item.type === 'video' && isMobile && isFullscreen) {
+            const target = e.target as HTMLElement;
+            // Only toggle if not clicking on a button (back button, etc.)
+            if (!target.closest('button')) {
+              e.stopPropagation();
+              e.preventDefault();
+              togglePlay(e);
+            }
+          }
+        }}
+      >
         {item.type === 'photo' ? (
           <img src={item.url} alt={item.title || ''} className="w-[100vw] h-[100dvh] object-contain" />
         ) : (
@@ -445,12 +460,17 @@ export default function FullscreenPage() {
             preload="metadata"
             disablePictureInPicture
             controlsList="nodownload nofullscreen noremoteplayback"
-            // On mobile fullscreen, disable native controls and use tap-to-play instead
-            controls={!(isMobile && isFullscreen) && isIOS}
+            // Always disable native controls on mobile fullscreen for TikTok-style experience
+            controls={false}
             onPlay={() => setIsPlaying(true)}
             onPause={() => setIsPlaying(false)}
-            style={{ backgroundColor: 'black', position: 'fixed', inset: 0, pointerEvents: 'auto' }}
-            // Remove onClick from video - tap handler is on container overlay for mobile fullscreen
+            style={{ 
+              backgroundColor: 'black', 
+              position: 'fixed', 
+              inset: 0, 
+              pointerEvents: isMobile && isFullscreen ? 'none' : 'auto' // Video not clickable on mobile fullscreen, container handles taps
+            }}
+            // Remove onClick from video - tap handler is on container for mobile fullscreen
             onClick={(e) => { 
               if (!(isMobile && isFullscreen) && !isFullscreen) {
                 e.stopPropagation();
@@ -567,45 +587,23 @@ export default function FullscreenPage() {
       )}
       
       {/* TikTok-style play icon overlay - large translucent play icon when paused */}
-      {/* Tap anywhere on this overlay to toggle play/pause - single event handler prevents double-trigger */}
+      {/* Tap anywhere on video container to toggle play/pause - overlay is non-interactive */}
       {item.type === 'video' && isFullscreen && isMobile && (
         <div 
-          className={`tap-to-play-overlay absolute inset-0 flex items-center justify-center z-[150] transition-opacity duration-300 ${
-            !isPlaying ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          className={`pointer-events-none absolute inset-0 flex items-center justify-center z-[150] transition-opacity duration-200 ${
+            !isPlaying ? 'opacity-100' : 'opacity-0'
           }`}
-          style={{ touchAction: 'manipulation' }}
-          onPointerUp={(e) => {
-            // Single event handler (onPointerUp) prevents double-trigger
-            // Only fires once per tap, unlike onClick + onTouchStart which both fire
-            e.stopPropagation();
-            e.preventDefault();
-            togglePlay(e);
-          }}
         >
           {/* Large translucent play icon (TikTok style) - purely visual, no click handler */}
-          <div className="pointer-events-none">
+          <div className="rounded-full bg-black/40 p-5">
             <svg 
-              width="80" 
-              height="80" 
+              width="36" 
+              height="36" 
               viewBox="0 0 24 24" 
-              fill="none"
-              style={{ 
-                filter: 'drop-shadow(0 4px 12px rgba(0, 0, 0, 0.6))'
-              }}
+              fill="white" 
+              opacity="0.9"
             >
-              {/* Semi-transparent circle background */}
-              <circle 
-                cx="12" 
-                cy="12" 
-                r="12" 
-                fill="rgba(0, 0, 0, 0.5)" 
-              />
-              {/* White play triangle */}
-              <path 
-                d="M9 7L17 12L9 17V7Z" 
-                fill="white" 
-                opacity="0.9"
-              />
+              <path d="M8 5v14l11-7z" />
             </svg>
           </div>
         </div>
