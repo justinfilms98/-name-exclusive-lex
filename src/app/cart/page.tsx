@@ -26,6 +26,7 @@ interface Collection {
   video_duration: number; // actual video length
   thumbnail_path: string;
   photo_paths: string[];
+  created_at?: string;
 }
 
 export default function CartPage() {
@@ -39,16 +40,36 @@ export default function CartPage() {
   const [expandedDescriptions, setExpandedDescriptions] = useState<{[key: string]: boolean}>({});
   const [selectedTip, setSelectedTip] = useState<number>(0);
   const [customTip, setCustomTip] = useState<string>('');
+  const [userPurchases, setUserPurchases] = useState<string[]>([]);
 
   useEffect(() => {
     // Get user session
     const getSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       setUser(session?.user || null);
+      
+      // Load user purchases if logged in
+      if (session?.user) {
+        await loadPurchases(session.user.id);
+      }
+      
       setLoading(false);
     };
     getSession();
   }, []);
+
+  const loadPurchases = async (userId: string) => {
+    const { data: purchases } = await supabase
+      .from('purchases')
+      .select('collection_id')
+      .eq('user_id', userId)
+      .eq('status', 'completed')
+      .eq('is_active', true);
+    
+    if (purchases) {
+      setUserPurchases(purchases.map(p => p.collection_id));
+    }
+  };
 
   useEffect(() => {
     loadCart();
@@ -298,6 +319,46 @@ export default function CartPage() {
       .slice(0, 6); // Show up to 6 suggestions
   };
 
+  // Get upsell recommendations based on price range
+  const getUpsellRecommendations = () => {
+    if (cartItems.length === 0) return [];
+
+    const cartItemIds = cartItems.map(item => item.id);
+    
+    // Calculate price range: ±25% of cart items
+    const cartPrices = cartItems.map(item => item.price);
+    const avgPrice = cartPrices.reduce((sum, price) => sum + price, 0) / cartPrices.length;
+    const priceRange = avgPrice * 0.25; // 25%
+    const minPrice = avgPrice - priceRange;
+    const maxPrice = avgPrice + priceRange;
+
+    // Filter collections:
+    // 1. Not in cart
+    // 2. Not owned by user (if logged in)
+    // 3. Within price range
+    let recommendations = allCollections.filter(collection => {
+      if (cartItemIds.includes(collection.id)) return false;
+      if (user && userPurchases.includes(collection.id)) return false;
+      return collection.price >= minPrice && collection.price <= maxPrice;
+    });
+
+    // Sort by closest price difference, then by newest (created_at)
+    recommendations = recommendations.sort((a, b) => {
+      const priceDiffA = Math.abs(a.price - avgPrice);
+      const priceDiffB = Math.abs(b.price - avgPrice);
+      if (Math.abs(priceDiffA - priceDiffB) < 0.01) {
+        // If price difference is similar, sort by newest
+        const dateA = new Date(a.created_at || 0).getTime();
+        const dateB = new Date(b.created_at || 0).getTime();
+        return dateB - dateA;
+      }
+      return priceDiffA - priceDiffB;
+    });
+
+    // Return 4-8 recommendations
+    return recommendations.slice(0, 8);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-brand-mist flex items-center justify-center">
@@ -503,6 +564,74 @@ export default function CartPage() {
                 );
               })}
             </div>
+
+            {/* Upsell Section */}
+            {getUpsellRecommendations().length > 0 && (
+              <div className="mt-12">
+                <h2 className="text-2xl font-serif text-brand-pine mb-6">More you might like</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                  {getUpsellRecommendations().map((collection) => {
+                    const thumbnailUrl = thumbnailUrls[collection.id];
+                    const isInCart = cartItems.some(item => item.id === collection.id);
+                    
+                    return (
+                      <div key={collection.id} className="card-glass p-4">
+                        <div className="aspect-[4/5] relative overflow-hidden rounded-lg mb-4">
+                          {thumbnailUrl ? (
+                            <img
+                              src={thumbnailUrl}
+                              alt={collection.title}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-brand-sage">
+                              <ImageIcon className="w-8 h-8" />
+                            </div>
+                          )}
+                        </div>
+                        
+                        <h3 className="text-lg font-serif text-brand-pine mb-2 line-clamp-2">{collection.title}</h3>
+                        <p className="text-brand-earth text-sm mb-3 line-clamp-2">{collection.description}</p>
+                        
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="text-xs text-brand-sage">
+                            <div className="flex items-center">
+                              <Clock className="w-3 h-3 mr-1" />
+                              <span>{formatVideoDuration(collection.video_duration || 300)}</span>
+                            </div>
+                          </div>
+                          <div className="text-xl font-bold text-brand-tan">
+                            ${(collection.price / 100).toFixed(2)}
+                          </div>
+                        </div>
+                        
+                        <button
+                          onClick={() => addToCart(collection)}
+                          disabled={addingItems.has(collection.id) || isInCart}
+                          className="w-full btn-secondary flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {addingItems.has(collection.id) ? (
+                            <>
+                              <div className="w-4 h-4 spinner"></div>
+                              <span>Adding...</span>
+                            </>
+                          ) : isInCart ? (
+                            <>
+                              <span>Added</span>
+                            </>
+                          ) : (
+                            <>
+                              <Plus className="w-4 h-4" />
+                              <span>Add to cart</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Checkout Summary */}
