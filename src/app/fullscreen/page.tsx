@@ -355,21 +355,34 @@ export default function FullscreenPage() {
       ref={containerRef}
       className="fixed inset-0 w-screen h-screen overflow-hidden bg-black z-[100000]"
       style={{ WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation' }}
-      onMouseMove={() => { setShowControls(true); scheduleHideControls(); }}
-      onTouchMove={() => { setShowControls(true); scheduleHideControls(); }}
+      onMouseMove={() => { 
+        if (!(isMobile && isFullscreen)) {
+          setShowControls(true); 
+          scheduleHideControls(); 
+        }
+      }}
+      onTouchMove={() => { 
+        if (!(isMobile && isFullscreen)) {
+          setShowControls(true); 
+          scheduleHideControls(); 
+        }
+      }}
       onTouchStart={() => { 
-        setShowControls(true); 
+        if (!(isMobile && isFullscreen)) {
+          setShowControls(true); 
+        }
         ensureAudioOnGesture(); 
       }}
-      // On mobile fullscreen, allow tap-to-toggle on video
+      // On mobile fullscreen, allow tap-to-toggle directly on video
       // On desktop, only toggle when not in fullscreen
       onClick={(e) => { 
         if (item.type === 'video') {
-          // On mobile fullscreen, allow tap-to-toggle
+          // On mobile fullscreen, always allow tap-to-toggle on video
           if (isMobile && isFullscreen) {
             const target = e.target as HTMLElement;
-            // Only toggle if clicking directly on video, not on controls
-            if (target.tagName === 'VIDEO' || target.closest('video')) {
+            // Only toggle if clicking directly on video element
+            if (target.tagName === 'VIDEO') {
+              e.stopPropagation();
               togglePlay(e);
             }
           } else if (!isFullscreen) {
@@ -380,18 +393,31 @@ export default function FullscreenPage() {
         }
       }}
     >
-      {/* Header */}
-      <div className={`absolute top-[env(safe-area-inset-top)] left-0 right-0 z-10 bg-gradient-to-b from-black/80 to-transparent p-4 flex items-center justify-between transition-opacity ${showControls ? 'opacity-100' : 'opacity-0'}`}>
+      {/* Header - hide on mobile fullscreen to avoid interference */}
+      {!(isMobile && isFullscreen) && (
+        <div className={`absolute top-[env(safe-area-inset-top)] left-0 right-0 z-10 bg-gradient-to-b from-black/80 to-transparent p-4 flex items-center justify-between transition-opacity ${showControls ? 'opacity-100' : 'opacity-0'}`}>
+          <button 
+            onClick={close} 
+            className="text-white px-3 py-2 bg-white/10 rounded hover:bg-white/20 transition-colors z-50"
+            aria-label="Back"
+          >
+            Back
+          </button>
+          <div className="text-white text-sm truncate max-w-[60%]">{title}</div>
+          <div className="w-16" />
+        </div>
+      )}
+      
+      {/* Minimal back button for mobile fullscreen - top left corner only */}
+      {isMobile && isFullscreen && (
         <button 
           onClick={close} 
-          className="text-white px-3 py-2 bg-white/10 rounded hover:bg-white/20 transition-colors z-50"
+          className="absolute top-[env(safe-area-inset-top)] left-4 z-50 text-white px-3 py-2 bg-black/50 rounded backdrop-blur-sm"
           aria-label="Back"
         >
           Back
         </button>
-        <div className="text-white text-sm truncate max-w-[60%]">{title}</div>
-        <div className="w-16" />
-      </div>
+      )}
 
       {/* Main */}
       <div className="absolute inset-0">
@@ -416,11 +442,12 @@ export default function FullscreenPage() {
             onPause={() => setIsPlaying(false)}
             style={{ backgroundColor: 'black', position: 'fixed', inset: 0, pointerEvents: 'auto' }}
             onClick={(e) => { 
-              e.stopPropagation(); 
-              // On mobile fullscreen, allow tap-to-toggle directly on video
+              // On mobile fullscreen, handle tap-to-play directly
               if (isMobile && isFullscreen) {
+                e.stopPropagation();
                 togglePlay(e);
               } else if (!isFullscreen) {
+                e.stopPropagation();
                 togglePlay(e);
               }
             }}
@@ -429,49 +456,48 @@ export default function FullscreenPage() {
       </div>
 
 
-      {/* Arrows */}
-      {items.length > 1 && (
+      {/* Arrows - hide on mobile fullscreen to avoid interference */}
+      {items.length > 1 && !(isMobile && isFullscreen) && (
         <>
           <button onClick={prev} className="absolute left-3 top-1/2 -translate-y-1/2 z-20 p-3 bg-white/10 rounded-full text-white">◀</button>
           <button onClick={next} className="absolute right-3 top-1/2 -translate-y-1/2 z-20 p-3 bg-white/10 rounded-full text-white">▶</button>
         </>
       )}
 
-      {/* Controls if video - On mobile fullscreen, hide custom controls and show tap hint instead */}
-      {item.type === 'video' && (
+      {/* Controls if video - Completely hide all controls on mobile fullscreen */}
+      {item.type === 'video' && !(isMobile && isFullscreen) && (
         <>
-          {/* Hide custom controls on mobile fullscreen - use tap-to-play with hint instead */}
-          {!(isMobile && isFullscreen) && (
-            <div className={`absolute bottom-[max(env(safe-area-inset-bottom),0px)] left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 flex items-center justify-between pointer-events-auto transition-opacity duration-300 ${showControls ? 'opacity-100' : 'opacity-0'} z-[100]`}>
-              <button 
-                onClick={(e) => { 
-                  e.stopPropagation(); 
-                  e.preventDefault();
-                  togglePlay(e); 
-                }} 
-                onPointerDown={(e) => { 
-                  e.stopPropagation(); 
-                  e.preventDefault();
-                  togglePlay(e); 
-                }}
-                className="text-white px-4 py-2 bg-white/10 rounded hover:bg-white/20 transition-colors touch-manipulation" 
-                aria-label={isPlaying ? 'Pause' : 'Play'}
-                style={{ touchAction: 'manipulation' }}
-              >
-                {isPlaying ? 'Pause' : 'Play'}
-              </button>
-              <button 
-                onClick={(e) => { e.stopPropagation(); toggleMute(); }} 
-                className="text-white px-4 py-2 bg-white/10 rounded hover:bg-white/20 transition-colors" 
-                aria-label={isMuted ? 'Unmute' : 'Mute'}
-              >
-                {isMuted ? 'Unmute' : 'Mute'}
-              </button>
-            </div>
-          )}
+          {/* Custom controls - only show on desktop or non-fullscreen */}
+          <div className={`absolute bottom-[max(env(safe-area-inset-bottom),0px)] left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 flex items-center justify-between pointer-events-auto transition-opacity duration-300 ${showControls ? 'opacity-100' : 'opacity-0'} z-[100]`}>
+            <button 
+              onClick={(e) => { 
+                e.stopPropagation(); 
+                e.preventDefault();
+                togglePlay(e); 
+              }} 
+              onPointerDown={(e) => { 
+                e.stopPropagation(); 
+                e.preventDefault();
+                togglePlay(e); 
+              }}
+              className="text-white px-4 py-2 bg-white/10 rounded hover:bg-white/20 transition-colors touch-manipulation" 
+              aria-label={isPlaying ? 'Pause' : 'Play'}
+              style={{ touchAction: 'manipulation' }}
+            >
+              {isPlaying ? 'Pause' : 'Play'}
+            </button>
+            <button 
+              onClick={(e) => { e.stopPropagation(); toggleMute(); }} 
+              className="text-white px-4 py-2 bg-white/10 rounded hover:bg-white/20 transition-colors" 
+              aria-label={isMuted ? 'Unmute' : 'Mute'}
+            >
+              {isMuted ? 'Unmute' : 'Mute'}
+            </button>
+          </div>
+          {/* Progress bar - only show on desktop or non-fullscreen */}
           <div
-            className={`absolute left-0 right-0 px-4 transition-opacity duration-300 ${showControls || (isMobile && isFullscreen) ? 'opacity-100' : 'opacity-0'} z-[100]`}
-            style={{ bottom: isMobile && isFullscreen ? 'env(safe-area-inset-bottom)' : 'calc(3.5rem + env(safe-area-inset-bottom))' }}
+            className={`absolute left-0 right-0 px-4 transition-opacity duration-300 ${showControls ? 'opacity-100' : 'opacity-0'} z-[100]`}
+            style={{ bottom: 'calc(3.5rem + env(safe-area-inset-bottom))' }}
             onMouseDown={(e) => {
               const el = videoRef.current; if (!el) return; setIsSeeking(true);
               const rect = (e.currentTarget.firstChild as HTMLElement).getBoundingClientRect();
@@ -534,7 +560,7 @@ export default function FullscreenPage() {
         </div>
       )}
       
-      {/* Mobile fullscreen tap hint - subtle hint that fades when playing */}
+      {/* Mobile fullscreen tap hint - subtle hint that fades when playing, no buttons */}
       {item.type === 'video' && isFullscreen && isMobile && !isPlaying && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-[150]">
           <div className="bg-black/40 backdrop-blur-sm text-white/80 px-6 py-3 rounded-lg text-sm font-medium transition-opacity duration-500">
@@ -543,8 +569,8 @@ export default function FullscreenPage() {
         </div>
       )}
 
-      {/* iOS unmute prompt */}
-      {item.type === 'video' && isMuted && (
+      {/* iOS unmute prompt - hide on mobile fullscreen to avoid interference */}
+      {item.type === 'video' && isMuted && !(isMobile && isFullscreen) && (
         <div className="absolute inset-x-0 bottom-[max(env(safe-area-inset-bottom),1.5rem)] z-40 flex justify-center pointer-events-none">
           <button
             className="pointer-events-auto text-white px-5 py-3 bg-white/10 rounded-full border border-white/30 backdrop-blur-sm"
