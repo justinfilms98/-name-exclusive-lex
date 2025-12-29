@@ -304,8 +304,10 @@ export default function FullscreenPage() {
         isTogglingRef.current = false;
         return; 
       }
-      el.pause();
+      // Pause the video and immediately update state
+      // Update state immediately before pausing to ensure UI updates right away
       setIsPlaying(false);
+      el.pause();
       setShowControls(true);
     }
     
@@ -462,8 +464,12 @@ export default function FullscreenPage() {
             controlsList="nodownload nofullscreen noremoteplayback"
             // Always disable native controls on mobile fullscreen for TikTok-style experience
             controls={false}
-            onPlay={() => setIsPlaying(true)}
-            onPause={() => setIsPlaying(false)}
+            onPlay={() => {
+              setIsPlaying(true);
+            }}
+            onPause={() => {
+              setIsPlaying(false);
+            }}
             style={{ 
               backgroundColor: 'black', 
               position: 'fixed', 
