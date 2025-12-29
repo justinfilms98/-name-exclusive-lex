@@ -592,26 +592,7 @@ export default function FullscreenPage() {
         </div>
       )}
       
-      {/* TikTok-style play icon overlay - light opacity play button only when paused */}
-      {/* Tap anywhere on video container to toggle play/pause - overlay is non-interactive */}
-      {item.type === 'video' && isFullscreen && isMobile && !isPlaying && (
-        <div 
-          className="pointer-events-none absolute inset-0 flex items-center justify-center z-[150] transition-opacity duration-200"
-        >
-          {/* Light opacity translucent play icon (TikTok style) - purely visual, no click handler */}
-          <div className="rounded-full bg-black/40 p-5">
-            <svg 
-              width="36" 
-              height="36" 
-              viewBox="0 0 24 24" 
-              fill="white" 
-              opacity="0.9"
-            >
-              <path d="M8 5v14l11-7z" />
-            </svg>
-          </div>
-        </div>
-      )}
+      {/* TikTok-style: No play button overlay - tap anywhere to toggle, no visual indicators */}
 
       {/* iOS unmute prompt - hide on mobile fullscreen to avoid interference */}
       {item.type === 'video' && isMuted && !(isMobile && isFullscreen) && (
