@@ -132,32 +132,32 @@ export default function Header() {
       <header 
         className="bg-blanc/90 backdrop-blur-md border-b border-mushroom/30 fixed top-0 left-0 right-0 z-50 shadow-soft safe-top transition-all duration-300"
       >
+        {/* Hamburger Menu Button - Fixed at far left edge */}
+        <button
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          className="absolute left-0 top-0 p-2 sm:p-3 md:p-4 text-earth hover:text-khaki transition-colors z-10 h-14 sm:h-16 flex items-center"
+          aria-label="Toggle menu"
+        >
+          {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+        </button>
+
         <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8">
           <div className="flex justify-between items-center h-14 sm:h-16">
             
-            {/* Left Side - Hamburger Menu Button + Desktop Navigation */}
-            <div className="flex items-center space-x-4">
-              {/* Hamburger Menu Button (Desktop & Mobile) */}
-              <button
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="p-2 text-earth hover:text-khaki transition-colors"
-                aria-label="Toggle menu"
-              >
-                {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-              </button>
-
-              {/* Desktop Navigation Links (always visible on desktop) */}
-              <div className="hidden md:flex items-center space-x-8">
-                <Link href="/albums" className="text-earth hover:text-khaki transition-colors font-medium">
-                  Albums
+            {/* Left Side - Desktop Navigation Links (with left padding to account for hamburger) */}
+            <div className="hidden md:flex items-center space-x-8 pl-12 md:pl-16">
+              <Link href="/albums" className="text-earth hover:text-khaki transition-colors font-medium">
+                Albums
+              </Link>
+              {user && isAdmin(user.email) && (
+                <Link href="/admin" className="text-sage hover:text-khaki transition-colors font-medium">
+                  Admin
                 </Link>
-                {user && isAdmin(user.email) && (
-                  <Link href="/admin" className="text-sage hover:text-khaki transition-colors font-medium">
-                    Admin
-                  </Link>
-                )}
-              </div>
+              )}
             </div>
+
+            {/* Spacer for mobile to push center content */}
+            <div className="md:hidden w-10"></div>
 
             {/* Center - Site Name */}
             <div className="absolute left-1/2 transform -translate-x-1/2 px-12 sm:px-16 md:px-20">

@@ -5,6 +5,7 @@ import { supabase, getCollections, getSignedUrl } from '@/lib/supabase';
 import { Trash2, ShoppingCart, CreditCard, Clock, Image as ImageIcon, ArrowLeft, Plus, Heart, ChevronDown, ChevronUp } from 'lucide-react';
 import Link from 'next/link';
 import { loadStripe } from '@stripe/stripe-js';
+import SuggestedContent from '@/components/cart/SuggestedContent';
 
 interface CartItem {
   id: string;
@@ -706,6 +707,27 @@ export default function CartPage() {
                     <span className="font-semibold text-brand-khaki">${getTipAmount().toFixed(2)}</span>
                   </div>
                 </div>
+              )}
+
+              {/* Suggested Content */}
+              {cartItems.length > 0 && (
+                <SuggestedContent
+                  cartIds={cartItems.map(item => item.id)}
+                  onAddToCart={(collection) => {
+                    // Convert SuggestedCollection to Collection format for addToCart
+                    const collectionForCart: Collection = {
+                      id: collection.id,
+                      title: collection.title,
+                      description: collection.description,
+                      price: collection.price,
+                      duration: 0, // Not used in cart
+                      video_duration: collection.video_duration,
+                      thumbnail_path: collection.thumbnail_path || '',
+                      photo_paths: Array(collection.photo_count).fill(''), // Placeholder array
+                    };
+                    addToCart(collectionForCart);
+                  }}
+                />
               )}
               
               <div className="border-t border-mushroom/30 pt-4 mb-6">
