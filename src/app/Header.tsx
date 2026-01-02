@@ -129,7 +129,7 @@ export default function Header() {
   return (
     <>
       <header 
-        className="bg-blanc/90 backdrop-blur-md border-b border-mushroom/30 fixed top-0 left-0 right-0 z-50 shadow-soft safe-top transition-all duration-300"
+        className={`bg-blanc/90 backdrop-blur-md border-b border-mushroom/30 fixed top-0 left-0 right-0 shadow-soft safe-top transition-all duration-300 ${mobileMenuOpen ? 'z-40' : 'z-50'}`}
       >
         {/* Hamburger Menu Button - Fixed at far left edge */}
         <button
@@ -247,20 +247,33 @@ export default function Header() {
           {/* Menu Overlay (Mobile & Desktop) */}
           {mobileMenuOpen && (
             <>
-              {/* Backdrop */}
+              {/* Backdrop - full screen overlay */}
               <div 
-                className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40"
+                className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[60]"
                 onClick={closeMobileMenu}
               ></div>
 
-              {/* Menu Content - positioned at extreme left edge, separate sizing for mobile/desktop */}
+              {/* Menu Content - fixed to far left edge of viewport */}
               <div 
-                className="fixed top-0 h-screen bg-blanc border-r border-mushroom/30 shadow-lg z-50 overflow-y-auto pt-14 sm:pt-16 w-[280px] md:w-[360px]"
+                className="fixed top-0 left-0 h-screen bg-blanc border-r border-mushroom/30 shadow-lg z-[70] overflow-y-auto w-[280px] md:w-[360px]"
                 style={{ 
-                  left: 0, 
-                  marginLeft: 0
+                  left: 0,
+                  top: 0,
+                  marginLeft: 0,
+                  marginTop: 0,
+                  transform: 'none'
                 }}
               >
+                {/* Close button inside drawer at top */}
+                <div className="sticky top-0 bg-blanc border-b border-mushroom/30 p-4 flex justify-end z-10">
+                  <button
+                    onClick={closeMobileMenu}
+                    className="p-2 text-earth hover:text-khaki transition-colors"
+                    aria-label="Close menu"
+                  >
+                    <X className="w-6 h-6" />
+                  </button>
+                </div>
                 <div className="px-4 py-6 md:px-6 md:py-8 space-y-4">
                   
                   {/* Navigation Links */}
