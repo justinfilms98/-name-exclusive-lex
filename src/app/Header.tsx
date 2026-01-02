@@ -4,8 +4,12 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { supabase, signInWithGoogle, signOut } from '@/lib/supabase';
 import { isAdmin } from '@/lib/auth';
-import { User, LogOut, ShoppingCart, Menu, X, DollarSign } from 'lucide-react';
+import { User, LogOut, ShoppingCart, Menu, X, DollarSign, Instagram, Youtube } from 'lucide-react';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
+
+// Social media URLs - single source of truth
+const INSTAGRAM_URL = process.env.NEXT_PUBLIC_INSTAGRAM_URL ?? "PUT_PLACEHOLDER";
+const YOUTUBE_URL = process.env.NEXT_PUBLIC_YOUTUBE_URL ?? "PUT_PLACEHOLDER";
 
 export default function Header() {
   const [user, setUser] = useState<SupabaseUser | null>(null);
@@ -131,26 +135,29 @@ export default function Header() {
         <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8">
           <div className="flex justify-between items-center h-14 sm:h-16">
             
-            {/* Left Side - Navigation (Desktop) */}
-            <div className="hidden md:flex items-center space-x-8">
-              <Link href="/albums" className="text-earth hover:text-khaki transition-colors font-medium">
-                Albums
-              </Link>
-              {user && isAdmin(user.email) && (
-                <Link href="/admin" className="text-sage hover:text-khaki transition-colors font-medium">
-                  Admin
-                </Link>
-              )}
-            </div>
+            {/* Left Side - Hamburger Menu Button + Desktop Navigation */}
+            <div className="flex items-center space-x-4">
+              {/* Hamburger Menu Button (Desktop & Mobile) */}
+              <button
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="p-2 text-earth hover:text-khaki transition-colors"
+                aria-label="Toggle menu"
+              >
+                {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              </button>
 
-            {/* Mobile Menu Button (Left Side on Mobile) */}
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-2 text-earth hover:text-khaki transition-colors"
-              aria-label="Toggle menu"
-            >
-              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-            </button>
+              {/* Desktop Navigation Links (always visible on desktop) */}
+              <div className="hidden md:flex items-center space-x-8">
+                <Link href="/albums" className="text-earth hover:text-khaki transition-colors font-medium">
+                  Albums
+                </Link>
+                {user && isAdmin(user.email) && (
+                  <Link href="/admin" className="text-sage hover:text-khaki transition-colors font-medium">
+                    Admin
+                  </Link>
+                )}
+              </div>
+            </div>
 
             {/* Center - Site Name */}
             <div className="absolute left-1/2 transform -translate-x-1/2 px-12 sm:px-16 md:px-20">
@@ -238,17 +245,17 @@ export default function Header() {
             </div>
           </div>
 
-          {/* Mobile Menu Overlay */}
+          {/* Menu Overlay (Mobile & Desktop) */}
           {mobileMenuOpen && (
-            <div className="md:hidden">
+            <>
               {/* Backdrop */}
               <div 
-                className="fixed inset-0 bg-black/20 backdrop-blur-sm"
+                className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40"
                 onClick={closeMobileMenu}
               ></div>
 
               {/* Menu Content */}
-              <div className="relative bg-blanc border-t border-mushroom/30 shadow-lg">
+              <div className="fixed left-0 top-14 sm:top-16 h-[calc(100vh-3.5rem)] sm:h-[calc(100vh-4rem)] bg-blanc border-r border-mushroom/30 shadow-lg z-50 w-64 overflow-y-auto">
                 <div className="px-4 py-6 space-y-4">
                   
                   {/* Navigation Links */}
@@ -285,7 +292,7 @@ export default function Header() {
                         className="block text-earth hover:text-brand-khaki transition-colors font-medium py-3 px-2 rounded-lg hover:bg-blanket/30"
                         onClick={closeMobileMenu}
                       >
-                        Support Creators
+                        Support Alexis
                       </Link>
 
                       <Link 
@@ -308,6 +315,33 @@ export default function Header() {
                     </>
                   )}
 
+                  {/* Follow me section */}
+                  <div className="pt-4 mt-4 border-t border-mushroom/30">
+                    <p className="text-earth font-medium mb-3 px-2">Follow me</p>
+                    <div className="flex items-center space-x-4 px-2">
+                      <a
+                        href={INSTAGRAM_URL}
+                        target="_blank"
+                        rel="noreferrer"
+                        onClick={closeMobileMenu}
+                        className="p-2 text-earth hover:text-brand-khaki transition-colors rounded-lg hover:bg-blanket/30"
+                        aria-label="Instagram"
+                      >
+                        <Instagram className="w-6 h-6" />
+                      </a>
+                      <a
+                        href={YOUTUBE_URL}
+                        target="_blank"
+                        rel="noreferrer"
+                        onClick={closeMobileMenu}
+                        className="p-2 text-earth hover:text-brand-khaki transition-colors rounded-lg hover:bg-blanket/30"
+                        aria-label="YouTube"
+                      >
+                        <Youtube className="w-6 h-6" />
+                      </a>
+                    </div>
+                  </div>
+
                   {!user && (
                     <button
                       onClick={() => {
@@ -321,13 +355,11 @@ export default function Header() {
                   )}
                 </div>
               </div>
-            </div>
+            </>
           )}
         </div>
       </header>
 
-      {/* Mobile Menu Spacer */}
-      <div className={`md:hidden transition-all duration-300 ${mobileMenuOpen ? 'h-64' : 'h-0'}`}></div>
     </>
   );
 } 

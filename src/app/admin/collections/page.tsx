@@ -13,8 +13,8 @@ interface Collection {
   title: string;
   description: string;
   price: number;
-  video_duration: number; // actual video length
-  video_path: string;
+  video_duration: number; // actual video length (0 if no video)
+  video_path?: string | null; // optional - photo-only collections don't have video
   thumbnail_path?: string;
   stripe_price_id?: string;
   videos?: any[];
@@ -151,16 +151,20 @@ export default function AdminCollectionsPage() {
       errors.push('Price must be greater than 0');
     }
 
-    if (videoDuration <= 0) {
-      errors.push('Video duration must be greater than 0');
-    }
-
-    if (!videoFile) {
-      errors.push('Video file is required');
-    }
-
     if (!thumbnailFile) {
       errors.push('Thumbnail image is required');
+    }
+
+    // Video is optional, but if provided, duration must be valid
+    if (videoFile && videoDuration <= 0) {
+      errors.push('Video duration must be greater than 0 if video is provided');
+    }
+
+    // At least one of: video OR photos must exist
+    const hasVideo = !!videoFile;
+    const hasPhotos = photoFiles && photoFiles.length > 0;
+    if (!hasVideo && !hasPhotos) {
+      errors.push('Either a video file or at least one photo is required');
     }
 
     setValidationErrors(errors);
@@ -184,10 +188,15 @@ export default function AdminCollectionsPage() {
       }
       
       setVideoFile(file);
-      setValidationErrors(prev => prev.filter(error => !error.includes('Video')));
+      setValidationErrors(prev => prev.filter(error => !error.includes('Video') && !error.includes('Either')));
       
       // Extract video duration
       extractVideoDuration(file);
+    } else {
+      // Video file cleared
+      setVideoFile(null);
+      setVideoDuration(300); // Reset to default
+      setValidationErrors(prev => prev.filter(error => !error.includes('Video duration')));
     }
   };
 
@@ -244,6 +253,10 @@ export default function AdminCollectionsPage() {
       }
       
       setPhotoFiles(e.target.files);
+      setValidationErrors(prev => prev.filter(error => !error.includes('Either')));
+    } else {
+      // Photos cleared
+      setPhotoFiles(null);
     }
   };
 
@@ -259,19 +272,27 @@ export default function AdminCollectionsPage() {
       const timestamp = Date.now();
       const collectionSlug = title.toLowerCase().replace(/[^a-zA-Z0-9]/g, '_');
       
-      // Upload video (required)
-      const videoFilename = `collections/${collectionSlug}_${timestamp}/video.${videoFile!.name.split('.').pop()}`;
-      const { data: videoUpload, error: videoError } = await uploadFile(
-        videoFile!,
-        'media',
-        videoFilename
-      );
+      let videoFilename: string | null = null;
+      let uploadProgressStep = 0;
+      const totalSteps = (videoFile ? 1 : 0) + 1 + (photoFiles ? photoFiles.length : 0); // video + thumbnail + photos
+      const progressPerStep = 100 / totalSteps;
 
-      if (videoError) {
-        throw new Error(`Video upload failed: ${videoError.message}`);
+      // Upload video (optional)
+      if (videoFile) {
+        videoFilename = `collections/${collectionSlug}_${timestamp}/video.${videoFile.name.split('.').pop()}`;
+        const { data: videoUpload, error: videoError } = await uploadFile(
+          videoFile,
+          'media',
+          videoFilename
+        );
+
+        if (videoError) {
+          throw new Error(`Video upload failed: ${videoError.message}`);
+        }
+
+        uploadProgressStep++;
+        setUploadProgress(uploadProgressStep * progressPerStep);
       }
-
-      setUploadProgress(30);
 
       // Upload thumbnail (required)
       const thumbnailFilename = `collections/${collectionSlug}_${timestamp}/thumbnail.${thumbnailFile!.name.split('.').pop()}`;
@@ -285,7 +306,8 @@ export default function AdminCollectionsPage() {
         throw new Error(`Thumbnail upload failed: ${thumbnailError.message}`);
       }
 
-      setUploadProgress(50);
+      uploadProgressStep++;
+      setUploadProgress(uploadProgressStep * progressPerStep);
 
       // Upload photos (optional)
       const photoPaths: string[] = [];
@@ -304,22 +326,27 @@ export default function AdminCollectionsPage() {
           }
 
           photoPaths.push(photoFilename);
+          uploadProgressStep++;
+          setUploadProgress(uploadProgressStep * progressPerStep);
         }
       }
 
-      setUploadProgress(70);
-
-      // Create collection record with extracted video duration
-      const collectionData = {
+      // Create collection record
+      const collectionData: any = {
         title: title.trim(),
         description: description.trim(),
         price: Math.round(parseFloat(price.toString()) * 100), // Convert to cents
-        video_duration: videoDuration, // actual video length (extracted from file)
-        video_path: videoFilename,
+        video_duration: videoFile ? videoDuration : 0, // Only set if video exists
         thumbnail_path: thumbnailFilename,
         photo_paths: photoPaths,
         album_id: selectedAlbumId,
       };
+
+      // Only include video_path if video was uploaded
+      if (videoFilename) {
+        collectionData.video_path = videoFilename;
+        collectionData.media_filename = videoFilename;
+      }
 
       const { data: createData, error: createError } = await createCollection(collectionData);
       if (createError) {
@@ -781,26 +808,28 @@ export default function AdminCollectionsPage() {
               </div>
             </div>
 
-            <div>
-              <label className="block text-earth text-sm font-medium mb-2">
-                Video Duration (Minutes) <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="number"
-                min="1"
-                value={videoDuration / 60}
-                onChange={(e) => {
-                  setVideoDuration((parseInt(e.target.value) || 5) * 60);
-                  setValidationErrors(prev => prev.filter(error => !error.includes('Video Duration')));
-                }}
-                className="input"
-                disabled={uploading}
-              />
-            </div>
+            {videoFile && (
+              <div>
+                <label className="block text-earth text-sm font-medium mb-2">
+                  Video Duration (Minutes) <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  value={videoDuration / 60}
+                  onChange={(e) => {
+                    setVideoDuration((parseInt(e.target.value) || 5) * 60);
+                    setValidationErrors(prev => prev.filter(error => !error.includes('Video Duration')));
+                  }}
+                  className="input"
+                  disabled={uploading}
+                />
+              </div>
+            )}
 
             <div>
               <label className="block text-earth text-sm font-medium mb-2">
-                Video File <span className="text-red-500">* (Required - Max 2GB)</span>
+                Video File <span className="text-sage">(Optional - Max 2GB)</span>
               </label>
               <input
                 id="video-input"
@@ -813,6 +842,11 @@ export default function AdminCollectionsPage() {
               {videoFile && (
                 <p className="mt-2 text-sage text-sm">
                   ✓ Selected: {videoFile.name} ({formatFileSize(videoFile.size)})
+                </p>
+              )}
+              {!videoFile && (
+                <p className="mt-2 text-sage text-xs">
+                  Video is optional. If no video is provided, at least one photo is required.
                 </p>
               )}
             </div>
@@ -838,7 +872,7 @@ export default function AdminCollectionsPage() {
 
             <div className="md:col-span-2">
               <label className="block text-earth text-sm font-medium mb-2">
-                Photos (Optional - Max 10MB each)
+                Photos <span className={!videoFile ? "text-red-500" : "text-sage"}>{(videoFile ? "(Optional" : "(Required if no video")} - Max 10MB each)</span>
               </label>
               <input
                 id="photos-input"
@@ -852,6 +886,11 @@ export default function AdminCollectionsPage() {
               {photoFiles && (
                 <p className="mt-2 text-sage text-sm">
                   ✓ Selected: {photoFiles.length} photos
+                </p>
+              )}
+              {!photoFiles && !videoFile && (
+                <p className="mt-2 text-red-500 text-xs">
+                  At least one photo is required when no video is provided.
                 </p>
               )}
             </div>
@@ -1036,9 +1075,10 @@ export default function AdminCollectionsPage() {
         <div className="mt-8 bg-sage/10 border border-sage/30 rounded-lg p-6">
           <h3 className="text-sage font-serif text-lg mb-3">Upload Requirements:</h3>
           <ul className="text-earth text-sm space-y-1">
-            <li>• <strong>Video file:</strong> Required - MP4/WebM formats, up to 2GB</li>
             <li>• <strong>Thumbnail:</strong> Required - JPG/PNG formats, up to 10MB</li>
-            <li>• <strong>Photos:</strong> Optional - JPG/PNG formats, up to 10MB each</li>
+            <li>• <strong>Video file:</strong> Optional - MP4/WebM formats, up to 2GB</li>
+            <li>• <strong>Photos:</strong> Required if no video - JPG/PNG formats, up to 10MB each</li>
+            <li>• <strong>At least one:</strong> Either a video OR at least one photo must be provided</li>
             <li>• <strong>Title & Description:</strong> Required for all collections</li>
             <li>• <strong>Price:</strong> Must be greater than 0</li>
             <li>• All files are stored securely with permanent access</li>

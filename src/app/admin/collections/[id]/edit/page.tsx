@@ -90,7 +90,19 @@ export default function EditCollectionPage() {
     if (!title.trim()) issues.push("Title is required");
     if (!description.trim()) issues.push("Description is required");
     if (price <= 0) issues.push("Price must be greater than 0");
-    if (videoDuration <= 0) issues.push("Video duration must be greater than 0");
+    
+    // Video duration only required if video exists (new or existing)
+    const hasVideo = videoFile || existingVideoPath;
+    if (hasVideo && videoDuration <= 0) {
+      issues.push("Video duration must be greater than 0 if video is provided");
+    }
+    
+    // At least one of: video OR photos must exist
+    const hasPhotos = (photoFiles && photoFiles.length > 0) || existingPhotoPaths.length > 0;
+    if (!hasVideo && !hasPhotos) {
+      issues.push("Either a video or at least one photo is required");
+    }
+    
     setErrors(issues);
     return issues.length === 0;
   };
@@ -136,7 +148,7 @@ export default function EditCollectionPage() {
       const timestamp = Date.now();
       const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, "_");
 
-      let videoPath = existingVideoPath || "";
+      let videoPath = existingVideoPath || null;
       if (videoFile) {
         const path = `collections/${slug}_${timestamp}/video.${videoFile.name.split(".").pop()}`;
         const { error } = await uploadFile(videoFile, "media", path);
@@ -167,15 +179,22 @@ export default function EditCollectionPage() {
         title: title.trim(),
         description: description.trim(),
         price: Math.round(price * 100),
-        video_duration: videoDuration,
         album_id: selectedAlbumId,
         photo_paths: photos,
       };
 
+      // Only set video-related fields if video exists
       if (videoPath) {
         updates.video_path = videoPath;
         updates.media_filename = videoPath;
+        updates.video_duration = videoDuration;
+      } else {
+        // Clear video fields if video was removed
+        updates.video_path = null;
+        updates.media_filename = null;
+        updates.video_duration = 0;
       }
+      
       if (thumbnailPath) {
         updates.thumbnail_path = thumbnailPath;
       }
@@ -318,17 +337,19 @@ export default function EditCollectionPage() {
               />
             </div>
 
-            <div className="space-y-3">
-              <label className="block text-earth text-sm font-medium">Video Duration (minutes)</label>
-              <input
-                type="number"
-                min="1"
-                value={Math.max(1, Math.round(videoDuration / 60))}
-                onChange={(e) => setVideoDuration((parseInt(e.target.value) || 1) * 60)}
-                className="input"
-                disabled={saving}
-              />
-            </div>
+            {(videoFile || existingVideoPath) && (
+              <div className="space-y-3">
+                <label className="block text-earth text-sm font-medium">Video Duration (minutes)</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={Math.max(1, Math.round(videoDuration / 60))}
+                  onChange={(e) => setVideoDuration((parseInt(e.target.value) || 1) * 60)}
+                  className="input"
+                  disabled={saving}
+                />
+              </div>
+            )}
 
             <div className="space-y-3">
               <label className="block text-earth text-sm font-medium">Album</label>
@@ -395,12 +416,27 @@ export default function EditCollectionPage() {
               <input
                 type="file"
                 accept="video/*"
-                onChange={(e) => setVideoFile(e.target.files?.[0] || null)}
+                onChange={(e) => {
+                  const file = e.target.files?.[0] || null;
+                  setVideoFile(file);
+                  if (file) {
+                    // Extract video duration if new file selected
+                    const video = document.createElement('video');
+                    video.preload = 'metadata';
+                    video.onloadedmetadata = () => {
+                      setVideoDuration(Math.round(video.duration));
+                    };
+                    video.onerror = () => {
+                      setVideoDuration(300); // Default to 5 minutes
+                    };
+                    video.src = URL.createObjectURL(file);
+                  }
+                }}
                 className="input file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-sage file:text-blanc hover:file:bg-khaki"
                 disabled={saving}
               />
               <p className="text-xs text-sage">
-                Current video kept unless a new file is uploaded. Max 2GB.
+                Video is optional. Current video kept unless a new file is uploaded. Max 2GB.
               </p>
               {existingVideoPath && (
                 <div className="text-xs text-earth bg-blanket/60 rounded p-3">

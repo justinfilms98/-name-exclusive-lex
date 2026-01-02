@@ -30,21 +30,7 @@ export default function UploadForm() {
   const [success, setSuccess] = useState(false);
 
   const validateFiles = () => {
-    // Video validation (max 50MB for Supabase free tier)
-    if (files.video) {
-      const maxSize = 50 * 1024 * 1024; // 50MB (Supabase free tier limit)
-      if (files.video.size > maxSize) {
-        setError('Video file must be under 50MB for upload. Please compress your video or use a smaller file. For larger files, consider upgrading to Supabase Pro plan.');
-        return false;
-      }
-    }
-
-    if (!files.video) {
-      setError('Video file is required');
-      return false;
-    }
-
-    // Thumbnail validation (max 10MB)
+    // Thumbnail validation (max 10MB) - REQUIRED
     if (files.thumbnail) {
       const maxThumbnailSize = 10 * 1024 * 1024; // 10MB
       if (files.thumbnail.size > maxThumbnailSize) {
@@ -58,6 +44,15 @@ export default function UploadForm() {
       return false;
     }
 
+    // Video validation (max 50MB for Supabase free tier) - OPTIONAL
+    if (files.video) {
+      const maxSize = 50 * 1024 * 1024; // 50MB (Supabase free tier limit)
+      if (files.video.size > maxSize) {
+        setError('Video file must be under 50MB for upload. Please compress your video or use a smaller file. For larger files, consider upgrading to Supabase Pro plan.');
+        return false;
+      }
+    }
+
     // Photo validation (max 10MB each)
     for (let i = 0; i < files.photos.length; i++) {
       const photo = files.photos[i];
@@ -66,6 +61,12 @@ export default function UploadForm() {
         setError(`Photo ${i + 1} must be under 10MB`);
         return false;
       }
+    }
+
+    // At least one of: video OR photos must exist
+    if (!files.video && files.photos.length === 0) {
+      setError('Either a video file or at least one photo is required');
+      return false;
     }
 
     return true;
@@ -124,12 +125,15 @@ export default function UploadForm() {
         photos: files.photos.map(p => p.name)
       });
       
-      // Upload video
-      const videoPath = `collections/${collectionId}/video_${timestamp}.${files.video!.name.split('.').pop()}`;
-      console.log('Uploading video to:', videoPath);
-      await uploadFileWithProgress(files.video!, 'media', videoPath, 'video');
+      // Upload video (optional)
+      let videoPath: string | null = null;
+      if (files.video) {
+        videoPath = `collections/${collectionId}/video_${timestamp}.${files.video.name.split('.').pop()}`;
+        console.log('Uploading video to:', videoPath);
+        await uploadFileWithProgress(files.video, 'media', videoPath, 'video');
+      }
       
-      // Upload thumbnail
+      // Upload thumbnail (required)
       const thumbnailPath = `collections/${collectionId}/thumbnail_${timestamp}.${files.thumbnail!.name.split('.').pop()}`;
       console.log('Uploading thumbnail to:', thumbnailPath);
       await uploadFileWithProgress(files.thumbnail!, 'media', thumbnailPath, 'thumbnail');
@@ -146,18 +150,23 @@ export default function UploadForm() {
         }
       }
       
-      // Create collection record with media_filename
-      const collection = {
+      // Create collection record
+      const collection: any = {
         id: collectionId,
         title: formData.title,
         description: formData.description,
         price: Math.round(parseFloat(formData.price) * 100), // Convert dollars to cents
-        video_path: videoPath,
         thumbnail_path: thumbnailPath,
         photo_paths: photoPaths,
-        media_filename: videoPath, // ✅ Store the full file path (e.g., collections/uuid/video_timestamp.mp4)
+        video_duration: 0, // Default, will be set if video exists
         created_at: new Date().toISOString(),
       };
+
+      // Only include video fields if video was uploaded
+      if (videoPath) {
+        collection.video_path = videoPath;
+        collection.media_filename = videoPath;
+      }
       
       console.log('Creating collection record:', collection);
       const { error: dbError } = await createCollection(collection);
@@ -297,9 +306,10 @@ export default function UploadForm() {
             Due to Supabase free tier limitations, file uploads are currently limited to:
           </p>
           <ul className="text-sm text-blue-700 space-y-1">
-            <li>• <strong>Video files:</strong> 50MB maximum</li>
-            <li>• <strong>Thumbnail images:</strong> 10MB maximum</li>
-            <li>• <strong>Additional photos:</strong> 10MB each maximum</li>
+            <li>• <strong>Thumbnail images:</strong> Required - 10MB maximum</li>
+            <li>• <strong>Video files:</strong> Optional - 50MB maximum</li>
+            <li>• <strong>Additional photos:</strong> Required if no video - 10MB each maximum</li>
+            <li>• <strong>At least one:</strong> Either a video OR at least one photo must be provided</li>
           </ul>
           <p className="text-xs text-blue-600 mt-2">
             💡 <strong>Tip:</strong> Use H.265 (HEVC) encoding for better quality at smaller file sizes. See our compression guide for detailed settings.
@@ -308,31 +318,7 @@ export default function UploadForm() {
         
         <div>
           <label className="block text-sm font-medium text-stone-700 mb-1">
-            Video File (Max 50MB) *
-          </label>
-          <input
-            type="file"
-            accept="video/*,.mp4,.mov,.avi,.mkv"
-            required
-            onChange={(e) => setFiles(prev => ({ ...prev, video: e.target.files?.[0] || null }))}
-            className="w-full border border-stone-300 rounded-md px-3 py-2"
-          />
-          {progress.video !== undefined && (
-            <div className="mt-2">
-              <div className="bg-gray-200 rounded-full h-2">
-                <div 
-                  className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${progress.video}%` }}
-                />
-              </div>
-              <p className="text-sm text-gray-600 mt-1">{progress.video}% uploaded</p>
-            </div>
-          )}
-        </div>
-        
-        <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1">
-            Thumbnail Image (Max 10MB) *
+            Thumbnail Image (Max 10MB) <span className="text-red-500">*</span>
           </label>
           <input
             type="file"
@@ -353,10 +339,36 @@ export default function UploadForm() {
             </div>
           )}
         </div>
+
+        <div>
+          <label className="block text-sm font-medium text-stone-700 mb-1">
+            Video File (Optional - Max 50MB)
+          </label>
+          <input
+            type="file"
+            accept="video/*,.mp4,.mov,.avi,.mkv"
+            onChange={(e) => setFiles(prev => ({ ...prev, video: e.target.files?.[0] || null }))}
+            className="w-full border border-stone-300 rounded-md px-3 py-2"
+          />
+          {progress.video !== undefined && (
+            <div className="mt-2">
+              <div className="bg-gray-200 rounded-full h-2">
+                <div 
+                  className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                  style={{ width: `${progress.video}%` }}
+                />
+              </div>
+              <p className="text-sm text-gray-600 mt-1">{progress.video}% uploaded</p>
+            </div>
+          )}
+          {!files.video && (
+            <p className="mt-1 text-xs text-gray-500">Video is optional. If no video is provided, at least one photo is required.</p>
+          )}
+        </div>
         
         <div>
           <label className="block text-sm font-medium text-stone-700 mb-1">
-            Additional Photos (Optional - Max 10MB each)
+            Photos <span className={!files.video ? "text-red-500" : "text-gray-500"}>{(files.video ? "(Optional" : "(Required if no video")} - Max 10MB each)</span>
           </label>
           <input
             type="file"
@@ -375,6 +387,9 @@ export default function UploadForm() {
               </div>
               <p className="text-sm text-gray-600 mt-1">{progress.photos}% uploaded</p>
             </div>
+          )}
+          {files.photos.length === 0 && !files.video && (
+            <p className="mt-1 text-xs text-red-500">At least one photo is required when no video is provided.</p>
           )}
         </div>
       </div>
