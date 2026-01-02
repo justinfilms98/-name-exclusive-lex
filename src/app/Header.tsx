@@ -253,9 +253,15 @@ export default function Header() {
                 onClick={closeMobileMenu}
               ></div>
 
-              {/* Menu Content - positioned at extreme left edge to align with hamburger */}
-              <div className="fixed top-0 h-screen bg-blanc border-r border-mushroom/30 shadow-lg z-50 w-64 overflow-y-auto pt-14 sm:pt-16" style={{ left: 0, marginLeft: 0 }}>
-                <div className="px-4 py-6 space-y-4">
+              {/* Menu Content - positioned at extreme left edge, separate sizing for mobile/desktop */}
+              <div 
+                className="fixed top-0 h-screen bg-blanc border-r border-mushroom/30 shadow-lg z-50 overflow-y-auto pt-14 sm:pt-16 w-[280px] md:w-[360px]"
+                style={{ 
+                  left: 0, 
+                  marginLeft: 0
+                }}
+              >
+                <div className="px-4 py-6 md:px-6 md:py-8 space-y-4">
                   
                   {/* Navigation Links */}
                   <Link 
