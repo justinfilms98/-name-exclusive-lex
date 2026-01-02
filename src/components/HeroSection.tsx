@@ -280,7 +280,7 @@ export default function HeroSection() {
           </div>
 
           {/* Byline */}
-          <p className="text-sm sm:text-base md:text-lg text-gray-300 mt-6 text-shadow animate-fade-in" style={{ fontFamily: 'Vogue, serif', letterSpacing: '0.1em' }}>
+          <p className="mt-8 text-base sm:text-lg md:text-xl text-white/90 font-semibold text-shadow animate-fade-in">
             By Alexis Griswold
           </p>
         </div>
