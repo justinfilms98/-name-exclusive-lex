@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { supabase, signInWithGoogle, signOut } from '@/lib/supabase';
 import { isAdmin } from '@/lib/auth';
@@ -126,6 +127,156 @@ export default function Header() {
     setMobileMenuOpen(false);
   };
 
+  // Render drawer menu at root level using portal
+  const drawerMenu = mobileMenuOpen && typeof window !== 'undefined' ? createPortal(
+    <>
+      {/* Backdrop - full screen overlay */}
+      <div 
+        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[60]"
+        onClick={closeMobileMenu}
+        style={{ position: 'fixed', inset: 0 }}
+      />
+
+      {/* Menu Content - fixed to far left edge of viewport, mounted at root */}
+      <div 
+        className="bg-blanc border-r border-mushroom/30 shadow-lg overflow-y-auto"
+        style={{ 
+          position: 'fixed',
+          left: 0,
+          top: 0,
+          height: '100vh',
+          width: '320px',
+          margin: 0,
+          padding: 0,
+          transform: 'none',
+          zIndex: 70
+        }}
+      >
+        {/* Close button inside drawer at top */}
+        <div className="sticky top-0 bg-blanc border-b border-mushroom/30 p-4 flex justify-end z-10">
+          <button
+            onClick={closeMobileMenu}
+            className="p-2 text-earth hover:text-khaki transition-colors"
+            aria-label="Close menu"
+          >
+            <X className="w-6 h-6" />
+          </button>
+        </div>
+        <div className="px-4 py-6 md:px-6 md:py-8 space-y-4">
+          
+          {/* Navigation Links */}
+          <Link 
+            href="/albums" 
+            className="block text-earth hover:text-khaki transition-colors font-medium py-3 px-2 rounded-lg hover:bg-blanket/30"
+            onClick={closeMobileMenu}
+          >
+            Albums
+          </Link>
+
+          {user && isAdmin(user.email) && (
+            <Link 
+              href="/admin" 
+              className="block text-sage hover:text-khaki transition-colors font-medium py-3 px-2 rounded-lg hover:bg-blanket/30"
+              onClick={closeMobileMenu}
+            >
+              Admin Panel
+            </Link>
+          )}
+
+          {user && (
+            <>
+              <Link 
+                href="/account" 
+                className="block text-earth hover:text-khaki transition-colors font-medium py-3 px-2 rounded-lg hover:bg-blanket/30"
+                onClick={closeMobileMenu}
+              >
+                My Account
+              </Link>
+
+              <Link 
+                href="/donate" 
+                className="block text-earth hover:text-brand-khaki transition-colors font-medium py-3 px-2 rounded-lg hover:bg-blanket/30"
+                onClick={closeMobileMenu}
+              >
+                Support Alexis
+              </Link>
+
+              <Link 
+                href="/cart" 
+                className="block text-earth hover:text-sage transition-colors font-medium py-3 px-2 rounded-lg hover:bg-blanket/30"
+                onClick={closeMobileMenu}
+              >
+                Cart {cartCount > 0 && `(${cartCount})`}
+              </Link>
+
+              <button
+                onClick={() => {
+                  handleSignOut();
+                  closeMobileMenu();
+                }}
+                className="block w-full text-left text-earth hover:text-sage transition-colors font-medium py-3 px-2 rounded-lg hover:bg-blanket/30"
+              >
+                Sign Out
+              </button>
+            </>
+          )}
+
+          {/* Follow me section */}
+          <div className="pt-4 mt-4 border-t border-mushroom/30">
+            <p className="text-earth font-medium mb-3 px-2">Follow me</p>
+            <div className="flex items-center space-x-4 px-2">
+              <a
+                href={INSTAGRAM_URL}
+                target="_blank"
+                rel="noreferrer"
+                onClick={(e) => {
+                  if (INSTAGRAM_URL === "PUT_PLACEHOLDER" || INSTAGRAM_URL.includes("PUT_PLACEHOLDER")) {
+                    e.preventDefault();
+                    return;
+                  }
+                  closeMobileMenu();
+                }}
+                className="p-2 text-earth hover:text-brand-khaki transition-colors rounded-lg hover:bg-blanket/30"
+                aria-label="Instagram"
+              >
+                <Instagram className="w-6 h-6" />
+              </a>
+              <a
+                href={YOUTUBE_URL}
+                target="_blank"
+                rel="noreferrer"
+                onClick={(e) => {
+                  if (YOUTUBE_URL === "PUT_PLACEHOLDER" || YOUTUBE_URL.includes("PUT_PLACEHOLDER")) {
+                    e.preventDefault();
+                    return;
+                  }
+                  closeMobileMenu();
+                }}
+                className="p-2 text-earth hover:text-brand-khaki transition-colors rounded-lg hover:bg-blanket/30"
+                aria-label="YouTube"
+              >
+                <Youtube className="w-6 h-6" />
+              </a>
+            </div>
+          </div>
+
+          {!user && (
+            <button
+              onClick={() => {
+                handleSignIn();
+                closeMobileMenu();
+              }}
+              className="block w-full btn-primary text-center py-3"
+            >
+              Login or Sign Up
+            </button>
+          )}
+        </div>
+      </div>
+    </>,
+    document.body
+  ) : null;
+
   return (
     <>
       <header 
@@ -243,150 +394,6 @@ export default function Header() {
               )}
             </div>
           </div>
-
-          {/* Menu Overlay (Mobile & Desktop) */}
-          {mobileMenuOpen && (
-            <>
-              {/* Backdrop - full screen overlay */}
-              <div 
-                className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[60]"
-                onClick={closeMobileMenu}
-              ></div>
-
-              {/* Menu Content - fixed to far left edge of viewport */}
-              <div 
-                className="fixed top-0 left-0 h-screen bg-blanc border-r border-mushroom/30 shadow-lg z-[70] overflow-y-auto w-[280px] md:w-[360px]"
-                style={{ 
-                  left: 0,
-                  top: 0,
-                  marginLeft: 0,
-                  marginTop: 0,
-                  transform: 'none'
-                }}
-              >
-                {/* Close button inside drawer at top */}
-                <div className="sticky top-0 bg-blanc border-b border-mushroom/30 p-4 flex justify-end z-10">
-                  <button
-                    onClick={closeMobileMenu}
-                    className="p-2 text-earth hover:text-khaki transition-colors"
-                    aria-label="Close menu"
-                  >
-                    <X className="w-6 h-6" />
-                  </button>
-                </div>
-                <div className="px-4 py-6 md:px-6 md:py-8 space-y-4">
-                  
-                  {/* Navigation Links */}
-                  <Link 
-                    href="/albums" 
-                    className="block text-earth hover:text-khaki transition-colors font-medium py-3 px-2 rounded-lg hover:bg-blanket/30"
-                    onClick={closeMobileMenu}
-                  >
-                    Albums
-                  </Link>
-
-                  {user && isAdmin(user.email) && (
-                    <Link 
-                      href="/admin" 
-                      className="block text-sage hover:text-khaki transition-colors font-medium py-3 px-2 rounded-lg hover:bg-blanket/30"
-                      onClick={closeMobileMenu}
-                    >
-                      Admin Panel
-                    </Link>
-                  )}
-
-                  {user && (
-                    <>
-                      <Link 
-                        href="/account" 
-                        className="block text-earth hover:text-khaki transition-colors font-medium py-3 px-2 rounded-lg hover:bg-blanket/30"
-                        onClick={closeMobileMenu}
-                      >
-                        My Account
-                      </Link>
-
-                      <Link 
-                        href="/donate" 
-                        className="block text-earth hover:text-brand-khaki transition-colors font-medium py-3 px-2 rounded-lg hover:bg-blanket/30"
-                        onClick={closeMobileMenu}
-                      >
-                        Support Alexis
-                      </Link>
-
-                      <Link 
-                        href="/cart" 
-                        className="block text-earth hover:text-sage transition-colors font-medium py-3 px-2 rounded-lg hover:bg-blanket/30"
-                        onClick={closeMobileMenu}
-                      >
-                        Cart {cartCount > 0 && `(${cartCount})`}
-                      </Link>
-
-                      <button
-                        onClick={() => {
-                          handleSignOut();
-                          closeMobileMenu();
-                        }}
-                        className="block w-full text-left text-earth hover:text-sage transition-colors font-medium py-3 px-2 rounded-lg hover:bg-blanket/30"
-                      >
-                        Sign Out
-                      </button>
-                    </>
-                  )}
-
-                  {/* Follow me section */}
-                  <div className="pt-4 mt-4 border-t border-mushroom/30">
-                    <p className="text-earth font-medium mb-3 px-2">Follow me</p>
-                    <div className="flex items-center space-x-4 px-2">
-                      <a
-                        href={INSTAGRAM_URL}
-                        target="_blank"
-                        rel="noreferrer"
-                        onClick={(e) => {
-                          if (INSTAGRAM_URL === "PUT_PLACEHOLDER" || INSTAGRAM_URL.includes("PUT_PLACEHOLDER")) {
-                            e.preventDefault();
-                            return;
-                          }
-                          closeMobileMenu();
-                        }}
-                        className="p-2 text-earth hover:text-brand-khaki transition-colors rounded-lg hover:bg-blanket/30"
-                        aria-label="Instagram"
-                      >
-                        <Instagram className="w-6 h-6" />
-                      </a>
-                      <a
-                        href={YOUTUBE_URL}
-                        target="_blank"
-                        rel="noreferrer"
-                        onClick={(e) => {
-                          if (YOUTUBE_URL === "PUT_PLACEHOLDER" || YOUTUBE_URL.includes("PUT_PLACEHOLDER")) {
-                            e.preventDefault();
-                            return;
-                          }
-                          closeMobileMenu();
-                        }}
-                        className="p-2 text-earth hover:text-brand-khaki transition-colors rounded-lg hover:bg-blanket/30"
-                        aria-label="YouTube"
-                      >
-                        <Youtube className="w-6 h-6" />
-                      </a>
-                    </div>
-                  </div>
-
-                  {!user && (
-                    <button
-                      onClick={() => {
-                        handleSignIn();
-                        closeMobileMenu();
-                      }}
-                      className="block w-full btn-primary text-center py-3"
-                    >
-                      Login or Sign Up
-                    </button>
-                  )}
-                </div>
-              </div>
-            </>
-          )}
         </div>
       </header>
 
