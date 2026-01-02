@@ -7,11 +7,10 @@ import { isAdmin } from '@/lib/auth';
 import { User, LogOut, ShoppingCart, Menu, X, DollarSign, Instagram, Youtube } from 'lucide-react';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 
-// Social media URLs - single source of truth
-const INSTAGRAM_URL = process.env.NEXT_PUBLIC_INSTAGRAM_URL ?? "PUT_PLACEHOLDER";
-const YOUTUBE_URL = process.env.NEXT_PUBLIC_YOUTUBE_URL ?? "PUT_PLACEHOLDER";
-
 export default function Header() {
+  // Social media URLs - access env vars in component to ensure they're available
+  const INSTAGRAM_URL = process.env.NEXT_PUBLIC_INSTAGRAM_URL || "https://www.instagram.com/lexigriswold";
+  const YOUTUBE_URL = process.env.NEXT_PUBLIC_YOUTUBE_URL || "https://www.youtube.com/@alexisgriswold";
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [cartCount, setCartCount] = useState(0);
@@ -254,8 +253,8 @@ export default function Header() {
                 onClick={closeMobileMenu}
               ></div>
 
-              {/* Menu Content */}
-              <div className="fixed left-0 top-14 sm:top-16 h-[calc(100vh-3.5rem)] sm:h-[calc(100vh-4rem)] bg-blanc border-r border-mushroom/30 shadow-lg z-50 w-64 overflow-y-auto">
+              {/* Menu Content - positioned to align with hamburger button */}
+              <div className="fixed left-0 top-0 h-screen bg-blanc border-r border-mushroom/30 shadow-lg z-50 w-64 overflow-y-auto pt-14 sm:pt-16">
                 <div className="px-4 py-6 space-y-4">
                   
                   {/* Navigation Links */}
@@ -323,7 +322,13 @@ export default function Header() {
                         href={INSTAGRAM_URL}
                         target="_blank"
                         rel="noreferrer"
-                        onClick={closeMobileMenu}
+                        onClick={(e) => {
+                          if (INSTAGRAM_URL === "PUT_PLACEHOLDER" || INSTAGRAM_URL.includes("PUT_PLACEHOLDER")) {
+                            e.preventDefault();
+                            return;
+                          }
+                          closeMobileMenu();
+                        }}
                         className="p-2 text-earth hover:text-brand-khaki transition-colors rounded-lg hover:bg-blanket/30"
                         aria-label="Instagram"
                       >
@@ -333,7 +338,13 @@ export default function Header() {
                         href={YOUTUBE_URL}
                         target="_blank"
                         rel="noreferrer"
-                        onClick={closeMobileMenu}
+                        onClick={(e) => {
+                          if (YOUTUBE_URL === "PUT_PLACEHOLDER" || YOUTUBE_URL.includes("PUT_PLACEHOLDER")) {
+                            e.preventDefault();
+                            return;
+                          }
+                          closeMobileMenu();
+                        }}
                         className="p-2 text-earth hover:text-brand-khaki transition-colors rounded-lg hover:bg-blanket/30"
                         aria-label="YouTube"
                       >
