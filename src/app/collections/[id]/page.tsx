@@ -231,7 +231,7 @@ export default function CollectionDetailPage() {
           )}
         </div>
 
-        <div className="bg-blanc border border-mushroom/30 rounded-xl sm:rounded-2xl lg:rounded-xl shadow-soft overflow-hidden">
+        <div className="bg-blanc border border-mushroom/30 rounded-xl sm:rounded-2xl lg:rounded-xl shadow-soft overflow-hidden md:max-w-[75%] md:mx-auto">
           {/* 4:5 aspect ratio thumbnail - reduced height on desktop */}
           <div className="aspect-[4/5] lg:aspect-[5/6] relative overflow-hidden">
             {thumbnailUrl ? (
