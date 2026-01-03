@@ -4,7 +4,6 @@ import './globals.css'
 import { Providers } from './providers'
 import AgeGateOverlay from '../components/AgeGateOverlay'
 import Header from './Header'
-import Footer from '../components/Footer'
 import ClientErrorHandler from '../components/ClientErrorHandler'
 import ClientRuntimeGuard from '../components/ClientRuntimeGuard'
 
@@ -34,7 +33,6 @@ export default function RootLayout({
             <main className="pt-14 sm:pt-16">
               {children}
             </main>
-            <Footer />
         </Providers>
       </body>
     </html>

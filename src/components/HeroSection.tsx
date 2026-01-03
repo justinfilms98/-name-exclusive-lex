@@ -278,12 +278,14 @@ export default function HeroSection() {
               </Link>
             )}
           </div>
-
-          {/* Byline */}
-          <p className="mt-[3.25rem] text-sm sm:text-base font-medium tracking-wide uppercase text-white/90 animate-fade-in">
-            By Alexis Griswold
-          </p>
         </div>
+      </div>
+
+      {/* Byline - Positioned below hero content */}
+      <div className="absolute bottom-16 left-1/2 transform -translate-x-1/2 z-10 w-full max-w-4xl mx-auto px-4">
+        <p className="text-center text-sm sm:text-base font-medium tracking-wide uppercase text-white/90 animate-fade-in">
+          By Alexis Griswold
+        </p>
       </div>
 
       {/* Navigation Arrows - Only show if videos are available */}
