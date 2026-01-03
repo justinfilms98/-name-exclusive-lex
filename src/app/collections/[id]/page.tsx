@@ -257,7 +257,7 @@ export default function CollectionDetailPage() {
 
           <div className="p-4 sm:p-6 md:p-8 lg:p-5">
             <div className="mb-4 sm:mb-6 lg:mb-3">
-              <h1 className="heading-1 mb-2 sm:mb-3 lg:mb-2 md:!text-3xl lg:!text-3xl">{collection.title}</h1>
+              <h1 className="heading-1 mb-2 sm:mb-3 lg:mb-2">{collection.title}</h1>
               <div className="flex items-center gap-3 text-lg sm:text-xl lg:text-sm text-earth mb-4 lg:mb-2 flex-wrap">
                 <span className="font-bold">${formatPrice(collection.price)}</span>
                 <span className="text-sage">•</span>

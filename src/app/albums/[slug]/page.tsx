@@ -205,7 +205,7 @@ export default function AlbumDetailPage() {
       <div className="max-w-7xl mx-auto px-5 sm:px-6 md:px-8 py-4 sm:py-6 md:py-8">
         <div className="flex flex-col items-center text-center gap-3 sm:gap-4 mb-4 sm:mb-6">
           <div className="flex flex-col items-center">
-            <h1 className="heading-1 mb-1 sm:mb-2 md:!text-3xl lg:!text-3xl">{album?.name}</h1>
+            <h1 className="heading-1 mb-1 sm:mb-2">{album?.name}</h1>
               <p className="text-earth opacity-75 text-base sm:text-lg md:text-sm lg:text-sm max-w-2xl">
                 {album?.description || "Curated collection album."}
               </p>
