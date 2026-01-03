@@ -278,11 +278,6 @@ export default function HeroSection() {
               </Link>
             )}
           </div>
-
-          {/* Byline */}
-          <p className="mt-8 text-base sm:text-lg md:text-xl text-white/90 font-semibold text-shadow animate-fade-in">
-            By Alexis Griswold
-          </p>
         </div>
       </div>
 
