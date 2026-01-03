@@ -280,7 +280,7 @@ export default function HeroSection() {
           </div>
 
           {/* Byline */}
-          <p className="mt-8 text-sm sm:text-base font-medium tracking-wide uppercase text-white/90 animate-fade-in">
+          <p className="mt-[3.25rem] text-sm sm:text-base font-medium tracking-wide uppercase text-white/90 animate-fade-in">
             By Alexis Griswold
           </p>
         </div>
