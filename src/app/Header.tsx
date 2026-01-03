@@ -16,6 +16,7 @@ export default function Header() {
   const [loading, setLoading] = useState(true);
   const [cartCount, setCartCount] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   // Construction banner removed; keep header at top with no offset
 
@@ -38,6 +39,11 @@ export default function Header() {
     );
 
     return () => subscription.unsubscribe();
+  }, []);
+
+  // Set mounted state for portal rendering
+  useEffect(() => {
+    setMounted(true);
   }, []);
 
   // Load cart count from localStorage
@@ -128,29 +134,17 @@ export default function Header() {
   };
 
   // Render drawer menu at root level using portal
-  const drawerMenu = mobileMenuOpen && typeof window !== 'undefined' ? createPortal(
+  const drawerMenu = mobileMenuOpen && mounted && typeof window !== 'undefined' ? createPortal(
     <>
       {/* Backdrop - full screen overlay */}
       <div 
         className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[60]"
         onClick={closeMobileMenu}
-        style={{ position: 'fixed', inset: 0 }}
       />
 
       {/* Menu Content - fixed to far left edge of viewport, mounted at root */}
       <div 
-        className="bg-blanc border-r border-mushroom/30 shadow-lg overflow-y-auto"
-        style={{ 
-          position: 'fixed',
-          left: 0,
-          top: 0,
-          height: '100vh',
-          width: '320px',
-          margin: 0,
-          padding: 0,
-          transform: 'none',
-          zIndex: 70
-        }}
+        className="fixed left-0 top-0 h-screen w-[280px] md:w-[360px] bg-blanc border-r border-mushroom/30 shadow-lg overflow-y-auto z-[70]"
       >
         {/* Close button inside drawer at top */}
         <div className="sticky top-0 bg-blanc border-b border-mushroom/30 p-4 flex justify-end z-10">
@@ -396,7 +390,7 @@ export default function Header() {
           </div>
         </div>
       </header>
-
+      {drawerMenu}
     </>
   );
 } 
