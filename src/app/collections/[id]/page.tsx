@@ -69,8 +69,12 @@ export default function CollectionDetailPage() {
     const load = async () => {
       if (!id) return;
 
-      // Session
+      // Session - check authentication first
       const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
+        router.push('/login');
+        return;
+      }
       setUser(session?.user || null);
 
       // Collection

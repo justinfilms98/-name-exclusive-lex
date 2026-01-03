@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { getAlbums, getSignedUrl } from "@/lib/supabase";
+import { useRouter } from "next/navigation";
+import { getAlbums, getSignedUrl, supabase } from "@/lib/supabase";
 import { Images } from "lucide-react";
 import ClientErrorBoundary from '@/components/ClientErrorBoundary';
 
@@ -18,12 +19,20 @@ interface Album {
 }
 
 export default function AlbumsPage() {
+  const router = useRouter();
   const [albums, setAlbums] = useState<Album[]>([]);
   const [loading, setLoading] = useState(true);
   const [thumbnailUrls, setThumbnailUrls] = useState<{[key: string]: string}>({});
 
   useEffect(() => {
     const load = async () => {
+      // Check authentication first
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
+        router.push('/login');
+        return;
+      }
+
       const { data } = await getAlbums();
       if (data) {
         setAlbums(data);
@@ -32,7 +41,7 @@ export default function AlbumsPage() {
       setLoading(false);
     };
     load();
-  }, []);
+  }, [router]);
 
   const loadThumbnails = async (albums: Album[]) => {
     const thumbnailPromises = albums.map(async (album) => {

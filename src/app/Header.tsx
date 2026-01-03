@@ -159,13 +159,15 @@ export default function Header() {
         <div className="px-4 py-6 md:px-6 md:py-8 space-y-4">
           
           {/* Navigation Links */}
-          <Link 
-            href="/albums" 
-            className="block text-earth hover:text-khaki transition-colors font-medium py-3 px-2 rounded-lg hover:bg-blanket/30"
-            onClick={closeMobileMenu}
-          >
-            Albums
-          </Link>
+          {user && (
+            <Link 
+              href="/albums" 
+              className="block text-earth hover:text-khaki transition-colors font-medium py-3 px-2 rounded-lg hover:bg-blanket/30"
+              onClick={closeMobileMenu}
+            >
+              Albums
+            </Link>
+          )}
 
           {user && isAdmin(user.email) && (
             <Link 
@@ -290,9 +292,11 @@ export default function Header() {
             
             {/* Left Side - Desktop Navigation Links (with left padding to account for hamburger) */}
             <div className="hidden md:flex items-center space-x-8 pl-12 md:pl-16">
-              <Link href="/albums" className="text-earth hover:text-khaki transition-colors font-medium">
-                Albums
-              </Link>
+              {user && (
+                <Link href="/albums" className="text-earth hover:text-khaki transition-colors font-medium">
+                  Albums
+                </Link>
+              )}
               {user && isAdmin(user.email) && (
                 <Link href="/admin" className="text-sage hover:text-khaki transition-colors font-medium">
                   Admin

@@ -66,8 +66,12 @@ export default function CollectionsPage() {
 
   useEffect(() => {
     const loadData = async () => {
-      // Get user session
+      // Get user session - check authentication first
       const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
+        router.push('/login');
+        return;
+      }
       setUser(session?.user || null);
 
       // Get collections

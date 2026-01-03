@@ -65,8 +65,12 @@ export default function AlbumDetailPage() {
     const load = async () => {
       if (!slug) return;
 
-      // Session
+      // Session - check authentication first
       const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
+        router.push('/login');
+        return;
+      }
       setUser(session?.user || null);
 
       // Album

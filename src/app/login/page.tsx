@@ -80,7 +80,7 @@ export default function LoginPage() {
   // Don't render until session is checked
   if (!sessionChecked) {
     return (
-      <div className="min-h-screen bg-almond pt-20 flex items-center justify-center">
+      <div className="min-h-[calc(100vh-64px)] bg-almond pt-10 sm:pt-12 flex items-center justify-center">
         <div className="text-center">
           <div className="w-12 h-12 spinner mx-auto mb-4"></div>
           <p className="text-sage text-lg">Checking session...</p>
@@ -91,7 +91,7 @@ export default function LoginPage() {
 
   if (user) {
     return (
-      <div className="min-h-screen bg-almond pt-20 flex items-center justify-center">
+      <div className="min-h-[calc(100vh-64px)] bg-almond pt-10 sm:pt-12 flex items-center justify-center">
         <div className="text-center">
           <div className="w-12 h-12 spinner mx-auto mb-4"></div>
           <p className="text-sage text-lg">Redirecting to home...</p>
@@ -101,8 +101,8 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-almond pt-20">
-      <div className="max-w-md mx-auto px-4 py-16">
+    <div className="min-h-[calc(100vh-64px)] bg-almond pt-10 sm:pt-12">
+      <div className="max-w-md mx-auto px-4 py-8">
         
         {/* Logo and Title */}
         <div className="text-center mb-12">
