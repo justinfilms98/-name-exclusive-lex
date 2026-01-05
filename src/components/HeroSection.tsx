@@ -53,35 +53,51 @@ export default function HeroSection() {
   useEffect(() => {
     const handleAgeVerified = () => {
       setAgeVerified(true);
-      // Attempt to play video when age is verified
-      setTimeout(() => {
-        attemptVideoPlay();
-      }, 100);
+      // Load video URLs if not already loaded
+      if (heroVideos.length > 0 && videoUrls.length === 0) {
+        loadAllVideoUrls();
+      }
     };
 
     window.addEventListener('exclusivelex:age-verified', handleAgeVerified);
     return () => {
       window.removeEventListener('exclusivelex:age-verified', handleAgeVerified);
     };
-  }, []);
+  }, [heroVideos.length, videoUrls.length]);
 
   // Function to attempt video playback (called when age is verified)
   const attemptVideoPlay = () => {
     const v = singleVideoRef.current;
-    if (!v || !videosLoaded || videoUrls.length === 0 || ageVerified !== true) return;
+    if (!v || !ageVerified) {
+      console.log('Cannot play: video ref missing or age not verified', { v: !!v, ageVerified });
+      return;
+    }
+
+    if (!videosLoaded || videoUrls.length === 0) {
+      console.log('Cannot play: videos not loaded yet', { videosLoaded, videoUrlsLength: videoUrls.length });
+      // If videos aren't loaded but we have hero videos, try loading them
+      if (heroVideos.length > 0) {
+        loadAllVideoUrls();
+      }
+      return;
+    }
 
     // Ensure video has src set
     const url = videoUrls[currentVideoIndex];
-    if (!url) return;
+    if (!url) {
+      console.log('Cannot play: no URL for current video index', currentVideoIndex);
+      return;
+    }
 
     try {
+      console.log('Attempting to play video:', url);
       // Ensure video attributes are set
       v.muted = true;
       v.defaultMuted = true;
       (v as HTMLVideoElement & { playsInline?: boolean }).playsInline = true;
       
-      // If src is not set, set it
-      if (!v.src) {
+      // If src is not set or different, set it
+      if (!v.src || v.src !== url) {
         v.src = url;
         v.load();
       }
@@ -91,6 +107,7 @@ export default function HeroSection() {
       if (playPromise !== undefined) {
         playPromise
           .then(() => {
+            console.log('Video playing successfully');
             setAutoplayBlocked(false);
             setVideosPlaying(true);
           })
@@ -125,11 +142,18 @@ export default function HeroSection() {
   };
 
   useEffect(() => {
-    // Only load video URLs if age is verified
+    // Load video URLs when age is verified and videos are available
     if (heroVideos.length > 0 && ageVerified === true) {
       loadAllVideoUrls();
     }
   }, [heroVideos, ageVerified]);
+
+  // Also trigger video URL loading when age verification changes to true
+  useEffect(() => {
+    if (ageVerified === true && heroVideos.length > 0 && videoUrls.length === 0) {
+      loadAllVideoUrls();
+    }
+  }, [ageVerified, heroVideos.length]);
 
   // Set timeout for video loading (3 seconds)
   useEffect(() => {
@@ -239,20 +263,35 @@ export default function HeroSection() {
 
   const loadAllVideoUrls = async () => {
     try {
+      console.log('Loading hero video URLs, heroVideos count:', heroVideos.length);
       const urls = await Promise.all(
         heroVideos.map(async (video) => {
           // ✅ Use media_filename if available, otherwise fall back to video_path
           const videoPath = video.media_filename || video.video_path;
-          const { data, error } = await getSignedUrl('media', videoPath, 3600);
-          if (error || !data) {
-            console.error('Failed to get video URL:', error);
+          if (!videoPath) {
+            console.warn('Hero video has no path:', video);
             return '';
           }
+          const { data, error } = await getSignedUrl('media', videoPath, 3600);
+          if (error || !data) {
+            console.error('Failed to get video URL for', videoPath, ':', error);
+            return '';
+          }
+          console.log('Successfully loaded video URL for', videoPath);
           return data.signedUrl;
         })
       );
-      setVideoUrls(urls.filter(url => url !== ''));
+      const validUrls = urls.filter(url => url !== '');
+      console.log('Loaded', validUrls.length, 'valid video URLs');
+      setVideoUrls(validUrls);
       setVideosLoaded(true);
+      
+      // After URLs are loaded, attempt to play
+      if (validUrls.length > 0 && ageVerified === true) {
+        setTimeout(() => {
+          attemptVideoPlay();
+        }, 200);
+      }
     } catch (err) {
       console.error('Failed to load video URLs:', err);
     }
