@@ -25,6 +25,7 @@ export default function HeroSection() {
   const [videoError, setVideoError] = useState(false);
   const [videoLoadTimeout, setVideoLoadTimeout] = useState(false);
   const [ageVerified, setAgeVerified] = useState<boolean | null>(null);
+  const [autoplayBlocked, setAutoplayBlocked] = useState(false);
   const videoRefs = useRef<HTMLVideoElement[]>([]);
   const singleVideoRef = useRef<HTMLVideoElement | null>(null);
   const loadTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -33,11 +34,95 @@ export default function HeroSection() {
     // Check age verification before loading videos
     if (typeof window !== 'undefined') {
       const verified = localStorage.getItem('exclusivelex_age_verified');
-      setAgeVerified(verified === 'true');
+      const isVerified = verified === 'true';
+      setAgeVerified(isVerified);
+      
+      // If already verified, attempt to play video
+      if (isVerified) {
+        // Small delay to ensure component is mounted
+        setTimeout(() => {
+          attemptVideoPlay();
+        }, 100);
+      }
     }
     loadHeroVideos();
     loadUser();
   }, []);
+
+  // Listen for age verification event
+  useEffect(() => {
+    const handleAgeVerified = () => {
+      setAgeVerified(true);
+      // Attempt to play video when age is verified
+      setTimeout(() => {
+        attemptVideoPlay();
+      }, 100);
+    };
+
+    window.addEventListener('exclusivelex:age-verified', handleAgeVerified);
+    return () => {
+      window.removeEventListener('exclusivelex:age-verified', handleAgeVerified);
+    };
+  }, []);
+
+  // Function to attempt video playback (called when age is verified)
+  const attemptVideoPlay = () => {
+    const v = singleVideoRef.current;
+    if (!v || !videosLoaded || videoUrls.length === 0 || ageVerified !== true) return;
+
+    // Ensure video has src set
+    const url = videoUrls[currentVideoIndex];
+    if (!url) return;
+
+    try {
+      // Ensure video attributes are set
+      v.muted = true;
+      v.defaultMuted = true;
+      (v as HTMLVideoElement & { playsInline?: boolean }).playsInline = true;
+      
+      // If src is not set, set it
+      if (!v.src) {
+        v.src = url;
+        v.load();
+      }
+      
+      // Try to play
+      const playPromise = v.play();
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            setAutoplayBlocked(false);
+            setVideosPlaying(true);
+          })
+          .catch((error) => {
+            console.log('Autoplay blocked, showing tap-to-play:', error);
+            setAutoplayBlocked(true);
+          });
+      }
+    } catch (error) {
+      console.log('Error attempting video play:', error);
+      setAutoplayBlocked(true);
+    }
+  };
+
+  // Handle manual play button click
+  const handleManualPlay = () => {
+    const v = singleVideoRef.current;
+    if (!v) return;
+
+    try {
+      v.play()
+        .then(() => {
+          setAutoplayBlocked(false);
+          setVideosPlaying(true);
+        })
+        .catch((error) => {
+          console.error('Error playing video:', error);
+        });
+    } catch (error) {
+      console.error('Error playing video:', error);
+    }
+  };
 
   useEffect(() => {
     // Only load video URLs if age is verified
@@ -77,6 +162,9 @@ export default function HeroSection() {
     const v = singleVideoRef.current;
     const url = videoUrls[currentVideoIndex];
     if (!v || !videosLoaded || !url || ageVerified !== true) return;
+    
+    // Reset autoplay blocked state when video changes
+    setAutoplayBlocked(false);
     try {
       // Stop and hard reset source before applying attributes
       try { v.pause(); } catch {}
@@ -195,33 +283,54 @@ export default function HeroSection() {
 
       {/* Optional Hero Videos - Only show if age is verified */}
       {ageVerified === true && videoUrls.length > 0 && !videoError && !videoLoadTimeout && (
-        <video
-          key={currentVideoIndex}
-          ref={singleVideoRef}
-          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 opacity-100`}
-          autoPlay
-          muted
-          loop
-          playsInline
-          preload="auto"
-          controls={false}
-          disablePictureInPicture
-          // src is set programmatically after attributes for better mobile autoplay compliance
-          onPlay={() => {
-            setVideosPlaying(true);
-            if (loadTimeoutRef.current) {
-              clearTimeout(loadTimeoutRef.current);
-            }
-          }}
-          onPause={() => setVideosPlaying(false)}
-          onError={() => {
-            setVideoError(true);
-            if (loadTimeoutRef.current) {
-              clearTimeout(loadTimeoutRef.current);
-            }
-          }}
-          webkit-playsinline="true"
-        />
+        <div className="absolute inset-0 w-full h-full">
+          <video
+            key={currentVideoIndex}
+            ref={singleVideoRef}
+            className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 opacity-100`}
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="auto"
+            controls={false}
+            disablePictureInPicture
+            // src is set programmatically after attributes for better mobile autoplay compliance
+            onPlay={() => {
+              setVideosPlaying(true);
+              setAutoplayBlocked(false);
+              if (loadTimeoutRef.current) {
+                clearTimeout(loadTimeoutRef.current);
+              }
+            }}
+            onPause={() => setVideosPlaying(false)}
+            onError={() => {
+              setVideoError(true);
+              if (loadTimeoutRef.current) {
+                clearTimeout(loadTimeoutRef.current);
+              }
+            }}
+            webkit-playsinline="true"
+          />
+          
+          {/* Tap to Play Overlay - shown when autoplay is blocked */}
+          {autoplayBlocked && (
+            <div 
+              className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm cursor-pointer z-10"
+              onClick={handleManualPlay}
+            >
+              <button
+                className="bg-white/90 hover:bg-white text-brand-pine rounded-full p-6 shadow-2xl transition-all transform hover:scale-110"
+                aria-label="Play video"
+              >
+                <Play className="w-12 h-12" />
+              </button>
+              <p className="absolute bottom-8 text-white text-sm font-medium">
+                Tap to play
+              </p>
+            </div>
+          )}
+        </div>
       )}
 
       {/* Fallback static gradient background if video fails or times out */}

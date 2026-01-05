@@ -31,7 +31,17 @@ export default function EntryPage() {
 
       setUser(session.user);
 
-      // Check if user has active entry access
+      // Check if user has active entry access (admin users bypass)
+      const { isAdminEmail } = await import('@/lib/auth');
+      const isAdmin = isAdminEmail(session.user.email);
+      
+      if (isAdmin) {
+        setHasAccess(true);
+        // Redirect to home if admin
+        router.push('/?welcome=1');
+        return;
+      }
+
       const { data: access, error } = await supabase
         .from('entry_access')
         .select('status')

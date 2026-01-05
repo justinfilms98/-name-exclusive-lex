@@ -65,20 +65,25 @@ export default function CartPage() {
 
       setUser(session.user);
 
-      // Check entry access
-      const { data: entryAccess, error: accessError } = await supabase
-        .from('entry_access')
-        .select('status')
-        .eq('user_id', session.user.id)
-        .single();
+      // Check entry access (admin users bypass)
+      const { isAdminEmail } = await import('@/lib/auth');
+      const isAdmin = isAdminEmail(session.user.email);
+      
+      if (!isAdmin) {
+        const { data: entryAccess, error: accessError } = await supabase
+          .from('entry_access')
+          .select('status')
+          .eq('user_id', session.user.id)
+          .single();
 
-      if (accessError && accessError.code !== 'PGRST116') {
-        console.error('Error checking entry access:', accessError);
-      }
+        if (accessError && accessError.code !== 'PGRST116') {
+          console.error('Error checking entry access:', accessError);
+        }
 
-      if (!entryAccess || entryAccess.status !== 'active') {
-        window.location.href = '/entry';
-        return;
+        if (!entryAccess || entryAccess.status !== 'active') {
+          window.location.href = '/entry';
+          return;
+        }
       }
       
       // Load user purchases if logged in

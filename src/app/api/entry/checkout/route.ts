@@ -60,6 +60,16 @@ export async function POST(request: NextRequest) {
 
     console.log('User authenticated for entry fee:', user.id, 'Email:', user.email);
 
+    // Admin users bypass entry fee requirement
+    const { isAdminEmail } = await import('@/lib/auth');
+    if (isAdminEmail(user.email)) {
+      console.log('Admin user attempting entry fee checkout - bypassing');
+      return NextResponse.json(
+        { error: 'Admin users do not need to pay entry fee' },
+        { status: 400 }
+      );
+    }
+
     // Check if user already has active entry access
     const { data: existingAccess, error: accessError } = await supabase
       .from('entry_access')

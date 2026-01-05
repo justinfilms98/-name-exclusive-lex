@@ -1,9 +1,44 @@
 import { supabase } from './supabase'
 
-export const ADMIN_EMAIL = 'contact.exclusivelex@gmail.com' // Admin access email
+export const ADMIN_EMAIL = 'contact.exclusivelex@gmail.com' // Admin access email (legacy, kept for backwards compatibility)
 
+/**
+ * Get list of admin emails from environment variable
+ * Supports comma-separated list: "admin1@email.com,admin2@email.com"
+ * Case-insensitive comparison
+ */
+function getAdminEmails(): string[] {
+  const envEmails = process.env.ADMIN_EMAILS || process.env.NEXT_PUBLIC_ADMIN_EMAILS;
+  if (!envEmails) {
+    // Fallback to legacy single admin email
+    return [ADMIN_EMAIL];
+  }
+  
+  return envEmails
+    .split(',')
+    .map(email => email.trim().toLowerCase())
+    .filter(email => email.length > 0);
+}
+
+/**
+ * Check if an email is in the admin allowlist
+ * Case-insensitive comparison
+ */
+export const isAdminEmail = (email: string | undefined | null): boolean => {
+  if (!email) return false;
+  
+  const adminEmails = getAdminEmails();
+  const normalizedEmail = email.toLowerCase().trim();
+  
+  return adminEmails.includes(normalizedEmail);
+}
+
+/**
+ * Legacy function - kept for backwards compatibility
+ * @deprecated Use isAdminEmail instead
+ */
 export const isAdmin = (email: string | undefined | null) => {
-  return email === ADMIN_EMAIL
+  return isAdminEmail(email);
 }
 
 export const requireAuth = async () => {

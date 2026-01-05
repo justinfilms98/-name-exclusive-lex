@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { isAdminEmail } from './auth';
 
 export interface EntryAccessStatus {
   hasAccess: boolean;
@@ -7,9 +8,15 @@ export interface EntryAccessStatus {
 
 /**
  * Check if the current user has active entry access
+ * Admin users automatically have access (bypass entry fee)
  */
-export async function checkEntryAccess(userId: string): Promise<EntryAccessStatus> {
+export async function checkEntryAccess(userId: string, userEmail?: string | null): Promise<EntryAccessStatus> {
   try {
+    // Admin users bypass entry fee requirement
+    if (userEmail && isAdminEmail(userEmail)) {
+      return { hasAccess: true, status: 'active' };
+    }
+
     const { data: entryAccess, error } = await supabase
       .from('entry_access')
       .select('status')

@@ -74,20 +74,25 @@ export default function CollectionsPage() {
       }
       setUser(session?.user || null);
 
-      // Check entry access
-      const { data: entryAccess, error: accessError } = await supabase
-        .from('entry_access')
-        .select('status')
-        .eq('user_id', session.user.id)
-        .single();
+      // Check entry access (admin users bypass)
+      const { isAdminEmail } = await import('@/lib/auth');
+      const isAdmin = isAdminEmail(session.user.email);
+      
+      if (!isAdmin) {
+        const { data: entryAccess, error: accessError } = await supabase
+          .from('entry_access')
+          .select('status')
+          .eq('user_id', session.user.id)
+          .single();
 
-      if (accessError && accessError.code !== 'PGRST116') {
-        console.error('Error checking entry access:', accessError);
-      }
+        if (accessError && accessError.code !== 'PGRST116') {
+          console.error('Error checking entry access:', accessError);
+        }
 
-      if (!entryAccess || entryAccess.status !== 'active') {
-        router.push('/entry');
-        return;
+        if (!entryAccess || entryAccess.status !== 'active') {
+          router.push('/entry');
+          return;
+        }
       }
 
       // Get collections

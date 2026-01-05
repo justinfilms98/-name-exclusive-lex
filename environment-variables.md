@@ -16,6 +16,9 @@ STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret
 
 # Admin Configuration
 ADMIN_EMAIL=contact.exclusivelex@gmail.com
+# Comma-separated list of admin emails (case-insensitive)
+# Example: ADMIN_EMAILS=admin1@email.com,admin2@email.com
+ADMIN_EMAILS=contact.exclusivelex@gmail.com
 
 # WhatsApp API (Optional)
 WHATSAPP_API_KEY=your_whatsapp_api_key

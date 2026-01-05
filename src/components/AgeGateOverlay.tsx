@@ -32,6 +32,9 @@ export default function AgeGateOverlay() {
         if (isAdult) {
           localStorage.setItem('exclusivelex_age_verified', 'true');
           setIsVerified(true);
+          
+          // Dispatch custom event to signal age verification
+          window.dispatchEvent(new CustomEvent('exclusivelex:age-verified'));
         } else {
           // Redirect to /not-eligible immediately on decline
           window.location.href = '/not-eligible';
