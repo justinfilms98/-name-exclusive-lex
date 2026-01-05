@@ -13,7 +13,7 @@ export default function AgeGateOverlay() {
     // Check localStorage in useEffect to avoid hydration mismatch
     try {
       if (typeof window !== 'undefined') {
-        const verified = localStorage.getItem('age-verified');
+        const verified = localStorage.getItem('exclusivelex_age_verified');
         setIsVerified(verified === 'true');
         // Small delay for smooth entrance animation
         setTimeout(() => setMounted(true), 10);
@@ -30,10 +30,11 @@ export default function AgeGateOverlay() {
     try {
       if (typeof window !== 'undefined') {
         if (isAdult) {
-          localStorage.setItem('age-verified', 'true');
+          localStorage.setItem('exclusivelex_age_verified', 'true');
           setIsVerified(true);
         } else {
-          setShowWarning(true);
+          // Redirect to /not-eligible immediately on decline
+          window.location.href = '/not-eligible';
         }
       }
     } catch (error) {
@@ -173,7 +174,7 @@ export default function AgeGateOverlay() {
                 onClick={() => {
                   try {
                     if (typeof window !== 'undefined') {
-                      window.location.href = 'https://www.google.com';
+                      window.location.href = '/not-eligible';
                     }
                   } catch (error) {
                     console.error('[AgeGateOverlay] Error redirecting:', error);

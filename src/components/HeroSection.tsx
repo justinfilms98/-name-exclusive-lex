@@ -24,20 +24,27 @@ export default function HeroSection() {
   const [videosPlaying, setVideosPlaying] = useState(false);
   const [videoError, setVideoError] = useState(false);
   const [videoLoadTimeout, setVideoLoadTimeout] = useState(false);
+  const [ageVerified, setAgeVerified] = useState<boolean | null>(null);
   const videoRefs = useRef<HTMLVideoElement[]>([]);
   const singleVideoRef = useRef<HTMLVideoElement | null>(null);
   const loadTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
+    // Check age verification before loading videos
+    if (typeof window !== 'undefined') {
+      const verified = localStorage.getItem('exclusivelex_age_verified');
+      setAgeVerified(verified === 'true');
+    }
     loadHeroVideos();
     loadUser();
   }, []);
 
   useEffect(() => {
-    if (heroVideos.length > 0) {
+    // Only load video URLs if age is verified
+    if (heroVideos.length > 0 && ageVerified === true) {
       loadAllVideoUrls();
     }
-  }, [heroVideos]);
+  }, [heroVideos, ageVerified]);
 
   // Set timeout for video loading (3 seconds)
   useEffect(() => {
@@ -65,10 +72,11 @@ export default function HeroSection() {
   }, [heroVideos.length]);
 
   // Ensure current hero video autoplays reliably (single element approach)
+  // Only autoplay if age is verified
   useEffect(() => {
     const v = singleVideoRef.current;
     const url = videoUrls[currentVideoIndex];
-    if (!v || !videosLoaded || !url) return;
+    if (!v || !videosLoaded || !url || ageVerified !== true) return;
     try {
       // Stop and hard reset source before applying attributes
       try { v.pause(); } catch {}
@@ -185,8 +193,8 @@ export default function HeroSection() {
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/20 to-black/60"></div>
       </div>
 
-      {/* Optional Hero Videos */}
-      {videoUrls.length > 0 && !videoError && !videoLoadTimeout && (
+      {/* Optional Hero Videos - Only show if age is verified */}
+      {ageVerified === true && videoUrls.length > 0 && !videoError && !videoLoadTimeout && (
         <video
           key={currentVideoIndex}
           ref={singleVideoRef}
