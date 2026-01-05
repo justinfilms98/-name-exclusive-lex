@@ -29,6 +29,7 @@ export default function HeroSection() {
   const videoRefs = useRef<HTMLVideoElement[]>([]);
   const singleVideoRef = useRef<HTMLVideoElement | null>(null);
   const loadTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const playAttemptedRef = useRef<boolean>(false);
 
   useEffect(() => {
     // Check age verification before loading videos
@@ -36,14 +37,6 @@ export default function HeroSection() {
       const verified = localStorage.getItem('exclusivelex_age_verified');
       const isVerified = verified === 'true';
       setAgeVerified(isVerified);
-      
-      // If already verified, attempt to play video
-      if (isVerified) {
-        // Small delay to ensure component is mounted
-        setTimeout(() => {
-          attemptVideoPlay();
-        }, 100);
-      }
     }
     loadHeroVideos();
     loadUser();
@@ -53,6 +46,7 @@ export default function HeroSection() {
   useEffect(() => {
     const handleAgeVerified = () => {
       setAgeVerified(true);
+      playAttemptedRef.current = false; // Reset play attempt flag
       // Load video URLs if not already loaded
       if (heroVideos.length > 0 && videoUrls.length === 0) {
         loadAllVideoUrls();
@@ -66,15 +60,19 @@ export default function HeroSection() {
   }, [heroVideos.length, videoUrls.length]);
 
   // Function to attempt video playback (called when age is verified)
+  // This is now only used for manual play button, not for autoplay
   const attemptVideoPlay = () => {
+    // Prevent multiple simultaneous play attempts
+    if (playAttemptedRef.current) {
+      return;
+    }
+
     const v = singleVideoRef.current;
     if (!v || !ageVerified) {
-      console.log('Cannot play: video ref missing or age not verified', { v: !!v, ageVerified });
       return;
     }
 
     if (!videosLoaded || videoUrls.length === 0) {
-      console.log('Cannot play: videos not loaded yet', { videosLoaded, videoUrlsLength: videoUrls.length });
       // If videos aren't loaded but we have hero videos, try loading them
       if (heroVideos.length > 0) {
         loadAllVideoUrls();
@@ -82,48 +80,46 @@ export default function HeroSection() {
       return;
     }
 
-    // Ensure video has src set
     const url = videoUrls[currentVideoIndex];
     if (!url) {
-      console.log('Cannot play: no URL for current video index', currentVideoIndex);
       return;
     }
 
+    playAttemptedRef.current = true;
     try {
-      console.log('Attempting to play video:', url);
-      // Ensure video attributes are set
       v.muted = true;
       v.defaultMuted = true;
       (v as HTMLVideoElement & { playsInline?: boolean }).playsInline = true;
       
-      // If src is not set or different, set it
       if (!v.src || v.src !== url) {
         v.src = url;
         v.load();
       }
       
-      // Try to play
       const playPromise = v.play();
       if (playPromise !== undefined) {
         playPromise
           .then(() => {
-            console.log('Video playing successfully');
             setAutoplayBlocked(false);
             setVideosPlaying(true);
+            playAttemptedRef.current = false; // Reset after successful play
           })
           .catch((error) => {
             console.log('Autoplay blocked, showing tap-to-play:', error);
             setAutoplayBlocked(true);
+            playAttemptedRef.current = false; // Reset on error
           });
       }
     } catch (error) {
       console.log('Error attempting video play:', error);
       setAutoplayBlocked(true);
+      playAttemptedRef.current = false; // Reset on error
     }
   };
 
   // Handle manual play button click
   const handleManualPlay = () => {
+    playAttemptedRef.current = false; // Reset flag for manual play
     const v = singleVideoRef.current;
     if (!v) return;
 
@@ -187,8 +183,21 @@ export default function HeroSection() {
     const url = videoUrls[currentVideoIndex];
     if (!v || !videosLoaded || !url || ageVerified !== true) return;
     
+    // Prevent multiple play attempts - if already playing, don't interfere
+    if (playAttemptedRef.current && videosPlaying) {
+      return;
+    }
+    
+    // Only reset and attempt play if video src changed or not playing
+    const shouldReset = !v.src || v.src !== url || (!videosPlaying && !autoplayBlocked);
+    if (!shouldReset) {
+      return; // Video is already set up and playing, let it loop naturally
+    }
+    
     // Reset autoplay blocked state when video changes
     setAutoplayBlocked(false);
+    playAttemptedRef.current = true;
+    
     try {
       // Stop and hard reset source before applying attributes
       try { v.pause(); } catch {}
@@ -209,12 +218,29 @@ export default function HeroSection() {
       v.src = url;
       v.load();
       try { const t = v.currentTime; v.currentTime = Math.max(0, t + 0.001); } catch {}
-      const attemptPlay = () => v.play().catch(() => {});
+      
+      // Single play attempt - video's loop attribute will handle looping
+      const attemptPlay = () => {
+        v.play()
+          .then(() => {
+            setAutoplayBlocked(false);
+            setVideosPlaying(true);
+            playAttemptedRef.current = false; // Reset after successful play
+          })
+          .catch((error) => {
+            console.log('Autoplay blocked:', error);
+            setAutoplayBlocked(true);
+            playAttemptedRef.current = false; // Reset on error
+          });
+      };
+      
+      // Only attempt once - let the video element handle looping
       attemptPlay();
-      setTimeout(attemptPlay, 150);
-      setTimeout(attemptPlay, 500);
-    } catch {}
-  }, [videosLoaded, currentVideoIndex, videoUrls]);
+    } catch (error) {
+      playAttemptedRef.current = false;
+      console.error('Error setting up video:', error);
+    }
+  }, [videosLoaded, currentVideoIndex, videoUrls, ageVerified, videosPlaying, autoplayBlocked]);
 
   // Fallback: re-attempt autoplay when page becomes visible or gains focus
   useEffect(() => {
@@ -285,13 +311,7 @@ export default function HeroSection() {
       console.log('Loaded', validUrls.length, 'valid video URLs');
       setVideoUrls(validUrls);
       setVideosLoaded(true);
-      
-      // After URLs are loaded, attempt to play
-      if (validUrls.length > 0 && ageVerified === true) {
-        setTimeout(() => {
-          attemptVideoPlay();
-        }, 200);
-      }
+      // Don't call attemptVideoPlay here - let the existing autoplay useEffect handle it
     } catch (err) {
       console.error('Failed to load video URLs:', err);
     }
