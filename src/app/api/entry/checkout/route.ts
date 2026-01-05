@@ -77,12 +77,33 @@ export async function POST(request: NextRequest) {
       .eq('user_id', user.id)
       .single();
 
-    if (accessError && accessError.code !== 'PGRST116') { // PGRST116 = no rows returned
-      console.error('Error checking entry access:', accessError);
-      return NextResponse.json(
-        { error: 'Failed to check entry access' },
-        { status: 500 }
-      );
+    if (accessError) {
+      // PGRST116 = no rows returned (expected if user doesn't have entry access yet)
+      if (accessError.code === 'PGRST116') {
+        // This is expected - user doesn't have entry access yet, continue with checkout
+        console.log('No existing entry access found for user, proceeding with checkout');
+      } else {
+        // Real error - could be table doesn't exist, RLS issue, etc.
+        console.error('Error checking entry access:', {
+          code: accessError.code,
+          message: accessError.message,
+          details: accessError.details,
+          hint: accessError.hint
+        });
+        
+        // Provide more helpful error message
+        let errorMessage = 'Failed to check entry access';
+        if (accessError.code === '42P01') {
+          errorMessage = 'Entry access table not found. Please run the database migration.';
+        } else if (accessError.message) {
+          errorMessage = `Database error: ${accessError.message}`;
+        }
+        
+        return NextResponse.json(
+          { error: errorMessage },
+          { status: 500 }
+        );
+      }
     }
 
     if (existingAccess && existingAccess.status === 'active') {
