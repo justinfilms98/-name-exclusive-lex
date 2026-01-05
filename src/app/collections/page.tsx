@@ -74,6 +74,22 @@ export default function CollectionsPage() {
       }
       setUser(session?.user || null);
 
+      // Check entry access
+      const { data: entryAccess, error: accessError } = await supabase
+        .from('entry_access')
+        .select('status')
+        .eq('user_id', session.user.id)
+        .single();
+
+      if (accessError && accessError.code !== 'PGRST116') {
+        console.error('Error checking entry access:', accessError);
+      }
+
+      if (!entryAccess || entryAccess.status !== 'active') {
+        router.push('/entry');
+        return;
+      }
+
       // Get collections
       const { data, error } = await getCollections();
       if (!error && data) {

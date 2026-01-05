@@ -33,6 +33,22 @@ export default function AlbumsPage() {
         return;
       }
 
+      // Check entry access
+      const { data: entryAccess, error: accessError } = await supabase
+        .from('entry_access')
+        .select('status')
+        .eq('user_id', session.user.id)
+        .single();
+
+      if (accessError && accessError.code !== 'PGRST116') {
+        console.error('Error checking entry access:', accessError);
+      }
+
+      if (!entryAccess || entryAccess.status !== 'active') {
+        router.push('/entry');
+        return;
+      }
+
       const { data } = await getAlbums();
       if (data) {
         setAlbums(data);

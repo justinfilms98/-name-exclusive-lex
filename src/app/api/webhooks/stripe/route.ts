@@ -45,6 +45,39 @@ export async function POST(req: Request) {
       console.log(`🔍 DEBUG: Session amount_total:`, session.amount_total);
       console.log(`🔍 DEBUG: Session currency:`, session.currency);
 
+      // Check if this is an entry fee payment
+      if (session.metadata?.purpose === 'entry_fee') {
+        console.log('🔍 DEBUG: Processing entry fee payment');
+        const userId = session.metadata.user_id;
+        
+        if (!userId) {
+          console.error('❌ No user_id in entry fee session metadata');
+          return new NextResponse('Webhook processed', { status: 200 });
+        }
+
+        // Update entry_access to active status
+        const { data: updatedAccess, error: updateError } = await supabase
+          .from('entry_access')
+          .update({
+            status: 'active',
+            paid_at: new Date().toISOString(),
+            stripe_customer_id: session.customer as string || null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('user_id', userId)
+          .eq('stripe_session_id', session.id)
+          .select()
+          .single();
+
+        if (updateError) {
+          console.error('❌ Error updating entry access:', updateError);
+        } else {
+          console.log('✅ Entry access activated for user:', userId);
+        }
+
+        return new NextResponse('Webhook processed', { status: 200 });
+      }
+
       // Get all line items from the checkout session
       const lineItems = await stripe.checkout.sessions.listLineItems(session.id);
       console.log(`🔍 DEBUG: Found ${lineItems.data.length} line items`);
