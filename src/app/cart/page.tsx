@@ -5,7 +5,6 @@ import { supabase, getCollections, getSignedUrl } from '@/lib/supabase';
 import { Trash2, ShoppingCart, CreditCard, Clock, Image as ImageIcon, ArrowLeft, Plus, Heart, ChevronDown, ChevronUp } from 'lucide-react';
 import Link from 'next/link';
 import { loadStripe } from '@stripe/stripe-js';
-import SuggestedContent from '@/components/cart/SuggestedContent';
 
 interface CartItem {
   id: string;
@@ -759,26 +758,7 @@ export default function CartPage() {
                 </div>
               )}
 
-              {/* Suggested Content */}
-              {cartItems.length > 0 && (
-                <SuggestedContent
-                  cartIds={cartItems.map(item => item.id)}
-                  onAddToCart={(collection) => {
-                    // Convert SuggestedCollection to Collection format for addToCart
-                    const collectionForCart: Collection = {
-                      id: collection.id,
-                      title: collection.title,
-                      description: collection.description,
-                      price: collection.price,
-                      duration: 0, // Not used in cart
-                      video_duration: collection.video_duration,
-                      thumbnail_path: collection.thumbnail_path || '',
-                      photo_paths: Array(collection.photo_count).fill(''), // Placeholder array
-                    };
-                    addToCart(collectionForCart);
-                  }}
-                />
-              )}
+              {/* Suggested Content removed - keeping only main content area upsell section */}
               
               <div className="border-t border-mushroom/30 pt-4 mb-6">
                 <div className="flex justify-between text-xl font-bold text-earth">
@@ -803,9 +783,9 @@ export default function CartPage() {
               </div>
 
               {/* No Refunds Disclaimer */}
-              <div className="mb-6 p-4 bg-brand-almond/30 border border-brand-sage/20 rounded-lg">
-                <h3 className="text-sm font-semibold text-brand-pine mb-2">No Refunds</h3>
-                <p className="text-sm text-brand-earth mb-4 leading-relaxed">
+              <div className="mb-6 p-5 bg-brand-almond/30 border-2 border-black rounded-lg">
+                <h3 className="text-base font-bold text-brand-pine mb-3">No Refunds</h3>
+                <p className="text-sm text-brand-earth mb-4 leading-relaxed font-medium">
                   All sales are final. Due to the digital nature of this content, we do not offer refunds or chargebacks.
                 </p>
                 <div className="space-y-2">
@@ -814,20 +794,43 @@ export default function CartPage() {
                     className="flex items-start cursor-pointer group"
                     style={{ minHeight: '44px' }}
                   >
-                    <input
-                      type="checkbox"
-                      id="no-refunds-ack"
-                      checked={noRefundsAck}
-                      onChange={(e) => handleNoRefundsToggle(e.target.checked)}
-                      className="mt-1 mr-3 w-5 h-5 text-brand-sage border-brand-sage rounded focus:ring-brand-sage focus:ring-2 cursor-pointer flex-shrink-0"
-                      style={{ minHeight: '20px', minWidth: '20px' }}
-                    />
-                    <span className="text-sm text-brand-earth pt-0.5 flex-1">
+                    <div className="relative flex-shrink-0 mt-1 mr-3">
+                      <input
+                        type="checkbox"
+                        id="no-refunds-ack"
+                        checked={noRefundsAck}
+                        onChange={(e) => handleNoRefundsToggle(e.target.checked)}
+                        className="sr-only"
+                      />
+                      <div 
+                        className={`w-6 h-6 border-2 rounded flex items-center justify-center transition-all ${
+                          noRefundsAck 
+                            ? 'bg-black border-black' 
+                            : 'bg-white border-black'
+                        }`}
+                        style={{ minHeight: '24px', minWidth: '24px' }}
+                      >
+                        {noRefundsAck && (
+                          <svg 
+                            className="w-4 h-4 text-white" 
+                            fill="none" 
+                            strokeLinecap="round" 
+                            strokeLinejoin="round" 
+                            strokeWidth="3" 
+                            viewBox="0 0 24 24" 
+                            stroke="currentColor"
+                          >
+                            <path d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        )}
+                      </div>
+                    </div>
+                    <span className="text-sm font-semibold text-brand-pine pt-0.5 flex-1">
                       I understand and agree (no refunds).
                     </span>
                   </label>
                   {noRefundsError && (
-                    <p className="text-sm text-red-600 ml-8 mt-1">
+                    <p className="text-sm text-red-600 ml-11 mt-1 font-medium">
                       {noRefundsError}
                     </p>
                   )}
