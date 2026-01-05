@@ -200,17 +200,32 @@ export async function POST(request: NextRequest) {
 
     // Create checkout session with multiple line items
     console.log('Creating Stripe checkout session...');
+    
+    // Build metadata object
+    const metadata: Record<string, string> = {
+      user_id: user.id,
+      collection_ids: JSON.stringify(collectionIds), // Store as JSON string
+      collection_count: collectionIds.length.toString(),
+      tip_amount: tipAmount.toString(),
+    };
+
+    // Add no-refunds acknowledgement if present in request body
+    if (body.noRefundsAck === true) {
+      metadata.no_refunds_ack = 'true';
+    }
+
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: lineItems,
       mode: 'payment',
       success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/collections`,
-      metadata: {
-        user_id: user.id,
-        collection_ids: JSON.stringify(collectionIds), // Store as JSON string
-        collection_count: collectionIds.length.toString(),
-        tip_amount: tipAmount.toString(),
+      metadata: metadata,
+      // Custom text for no-refunds disclosure
+      custom_text: {
+        submit: {
+          message: 'All sales are final. Due to the digital nature of this content, no refunds or chargebacks are permitted.',
+        },
       },
       // Mobile-friendly settings
       billing_address_collection: 'auto',

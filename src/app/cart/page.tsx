@@ -42,6 +42,16 @@ export default function CartPage() {
   const [selectedTip, setSelectedTip] = useState<number>(0);
   const [customTip, setCustomTip] = useState<string>('');
   const [userPurchases, setUserPurchases] = useState<string[]>([]);
+  const [noRefundsAck, setNoRefundsAck] = useState<boolean>(false);
+  const [noRefundsError, setNoRefundsError] = useState<string>('');
+
+  useEffect(() => {
+    // Hydrate no-refunds acknowledgement from localStorage
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('exclusivelex_no_refunds_ack');
+      setNoRefundsAck(saved === 'true');
+    }
+  }, []);
 
   useEffect(() => {
     // Get user session
@@ -228,6 +238,14 @@ export default function CartPage() {
     return getTotalPrice() + getTipAmount();
   };
 
+  const handleNoRefundsToggle = (checked: boolean) => {
+    setNoRefundsAck(checked);
+    setNoRefundsError('');
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('exclusivelex_no_refunds_ack', checked ? 'true' : 'false');
+    }
+  };
+
   const handleCheckout = async () => {
     if (!user) {
       window.location.href = '/login';
@@ -235,6 +253,12 @@ export default function CartPage() {
     }
 
     if (cartItems.length === 0) return;
+
+    // Check no-refunds acknowledgement
+    if (!noRefundsAck) {
+      setNoRefundsError('Please confirm you understand there are no refunds.');
+      return;
+    }
 
     setCheckoutLoading(true);
 
@@ -292,6 +316,7 @@ export default function CartPage() {
           items: cartItems,
           userId: currentUser.id,
           tipAmount: getTipAmount(),
+          noRefundsAck: true,
         }),
       });
 
@@ -772,11 +797,43 @@ export default function CartPage() {
                 </div>
               </div>
 
+              {/* No Refunds Disclaimer */}
+              <div className="mb-6 p-4 bg-brand-almond/30 border border-brand-sage/20 rounded-lg">
+                <h3 className="text-sm font-semibold text-brand-pine mb-2">No Refunds</h3>
+                <p className="text-sm text-brand-earth mb-4 leading-relaxed">
+                  All sales are final. Due to the digital nature of this content, we do not offer refunds or chargebacks.
+                </p>
+                <div className="space-y-2">
+                  <label 
+                    htmlFor="no-refunds-ack" 
+                    className="flex items-start cursor-pointer group"
+                    style={{ minHeight: '44px' }}
+                  >
+                    <input
+                      type="checkbox"
+                      id="no-refunds-ack"
+                      checked={noRefundsAck}
+                      onChange={(e) => handleNoRefundsToggle(e.target.checked)}
+                      className="mt-1 mr-3 w-5 h-5 text-brand-sage border-brand-sage rounded focus:ring-brand-sage focus:ring-2 cursor-pointer flex-shrink-0"
+                      style={{ minHeight: '20px', minWidth: '20px' }}
+                    />
+                    <span className="text-sm text-brand-earth pt-0.5 flex-1">
+                      I understand and agree (no refunds).
+                    </span>
+                  </label>
+                  {noRefundsError && (
+                    <p className="text-sm text-red-600 ml-8 mt-1">
+                      {noRefundsError}
+                    </p>
+                  )}
+                </div>
+              </div>
+
               {/* Checkout Button */}
               {user ? (
                 <button
                   onClick={handleCheckout}
-                  disabled={checkoutLoading}
+                  disabled={checkoutLoading || !noRefundsAck}
                   className="w-full btn-primary flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {checkoutLoading ? (
