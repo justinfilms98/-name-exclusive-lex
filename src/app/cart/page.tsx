@@ -758,8 +758,6 @@ export default function CartPage() {
                 </div>
               )}
 
-              {/* Suggested Content removed - keeping only main content area upsell section */}
-              
               <div className="border-t border-mushroom/30 pt-4 mb-6">
                 <div className="flex justify-between text-xl font-bold text-earth">
                   <span>Total</span>
