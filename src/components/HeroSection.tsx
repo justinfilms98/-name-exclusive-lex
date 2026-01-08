@@ -26,10 +26,12 @@ export default function HeroSection() {
   const [videoLoadTimeout, setVideoLoadTimeout] = useState(false);
   const [ageVerified, setAgeVerified] = useState<boolean | null>(null);
   const [autoplayBlocked, setAutoplayBlocked] = useState(false);
+  const [autoplayFailed, setAutoplayFailed] = useState(false);
   const videoRefs = useRef<HTMLVideoElement[]>([]);
   const singleVideoRef = useRef<HTMLVideoElement | null>(null);
   const loadTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const playAttemptedRef = useRef<boolean>(false);
+  const retryTimeoutsRef = useRef<NodeJS.Timeout[]>([]);
 
   useEffect(() => {
     // Check age verification before loading videos
@@ -47,10 +49,18 @@ export default function HeroSection() {
     const handleAgeVerified = () => {
       setAgeVerified(true);
       playAttemptedRef.current = false; // Reset play attempt flag
+      setAutoplayFailed(false); // Reset autoplay failed state
       // Load video URLs if not already loaded
       if (heroVideos.length > 0 && videoUrls.length === 0) {
         loadAllVideoUrls();
       }
+      // After a short delay, attempt playback (to ensure video URLs are loaded if they were just requested)
+      // This handles the case when age gate closes
+      setTimeout(() => {
+        if (singleVideoRef.current && videoUrls.length > 0 && videosLoaded) {
+          attemptVideoPlaybackWithRetries();
+        }
+      }, 500);
     };
 
     window.addEventListener('exclusivelex:age-verified', handleAgeVerified);
@@ -127,6 +137,7 @@ export default function HeroSection() {
       v.play()
         .then(() => {
           setAutoplayBlocked(false);
+          setAutoplayFailed(false);
           setVideosPlaying(true);
         })
         .catch((error) => {
@@ -135,6 +146,69 @@ export default function HeroSection() {
     } catch (error) {
       console.error('Error playing video:', error);
     }
+  };
+
+  // Attempt video playback with retries (used after login/session resolution and after age gate closes)
+  const attemptVideoPlaybackWithRetries = () => {
+    const v = singleVideoRef.current;
+    const url = videoUrls[currentVideoIndex];
+    
+    if (!v || !url || ageVerified !== true) return;
+
+    // Clear any existing retry timeouts
+    retryTimeoutsRef.current.forEach(timeout => clearTimeout(timeout));
+    retryTimeoutsRef.current = [];
+
+    const attemptPlay = (delay: number) => {
+      const timeoutId = setTimeout(() => {
+        try {
+          if (v.src !== url) {
+            v.src = url;
+            v.load();
+          }
+          
+          // Ensure mobile-friendly attributes
+          v.muted = true;
+          v.setAttribute('muted', '');
+          v.setAttribute('playsinline', 'true');
+          v.setAttribute('webkit-playsinline', 'true');
+          v.setAttribute('autoplay', '');
+          
+          const playPromise = v.play();
+          if (playPromise !== undefined) {
+            playPromise
+              .then(() => {
+                setAutoplayBlocked(false);
+                setAutoplayFailed(false);
+                setVideosPlaying(true);
+              })
+              .catch((error) => {
+                console.log('Autoplay retry failed:', error);
+                if (delay >= 1000) {
+                  // Final retry failed, show tap to play
+                  setAutoplayFailed(true);
+                  setAutoplayBlocked(true);
+                }
+              });
+          }
+        } catch (error) {
+          console.error('Error in playback retry:', error);
+          if (delay >= 1000) {
+            setAutoplayFailed(true);
+            setAutoplayBlocked(true);
+          }
+        }
+      }, delay);
+      
+      retryTimeoutsRef.current.push(timeoutId);
+    };
+
+    // Immediate attempt
+    attemptPlay(0);
+    // Retry after 250ms
+    attemptPlay(250);
+    // Retry after 1000ms
+    attemptPlay(1000);
   };
 
   useEffect(() => {
@@ -176,6 +250,88 @@ export default function HeroSection() {
     }
   }, [heroVideos.length]);
 
+  // Attempt video playback with retries (used after login/session resolution)
+  const attemptVideoPlaybackWithRetries = () => {
+    const v = singleVideoRef.current;
+    const url = videoUrls[currentVideoIndex];
+    
+    if (!v || !url || ageVerified !== true) return;
+
+    // Clear any existing retry timeouts
+    retryTimeoutsRef.current.forEach(timeout => clearTimeout(timeout));
+    retryTimeoutsRef.current = [];
+
+    const attemptPlay = (delay: number) => {
+      const timeoutId = setTimeout(() => {
+        try {
+          if (v.src !== url) {
+            v.src = url;
+            v.load();
+          }
+          
+          // Ensure mobile-friendly attributes
+          v.muted = true;
+          v.setAttribute('muted', '');
+          v.setAttribute('playsinline', 'true');
+          v.setAttribute('webkit-playsinline', 'true');
+          v.setAttribute('autoplay', '');
+          
+          const playPromise = v.play();
+          if (playPromise !== undefined) {
+            playPromise
+              .then(() => {
+                setAutoplayBlocked(false);
+                setAutoplayFailed(false);
+                setVideosPlaying(true);
+              })
+              .catch((error) => {
+                console.log('Autoplay retry failed:', error);
+                if (delay >= 1000) {
+                  // Final retry failed, show tap to play
+                  setAutoplayFailed(true);
+                  setAutoplayBlocked(true);
+                }
+              });
+          }
+        } catch (error) {
+          console.error('Error in playback retry:', error);
+          if (delay >= 1000) {
+            setAutoplayFailed(true);
+            setAutoplayBlocked(true);
+          }
+        }
+      }, delay);
+      
+      retryTimeoutsRef.current.push(timeoutId);
+    };
+
+    // Immediate attempt
+    attemptPlay(0);
+    // Retry after 250ms
+    attemptPlay(250);
+    // Retry after 1000ms
+    attemptPlay(1000);
+  };
+
+  // Effect that runs when BOTH ageVerified === true AND video ref is set
+  // This handles initial load and also triggers after login
+  useEffect(() => {
+    if (ageVerified === true && singleVideoRef.current && videoUrls.length > 0 && videosLoaded) {
+      // Reset play attempt flag when conditions are met
+      playAttemptedRef.current = false;
+      setAutoplayFailed(false);
+      
+      // Attempt playback with retries
+      attemptVideoPlaybackWithRetries();
+    }
+
+    // Cleanup timeouts on unmount
+    return () => {
+      retryTimeoutsRef.current.forEach(timeout => clearTimeout(timeout));
+      retryTimeoutsRef.current = [];
+    };
+  }, [ageVerified, videosLoaded, videoUrls.length, currentVideoIndex]);
+
   // Ensure current hero video autoplays reliably (single element approach)
   // Only autoplay if age is verified
   useEffect(() => {
@@ -196,6 +352,7 @@ export default function HeroSection() {
     
     // Reset autoplay blocked state when video changes
     setAutoplayBlocked(false);
+    setAutoplayFailed(false);
     playAttemptedRef.current = true;
     
     try {
@@ -224,12 +381,14 @@ export default function HeroSection() {
         v.play()
           .then(() => {
             setAutoplayBlocked(false);
+            setAutoplayFailed(false);
             setVideosPlaying(true);
             playAttemptedRef.current = false; // Reset after successful play
           })
           .catch((error) => {
             console.log('Autoplay blocked:', error);
             setAutoplayBlocked(true);
+            setAutoplayFailed(true);
             playAttemptedRef.current = false; // Reset on error
           });
       };
@@ -238,6 +397,7 @@ export default function HeroSection() {
       attemptPlay();
     } catch (error) {
       playAttemptedRef.current = false;
+      setAutoplayFailed(true);
       console.error('Error setting up video:', error);
     }
   }, [videosLoaded, currentVideoIndex, videoUrls, ageVerified, videosPlaying, autoplayBlocked]);
@@ -245,14 +405,38 @@ export default function HeroSection() {
   // Fallback: re-attempt autoplay when page becomes visible or gains focus
   useEffect(() => {
     const onVisibility = () => {
-      if (document.visibilityState === 'visible') {
-        const v = videoRefs.current[currentVideoIndex];
-        try { v?.play().catch(() => {}); } catch {}
+      if (document.visibilityState === 'visible' && ageVerified === true) {
+        const v = singleVideoRef.current;
+        if (v && videoUrls.length > 0) {
+          try { 
+            v.play().then(() => {
+              setAutoplayBlocked(false);
+              setAutoplayFailed(false);
+              setVideosPlaying(true);
+            }).catch(() => {
+              setAutoplayFailed(true);
+              setAutoplayBlocked(true);
+            });
+          } catch {}
+        }
       }
     };
     const onFocus = () => {
-      const v = videoRefs.current[currentVideoIndex];
-      try { v?.play().catch(() => {}); } catch {}
+      if (ageVerified === true) {
+        const v = singleVideoRef.current;
+        if (v && videoUrls.length > 0) {
+          try { 
+            v.play().then(() => {
+              setAutoplayBlocked(false);
+              setAutoplayFailed(false);
+              setVideosPlaying(true);
+            }).catch(() => {
+              setAutoplayFailed(true);
+              setAutoplayBlocked(true);
+            });
+          } catch {}
+        }
+      }
     };
     document.addEventListener('visibilitychange', onVisibility);
     window.addEventListener('focus', onFocus);
@@ -260,12 +444,31 @@ export default function HeroSection() {
       document.removeEventListener('visibilitychange', onVisibility);
       window.removeEventListener('focus', onFocus);
     };
-  }, [currentVideoIndex]);
+  }, [currentVideoIndex, ageVerified, videoUrls.length]);
 
   const loadUser = async () => {
     const { data: { session } } = await supabase.auth.getSession();
     setUser(session?.user || null);
   };
+
+  // Listen for auth state changes (login/logout)
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        setUser(session?.user || null);
+        
+        // If user just logged in and age is verified, retry video playback
+        if (event === 'SIGNED_IN' && ageVerified === true && singleVideoRef.current && videoUrls.length > 0 && videosLoaded) {
+          // Small delay to ensure DOM is ready after login redirect
+          setTimeout(() => {
+            attemptVideoPlaybackWithRetries();
+          }, 500);
+        }
+      }
+    );
+
+    return () => subscription.unsubscribe();
+  }, [ageVerified, videoUrls.length, videosLoaded]);
 
   const loadHeroVideos = async () => {
     try {
@@ -372,23 +575,29 @@ export default function HeroSection() {
             webkit-playsinline="true"
           />
           
-          {/* Tap to Play Overlay - shown when autoplay is blocked */}
-          {autoplayBlocked && (
-            <div 
-              className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm cursor-pointer z-10"
-              onClick={handleManualPlay}
-            >
-              <button
-                className="bg-white/90 hover:bg-white text-brand-pine rounded-full p-6 shadow-2xl transition-all transform hover:scale-110"
-                aria-label="Play video"
+          {/* Tap to Play Overlay - shown when autoplay is blocked OR failed (especially on mobile) */}
+          {(autoplayBlocked || autoplayFailed) && (() => {
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            return (isMobile || autoplayFailed) ? (
+              <div 
+                className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm cursor-pointer z-10"
+                onClick={() => {
+                  handleManualPlay();
+                  setAutoplayFailed(false);
+                }}
               >
-                <Play className="w-12 h-12" />
-              </button>
-              <p className="absolute bottom-8 text-white text-sm font-medium">
-                Tap to play
-              </p>
-            </div>
-          )}
+                <button
+                  className="bg-white/90 hover:bg-white text-brand-pine rounded-full p-6 shadow-2xl transition-all transform hover:scale-110"
+                  aria-label="Play video"
+                >
+                  <Play className="w-12 h-12" />
+                </button>
+                <p className="absolute bottom-8 text-white text-sm font-medium">
+                  Tap to play
+                </p>
+              </div>
+            ) : null;
+          })()}
         </div>
       )}
 
