@@ -790,33 +790,37 @@ export default function CartPage() {
                   <label 
                     htmlFor="no-refunds-ack" 
                     className="flex items-start cursor-pointer group"
-                    style={{ minHeight: '44px' }}
+                    style={{ minHeight: '44px', padding: '10px 0' }}
                   >
-                    <div className="relative flex-shrink-0 mt-1 mr-3">
+                    <div className="relative flex-shrink-0 mt-1 mr-3" style={{ padding: '10px' }}>
                       <input
                         type="checkbox"
                         id="no-refunds-ack"
                         checked={noRefundsAck}
                         onChange={(e) => handleNoRefundsToggle(e.target.checked)}
                         className="sr-only"
+                        aria-checked={noRefundsAck}
+                        role="checkbox"
                       />
                       <div 
-                        className={`w-6 h-6 border-2 rounded flex items-center justify-center transition-all ${
-                          noRefundsAck 
-                            ? 'bg-black border-black' 
-                            : 'bg-white border-black'
-                        }`}
-                        style={{ minHeight: '24px', minWidth: '24px' }}
+                        className="border-2 border-black flex items-center justify-center transition-all"
+                        style={{ 
+                          width: '24px', 
+                          height: '24px', 
+                          backgroundColor: noRefundsAck ? 'transparent' : 'transparent',
+                          borderRadius: '2px'
+                        }}
                       >
                         {noRefundsAck && (
                           <svg 
-                            className="w-4 h-4 text-white" 
+                            className="text-black" 
                             fill="none" 
                             strokeLinecap="round" 
                             strokeLinejoin="round" 
-                            strokeWidth="3" 
+                            strokeWidth="4" 
                             viewBox="0 0 24 24" 
                             stroke="currentColor"
+                            style={{ width: '16px', height: '16px' }}
                           >
                             <path d="M6 18L18 6M6 6l12 12" />
                           </svg>
