@@ -18,10 +18,12 @@ export function useSignedUrl(collectionId: string, path: string | null) {
       // CRITICAL: credentials: "include" ensures cookies are sent with the request
       // Without this, Supabase auth cookies won't be included and the server
       // will return 401 even if the user is logged in
+      // cache: "no-store" prevents browser caching of the auth request
       const res = await fetch("/api/media/signed-url", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include", // This ensures cookies are sent
+        cache: "no-store", // Prevent caching auth requests
         body: JSON.stringify({ collectionId, path }),
       });
 

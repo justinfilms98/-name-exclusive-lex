@@ -28,24 +28,32 @@ type Body = {
  */
 export async function POST(req: Request) {
   // Log cookie presence for debugging (names only, no values)
+  // Parse by splitting on ';' and taking left side of '='
   const cookieHeader = req.headers.get("cookie");
   const hasCookieHeader = !!cookieHeader;
-  const supabaseCookieNames: string[] = [];
+  const cookieNames: string[] = [];
   
   if (cookieHeader) {
-    // Extract cookie names (Supabase uses sb-<project-ref>-auth-token pattern)
-    const cookiePattern = /([^=]+)=/g;
-    let match;
-    while ((match = cookiePattern.exec(cookieHeader)) !== null) {
-      const name = match[1];
-      if (name.includes("sb-") || name.includes("supabase")) {
-        supabaseCookieNames.push(name);
+    // Split on ';' to get individual cookies
+    const cookies = cookieHeader.split(';').map(c => c.trim());
+    for (const cookie of cookies) {
+      // Take left side of '=' to get cookie name
+      const eqIndex = cookie.indexOf('=');
+      if (eqIndex > 0) {
+        const name = cookie.substring(0, eqIndex).trim();
+        cookieNames.push(name);
       }
     }
   }
 
+  // Filter for Supabase cookie names (sb-<project-ref>-auth-token pattern)
+  const supabaseCookieNames = cookieNames.filter(name => 
+    name.includes("sb-") || name.includes("supabase")
+  );
+
   console.log("[signed-url] Request received:", {
-    hasCookieHeader,
+    hasCookieHeader: Boolean(cookieHeader),
+    totalCookieCount: cookieNames.length,
     supabaseCookieCount: supabaseCookieNames.length,
     supabaseCookieNames: supabaseCookieNames.length > 0 ? supabaseCookieNames : "none",
   });
@@ -83,7 +91,7 @@ export async function POST(req: Request) {
     });
     
     return NextResponse.json(
-      { error: "Unauthorized (no session found)" },
+      { error: "Unauthorized" },
       { 
         status: 401,
         headers: {
