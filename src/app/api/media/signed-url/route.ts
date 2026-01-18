@@ -151,14 +151,16 @@ export async function POST(req: Request) {
     );
   }
 
-  // 2) Entry access check (permanent OR not expired)
-  const nowIso = new Date().toISOString();
-
+  // 2) Entry access check
+  // Note: entry_access table schema:
+  // - user_id (UUID, PRIMARY KEY) - NOT "id"
+  // - status (TEXT: 'pending', 'active', 'revoked')
+  // - No expires_at, is_active, or access_type columns
+  // Access is permanent once status is 'active'
   const { data: entryAccess, error: entryErr } = await supabaseAdmin
     .from("entry_access")
-    .select("id, expires_at, status, is_active, access_type")
+    .select("user_id, status")
     .eq("user_id", authenticatedUser.id)
-    .eq("collection_id", collectionId)
     .maybeSingle();
 
   if (entryErr) {
@@ -174,13 +176,8 @@ export async function POST(req: Request) {
     );
   }
 
-  const hasEntryAccess =
-    !!entryAccess &&
-    (entryAccess.access_type === "permanent" ||
-      entryAccess.expires_at === null ||
-      entryAccess.expires_at > nowIso) &&
-    entryAccess.is_active !== false &&
-    (entryAccess.status ? entryAccess.status !== "revoked" : true);
+  // Entry access is active if status is 'active' (permanent access)
+  const hasEntryAccess = !!entryAccess && entryAccess.status === "active";
 
   const allowed = adminBypass || !!purchase || hasEntryAccess;
 
@@ -190,6 +187,7 @@ export async function POST(req: Request) {
       collectionId,
       hasPurchase: !!purchase,
       hasEntryAccess: !!entryAccess,
+      entryAccessStatus: entryAccess?.status,
       adminBypass,
     });
     
