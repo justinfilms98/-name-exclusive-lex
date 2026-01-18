@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { supabaseRouteClient } from "@/lib/supabase/route";
 import { isAdminEmail } from "@/lib/auth";
+import { cookies } from "next/headers";
 
 // Force dynamic rendering - never cache this route
 // This ensures cookies are always read fresh from the request
@@ -20,15 +21,9 @@ type Body = {
  * 1. User is authenticated (via Supabase auth cookies)
  * 2. User has access (via purchases OR entry_access OR admin)
  * 3. Requested path belongs to the collection
- * 
- * Why 401 was happening:
- * - Client fetch was missing credentials: "include" (now fixed)
- * - Route handler wasn't reading cookies correctly (now using SSR client)
- * - Session cookies weren't being sent from browser (fixed with credentials)
  */
 export async function POST(req: Request) {
   // Log cookie presence for debugging (names only, no values)
-  // Parse by splitting on ';' and taking left side of '='
   const cookieHeader = req.headers.get("cookie");
   const hasCookieHeader = !!cookieHeader;
   const cookieNames: string[] = [];
@@ -46,16 +41,30 @@ export async function POST(req: Request) {
     }
   }
 
+  // Also check what Next.js cookies() API sees
+  const cookieStore = cookies();
+  const nextCookies = cookieStore.getAll();
+  const nextCookieNames = nextCookies.map(c => c.name);
+
   // Filter for Supabase cookie names (sb-<project-ref>-auth-token pattern)
   const supabaseCookieNames = cookieNames.filter(name => 
-    name.includes("sb-") || name.includes("supabase")
+    name.includes("sb-") || name.includes("supabase") || name.includes("auth")
+  );
+
+  const supabaseNextCookieNames = nextCookieNames.filter(name => 
+    name.includes("sb-") || name.includes("supabase") || name.includes("auth")
   );
 
   console.log("[signed-url] Request received:", {
     hasCookieHeader: Boolean(cookieHeader),
     totalCookieCount: cookieNames.length,
+    allCookieNames: cookieNames, // Log ALL cookie names to see what's actually being sent
     supabaseCookieCount: supabaseCookieNames.length,
     supabaseCookieNames: supabaseCookieNames.length > 0 ? supabaseCookieNames : "none",
+    nextCookiesCount: nextCookieNames.length,
+    nextCookieNames: nextCookieNames, // Log what Next.js cookies() API sees
+    supabaseNextCookieCount: supabaseNextCookieNames.length,
+    supabaseNextCookieNames: supabaseNextCookieNames.length > 0 ? supabaseNextCookieNames : "none",
   });
 
   const supabase = supabaseRouteClient();
@@ -85,7 +94,11 @@ export async function POST(req: Request) {
   if (!authenticatedUser?.id) {
     console.log("[signed-url] 401 Unauthorized:", {
       hasCookieHeader,
+      totalCookieCount: cookieNames.length,
+      allCookieNames: cookieNames, // Show all cookie names in error log
       supabaseCookieCount: supabaseCookieNames.length,
+      nextCookiesCount: nextCookieNames.length,
+      nextCookieNames: nextCookieNames,
       getUserError: userErr?.message || "none",
       hasSession: !!session,
     });
