@@ -15,9 +15,13 @@ export function useSignedUrl(collectionId: string, path: string | null) {
       setSignedUrl(null);
       if (!retry) setError(null);
 
+      // CRITICAL: credentials: "include" ensures cookies are sent with the request
+      // Without this, Supabase auth cookies won't be included and the server
+      // will return 401 even if the user is logged in
       const res = await fetch("/api/media/signed-url", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include", // This ensures cookies are sent
         body: JSON.stringify({ collectionId, path }),
       });
 

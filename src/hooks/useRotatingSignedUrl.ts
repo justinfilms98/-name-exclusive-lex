@@ -18,9 +18,13 @@ export function useRotatingSignedUrl(params: {
   async function fetchSignedUrl(retry = false) {
     if (!collectionId || !path) return;
 
+    // CRITICAL: credentials: "include" ensures cookies are sent with the request
+    // Without this, Supabase auth cookies won't be included and the server
+    // will return 401 even if the user is logged in
     const res = await fetch("/api/media/signed-url", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      credentials: "include", // This ensures cookies are sent
       body: JSON.stringify({ collectionId, path }),
     });
 
