@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-05-28.basil',
 });
@@ -19,7 +22,28 @@ export async function POST(request: NextRequest) {
     if (!process.env.STRIPE_SECRET_KEY) {
       console.error('Stripe secret key not configured');
       return NextResponse.json(
-        { error: 'Payment processing not configured' },
+        { error: 'Payment processing not configured. Please contact support.' },
+        { status: 500 }
+      );
+    }
+    
+    // Check if base URL is configured
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+    if (!baseUrl) {
+      console.error('NEXT_PUBLIC_BASE_URL not configured');
+      return NextResponse.json(
+        { error: 'Server configuration error. Please contact support.' },
+        { status: 500 }
+      );
+    }
+
+    // Validate base URL is absolute
+    try {
+      new URL(baseUrl);
+    } catch {
+      console.error('NEXT_PUBLIC_BASE_URL is not a valid absolute URL:', baseUrl);
+      return NextResponse.json(
+        { error: 'Server configuration error: invalid base URL. Please contact support.' },
         { status: 500 }
       );
     }
@@ -71,7 +95,7 @@ export async function POST(request: NextRequest) {
     if (!authHeader) {
       console.log('Error: No authorization header');
       return NextResponse.json(
-        { error: 'Authentication required' },
+        { error: 'Authentication required. Please sign in again.' },
         { status: 401 }
       );
     }
@@ -86,7 +110,7 @@ export async function POST(request: NextRequest) {
       if (authError) {
         console.log('Auth error:', authError);
         return NextResponse.json(
-          { error: 'Invalid authentication' },
+          { error: 'Invalid authentication. Please sign in again.' },
           { status: 401 }
         );
       }
@@ -94,7 +118,7 @@ export async function POST(request: NextRequest) {
       if (!authUser) {
         console.log('Error: No user found');
         return NextResponse.json(
-          { error: 'Invalid authentication' },
+          { error: 'Invalid authentication. Please sign in again.' },
           { status: 401 }
         );
       }
@@ -104,7 +128,7 @@ export async function POST(request: NextRequest) {
     } catch (authErr) {
       console.log('Auth exception:', authErr);
       return NextResponse.json(
-        { error: 'Authentication failed' },
+        { error: 'Authentication failed. Please sign in again.' },
         { status: 401 }
       );
     }
@@ -113,7 +137,7 @@ export async function POST(request: NextRequest) {
     if (!user || !user.id) {
       console.log('Error: Invalid user object after authentication');
       return NextResponse.json(
-        { error: 'Invalid user data' },
+        { error: 'Invalid user data. Please sign in again.' },
         { status: 401 }
       );
     }
@@ -165,6 +189,15 @@ export async function POST(request: NextRequest) {
     
     for (const collection of collections) {
       // Create price data for each collection since we don't store stripe_price_id
+      const unitAmount = Math.round(collection.price || 0);
+      if (unitAmount <= 0) {
+        console.error('Invalid price for collection:', collection.id, 'price:', collection.price);
+        return NextResponse.json(
+          { error: `Collection "${collection.title}" has an invalid price. Please contact support.` },
+          { status: 400 }
+        );
+      }
+
       lineItems.push({
         price_data: {
           currency: 'usd',
@@ -175,7 +208,7 @@ export async function POST(request: NextRequest) {
               collection_id: collection.id,
             },
           },
-          unit_amount: Math.round(collection.price || 0), // Price is already in cents
+          unit_amount: unitAmount, // Price is already in cents
         },
         quantity: 1,
       });
@@ -214,26 +247,54 @@ export async function POST(request: NextRequest) {
       metadata.no_refunds_ack = 'true';
     }
 
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
-      line_items: lineItems,
-      mode: 'payment',
-      success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/collections`,
-      metadata: metadata,
-      // Custom text for no-refunds disclosure
-      custom_text: {
-        submit: {
-          message: 'All sales are final. Due to the digital nature of this content, no refunds or chargebacks are permitted.',
+    // Validate success and cancel URLs
+    const successUrl = `${baseUrl}/success?session_id={CHECKOUT_SESSION_ID}`;
+    const cancelUrl = `${baseUrl}/collections`;
+
+    try {
+      new URL(successUrl.replace('{CHECKOUT_SESSION_ID}', 'test'));
+      new URL(cancelUrl);
+    } catch (urlError) {
+      console.error('Invalid URL constructed:', { successUrl, cancelUrl, baseUrl });
+      return NextResponse.json(
+        { error: 'Server configuration error: invalid redirect URLs. Please contact support.' },
+        { status: 500 }
+      );
+    }
+
+    let session;
+    try {
+      session = await stripe.checkout.sessions.create({
+        payment_method_types: ['card'],
+        line_items: lineItems,
+        mode: 'payment',
+        success_url: successUrl,
+        cancel_url: cancelUrl,
+        metadata: metadata,
+        // Custom text for no-refunds disclosure
+        custom_text: {
+          submit: {
+            message: 'All sales are final. Due to the digital nature of this content, no refunds or chargebacks are permitted.',
+          },
         },
-      },
-      // Mobile-friendly settings
-      billing_address_collection: 'auto',
-      allow_promotion_codes: true,
-      phone_number_collection: {
-        enabled: true,
-      },
-    });
+        // Mobile-friendly settings
+        billing_address_collection: 'auto',
+        allow_promotion_codes: true,
+        phone_number_collection: {
+          enabled: true,
+        },
+      });
+    } catch (stripeError: any) {
+      console.error('Stripe API error:', stripeError);
+      const errorMessage = stripeError?.message || 'Unknown Stripe error';
+      const errorCode = stripeError?.code || 'unknown';
+      console.error('Stripe error details:', { errorMessage, errorCode, type: stripeError?.type });
+      
+      return NextResponse.json(
+        { error: `Payment processing error: ${errorMessage}${errorCode ? ` (${errorCode})` : ''}` },
+        { status: 500 }
+      );
+    }
 
     console.log('Stripe session created successfully:', session.id);
 
@@ -246,9 +307,11 @@ export async function POST(request: NextRequest) {
       stack: error instanceof Error ? error.stack : undefined,
       name: error instanceof Error ? error.name : 'Unknown'
     });
+    
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
-      { error: 'Failed to create checkout session' },
+      { error: `Failed to create checkout session: ${errorMessage}` },
       { status: 500 }
     );
   }
-} 
+}

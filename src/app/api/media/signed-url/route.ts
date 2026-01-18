@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { supabaseRouteClient } from "@/lib/supabase/route";
+import { isAdminEmail } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -39,6 +40,10 @@ export async function POST(req: Request) {
 
   const cleanPath = String(path).replace(/^\/+/, "");
 
+  // Admin bypass
+  const adminBypass = isAdminEmail(user.email || null);
+
+  // 1) Purchase check
   const { data: purchase, error: purchaseErr } = await supabaseAdmin
     .from("purchases")
     .select("id")
@@ -53,7 +58,9 @@ export async function POST(req: Request) {
     );
   }
 
+  // 2) Entry access check (permanent OR not expired)
   const nowIso = new Date().toISOString();
+
   const { data: entryAccess, error: entryErr } = await supabaseAdmin
     .from("entry_access")
     .select("id, expires_at, status, is_active, access_type")
@@ -76,12 +83,13 @@ export async function POST(req: Request) {
     entryAccess.is_active !== false &&
     (entryAccess.status ? entryAccess.status !== "revoked" : true);
 
-  const allowed = !!purchase || hasEntryAccess;
+  const allowed = adminBypass || !!purchase || hasEntryAccess;
 
   if (!allowed) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  // Optional: verify the path belongs to that collection (prevents requesting random files)
   const { data: collection } = await supabaseAdmin
     .from("collections")
     .select("video_path, photo_path, thumbnail_path, photo_paths")
@@ -89,12 +97,24 @@ export async function POST(req: Request) {
     .maybeSingle();
 
   const allowedPaths = new Set<string>();
-  if (collection?.video_path) allowedPaths.add(collection.video_path);
-  if (collection?.photo_path) allowedPaths.add(collection.photo_path);
-  if (collection?.thumbnail_path) allowedPaths.add(collection.thumbnail_path);
+  if (collection?.video_path) {
+    const clean = String(collection.video_path).replace(/^\/+/, "");
+    allowedPaths.add(clean);
+  }
+  if (collection?.photo_path) {
+    const clean = String(collection.photo_path).replace(/^\/+/, "");
+    allowedPaths.add(clean);
+  }
+  if (collection?.thumbnail_path) {
+    const clean = String(collection.thumbnail_path).replace(/^\/+/, "");
+    allowedPaths.add(clean);
+  }
   if (Array.isArray(collection?.photo_paths)) {
     collection.photo_paths.forEach((p: string) => {
-      if (p) allowedPaths.add(p);
+      if (p) {
+        const clean = String(p).replace(/^\/+/, "");
+        allowedPaths.add(clean);
+      }
     });
   }
 
@@ -102,12 +122,15 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid asset path" }, { status: 400 });
   }
 
+  // Sign from the correct bucket
   const expiresIn = 60;
+
   const { data, error } = await supabaseAdmin.storage
     .from("media")
     .createSignedUrl(cleanPath, expiresIn);
 
   if (error || !data?.signedUrl) {
+    console.error("Failed to sign URL:", error);
     return NextResponse.json({ error: "Failed to sign URL" }, { status: 500 });
   }
 
