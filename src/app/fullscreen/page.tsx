@@ -2,11 +2,15 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useSignedUrl } from "@/hooks/useSignedUrl";
+import { useRotatingSignedUrl } from "@/hooks/useRotatingSignedUrl";
 
 type FSItem = {
   id?: string;
   type: 'video' | 'photo';
-  url: string;
+  url?: string;
+  path?: string | null;
+  collectionId?: string;
   title?: string;
   thumbnail?: string | null;
 };
@@ -154,6 +158,16 @@ export default function FullscreenPage() {
 
   const items = payload?.items || [];
   const item = items[index];
+  const imageSignedUrl = useSignedUrl(item?.collectionId || "", item?.path || null);
+  const rotatingVideoUrl = useRotatingSignedUrl({
+    collectionId: item?.collectionId || "",
+    path: item?.path || null,
+    refreshEveryMs: 45_000,
+  });
+  const resolvedUrl =
+    item?.type === "video"
+      ? item?.url || rotatingVideoUrl || ""
+      : item?.url || imageSignedUrl || "";
 
   // When item changes, set up video listeners
   useEffect(() => {
@@ -448,11 +462,17 @@ export default function FullscreenPage() {
         }}
       >
         {item.type === 'photo' ? (
-          <img src={item.url} alt={item.title || ''} className="w-[100vw] h-[100dvh] object-contain" />
-        ) : (
+          resolvedUrl ? (
+            <img src={resolvedUrl} alt={item.title || ''} className="w-[100vw] h-[100dvh] object-contain" />
+          ) : (
+            <div className="w-[100vw] h-[100dvh] flex items-center justify-center text-white">
+              Loading...
+            </div>
+          )
+        ) : resolvedUrl ? (
           <video
             ref={videoRef}
-            src={item.url}
+            src={resolvedUrl}
             poster={item.thumbnail || '/placeholder-thumbnail.jpg'}
             className={`w-[100vw] h-[100dvh] ${isVertical ? 'object-cover' : 'object-cover'} ios-video-fullscreen`}
             autoPlay
@@ -462,7 +482,6 @@ export default function FullscreenPage() {
             preload="metadata"
             disablePictureInPicture
             controlsList="nodownload nofullscreen noremoteplayback"
-            // Always disable native controls on mobile fullscreen for TikTok-style experience
             controls={false}
             onPlay={() => {
               setIsPlaying(true);
@@ -474,9 +493,8 @@ export default function FullscreenPage() {
               backgroundColor: 'black', 
               position: 'fixed', 
               inset: 0, 
-              pointerEvents: isMobile && isFullscreen ? 'none' : 'auto' // Video not clickable on mobile fullscreen, container handles taps
+              pointerEvents: isMobile && isFullscreen ? 'none' : 'auto'
             }}
-            // Remove onClick from video - tap handler is on container for mobile fullscreen
             onClick={(e) => { 
               if (!(isMobile && isFullscreen) && !isFullscreen) {
                 e.stopPropagation();
@@ -484,6 +502,10 @@ export default function FullscreenPage() {
               }
             }}
           />
+        ) : (
+          <div className="w-[100vw] h-[100dvh] flex items-center justify-center text-white">
+            Loading...
+          </div>
         )}
       </div>
 

@@ -2,10 +2,12 @@
 
 import { useState, useEffect, Suspense, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { supabase, getSignedUrl } from '@/lib/supabase';
-import { Maximize2, Minimize2, AlertCircle } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
+import { AlertCircle } from 'lucide-react';
 import { useToast } from '@/components/Toast';
 import MobileFullscreenVideo from '@/components/MobileFullscreenVideo';
+import ClientGuards from '@/components/security/ClientGuards';
+import RotatingProtectedVideo from '@/components/media/RotatingProtectedVideo';
 
 interface Purchase {
   id: string;
@@ -18,7 +20,7 @@ interface Purchase {
     id: string;
     title: string;
     description: string;
-    videoUrl: string;
+    videoPath: string;
     thumbnail: string;
     price: number;
   };
@@ -39,7 +41,8 @@ function WatchPageContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [timeRemaining, setTimeRemaining] = useState<number>(0);
-  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [videoPath, setVideoPath] = useState<string | null>(null);
+  const [collectionId, setCollectionId] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
   const [isBlurred, setIsBlurred] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -71,19 +74,20 @@ function WatchPageContent() {
     console.log('🔍 DEBUG: Path parts:', pathParts);
     
     // Find the collection ID (should be the last part before any query params)
-    let collectionId = pathParts[pathParts.length - 1];
-    if (collectionId && collectionId.includes('?')) {
-      collectionId = collectionId.split('?')[0];
+    let resolvedCollectionId = pathParts[pathParts.length - 1];
+    if (resolvedCollectionId && resolvedCollectionId.includes('?')) {
+      resolvedCollectionId = resolvedCollectionId.split('?')[0];
     }
+    setCollectionId(resolvedCollectionId || null);
     
-    console.log('🔍 DEBUG: Collection ID extracted:', collectionId);
-    console.log('🔍 DEBUG: Collection ID type:', typeof collectionId);
-    console.log('🔍 DEBUG: Collection ID length:', collectionId?.length);
+    console.log('🔍 DEBUG: Collection ID extracted:', resolvedCollectionId);
+    console.log('🔍 DEBUG: Collection ID type:', typeof resolvedCollectionId);
+    console.log('🔍 DEBUG: Collection ID length:', resolvedCollectionId?.length);
 
     // Add a small delay to ensure everything is loaded
     setTimeout(() => {
-      console.log('🔍 DEBUG: About to call loadPurchase with collectionId:', collectionId);
-      loadPurchase(collectionId);
+      console.log('🔍 DEBUG: About to call loadPurchase with collectionId:', resolvedCollectionId);
+      loadPurchase(resolvedCollectionId);
     }, 100);
     
     // Get current user
@@ -723,28 +727,12 @@ function WatchPageContent() {
 
       console.log('🔍 DEBUG: Purchase data loaded:', purchaseData);
 
-      let videoUrlToSet = '';
-      // Get signed URL for video
+      let videoPathToSet = '';
       if (purchaseData.CollectionVideo && typeof purchaseData.CollectionVideo === 'object' && ('video_path' in purchaseData.CollectionVideo || 'media_filename' in purchaseData.CollectionVideo)) {
         const collectionVideo = purchaseData.CollectionVideo as any;
-        // ✅ Use media_filename if available, otherwise fall back to video_path
-        const videoPath = collectionVideo.media_filename || collectionVideo.video_path;
-        const { data: videoData, error: videoError } = await getSignedUrl(
-          'media',
-          videoPath,
-          3600
-        );
-
-        if (videoError || !videoData) {
-          console.error('❌ DEBUG: Video URL error:', videoError);
-          setError('Failed to load video');
-          setLoading(false);
-          return;
-        }
-
-        console.log('🔍 DEBUG: Video URL obtained:', videoData.signedUrl);
-        videoUrlToSet = videoData.signedUrl;
-        setVideoUrl(videoData.signedUrl);
+        const resolvedPath = collectionVideo.media_filename || collectionVideo.video_path;
+        videoPathToSet = resolvedPath || '';
+        setVideoPath(resolvedPath || null);
       }
 
       // Transform the data to match the Purchase interface
@@ -760,7 +748,7 @@ function WatchPageContent() {
           id: collectionVideo?.id || '',
           title: collectionVideo?.title || '',
           description: collectionVideo?.description || '',
-          videoUrl: videoUrlToSet,
+          videoPath: videoPathToSet,
           thumbnail: collectionVideo?.thumbnail_path || '',
           price: collectionVideo?.price || 0
         }
@@ -837,9 +825,10 @@ function WatchPageContent() {
             }
           }}
         >
-              <video
+              <RotatingProtectedVideo
             ref={videoRef}
-            src={videoUrl || ''}
+            collectionId={collectionId || ''}
+            videoPath={videoPath}
             className="w-full h-screen object-contain"
             onContextMenu={(e) => e.preventDefault()}
             onPlay={handlePlay}
@@ -859,7 +848,7 @@ function WatchPageContent() {
             }}
           >
             Your browser does not support the video tag.
-          </video>
+          </RotatingProtectedVideo>
 
               {/* Custom Video Controls */}
           <div className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/50 to-transparent p-4 transition-opacity duration-300 ${showControls ? 'opacity-100' : 'opacity-0'}`}>
@@ -991,7 +980,9 @@ export default function WatchPage() {
         </div>
       </div>
     }>
-      <WatchPageContent />
+      <ClientGuards>
+        <WatchPageContent />
+      </ClientGuards>
     </Suspense>
   );
 } 

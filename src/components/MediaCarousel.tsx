@@ -4,11 +4,17 @@ import { useState, useEffect, useRef } from 'react';
 import { ChevronLeft, ChevronRight, X, Volume2, VolumeX, Maximize2, Minimize2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import MobileFullscreenVideo from './MobileFullscreenVideo';
+import ProtectedImage from '@/components/media/ProtectedImage';
+import RotatingProtectedVideo from '@/components/media/RotatingProtectedVideo';
+import { useSignedUrl } from '@/hooks/useSignedUrl';
+import { useRotatingSignedUrl } from '@/hooks/useRotatingSignedUrl';
 
 interface MediaItem {
   id: string;
   type: 'video' | 'photo';
-  url: string;
+  url?: string;
+  path?: string | null;
+  collectionId?: string;
   title?: string;
   description?: string;
 }
@@ -52,6 +58,19 @@ export default function MediaCarousel({
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const currentItem = items[currentIndex];
+  const imageSignedUrl = useSignedUrl(
+    currentItem?.collectionId || '',
+    currentItem?.path || null
+  );
+  const rotatingVideoUrl = useRotatingSignedUrl({
+    collectionId: currentItem?.collectionId || '',
+    path: currentItem?.path || null,
+    refreshEveryMs: 45_000,
+  });
+  const resolvedUrl =
+    currentItem?.type === 'video'
+      ? currentItem?.url || rotatingVideoUrl || ''
+      : currentItem?.url || imageSignedUrl || '';
 
   useEffect(() => {
     // Get current user
@@ -209,7 +228,14 @@ export default function MediaCarousel({
 
   const toggleFullscreen = async () => {
     // New behavior: always navigate to universal fullscreen page with all items
-    const itemsPayload = items.map((it) => ({ id: it.id, type: it.type, url: it.url, title: it.title }));
+    const itemsPayload = items.map((it) => ({
+      id: it.id,
+      type: it.type,
+      url: it.url,
+      path: it.path ?? null,
+      collectionId: it.collectionId,
+      title: it.title,
+    }));
     const startIndex = currentIndex;
     const payload = { items: itemsPayload, startIndex, title };
     try { sessionStorage.setItem('fullscreen-payload', JSON.stringify(payload)); } catch {}
@@ -387,64 +413,124 @@ export default function MediaCarousel({
         }`}>
           {currentItem.type === 'video' ? (
             <div className={`relative w-full h-full ${isVerticalVideo ? 'vertical-video-container' : ''}`}>
-              <video
-                ref={videoRef}
-                src={currentItem.url}
-                className={`w-full h-full ${
-                  isVerticalVideo 
-                    ? 'object-cover' // Fill entire screen for vertical videos (mobile-friendly)
-                    : isFullscreen 
-                      ? 'object-contain' // Maintain aspect ratio for horizontal videos in fullscreen
-                      : 'object-contain' // Maintain aspect ratio for horizontal videos in normal mode
-                }`}
-                onContextMenu={(e) => e.preventDefault()}
-                onLoadedMetadata={handleLoadedMetadata}
-                onTimeUpdate={handleTimeUpdate}
-                onPlay={() => setIsPlaying(true)}
-                onPause={() => setIsPlaying(false)}
-                onEnded={() => setIsPlaying(false)}
-                onError={(e) => {
-                  if (process.env.NODE_ENV !== 'production') {
-                    console.error('Video error:', e);
-                  }
-                  setVideoLoaded(true);
-                }}
-                preload="metadata"
-                muted={isMuted}
-                playsInline
-                controls={false}
-                webkit-playsinline="true"
-                x-webkit-airplay="allow"
-                disablePictureInPicture
-                controlsList="nodownload nofullscreen noremoteplayback"
-                style={{
-                  WebkitUserSelect: 'none',
-                  MozUserSelect: 'none',
-                  msUserSelect: 'none',
-                  userSelect: 'none',
-                  pointerEvents: 'auto',
-                  // Ensure vertical videos fill the entire screen on mobile
-                  ...(isVerticalVideo && {
-                    objectFit: 'cover',
-                    width: '100%',
-                    height: '100%',
-                    ...(isMobile && {
-                      width: '100vw',
-                      height: '100vh',
-                      maxWidth: '100vw',
-                      maxHeight: '100vh',
-                      position: 'absolute',
-                      top: '0',
-                      left: '0',
-                      right: '0',
-                      bottom: '0',
-                      WebkitObjectFit: 'cover',
-                      WebkitTransform: 'translateZ(0)',
-                      transform: 'translateZ(0)',
+              {currentItem.collectionId && currentItem.path ? (
+                <RotatingProtectedVideo
+                  ref={videoRef}
+                  collectionId={currentItem.collectionId}
+                  videoPath={currentItem.path}
+                  className={`w-full h-full ${
+                    isVerticalVideo 
+                      ? 'object-cover'
+                      : isFullscreen 
+                        ? 'object-contain'
+                        : 'object-contain'
+                  }`}
+                  onContextMenu={(e) => e.preventDefault()}
+                  onLoadedMetadata={handleLoadedMetadata}
+                  onTimeUpdate={handleTimeUpdate}
+                  onPlay={() => setIsPlaying(true)}
+                  onPause={() => setIsPlaying(false)}
+                  onEnded={() => setIsPlaying(false)}
+                  onError={(e) => {
+                    if (process.env.NODE_ENV !== 'production') {
+                      console.error('Video error:', e);
+                    }
+                    setVideoLoaded(true);
+                  }}
+                  preload="metadata"
+                  muted={isMuted}
+                  playsInline
+                  controls={false}
+                  webkit-playsinline="true"
+                  x-webkit-airplay="allow"
+                  disablePictureInPicture
+                  controlsList="nodownload nofullscreen noremoteplayback"
+                  style={{
+                    WebkitUserSelect: 'none',
+                    MozUserSelect: 'none',
+                    msUserSelect: 'none',
+                    userSelect: 'none',
+                    pointerEvents: 'auto',
+                    ...(isVerticalVideo && {
+                      objectFit: 'cover',
+                      width: '100%',
+                      height: '100%',
+                      ...(isMobile && {
+                        width: '100vw',
+                        height: '100vh',
+                        maxWidth: '100vw',
+                        maxHeight: '100vh',
+                        position: 'absolute',
+                        top: '0',
+                        left: '0',
+                        right: '0',
+                        bottom: '0',
+                        WebkitObjectFit: 'cover',
+                        WebkitTransform: 'translateZ(0)',
+                        transform: 'translateZ(0)',
+                      }),
                     }),
-                  }),
-                }}
-              />
+                  }}
+                />
+              ) : (
+                <video
+                  ref={videoRef}
+                  src={currentItem.url}
+                  className={`w-full h-full ${
+                    isVerticalVideo 
+                      ? 'object-cover'
+                      : isFullscreen 
+                        ? 'object-contain'
+                        : 'object-contain'
+                  }`}
+                  onContextMenu={(e) => e.preventDefault()}
+                  onLoadedMetadata={handleLoadedMetadata}
+                  onTimeUpdate={handleTimeUpdate}
+                  onPlay={() => setIsPlaying(true)}
+                  onPause={() => setIsPlaying(false)}
+                  onEnded={() => setIsPlaying(false)}
+                  onError={(e) => {
+                    if (process.env.NODE_ENV !== 'production') {
+                      console.error('Video error:', e);
+                    }
+                    setVideoLoaded(true);
+                  }}
+                  preload="metadata"
+                  muted={isMuted}
+                  playsInline
+                  controls={false}
+                  webkit-playsinline="true"
+                  x-webkit-airplay="allow"
+                  disablePictureInPicture
+                  controlsList="nodownload nofullscreen noremoteplayback"
+                  style={{
+                    WebkitUserSelect: 'none',
+                    MozUserSelect: 'none',
+                    msUserSelect: 'none',
+                    userSelect: 'none',
+                    pointerEvents: 'auto',
+                    ...(isVerticalVideo && {
+                      objectFit: 'cover',
+                      width: '100%',
+                      height: '100%',
+                      ...(isMobile && {
+                        width: '100vw',
+                        height: '100vh',
+                        maxWidth: '100vw',
+                        maxHeight: '100vh',
+                        position: 'absolute',
+                        top: '0',
+                        left: '0',
+                        right: '0',
+                        bottom: '0',
+                        WebkitObjectFit: 'cover',
+                        WebkitTransform: 'translateZ(0)',
+                        transform: 'translateZ(0)',
+                      }),
+                    }),
+                  }}
+                />
+              )}
               
               {/* Secure Watermark */}
               <div className="absolute bottom-4 right-4 text-xs opacity-30 pointer-events-none select-none z-50 text-white bg-black bg-opacity-20 px-2 py-1 rounded">
@@ -536,6 +622,16 @@ export default function MediaCarousel({
                 </div>
               </div>
             </div>
+          ) : currentItem.collectionId && currentItem.path ? (
+            <ProtectedImage
+              collectionId={currentItem.collectionId}
+              imagePath={currentItem.path}
+              alt={currentItem.title || `Photo ${currentIndex + 1}`}
+              className="max-w-full max-h-full object-contain"
+              onContextMenu={(e) => e.preventDefault()}
+              draggable={false}
+              onDragStart={(e) => e.preventDefault()}
+            />
           ) : (
             <img
               src={currentItem.url}
@@ -563,9 +659,9 @@ export default function MediaCarousel({
       )}
 
       {/* Mobile Fullscreen Video Player */}
-      {currentItem?.type === 'video' && (
+      {currentItem?.type === 'video' && resolvedUrl && (
         <MobileFullscreenVideo
-          videoUrl={currentItem.url}
+          videoUrl={resolvedUrl}
           isOpen={showMobileFullscreen}
           startTime={lastMobileTimeRef.current || currentTime}
           onClose={(lastTime = 0, wasPlaying = false) => {

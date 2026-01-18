@@ -1,15 +1,17 @@
 "use client";
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { supabase, getCollection, checkAccess, getSignedUrl, logWatchActivity } from '@/lib/supabase';
+import { supabase, getCollection, logWatchActivity } from '@/lib/supabase';
 import PurchaseLegalDisclaimer from '@/components/PurchaseLegalDisclaimer';
 import MediaCarousel from '@/components/MediaCarousel';
+import ClientGuards from '@/components/security/ClientGuards';
 
 interface MediaItem {
   id: string;
   type: 'video' | 'photo';
-  url: string;
+  path?: string | null;
+  collectionId: string;
   title?: string;
   description?: string;
 }
@@ -18,8 +20,8 @@ export default function WatchPage() {
   const [user, setUser] = useState<any>(null);
   const [collection, setCollection] = useState<any>(null);
   const [hasAccess, setHasAccess] = useState(false);
-  const [videoUrl, setVideoUrl] = useState<string>('');
-  const [photoUrls, setPhotoUrls] = useState<string[]>([]);
+  const [videoPath, setVideoPath] = useState<string | null>(null);
+  const [photoPaths, setPhotoPaths] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
   const [showLegalDisclaimer, setShowLegalDisclaimer] = useState(false);
@@ -115,88 +117,9 @@ export default function WatchPage() {
           return;
         }
 
-        // Get protected video URL through our API
-        // Handle case where stripe_session_id might be missing
-        const sessionId = accessData.stripe_session_id;
-        if (!sessionId) {
-          if (process.env.NODE_ENV !== 'production') {
-            console.warn('⚠️ No stripe_session_id in purchase data, trying alternative method');
-          }
-          // Try to get video URL directly from collection if available
-          if (collectionData.video_path || collectionData.media_filename) {
-            const videoPath = collectionData.media_filename || collectionData.video_path;
-            try {
-              const { data: signedUrlData, error: signedUrlError } = await getSignedUrl('media', videoPath, 3600);
-              if (!signedUrlError && signedUrlData?.signedUrl) {
-                setVideoUrl(signedUrlData.signedUrl);
-                if (process.env.NODE_ENV !== 'production') {
-                  console.log('✅ Got video URL directly from collection');
-                }
-              }
-            } catch (err) {
-              if (process.env.NODE_ENV !== 'production') {
-                console.error('Failed to get signed URL directly:', err);
-              }
-            }
-          }
-        } else {
-          try {
-            if (process.env.NODE_ENV !== 'production') {
-              console.log('Calling protected-video API with session_id:', sessionId, 'collection_id:', id);
-            }
-            const videoRes = await fetch(`/api/protected-video?session_id=${encodeURIComponent(sessionId)}&collection_id=${encodeURIComponent(id)}`);
-            
-            if (!videoRes.ok) {
-              const errorData = await videoRes.json().catch(() => ({ error: 'Unknown error' }));
-              if (process.env.NODE_ENV !== 'production') {
-                console.error('Protected video API failed:', videoRes.status, errorData);
-              }
-              // Don't fail completely - try direct method as fallback
-              if (collectionData.video_path || collectionData.media_filename) {
-                const videoPath = collectionData.media_filename || collectionData.video_path;
-                const { data: signedUrlData, error: signedUrlError } = await getSignedUrl('media', videoPath, 3600);
-                if (!signedUrlError && signedUrlData?.signedUrl) {
-                  setVideoUrl(signedUrlData.signedUrl);
-                  if (process.env.NODE_ENV !== 'production') {
-                    console.log('✅ Fallback: Got video URL directly from collection');
-                  }
-                }
-              }
-            } else {
-              const videoJson = await videoRes.json();
-              if (videoJson.videoUrl) {
-                if (process.env.NODE_ENV !== 'production') {
-                  console.log('✅ Using signed URL from protected-video API');
-                }
-                setVideoUrl(videoJson.videoUrl);
-              } else if (collectionData.video_path || collectionData.media_filename) {
-                // Fallback to direct method
-                const videoPath = collectionData.media_filename || collectionData.video_path;
-                const { data: signedUrlData, error: signedUrlError } = await getSignedUrl('media', videoPath, 3600);
-                if (!signedUrlError && signedUrlData?.signedUrl) {
-                  setVideoUrl(signedUrlData.signedUrl);
-                }
-              }
-            }
-          } catch (videoError: any) {
-            if (process.env.NODE_ENV !== 'production') {
-              console.error('Error fetching video URL:', videoError);
-            }
-            // Try fallback method
-            if (collectionData.video_path || collectionData.media_filename) {
-              const videoPath = collectionData.media_filename || collectionData.video_path;
-              try {
-                const { data: signedUrlData, error: signedUrlError } = await getSignedUrl('media', videoPath, 3600);
-                if (!signedUrlError && signedUrlData?.signedUrl) {
-                  setVideoUrl(signedUrlData.signedUrl);
-                }
-              } catch (fallbackError) {
-                if (process.env.NODE_ENV !== 'production') {
-                  console.error('Fallback video URL fetch also failed:', fallbackError);
-                }
-              }
-            }
-          }
+        if (collectionData.video_path || collectionData.media_filename) {
+          const resolvedVideoPath = collectionData.media_filename || collectionData.video_path;
+          setVideoPath(resolvedVideoPath || null);
         }
 
         // Get signed URLs for photos if they exist
@@ -204,35 +127,12 @@ export default function WatchPage() {
           if (process.env.NODE_ENV !== 'production') {
             console.log('📸 Loading photos from paths:', collectionData.photo_paths.length, 'photos');
           }
-          
-          const photoPromises = collectionData.photo_paths.map(async (path: string, index: number) => {
-            try {
-              const { data, error } = await getSignedUrl('media', path, 3600);
-              if (error) {
-                if (process.env.NODE_ENV !== 'production') {
-                  console.warn(`⚠️ Failed to load photo ${index + 1}:`, error);
-                }
-                return null;
-              }
-              return data?.signedUrl || null;
-            } catch (err) {
-              if (process.env.NODE_ENV !== 'production') {
-                console.warn(`⚠️ Error loading photo ${index + 1}:`, err);
-              }
-              return null;
-            }
-          });
-
-          const urls = await Promise.all(photoPromises);
-          const validUrls = urls.filter(Boolean) as string[];
-          if (process.env.NODE_ENV !== 'production') {
-            console.log(`✅ Valid photo URLs loaded: ${validUrls.length}/${collectionData.photo_paths.length}`);
-          }
-          setPhotoUrls(validUrls);
+          setPhotoPaths(collectionData.photo_paths);
         } else {
           if (process.env.NODE_ENV !== 'production') {
             console.log('ℹ️ No photos found in collection');
           }
+          setPhotoPaths([]);
         }
 
         // Log the watch activity (don't block on this)
@@ -286,26 +186,28 @@ export default function WatchPage() {
 
   // Prepare media items for carousel
   useEffect(() => {
-    if (videoUrl || photoUrls.length > 0) {
+    if (videoPath || photoPaths.length > 0) {
       const items: MediaItem[] = [];
       
       // Add video as first item if available
-      if (videoUrl) {
+      if (videoPath) {
         items.push({
           id: 'video',
           type: 'video',
-          url: videoUrl,
+          path: videoPath,
+          collectionId: id,
           title: collection?.title || 'Video',
           description: collection?.description
         });
       }
       
       // Add photos
-      photoUrls.forEach((url, index) => {
+      photoPaths.forEach((path, index) => {
         items.push({
           id: `photo-${index}`,
           type: 'photo',
-          url: url,
+          path,
+          collectionId: id,
           title: `${collection?.title || 'Photo'} ${index + 1}`,
           description: collection?.description
         });
@@ -313,7 +215,7 @@ export default function WatchPage() {
       
       setMediaItems(items);
     }
-  }, [videoUrl, photoUrls, collection]);
+  }, [videoPath, photoPaths, collection, id]);
 
   const handleLegalAccept = () => {
     localStorage.setItem('exclusive-lex-purchase-terms-accepted', 'true');
@@ -391,7 +293,7 @@ export default function WatchPage() {
   }
 
   // If access granted but no media available, show helpful message
-  if (hasAccess && !videoUrl && photoUrls.length === 0) {
+  if (hasAccess && !videoPath && photoPaths.length === 0) {
     if (process.env.NODE_ENV !== 'production') {
       console.warn('⚠️ Access granted but no media found. Collection:', collection?.title, 'ID:', id);
     }
@@ -453,6 +355,7 @@ export default function WatchPage() {
   console.log('Render - Showing media content');
 
   return (
+    <ClientGuards>
     <div className="min-h-screen bg-black">
       {/* Header */}
       <div className="bg-black bg-opacity-75 text-white p-4 flex justify-between items-center fixed top-0 left-0 right-0 z-50">
@@ -495,5 +398,6 @@ export default function WatchPage() {
         />
       )}
     </div>
+    </ClientGuards>
   );
 } 

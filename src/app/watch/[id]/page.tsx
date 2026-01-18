@@ -2,15 +2,16 @@
 
 import { useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { AlertCircle, Play, Pause, Volume2, VolumeX } from 'lucide-react';
-import { getSignedUrl } from '@/lib/supabase';
+import { AlertCircle } from 'lucide-react';
 import MediaCarousel from '@/components/MediaCarousel';
 import PurchaseDisclaimer from '@/components/PurchaseDisclaimer';
+import ClientGuards from '@/components/security/ClientGuards';
 
 interface MediaItem {
   id: string;
   type: 'video' | 'photo';
-  url: string;
+  path?: string | null;
+  collectionId: string;
   title?: string;
   description?: string;
 }
@@ -48,8 +49,8 @@ function WatchPageClient({ collectionId }: { collectionId: string }) {
   const [purchase, setPurchase] = useState<Purchase | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [videoUrl, setVideoUrl] = useState<string | null>(null);
-  const [photoUrls, setPhotoUrls] = useState<string[]>([]);
+  const [videoPath, setVideoPath] = useState<string | null>(null);
+  const [photoPaths, setPhotoPaths] = useState<string[]>([]);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [showControls, setShowControls] = useState(true);
@@ -240,26 +241,28 @@ function WatchPageClient({ collectionId }: { collectionId: string }) {
 
   // Prepare media items for carousel
   useEffect(() => {
-    if (videoUrl || photoUrls.length > 0) {
+    if (videoPath || photoPaths.length > 0) {
       const items: MediaItem[] = [];
       
       // Add video as first item if available
-      if (videoUrl) {
+      if (videoPath) {
         items.push({
           id: 'video',
           type: 'video',
-          url: videoUrl,
+          path: videoPath,
+          collectionId,
           title: purchase?.collection?.title || 'Video',
           description: purchase?.collection?.description
         });
       }
       
       // Add photos
-      photoUrls.forEach((url, index) => {
+      photoPaths.forEach((path, index) => {
         items.push({
           id: `photo-${index}`,
           type: 'photo',
-          url: url,
+          path,
+          collectionId,
           title: `${purchase?.collection?.title || 'Photo'} ${index + 1}`,
           description: purchase?.collection?.description
         });
@@ -267,7 +270,7 @@ function WatchPageClient({ collectionId }: { collectionId: string }) {
       
       setMediaItems(items);
     }
-  }, [videoUrl, photoUrls, purchase]);
+  }, [videoPath, photoPaths, purchase, collectionId]);
 
   const loadPurchase = async () => {
     try {
@@ -289,42 +292,16 @@ function WatchPageClient({ collectionId }: { collectionId: string }) {
 
       setPurchase(purchase);
 
-      // Get signed URL for video
       if (purchase.collection?.video_path || purchase.collection?.media_filename) {
-        // ✅ Use media_filename if available, otherwise fall back to video_path
-        const videoPath = purchase.collection.media_filename || purchase.collection.video_path;
-        const { data: signedUrl } = await getSignedUrl('media', videoPath);
-        if (signedUrl) {
-          setVideoUrl(signedUrl.signedUrl);
-        }
+        const resolvedVideoPath =
+          purchase.collection.media_filename || purchase.collection.video_path;
+        setVideoPath(resolvedVideoPath || null);
       }
 
-      // Get signed URLs for photos if they exist
       if (purchase.collection?.photo_paths && purchase.collection.photo_paths.length > 0) {
-        console.log('Loading photos from paths:', purchase.collection.photo_paths);
-        
-        const photoPromises = purchase.collection.photo_paths.map(async (path: string, index: number) => {
-          try {
-            console.log(`Loading photo ${index + 1}:`, path);
-            const { data, error } = await getSignedUrl('media', path, 3600);
-            if (error) {
-              console.error(`Failed to load photo ${index + 1}:`, error);
-              return null;
-            }
-            console.log(`Successfully loaded photo ${index + 1}:`, data?.signedUrl);
-            return data?.signedUrl;
-          } catch (err) {
-            console.error(`Error loading photo ${index + 1}:`, err);
-            return null;
-          }
-        });
-
-        const urls = await Promise.all(photoPromises);
-        const validUrls = urls.filter(Boolean) as string[];
-        console.log('Valid photo URLs loaded:', validUrls.length);
-        setPhotoUrls(validUrls);
+        setPhotoPaths(purchase.collection.photo_paths);
       } else {
-        console.log('No photo paths found in collection data');
+        setPhotoPaths([]);
       }
 
     } catch (err: any) {
@@ -407,6 +384,7 @@ function WatchPageClient({ collectionId }: { collectionId: string }) {
   console.log('Watch page - photo_paths:', purchase.collection.photo_paths);
 
   return (
+    <ClientGuards>
     <div className="min-h-screen bg-stone-900">
       {/* Header */}
       <div className="bg-stone-800 border-b border-stone-700">
@@ -472,5 +450,6 @@ function WatchPageClient({ collectionId }: { collectionId: string }) {
         </div>
       </div>
     </div>
+    </ClientGuards>
   );
 } 
