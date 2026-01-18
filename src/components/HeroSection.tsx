@@ -250,69 +250,6 @@ export default function HeroSection() {
     }
   }, [heroVideos.length]);
 
-  // Attempt video playback with retries (used after login/session resolution)
-  const attemptVideoPlaybackWithRetries = () => {
-    const v = singleVideoRef.current;
-    const url = videoUrls[currentVideoIndex];
-    
-    if (!v || !url || ageVerified !== true) return;
-
-    // Clear any existing retry timeouts
-    retryTimeoutsRef.current.forEach(timeout => clearTimeout(timeout));
-    retryTimeoutsRef.current = [];
-
-    const attemptPlay = (delay: number) => {
-      const timeoutId = setTimeout(() => {
-        try {
-          if (v.src !== url) {
-            v.src = url;
-            v.load();
-          }
-          
-          // Ensure mobile-friendly attributes
-          v.muted = true;
-          v.setAttribute('muted', '');
-          v.setAttribute('playsinline', 'true');
-          v.setAttribute('webkit-playsinline', 'true');
-          v.setAttribute('autoplay', '');
-          
-          const playPromise = v.play();
-          if (playPromise !== undefined) {
-            playPromise
-              .then(() => {
-                setAutoplayBlocked(false);
-                setAutoplayFailed(false);
-                setVideosPlaying(true);
-              })
-              .catch((error) => {
-                console.log('Autoplay retry failed:', error);
-                if (delay >= 1000) {
-                  // Final retry failed, show tap to play
-                  setAutoplayFailed(true);
-                  setAutoplayBlocked(true);
-                }
-              });
-          }
-        } catch (error) {
-          console.error('Error in playback retry:', error);
-          if (delay >= 1000) {
-            setAutoplayFailed(true);
-            setAutoplayBlocked(true);
-          }
-        }
-      }, delay);
-      
-      retryTimeoutsRef.current.push(timeoutId);
-    };
-
-    // Immediate attempt
-    attemptPlay(0);
-    // Retry after 250ms
-    attemptPlay(250);
-    // Retry after 1000ms
-    attemptPlay(1000);
-  };
-
   // Effect that runs when BOTH ageVerified === true AND video ref is set
   // This handles initial load and also triggers after login
   useEffect(() => {
