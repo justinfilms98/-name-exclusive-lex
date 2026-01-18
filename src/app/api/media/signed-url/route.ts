@@ -18,89 +18,70 @@ type Body = {
  * POST /api/media/signed-url
  * 
  * Returns a short-lived signed URL for media files after verifying:
- * 1. User is authenticated (via Supabase auth cookies)
+ * 1. User is authenticated (via Supabase auth cookies OR Authorization header)
  * 2. User has access (via purchases OR entry_access OR admin)
  * 3. Requested path belongs to the collection
+ * 
+ * Supports both cookie-based auth (via SSR client) and token-based auth (via Authorization header)
  */
 export async function POST(req: Request) {
-  // Log cookie presence for debugging (names only, no values)
+  // Check for Authorization header (token-based auth from client)
+  const authHeader = req.headers.get("authorization");
+  const bearerToken = authHeader?.replace("Bearer ", "");
+
+  // Also check cookies (for SSR/cookie-based auth)
   const cookieHeader = req.headers.get("cookie");
   const hasCookieHeader = !!cookieHeader;
-  const cookieNames: string[] = [];
-  
-  if (cookieHeader) {
-    // Split on ';' to get individual cookies
-    const cookies = cookieHeader.split(';').map(c => c.trim());
-    for (const cookie of cookies) {
-      // Take left side of '=' to get cookie name
-      const eqIndex = cookie.indexOf('=');
-      if (eqIndex > 0) {
-        const name = cookie.substring(0, eqIndex).trim();
-        cookieNames.push(name);
+
+  let authenticatedUser = null;
+  let authError = null;
+
+  // Try token-based auth first (from Authorization header)
+  if (bearerToken) {
+    try {
+      const { data: { user }, error } = await supabaseAdmin.auth.getUser(bearerToken);
+      if (user && !error) {
+        authenticatedUser = user;
+        console.log("[signed-url] User authenticated via Authorization header:", user.id);
+      } else {
+        authError = error?.message || "Invalid token";
       }
+    } catch (err) {
+      authError = "Token validation failed";
     }
   }
 
-  // Also check what Next.js cookies() API sees
-  const cookieStore = cookies();
-  const nextCookies = cookieStore.getAll();
-  const nextCookieNames = nextCookies.map(c => c.name);
-
-  // Filter for Supabase cookie names (sb-<project-ref>-auth-token pattern)
-  const supabaseCookieNames = cookieNames.filter(name => 
-    name.includes("sb-") || name.includes("supabase") || name.includes("auth")
-  );
-
-  const supabaseNextCookieNames = nextCookieNames.filter(name => 
-    name.includes("sb-") || name.includes("supabase") || name.includes("auth")
-  );
-
-  console.log("[signed-url] Request received:", {
-    hasCookieHeader: Boolean(cookieHeader),
-    totalCookieCount: cookieNames.length,
-    allCookieNames: cookieNames, // Log ALL cookie names to see what's actually being sent
-    supabaseCookieCount: supabaseCookieNames.length,
-    supabaseCookieNames: supabaseCookieNames.length > 0 ? supabaseCookieNames : "none",
-    nextCookiesCount: nextCookieNames.length,
-    nextCookieNames: nextCookieNames, // Log what Next.js cookies() API sees
-    supabaseNextCookieCount: supabaseNextCookieNames.length,
-    supabaseNextCookieNames: supabaseNextCookieNames.length > 0 ? supabaseNextCookieNames : "none",
-  });
-
-  const supabase = supabaseRouteClient();
-
-  // Try getUser() first (preferred method)
-  const {
-    data: { user },
-    error: userErr,
-  } = await supabase.auth.getUser();
-
-  // Fallback: if getUser() fails but cookies exist, try getSession()
-  let session = null;
-  if ((userErr || !user?.id) && hasCookieHeader) {
-    console.log("[signed-url] getUser() failed, trying getSession() fallback");
-    const sessionResult = await supabase.auth.getSession();
-    session = sessionResult.data?.session || null;
+  // Fallback to cookie-based auth if token auth failed
+  if (!authenticatedUser && hasCookieHeader) {
+    const supabase = supabaseRouteClient();
     
-    if (session?.user) {
-      console.log("[signed-url] Session found via fallback, user:", session.user.id);
+    // Try getUser() first (preferred method)
+    const {
+      data: { user },
+      error: userErr,
+    } = await supabase.auth.getUser();
+
+    // Fallback: if getUser() fails, try getSession()
+    let session = null;
+    if (userErr || !user?.id) {
+      const sessionResult = await supabase.auth.getSession();
+      session = sessionResult.data?.session || null;
+    }
+
+    authenticatedUser = user || session?.user || null;
+    
+    if (authenticatedUser) {
+      console.log("[signed-url] User authenticated via cookies:", authenticatedUser.id);
     } else {
-      console.log("[signed-url] No session found via fallback either");
+      authError = userErr?.message || "No session found";
     }
   }
-
-  const authenticatedUser = user || session?.user || null;
 
   if (!authenticatedUser?.id) {
     console.log("[signed-url] 401 Unauthorized:", {
+      hasAuthHeader: !!bearerToken,
       hasCookieHeader,
-      totalCookieCount: cookieNames.length,
-      allCookieNames: cookieNames, // Show all cookie names in error log
-      supabaseCookieCount: supabaseCookieNames.length,
-      nextCookiesCount: nextCookieNames.length,
-      nextCookieNames: nextCookieNames,
-      getUserError: userErr?.message || "none",
-      hasSession: !!session,
+      authError: authError || "none",
     });
     
     return NextResponse.json(

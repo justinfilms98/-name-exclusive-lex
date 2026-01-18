@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { supabase } from "@/lib/supabase";
 
 export function useRotatingSignedUrl(params: {
   collectionId: string;
@@ -18,14 +19,24 @@ export function useRotatingSignedUrl(params: {
   async function fetchSignedUrl(retry = false) {
     if (!collectionId || !path) return;
 
-    // CRITICAL: credentials: "include" ensures cookies are sent with the request
-    // Without this, Supabase auth cookies won't be included and the server
-    // will return 401 even if the user is logged in
-    // cache: "no-store" prevents browser caching of the auth request
+    // Get the session and access token from Supabase
+    // Since Supabase client stores sessions in localStorage (not cookies),
+    // we need to send the access token in the Authorization header
+    const { data: { session } } = await supabase.auth.getSession();
+    const accessToken = session?.access_token;
+
+    if (!accessToken) {
+      setError("Session expired — please refresh or sign in again.");
+      return;
+    }
+
     const res = await fetch("/api/media/signed-url", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include", // This ensures cookies are sent
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${accessToken}`, // Send access token in header
+      },
+      credentials: "include", // Still include cookies (for future cookie-based auth)
       cache: "no-store", // Prevent caching auth requests
       body: JSON.stringify({ collectionId, path }),
     });
