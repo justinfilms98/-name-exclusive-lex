@@ -158,8 +158,11 @@ export default function FullscreenPage() {
 
   const items = payload?.items || [];
   const item = items[index];
-  const imageSignedUrl = useSignedUrl(item?.collectionId || "", item?.path || null);
-  const rotatingVideoUrl = useRotatingSignedUrl({
+  const { signedUrl: imageSignedUrl } = useSignedUrl(
+    item?.collectionId || "",
+    item?.path || null
+  );
+  const { signedUrl: rotatingVideoUrl } = useRotatingSignedUrl({
     collectionId: item?.collectionId || "",
     path: item?.path || null,
     refreshEveryMs: 45_000,

@@ -13,7 +13,11 @@ type ProtectedVideoProps = React.PropsWithChildren<
 
 const ProtectedVideo = forwardRef<HTMLVideoElement, ProtectedVideoProps>(
   ({ collectionId, videoPath, loadingFallback, children, ...videoProps }, ref) => {
-    const signedUrl = useSignedUrl(collectionId, videoPath);
+    const { signedUrl, error } = useSignedUrl(collectionId, videoPath);
+
+    if (error) {
+      return <div className="text-sm text-red-400">{error}</div>;
+    }
 
     if (!signedUrl) {
       return loadingFallback ? (

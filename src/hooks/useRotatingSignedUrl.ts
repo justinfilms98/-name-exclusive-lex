@@ -11,6 +11,7 @@ export function useRotatingSignedUrl(params: {
   const refreshEveryMs = params.refreshEveryMs ?? 45_000;
 
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const intervalRef = useRef<number | null>(null);
 
   async function fetchSignedUrl() {
@@ -22,10 +23,14 @@ export function useRotatingSignedUrl(params: {
       body: JSON.stringify({ collectionId, path }),
     });
 
-    if (!res.ok) return;
+    if (!res.ok) {
+      setError(`Failed to sign URL (${res.status})`);
+      return;
+    }
 
     const data = await res.json();
     setSignedUrl(data?.signedUrl ?? null);
+    setError(null);
   }
 
   useEffect(() => {
@@ -33,6 +38,7 @@ export function useRotatingSignedUrl(params: {
 
     async function start() {
       setSignedUrl(null);
+      setError(null);
       await fetchSignedUrl();
 
       if (cancelled) return;
@@ -49,5 +55,5 @@ export function useRotatingSignedUrl(params: {
     };
   }, [collectionId, path, refreshEveryMs]);
 
-  return signedUrl;
+  return { signedUrl, error };
 }

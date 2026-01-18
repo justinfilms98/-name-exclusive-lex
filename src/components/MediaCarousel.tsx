@@ -58,11 +58,11 @@ export default function MediaCarousel({
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const currentItem = items[currentIndex];
-  const imageSignedUrl = useSignedUrl(
+  const { signedUrl: imageSignedUrl } = useSignedUrl(
     currentItem?.collectionId || '',
     currentItem?.path || null
   );
-  const rotatingVideoUrl = useRotatingSignedUrl({
+  const { signedUrl: rotatingVideoUrl } = useRotatingSignedUrl({
     collectionId: currentItem?.collectionId || '',
     path: currentItem?.path || null,
     refreshEveryMs: 45_000,

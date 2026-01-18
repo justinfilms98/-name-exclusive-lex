@@ -15,7 +15,11 @@ export default function ProtectedImage({
   loadingFallback,
   ...imgProps
 }: ProtectedImageProps) {
-  const signedUrl = useSignedUrl(collectionId, imagePath);
+  const { signedUrl, error } = useSignedUrl(collectionId, imagePath);
+
+  if (error) {
+    return <div className="text-sm text-red-400">{error}</div>;
+  }
 
   if (!signedUrl) {
     return loadingFallback ? <>{loadingFallback}</> : null;

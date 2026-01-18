@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 export function useSignedUrl(collectionId: string, path: string | null) {
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!collectionId || !path) return;
@@ -12,6 +13,7 @@ export function useSignedUrl(collectionId: string, path: string | null) {
 
     async function run() {
       setSignedUrl(null);
+      setError(null);
 
       const res = await fetch("/api/media/signed-url", {
         method: "POST",
@@ -19,7 +21,10 @@ export function useSignedUrl(collectionId: string, path: string | null) {
         body: JSON.stringify({ collectionId, path }),
       });
 
-      if (!res.ok) return;
+      if (!res.ok) {
+        setError(`Failed to sign URL (${res.status})`);
+        return;
+      }
 
       const data = await res.json();
       if (!cancelled) setSignedUrl(data?.signedUrl ?? null);
@@ -31,5 +36,5 @@ export function useSignedUrl(collectionId: string, path: string | null) {
     };
   }, [collectionId, path]);
 
-  return signedUrl;
+  return { signedUrl, error };
 }

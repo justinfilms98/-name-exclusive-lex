@@ -15,7 +15,7 @@ const RotatingProtectedVideo = forwardRef<
   HTMLVideoElement,
   RotatingProtectedVideoProps
 >(({ collectionId, videoPath, loadingFallback, children, ...videoProps }, ref) => {
-  const signedUrl = useRotatingSignedUrl({
+  const { signedUrl, error } = useRotatingSignedUrl({
     collectionId,
     path: videoPath,
     refreshEveryMs: 45_000,
@@ -43,6 +43,10 @@ const RotatingProtectedVideo = forwardRef<
       }
     };
   }, [signedUrl]);
+
+  if (error) {
+    return <div className="text-sm text-red-400">{error}</div>;
+  }
 
   if (!signedUrl) {
     return loadingFallback ? (
