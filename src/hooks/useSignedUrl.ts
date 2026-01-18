@@ -11,9 +11,9 @@ export function useSignedUrl(collectionId: string, path: string | null) {
 
     let cancelled = false;
 
-    async function run() {
+    async function run(retry = false) {
       setSignedUrl(null);
-      setError(null);
+      if (!retry) setError(null);
 
       const res = await fetch("/api/media/signed-url", {
         method: "POST",
@@ -22,12 +22,32 @@ export function useSignedUrl(collectionId: string, path: string | null) {
       });
 
       if (!res.ok) {
-        setError(`Failed to sign URL (${res.status})`);
+        const errorData = await res.json().catch(() => ({ error: "Unknown error" }));
+        const status = res.status;
+
+        if (status === 401 && !retry) {
+          // Retry once after 500ms for Safari auth hydration
+          await new Promise((resolve) => setTimeout(resolve, 500));
+          if (!cancelled) {
+            return run(true);
+          }
+        }
+
+        if (!cancelled) {
+          if (status === 401) {
+            setError("Session expired — please refresh or sign in again.");
+          } else {
+            setError(errorData.error || `Failed to sign URL (${status})`);
+          }
+        }
         return;
       }
 
       const data = await res.json();
-      if (!cancelled) setSignedUrl(data?.signedUrl ?? null);
+      if (!cancelled) {
+        setSignedUrl(data?.signedUrl ?? null);
+        setError(null);
+      }
     }
 
     run();

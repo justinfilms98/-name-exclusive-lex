@@ -13,8 +13,9 @@ export function useRotatingSignedUrl(params: {
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const intervalRef = useRef<number | null>(null);
+  const retryRef = useRef<boolean>(false);
 
-  async function fetchSignedUrl() {
+  async function fetchSignedUrl(retry = false) {
     if (!collectionId || !path) return;
 
     const res = await fetch("/api/media/signed-url", {
@@ -24,7 +25,22 @@ export function useRotatingSignedUrl(params: {
     });
 
     if (!res.ok) {
-      setError(`Failed to sign URL (${res.status})`);
+      const errorData = await res.json().catch(() => ({ error: "Unknown error" }));
+      const status = res.status;
+
+      if (status === 401 && !retry && !retryRef.current) {
+        retryRef.current = true;
+        // Retry once after 500ms for Safari auth hydration
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        retryRef.current = false;
+        return fetchSignedUrl(true);
+      }
+
+      if (status === 401) {
+        setError("Session expired — please refresh or sign in again.");
+      } else {
+        setError(errorData.error || `Failed to sign URL (${status})`);
+      }
       return;
     }
 
@@ -44,7 +60,7 @@ export function useRotatingSignedUrl(params: {
       if (cancelled) return;
 
       if (intervalRef.current) window.clearInterval(intervalRef.current);
-      intervalRef.current = window.setInterval(fetchSignedUrl, refreshEveryMs);
+      intervalRef.current = window.setInterval(() => fetchSignedUrl(), refreshEveryMs);
     }
 
     if (collectionId && path) start();

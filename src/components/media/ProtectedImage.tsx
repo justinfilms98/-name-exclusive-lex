@@ -22,7 +22,11 @@ export default function ProtectedImage({
   }
 
   if (!signedUrl) {
-    return loadingFallback ? <>{loadingFallback}</> : null;
+    return loadingFallback ? (
+      <>{loadingFallback}</>
+    ) : (
+      <div className="text-sm opacity-70">Loading...</div>
+    );
   }
 
   return <img {...imgProps} src={signedUrl} />;
